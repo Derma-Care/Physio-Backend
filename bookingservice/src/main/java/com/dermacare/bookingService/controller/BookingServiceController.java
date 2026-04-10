@@ -49,6 +49,17 @@ public class BookingServiceController {
 						HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}}
 	
 	
+	@GetMapping("/getTodayBookings/{clincId}/{branchId}")
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
+		List<BookingResponse> response = service.getTodayBookings(clincId, branchId);
+		if(response != null || !response.isEmpty()) {
+			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
+					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
+			else {
+				return new ResponseEntity<>(ResponseStructure.buildResponse(null, "Booked Service Not Found",
+						HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}}
+	
+	
 
 	@GetMapping("/getBookedServiceById/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id) {

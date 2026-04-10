@@ -16,7 +16,8 @@ import lombok.NoArgsConstructor;
 @Document(collection = "Appointments")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Booking  {
-    @Id
+    
+	@Id
     private String bookingId;
     private String bookingFor;
     private String relation;

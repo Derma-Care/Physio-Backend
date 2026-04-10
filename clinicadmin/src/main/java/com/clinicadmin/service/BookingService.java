@@ -37,5 +37,8 @@ public interface BookingService {
 			Integer number,
 		    String startDate,
 			String endDate);
+	
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(String clinicId,
+			String branchId);
 
 }

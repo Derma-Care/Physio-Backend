@@ -80,6 +80,19 @@ public class BookingServiceImpl implements BookingService {
 			return ResponseEntity.status(res.getStatusCode()).body(res);
 		}
 	}
+	
+	@Override
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(String clinicId,
+			String branchId) {
+		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+		try {
+			return bookingFeign.getTodayBookings(clinicId, branchId);
+		} catch (FeignException e) {
+			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
+					e.status());
+			return ResponseEntity.status(res.getStatusCode()).body(res);
+		}
+	}
 
 	@Override
 	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId) {

@@ -38,6 +38,13 @@ public class BookingServiceController {
 	}
 	
 	
+	@GetMapping("/getTodayBookings/{clinicId}/{branchId}")
+	public ResponseEntity<?> getTodayBookings(@PathVariable String clinicId,@PathVariable String branchId) {
+		return bookingService.getTodayBookings(clinicId, branchId);
+		
+	}
+	
+	
 	@GetMapping("/appointments/byIds/{clinicId}/{branchId}")
 	public ResponseEntity<?> retrieveOneWeekAppointments(@PathVariable String clinicId,@PathVariable String branchId) {
 		return bookingService.retrieveOneWeekAppointments(clinicId, branchId);

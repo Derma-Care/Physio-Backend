@@ -106,4 +106,8 @@ public interface BookingFeign {
 			@PathVariable Integer number,
 			@PathVariable String startDate,
 			@PathVariable String endDate);
+	
+	@GetMapping("api/v1/getTodayBookings/{clincId}/{branchId}")
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
+	
 }

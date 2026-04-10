@@ -45,5 +45,7 @@ public interface BookingService_Service {
 	        Integer number,
 	        String startDate,
 	        String endDate);
+
+public List<BookingResponse> getTodayBookings(String cId,String bId);
 	
 }
