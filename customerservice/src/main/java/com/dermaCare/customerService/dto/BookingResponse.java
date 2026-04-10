@@ -54,8 +54,8 @@ public class BookingResponse {
 	private String notes;
 	private List<ReportsDtoList> reports;
 	private String BookedAt;
-	private List<String> status;
-	private String currentStatus;
+	private List<String> currentStatus;
+	private String status;
 	private double totalFee;
 	private List<String> attachments;
 	private String consentFormPdf;

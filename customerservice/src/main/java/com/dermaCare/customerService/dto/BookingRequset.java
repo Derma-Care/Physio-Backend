@@ -57,7 +57,7 @@ public class BookingRequset {
 	private String followupStatus;
 	private String foc;
 	private String focReason;
-	private List<String> status;
+	private List<String> currentStatus;
 	private String bodyPartId;
 	private String bodyPartName;
 	private String partImage;
