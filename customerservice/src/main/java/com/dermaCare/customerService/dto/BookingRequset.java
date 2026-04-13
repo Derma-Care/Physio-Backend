@@ -73,5 +73,6 @@ public class BookingRequset {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
+	private String reasonforVisit;
 	
 }

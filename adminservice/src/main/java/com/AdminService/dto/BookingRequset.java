@@ -61,6 +61,14 @@ public class BookingRequset {
 	private double partAmount;
 	private double dueAmount;
 	private String paymentStatus;
+	private String previousInjuries;
+	private String currentMedications;
+	private String allergies;
+	private String occupation;
+	private String insuranceProvider;
+	private String policyNumber;
+	private List<String> activityLevels;
+	private String reasonforVisit;
 	
 
 }

@@ -28,6 +28,7 @@ public class BookingResponse {
 	private String age;
 	private String gender;
 	private String mobileNumber;
+	private String customerId;
 	private String consultationExpiration;
 	private String customerDeviceId;
 	private String problem;
@@ -35,6 +36,8 @@ public class BookingResponse {
 	private String clinicId;
 	private String clinicDeviceId;
 	private String clinicName;
+	private String branchId;
+	private String branchname;
 	private String doctorId;
 	private String doctorName;
 	private String doctorMobileDeviceId;
@@ -49,32 +52,37 @@ public class BookingResponse {
 	private String channelId;
 	private String reasonForCancel;
 	private String notes;
-///	private ReportsDtoList reports;
+	private List<ReportsDtoList> reports;
 	private String BookedAt;
 	private String status;
 	private double totalFee;
 	private List<String> attachments;
 	private String consentFormPdf;
+	private List<String> prescriptionPdf;
+	private String doctorRefCode;
 	private String paymentType;
+	private String followupStatus;
+	private Integer totalSittings;
+	private Integer pendingSittings;
+	private Integer takenSittings;
+	private Integer currentSitting;
+	private String followupDate;
 	private String bodyPartId;
 	private String bodyPartName;
+	 private TreatmentResponseDTO treatments;
 	private String partImage;
 	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;
 	private List<String> parts;
 	private double partAmount;
 	private double dueAmount;
-
-	// ✅ Sitting summary fields
-    private Integer totalSittings;
-    private Integer takenSittings;
-    private Integer pendingSittings;
-    private Integer currentSitting;
-
-    // ✅ Treatments info
-    private TreatmentResponseDTO treatments;
-    
-    private String branchId;
-    private String branchname;
-    private String customerId;
-    private String linkedBookingId;
+	private String paymentStatus;
+	private String previousInjuries;
+	private String currentMedications;
+	private String allergies;
+	private String occupation;
+	private String insuranceProvider;
+	private String policyNumber;
+	private List<String> activityLevels;
+	private String reasonforVisit;
+	
 }

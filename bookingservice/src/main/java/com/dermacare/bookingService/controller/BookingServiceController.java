@@ -340,5 +340,10 @@ public class BookingServiceController {
 		    return service.getPatientAndPriceInfo(clinicId, branchId, number, startDate, endDate);
 		}
 		
+		
+		@PostMapping("/bookPhysioAppointment")
+		public  ResponseEntity<?> bookPhysioAppointment(@RequestBody BookingRequset req) {
+			return service.physioAppointment(req);}
+			
 		}
 

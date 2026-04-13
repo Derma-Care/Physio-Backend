@@ -88,5 +88,6 @@ public class BookingResponse {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
+	private String reasonforVisit;
 	
 }

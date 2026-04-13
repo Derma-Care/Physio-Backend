@@ -107,7 +107,10 @@ public interface BookingFeign {
 			@PathVariable String startDate,
 			@PathVariable String endDate);
 	
-	@GetMapping("api/v1/getTodayBookings/{clincId}/{branchId}")
+	@GetMapping("/api/v1/getTodayBookings/{clincId}/{branchId}")
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
+	
+	@PostMapping("/api/v1/bookPhysioAppointment")
+	public  ResponseEntity<Response> bookPhysioAppointment(@RequestBody BookingRequset req);
 	
 }

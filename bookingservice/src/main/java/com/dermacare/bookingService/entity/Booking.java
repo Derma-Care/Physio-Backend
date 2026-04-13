@@ -53,7 +53,7 @@ public class Booking  {
     private double consultationFee;
     private String reasonForCancel;
     private String notes;
-    private List<String> currentStatus;
+    private List<Status> currentStatus;
 	private String status;
     private List<ReportsList> reports;
     private String channelId;
@@ -92,6 +92,7 @@ public class Booking  {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
+	private String reasonforVisit;
    	
 
     public Booking(Booking booking) {

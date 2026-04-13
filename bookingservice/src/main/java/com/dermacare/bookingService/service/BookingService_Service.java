@@ -47,5 +47,7 @@ public interface BookingService_Service {
 	        String endDate);
 
 public List<BookingResponse> getTodayBookings(String cId,String bId);
+public ResponseEntity<?> physioAppointment(BookingRequset request);
+	
 	
 }

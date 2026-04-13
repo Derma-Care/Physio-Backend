@@ -40,5 +40,7 @@ public interface BookingService {
 	
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(String clinicId,
 			String branchId);
+	
+	public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse);
 
 }
