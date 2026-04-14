@@ -325,12 +325,15 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		             request.getConsultationType().equalsIgnoreCase("online consultation"))) {
 		        entity.setChannelId(randomNumber());
 		    }
-            if(request.getPaymentType() != null) {
-		    if ("paid".equalsIgnoreCase(request.getPaymentType())) {
-		        entity.setStatus("confirmed");
-		    } else {
+            if(request.getFoc() != null && request.getPaymentType() != null) {
+            	
+		    if ("paid".equalsIgnoreCase(request.getFoc())&&"not paid".equalsIgnoreCase(request.getPaymentType())) {
 		        entity.setStatus("pending");
-		    }}
+		    } else if("foc".equalsIgnoreCase(request.getFoc())&&"not paid".equalsIgnoreCase(request.getPaymentType()))  {
+		        entity.setStatus("confirmed");
+		    }else {
+		    	if("foc".equalsIgnoreCase(request.getFoc()) && !request.getPaymentType().isEmpty()){
+			        entity.setStatus("confirmed");}}}
             	List<Status> status = new LinkedList<>();
             	Status s = new Status();
             	ZoneId zone = ZoneId.of("Asia/Kolkata");
@@ -346,7 +349,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 
 
 	 private BookingResponse toResponse(Booking entity) {
-	     BookingResponse response = new ObjectMapper().convertValue(entity, BookingResponse.class);
+		  ObjectMapper mapper = new ObjectMapper();
+	         mapper.registerModule(new JavaTimeModule());
+	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
+	     BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
 
 	     // Attach prescription PDF if exists
 	     DoctorSaveDetailsDTO dto = getPrescriptionpdf(response.getBookingId());
@@ -399,8 +405,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
     }
 
 	
-	private List<BookingResponse> toResponses(List<Booking> bookings) {		
-		List<BookingResponse> res = new ObjectMapper().convertValue(bookings,new TypeReference<List<BookingResponse>>(){});
+	private List<BookingResponse> toResponses(List<Booking> bookings) {	
+		 ObjectMapper mapper = new ObjectMapper();
+         mapper.registerModule(new JavaTimeModule());
+         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	            
+		List<BookingResponse> res = mapper.convertValue(bookings,new TypeReference<List<BookingResponse>>(){});
 		for(BookingResponse bres : res) {
 			//System.out.println(bres.getBookingId());
 			DoctorSaveDetailsDTO dto = getPrescriptionpdf(bres.getBookingId());
@@ -512,7 +521,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        List<Booking> existingBookings = repository.findByClinicIdAndDoctorId(hospitalId, doctorId);
 	        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 	        LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Kolkata"));
-
+                //System.out.println(currentDate); 
 	        if (existingBookings != null && !existingBookings.isEmpty()) {
 
 	            for (Booking b : existingBookings) {
@@ -2575,9 +2584,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			            );
 
 			        // -------- PAYMENT --------
-			         if( dto.getPaymentType() != null && dto.getPaymentType().equalsIgnoreCase("paid")) {
+			         if( dto.getPaymentType() != null && !dto.getPaymentType().isEmpty()) {
 				        	entity.setStatus("confirmed");
-				        	List<Status> status = new LinkedList<>();
+				        	List<Status> status = entity.getCurrentStatus();
 			            	Status s = new Status();
 			            	ZoneId zone = ZoneId.of("Asia/Kolkata");
 			            	LocalDateTime dateTime = LocalDateTime.now(zone);
@@ -2886,14 +2895,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 public List<BookingResponse> getTodayBookings(String cId,String bId) {
     String today = LocalDate.now()
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new JavaTimeModule());
-    // Disable timestamp format
-    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     List<Booking> b  = repository.findByClinicIdAndBranchIdAndServiceDate(cId,bId,today);
     if(b != null || !b.isEmpty()) {
-    	List<BookingResponse> dto = mapper.convertValue(b, new TypeReference<List<BookingResponse>>() {
-		});
+    	List<BookingResponse> dto = toResponses(b);
     	return dto;
     }else {
     	return Collections.emptyList();

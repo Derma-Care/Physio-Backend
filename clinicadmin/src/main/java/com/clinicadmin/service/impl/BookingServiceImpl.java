@@ -232,9 +232,8 @@ public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse) {
       } catch (FeignException e) {
     	    response.setStatus(e.status());
 			response.setMessage(e.getMessage());
-			response.setSuccess(false);
-			//response.setData(Collections.emptyList());
-        return ResponseEntity.status(response.getStatus()).body(response);}
+			response.setSuccess(false);}
+        return ResponseEntity.status(response.getStatus()).body(response);
 }
 
 
