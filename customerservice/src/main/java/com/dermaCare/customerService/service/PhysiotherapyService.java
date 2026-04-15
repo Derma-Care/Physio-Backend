@@ -1,8 +1,9 @@
 package com.dermaCare.customerService.service;
+
 import java.util.List;
-
 import org.springframework.http.ResponseEntity;
-
+import com.dermaCare.customerService.dto.QuestionsByPartDTO;
+import com.dermaCare.customerService.dto.QuestionsDTO;
 import com.dermaCare.customerService.dto.MutiplePartsDto;
 import com.dermaCare.customerService.dto.QuestionsByPartDTO;
 import com.dermaCare.customerService.dto.QuestionsDTO;
@@ -19,6 +20,8 @@ public interface PhysiotherapyService {
 	            
     public ResponseEntity<Response> updateByKey(String key, QuestionsDTO dto);
 	    
+    public ResponseEntity<Response> getByKeys(List<String> keys);
+	         	   
     public ResponseEntity<Response> getByKeys(MutiplePartsDto keys);
 	             	   
 }

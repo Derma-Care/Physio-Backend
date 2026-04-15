@@ -11,8 +11,8 @@ public class ExcerciseDTO {
 	
 	private String exerciseId;
 	private String exerciseName;
-	private Integer totalSessionCost;
-	private Integer pricePerSession;
+	private Double totalSessionCost;
+	private Double pricePerSession;
 	private Integer noOfSessions;
 	private Integer sets;
 	private Integer repetitions;

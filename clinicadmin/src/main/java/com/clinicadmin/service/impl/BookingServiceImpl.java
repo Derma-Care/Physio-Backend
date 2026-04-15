@@ -28,9 +28,6 @@ public class BookingServiceImpl implements BookingService {
 
 	@Autowired
 	DoctorService doctorService;
-	
-	@Autowired	
-	DoctorServiceImpl doctorServiceImpl;
 
 	@Override
 	public Response deleteBookedService(String id) {
@@ -77,19 +74,6 @@ public class BookingServiceImpl implements BookingService {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
 			return bookingFeign.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
-		} catch (FeignException e) {
-			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
-					e.status());
-			return ResponseEntity.status(res.getStatusCode()).body(res);
-		}
-	}
-	
-	@Override
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(String clinicId,
-			String branchId) {
-		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-		try {
-			return bookingFeign.getTodayBookings(clinicId, branchId);
 		} catch (FeignException e) {
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
@@ -207,33 +191,6 @@ public ResponseEntity<?> getInprogressBookingsByPatientIdAndClinicId(String pati
         );
         return ResponseEntity.status(res.getStatusCode()).body(res);
     }
-}
-
-@Override
-public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse) {
-    ResponseEntity<Response> res = null;
-    Response response = new Response();
-    try {
-    	res = bookingFeign.bookPhysioAppointment(bookingResponse);
-    	//System.out.println(res);
-    	 if(res.getBody().getData() != null) {
-    		 doctorServiceImpl.updateSlot(         
-	                    bookingResponse.getDoctorId(),
-	                    bookingResponse.getBranchId(),
-	                    bookingResponse.getServiceDate(),
-	                    bookingResponse.getServicetime()
-	            );}else {
-	            	response.setStatus(400);
-	       			response.setMessage("error occured");
-	       			response.setSuccess(false);
-	       			//response.setData(Collections.emptyList());
-	            }
-    	return res;
-      } catch (FeignException e) {
-    	    response.setStatus(e.status());
-			response.setMessage(e.getMessage());
-			response.setSuccess(false);}
-        return ResponseEntity.status(response.getStatus()).body(response);
 }
 
 

@@ -38,6 +38,7 @@ import com.dermaCare.customerService.dto.DoctorsDTO;
 import com.dermaCare.customerService.dto.FavouriteDoctorsDTO;
 import com.dermaCare.customerService.dto.LoginDTO;
 import com.dermaCare.customerService.dto.NotificationToCustomer;
+import com.dermaCare.customerService.dto.QuestionsDTO;
 import com.dermaCare.customerService.dto.ReportsAndDoctorSaveDetailsDto;
 import com.dermaCare.customerService.dto.ReportsDtoList;
 import com.dermaCare.customerService.dto.ServicesDto;
@@ -92,6 +93,7 @@ public class CustomerServiceImpl implements CustomerService {
     private BookingFeign bookingFeign;
     
     @Autowired
+    private PhysiotherapyRepo physiotherapyRepo;
     private GetByKey getByKey;
     
     @Autowired
@@ -880,6 +882,16 @@ public Response updateCustomerBasicDetails( CustomerDTO customerDTO ,String mobi
 	    ResponseEntity<ResponseStructure<BookingResponse>> res = null;
 	    try {
 	        log.debug("BOOK_SERVICE :: CALLING_BOOKING_SERVICE");
+//	        if(req.getBodyPartId() != null) {
+//	        for(QuestionsDTO dto:req.getQuestions()) {
+//	        //Optional<QuestionsEntity> entity = physiotherapyRepo.findByQuestionId(dto.getQuestionId());
+//	        if(entity.isPresent()) {
+//	        dto.setQuestion(entity.get().getQuestion());}}
+	        res = bookingFeign.bookService(req);
+	        bookingResponse = res.getBody().getData();
+//	        }else {
+//	        res = bookingFeign.bookService(req);
+//	        bookingResponse = res.getBody().getData();}
 	        if(req.getTheraphyAnswers()!= null) {
 	        
 	        	if (req.getTheraphyAnswers() != null && !req.getTheraphyAnswers().isEmpty()) {

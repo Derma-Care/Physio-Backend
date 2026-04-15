@@ -1,19 +1,20 @@
 package physiotherapydoctor.dto;
 
+import java.util.Map;
+
 import lombok.Data;
 
 @Data
 public class Assessment {
 
-    private String chiefComplaint;
-    private String painScale;
-    private String painType;
-    private String duration;
-    private String onset;
-    private String aggravatingFactors;
-    private String relievingFactors;
-    private String posture;
-    private String rangeOfMotion;
-    private String specialTests;
-    private String observations;
+    private SubjectiveAssessment subjectiveAssessment;
+
+    private FunctionalAssessment functionalAssessment;
+
+    private PhysicalExamination physicalExamination;
+
+    // optional sections
+    private Map<String, Object> chronicPainPatients;
+    private Map<String, Object> sportsRehabPatients;
+    private Map<String, Object> neuroRehabPatients;
 }

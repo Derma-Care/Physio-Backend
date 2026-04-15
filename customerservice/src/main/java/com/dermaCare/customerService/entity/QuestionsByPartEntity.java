@@ -12,5 +12,8 @@ import java.util.Map;
 @Document(collection = "physiotherapy_questions")
 public class QuestionsByPartEntity {
 
+	 @Id
+	 private String id;
+
 	 private Map<String, List<QuestionsEntity>> questionsByPart;
 }

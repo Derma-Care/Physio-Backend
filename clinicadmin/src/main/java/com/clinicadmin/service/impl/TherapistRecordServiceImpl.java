@@ -65,6 +65,11 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                     Base64.getEncoder().encodeToString(dto.getAfterVideo().getBytes())
             );
         }
+        if (dto.getVoiceRecord() != null) {
+            record.setVoiceRecord(
+                Base64.getEncoder().encodeToString(dto.getVoiceRecord().getBytes())
+            );
+        }
 
         // ✅ IMPORTANT: ensure IDs are set
         record.setTherapistRecordId(dto.getTherapistRecordId());
@@ -147,6 +152,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 //        record.setStatus(dto.getStatus());
         record.setMode(dto.getMode());
         record.setNextPlan(dto.getNextPlan());
+        record.setRepetationDone(dto.getRepetationDone());
+        record.setSetsDone(dto.getSetsDone());
 
         return record;
     }
@@ -185,6 +192,10 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setStatus(record.getStatus());
         dto.setMode(record.getMode());
         dto.setNextPlan(record.getNextPlan());
+//        dto.setVoiceRecord(record.getVoiceRecord());
+        dto.setRepetationDone(record.getRepetationDone());
+        dto.setSetsDone(record.getSetsDone());
+        
 
         // ================= DECODE =================
 
@@ -209,6 +220,11 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         if (record.getAfterVideo() != null) {
             dto.setAfterVideo(
                     new String(Base64.getDecoder().decode(record.getAfterVideo()))
+            );
+        }
+        if (record.getVoiceRecord() != null) {
+            dto.setVoiceRecord(
+                new String(Base64.getDecoder().decode(record.getVoiceRecord()))
             );
         }
 

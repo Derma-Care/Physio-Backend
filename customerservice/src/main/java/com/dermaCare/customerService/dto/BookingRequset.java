@@ -2,7 +2,9 @@ package com.dermaCare.customerService.dto;
 
 import java.util.List;
 import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,7 +47,7 @@ public class BookingRequset {
 	private String servicetime;
 	private String followupDate;
 	private String consultationType;
-	private List<ConsultationFeesDTO> consultationFee;	
+	private double consultationFee;
 	private double totalFee;
 	private String paymentType;
 	private List<String> attachments;
@@ -54,8 +56,12 @@ public class BookingRequset {
 	private String bookedAt;
 	private String followupStatus;
 	private String foc;
+	private String bodyPartId;
+	private String bodyPartName;
+	private String partImage;
+	private List<QuestionsDTO> questions;
 	private String focReason;
-	private List<String> currentStatus;
+	private List<String> status;
 	private String bodyPartId;
 	private String bodyPartName;
 	private String partImage;
@@ -70,7 +76,5 @@ public class BookingRequset {
 	private String occupation;
 	private String insuranceProvider;
 	private String policyNumber;
-	private List<String> activityLevels;
-	private String reasonforVisit;
-	
+	private List<String> activityLevels;	
 }

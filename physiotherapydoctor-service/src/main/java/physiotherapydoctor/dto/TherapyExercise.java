@@ -5,17 +5,18 @@ import lombok.Data;
 @Data
 public class TherapyExercise {
 
-//	private String id;
-	private String therapyExercisesId;
+    private String therapyExercisesId;
+    private String name;
 
-	private String name;
-	private String session;
-	private String frequency;
-	private String notes;
+    private String session;
+    private String frequency;
 
-	private int sets;
-	private int repetitions;
-	private String videoUrl;
+    private String notes;
 
-	private double totalPrice;
+    private Integer sets;
+    private Integer repetitions;
+
+    private String videoUrl;
+
+    private Double totalPrice;
 }

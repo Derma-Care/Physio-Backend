@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import com.dermaCare.customerService.dto.MutiplePartsDto;
 import com.dermaCare.customerService.dto.QuestionsByPartDTO;
 import com.dermaCare.customerService.dto.QuestionsDTO;
@@ -16,11 +15,14 @@ import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.entity.QuestionsEntity;
 import com.dermaCare.customerService.repository.PhysiotherapyRepo;
 import com.dermaCare.customerService.util.GetByKey;
+import com.dermaCare.customerService.util.Response;
+import com.dermaCare.customerService.util.SequenceGeneratorService;
 import com.dermaCare.customerService.util.PysioQuestionsRes;
 import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.SequenceGeneratorService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 @Service
 public class PhysiotherapyServiceImpl implements PhysiotherapyService {
@@ -39,6 +41,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        return new QuestionsEntity(
 	                d.getQuestionId(),
 	                d.getQuestion(),
+
+	                d.getType()
 	                d.getType(),
 	                d.getOptions()
 	        );
@@ -48,6 +52,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        return new QuestionsDTO(
 	                e.getQuestionId(),
 	                e.getQuestion(),
+	                e.getType()
 	                e.getType(),
 	                e.getOptions()
 	        );
@@ -71,6 +76,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	                entityMap.put(key, list);
 	            });
 
+	            QuestionsByPartEntity entity = new QuestionsByPartEntity(null, entityMap);
 	            QuestionsByPartEntity entity = new QuestionsByPartEntity(entityMap);
 
 	            return new ResponseEntity<>(
@@ -88,6 +94,14 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    // ✅ GET ALL
 	    @Override
+	    public ResponseEntity<Response> getAll() {
+	        try {
+	            return ResponseEntity.ok(
+	                    new Response("Fetched", 200, true, repository.findAll())
+	            );
+	        } catch (Exception e) {
+	            return new ResponseEntity<>(
+	                    new Response("Error", 500, false, null),
 	    public ResponseEntity<PysioQuestionsRes> getAll() {
 	        try {
 	            return ResponseEntity.ok(
@@ -104,6 +118,15 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    
 	    @Override
+	    public ResponseEntity<Response> getByKeys(List<String> keys) {
+	        try {	       
+	        	Map<String, List<QuestionsEntity>> filteredMap = new HashMap<>();
+	            for (String key : keys) {
+	            QuestionsByPartEntity entity = getByKey.getByKey(key);
+		        Map<String, List<QuestionsEntity>> existingMap = entity.getQuestionsByPart();		           
+	                if (existingMap.containsKey(key)) {
+	                    filteredMap.put(key, existingMap.get(key));
+	                }}
 	    public ResponseEntity<Response> getByKeys(MutiplePartsDto keys) {
 	        try {	       
 	        	Map<String, List<QuestionsEntity>> filteredMap = new HashMap<>();

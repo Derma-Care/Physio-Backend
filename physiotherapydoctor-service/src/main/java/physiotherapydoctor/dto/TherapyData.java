@@ -7,8 +7,9 @@ import lombok.Data;
 @Data
 public class TherapyData {
 
-	private String therapyId;
-	private String therapyName;
+    private String therapyId;
+    private String therapyName;
+    private Double totalPrice;
 
-	private List<TherapyExercise> exercises;
+    private List<TherapyExercise> exercises;
 }

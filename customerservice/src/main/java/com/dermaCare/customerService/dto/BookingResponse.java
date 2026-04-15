@@ -47,15 +47,15 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
-	private List<ConsultationFeesDTO> consultationFee;	
+	private double consultationFee;
 	private Integer visitCount;
 	private String channelId;
 	private String reasonForCancel;
 	private String notes;
 	private List<ReportsDtoList> reports;
 	private String BookedAt;
-	private List<String> currentStatus;
-	private String status;
+	private List<String> status;
+	private String currentStatus;
 	private double totalFee;
 	private List<String> attachments;
 	private String consentFormPdf;
@@ -69,12 +69,12 @@ public class BookingResponse {
 	private Integer currentSitting;
 	private String followupDate;
 	private String foc;  /////paid , unpaid	
-	
     // ✅ Treatments info
     private TreatmentResponseDTO treatments;
     private String bodyPartId;
 	private String bodyPartName;
 	private String partImage;
+	private List<QuestionsDTO> questions;
 	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;	
 	private List<String> parts;
 	private double partAmount;
@@ -88,6 +88,5 @@ public class BookingResponse {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
-	private String reasonforVisit;
 	
 }

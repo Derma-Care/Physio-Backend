@@ -1,5 +1,7 @@
 package physiotherapydoctor.dto;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
@@ -12,7 +14,7 @@ public class TreatmentPlan {
 	private String therapistName;
 
 	private String manualTherapy;
-	private String precautions;
+	private List<String >precautions;
 //	private String frequency;
 //	private List<String> modalities;
 //	private String sessionDuration;

@@ -47,7 +47,7 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
-	private List<ConsultationFeesDTO> consultationFee;	
+	private double consultationFee;
 	private Integer visitCount;
 	private String channelId;
 	private String reasonForCancel;
@@ -81,12 +81,4 @@ public class BookingResponse {
 	private double dueAmount;
 	private String referredByType;
 	private String referredByName;
-	private String previousInjuries;
-	private String currentMedications;
-	private String allergies;
-	private String occupation;
-	private String insuranceProvider;
-	private String policyNumber;
-	private List<String> activityLevels;
-	private String reasonforVisit;
 }
