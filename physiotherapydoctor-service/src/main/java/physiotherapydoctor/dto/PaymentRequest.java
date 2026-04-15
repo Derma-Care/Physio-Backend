@@ -7,20 +7,30 @@ import lombok.Data;
 @Data
 public class PaymentRequest {
 
-    private String clinicId;
-    private String branchId;
-    private String bookingId;
-    private String patientId;
-    private String therapistRecordId;
+	private String clinicId;
+	private String branchId;
+	private String bookingId;
+	private String patientId;
 
-    private double paidAmount;
-    private double discountAmount;
+	private String doctorId;
+	private String doctorName;
 
-    private String paymentMode;
-    private String paymentType;
-    private String discountIssuedBy;
+	private String therapistId;
+	private String therapistName;
 
-    private String transactionId;
+	private String therapistRecordId;
 
-    private List<TherapyWithSessions> therapyWithSessions;
+	private Double amount;
+	private String paymentMode;
+	private String paymentType;
+
+	private Double discountAmount;
+	private String discountIssuedBy;
+
+	private String paymentLevel;
+	private PaymentTarget paymentTarget;
+
+	private String paymentDate;
+
+	private List<TherapyWithSessions> therapyWithSessions;
 }

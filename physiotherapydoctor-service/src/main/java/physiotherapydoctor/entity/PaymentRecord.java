@@ -5,12 +5,16 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import physiotherapydoctor.dto.PaymentHistory;
 import physiotherapydoctor.dto.TherapyWithSessions;
 
 @Document(collection = "payments")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class PaymentRecord {
 
     @Id
@@ -20,6 +24,14 @@ public class PaymentRecord {
     private String branchId;
     private String bookingId;
     private String patientId;
+
+    // ✅ ADD THESE
+    private String doctorId;
+    private String doctorName;
+
+    private String therapistId;
+    private String therapistName;
+
     private String therapistRecordId;
 
     private double totalAmount;
@@ -29,10 +41,6 @@ public class PaymentRecord {
     private double balanceAmount;
 
     private String paymentStatus;
-
-    private int totalSessionCount;
-    private long completedSessionCount;
-    private boolean sessionWarningFlag;
 
     private List<PaymentHistory> paymentHistory;
 

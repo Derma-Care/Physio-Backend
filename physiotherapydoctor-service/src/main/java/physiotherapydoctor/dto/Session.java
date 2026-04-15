@@ -1,11 +1,17 @@
 package physiotherapydoctor.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Session {
 
-    private String date;
-    private String status; // Pending / Completed
     private String sessionId;
+    private Integer sessionNo;
+
+    private String status;
+    private String paymentStatus;
 }
