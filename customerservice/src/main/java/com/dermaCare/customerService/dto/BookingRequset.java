@@ -62,9 +62,6 @@ public class BookingRequset {
 	private List<QuestionsDTO> questions;
 	private String focReason;
 	private List<String> status;
-	private String bodyPartId;
-	private String bodyPartName;
-	private String partImage;
 	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;
 	private List<String> parts;
 	private double partAmount;

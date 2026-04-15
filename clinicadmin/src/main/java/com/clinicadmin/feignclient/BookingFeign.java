@@ -106,4 +106,8 @@ public interface BookingFeign {
 			@PathVariable Integer number,
 			@PathVariable String startDate,
 			@PathVariable String endDate);
+	
+	@PostMapping("/api/v1/bookPhysioAppointment")
+	public  ResponseEntity<Response> bookPhysioAppointment(@RequestBody BookingRequset req);
+	
 }

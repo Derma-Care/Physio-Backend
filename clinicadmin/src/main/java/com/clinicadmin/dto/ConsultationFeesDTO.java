@@ -1,9 +1,7 @@
-package com.dermacare.bookingService.entity;
+package com.clinicadmin.dto;
 
 import java.time.LocalDateTime;
-
 import org.springframework.data.annotation.CreatedDate;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,9 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConsultationFees {
+public class ConsultationFeesDTO {
 	
 	private double consulationFee;
-	private LocalDateTime DATE_TIME;
+	private String DATE_TIME;
+	
 
 }

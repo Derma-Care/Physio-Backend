@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 public class ConsultationFeesDTO {
 	
 	private double consulationFee;
-	@CreatedDate
 	private LocalDateTime DATE_TIME;
 	
 

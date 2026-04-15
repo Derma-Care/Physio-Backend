@@ -93,6 +93,11 @@ public class BookingServiceController {
 	       return bookingService.getInprogressBookingsByPatientIdAndClinicId(patientId, clinicId);
 	   }
 	   
+	   @PostMapping("/physioAppointment")
+	   public ResponseEntity<?> physioAppointment(
+			   @RequestBody BookingRequset req){
+		   return bookingService.physioAppointment(req);
+	 }
 	   
 	   @GetMapping("/reprts/{clinicId}/{branchId}/{number}/{startDate}/{endDate}")
 	   public ResponseEntity<?> getReprts(@PathVariable String clinicId,

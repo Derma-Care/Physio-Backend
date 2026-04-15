@@ -38,4 +38,6 @@ public interface BookingService {
 		    String startDate,
 			String endDate);
 
+	public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse);
+
 }
