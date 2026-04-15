@@ -2,6 +2,8 @@ package physiotherapydoctor.service;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
@@ -34,6 +36,7 @@ public interface PhysiotherapyService {
 //	Response getAssignedPatients(String clinicId, String branchId, String therapistId);
 
 	Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus);
+	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId, String bookingId);
 
 
 //	Response getTherapistDashboard(String clinicId, String branchId, String therapistId);

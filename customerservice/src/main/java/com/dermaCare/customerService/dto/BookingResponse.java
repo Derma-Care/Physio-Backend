@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class BookingResponse {
 	
 	private String bookingId;
@@ -47,40 +46,46 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
-	private double consultationFee;
+	private List<ConsultationFeesDTO> consultationFee;
 	private Integer visitCount;
 	private String channelId;
 	private String reasonForCancel;
 	private String notes;
 	private List<ReportsDtoList> reports;
 	private String BookedAt;
-	private List<String> status;
-	private String currentStatus;
+	private List<StatusDTO> currentStatus;
+	private String status;
 	private double totalFee;
 	private List<String> attachments;
 	private String consentFormPdf;
 	private List<String> prescriptionPdf;
 	private String doctorRefCode;
-	private String paymentType;
-//	private String followupStatus;
+	private String paymentType;	
 	private Integer totalSittings;
 	private Integer pendingSittings;
 	private Integer takenSittings;
 	private Integer currentSitting;
 	private String followupDate;
-	private String foc;  /////paid , unpaid	
-    // ✅ Treatments info
-    private TreatmentResponseDTO treatments;
-    private String bodyPartId;
-	private String bodyPartName;
-	private String partImage;
-	private List<QuestionsDTO> questions;
-	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;	
-	private List<String> parts;
-	private double partAmount;
-	private double dueAmount;
-	private String paymentStatus;       ///session related payment
+	private String foc;
 	private String focReason;
+	private String followupStatus;
+	private String treatmentName;
+	private String treatmentDate;
+	// ✅ Add treatments info
+    private TreatmentResponseDTO treatments;
+    
+    // ✅ Add this new field
+    private String updatedTreatment;
+    private String bodyPartId;
+   	private String bodyPartName;
+   	private String partImage;
+   	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;
+   	private List<String> parts;
+   	private double partAmount;
+   	private double dueAmount;
+   	private String referredByType;
+	private String referredByName;
+	private String paymentStatus;
 	private String previousInjuries;
 	private String currentMedications;
 	private String allergies;
@@ -88,5 +93,7 @@ public class BookingResponse {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
+	private String reasonforVisit;
 	
+   	
 }

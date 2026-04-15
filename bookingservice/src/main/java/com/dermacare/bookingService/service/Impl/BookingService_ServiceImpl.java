@@ -2897,7 +2897,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 
 
-
+@Override
 public List<BookingResponse> getTodayBookings(String cId,String bId) {
     String today = LocalDate.now()
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -2908,7 +2908,84 @@ public List<BookingResponse> getTodayBookings(String cId,String bId) {
     }else {
     	return Collections.emptyList();
     }
-}}
+}
+
+
+private static final List<String> VALID_STATUS =
+        Arrays.asList("PENDING","pending","confirmed","CONFIRMED");
+
+private static final DateTimeFormatter FORMATTER =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+// ✅ API 1 → TODAY BOOKINGS
+@Override
+public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
+
+    try {
+        String today = LocalDate.now().format(FORMATTER);
+
+        List<Booking> bookings =
+                repository.findByClinicIdAndBranchIdAndServiceDateAndStatusIn(
+                        clinicId,
+                        branchId,
+                        today,
+                        VALID_STATUS
+                );
+        return ResponseEntity.ok(
+                new Response(true, toResponses(bookings), "Today bookings fetched", 200,null,null)
+        );
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new Response(false, null, "Error fetching today bookings", 500,null,null));
+    }
+}
+
+// ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
+@Override
+public ResponseEntity<Response> getUpcomingBookings(String clinicId,
+                                                    String branchId,
+                                                    int option) {
+    try {
+        int days;
+
+        if (option == 1) {
+            days = 3;
+        } else if (option == 2) {
+            days = 7;
+        } else {
+            return ResponseEntity.badRequest()
+                    .body(new Response(false, null, "Invalid option", 400,null,null));
+        }
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusDays(days+1);
+
+        List<Booking> bookings =
+                repository.findByClinicIdAndBranchIdAndServiceDateBetween(
+                        clinicId,
+                        branchId,
+                        startDate.format(FORMATTER),
+                        endDate.format(FORMATTER)
+                );
+
+        // ✅ Optional: filter status
+        bookings = bookings.stream()
+                .filter(b -> VALID_STATUS.contains(b.getStatus()))
+                .toList();
+
+        return ResponseEntity.ok(
+                new Response(true, toResponses(bookings), "Upcoming bookings fetched", 200,null,null)
+        );
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new Response(false, null, "Error fetching upcoming bookings", 500,null,null));
+    }
+}
+}
+
+
 
 
 

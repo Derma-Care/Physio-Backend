@@ -15,5 +15,5 @@ public class TherophyDataDto {
 	private Integer therapyCost;
 	private Integer noOfSessionCount;
 	private Integer noExerciseIdCount;
-	private List<ExcerciseDTO> exercises;
+	private List<Exercise> exercises;
 }

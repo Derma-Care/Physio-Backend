@@ -42,4 +42,9 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public List<Booking> findByCustomerIdAndStatusIgnoreCase(String customerId, String string);
 	public List<Booking> findByServiceDate(String today);
 	public List<Booking> findByClinicIdAndBranchIdAndServiceDate(String cId, String bId, String today);
-}
+	
+	public List<Booking> findByClinicIdAndBranchIdAndServiceDateBetween(String clinicId, String branchId, String format,
+			String format2);
+	public List<Booking> findByClinicIdAndBranchIdAndServiceDateAndStatusIn(String clinicId, String branchId,
+			String today, List<String> validStatus);
+	}

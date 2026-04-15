@@ -49,7 +49,6 @@ public class BookingRequset {
 	private double totalFee;    ///theraphy fee
 	private String paymentType;
 	private List<String> attachments;
-	private List<String> currentStatus;
 	private String status;
 	private String consentFormPdf;
 	private String doctorRefCode;

@@ -25,8 +25,8 @@ public class BookingRequset {
 	private String age;
 	private String gender;
 	private String mobileNumber;
-	private String customerId;
 	private String consultationExpiration;
+	private String customerId;
 	private String customerDeviceId;
 	private String problem;
 	private String symptomsDuration;
@@ -42,24 +42,37 @@ public class BookingRequset {
 	private String subServiceId;
 	private String subServiceName;
 	private String serviceDate;
-	private String toatalSittings;
-	private String followupDate;
 	private String servicetime;
+	private String followupDate;
 	private String consultationType;
-	private double consultationFee;
-	private double totalFee;
+	private List<ConsultationFeesDTO> consultationFee;	
+	private double totalFee;    ///theraphy fee
 	private String paymentType;
 	private List<String> attachments;
+	private String status;
 	private String consentFormPdf;
 	private String doctorRefCode;
-	private String foc;
 	private String bookedAt;
-	private String status;
+	private String followupStatus;
+	private String foc;
+	private String focReason;
 	private String bodyPartId;
 	private String bodyPartName;
 	private String partImage;
 	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;
 	private List<String> parts;
-	private double partAmount;
+	private double partAmount;	
 	private double dueAmount;
+	private String referredByType;
+	private String referredByName;
+	private String paymentStatus;
+	private String previousInjuries;
+	private String currentMedications;
+	private String allergies;
+	private String occupation;
+	private String insuranceProvider;
+	private String policyNumber;
+	private List<String> activityLevels;
+	private String reasonforVisit;
+	
 }

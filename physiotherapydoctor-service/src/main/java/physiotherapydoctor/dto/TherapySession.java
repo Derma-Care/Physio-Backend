@@ -5,9 +5,7 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-public class TherapySession {
-
-	
+public class TherapySession {	
 
 	    private String serviceType;
 

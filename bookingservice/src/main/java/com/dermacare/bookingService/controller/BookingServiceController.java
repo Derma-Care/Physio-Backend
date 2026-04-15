@@ -344,6 +344,26 @@ public class BookingServiceController {
 		@PostMapping("/bookPhysioAppointment")
 		public  ResponseEntity<?> bookPhysioAppointment(@RequestBody BookingRequset req) {
 			return service.physioAppointment(req);}
+		
+		
+		  // ✅ API 1
+	    @GetMapping("/today/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getTodayPhysioBookings(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId) {
+
+	        return service.getTodayAllBookings(clinicId, branchId);
+	    }
+
+	    // ✅ API 2
+	    @GetMapping("/upcoming/{clinicId}/{branchId}/{option}")
+	    public ResponseEntity<Response> getUpcomingBookings(
+	    		  @PathVariable String clinicId,
+	    		  @PathVariable String branchId,
+	    		  @PathVariable int option) {
+
+	        return service.getUpcomingBookings(clinicId, branchId, option);
+	    }
 			
 		}
 

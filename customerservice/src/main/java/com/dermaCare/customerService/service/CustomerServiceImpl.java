@@ -1125,7 +1125,7 @@ public Response updateCustomerBasicDetails( CustomerDTO customerDTO ,String mobi
 
 	    } catch (FeignException e) {
 	        log.error("GET_ALL_BOOKINGS :: FEIGN_ERROR", e);
-
+     System.out.println(e.getMessage());
 	        return new ResponseStructure<>(
 	                null,
 	                ExtractFeignMessage.clearMessage(e),

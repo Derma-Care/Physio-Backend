@@ -45,6 +45,12 @@ public class PhysiotherapyController {
 		Response response = service.getAll();
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
+	
+	@GetMapping("/getTherapySessionsByServiceType/{clinicId}/{branchId}/{patientId}/{bookingId}")
+	public ResponseEntity<Response> getTherapySessionsByServiceType(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String patientId,@PathVariable String bookingId) {
+
+		return service.getCalculations(clinicId, branchId, patientId, bookingId);
+	}
 
 	// ✅ UPDATE
 	@PutMapping("/physiotherapy-record/updateById/{id}")

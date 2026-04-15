@@ -8,22 +8,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
 import physiotherapydoctor.dto.BookingResponse;
-import physiotherapydoctor.dto.ExcerciseDTO;
+import physiotherapydoctor.dto.Exercise;
+import physiotherapydoctor.dto.ExerciseCalculations;
+import physiotherapydoctor.dto.PackageCalculation;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Program;
 import physiotherapydoctor.dto.ProgramAndTherophyAndExcercisesInfo;
+import physiotherapydoctor.dto.ProgramCalculations;
+import physiotherapydoctor.dto.ProgramDataForPackage;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
+import physiotherapydoctor.dto.TheraphyInfo;
+import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
 import physiotherapydoctor.dto.TherapyExercise;
 import physiotherapydoctor.dto.TherapySession;
+import physiotherapydoctor.dto.TherapyinfoForPackage;
 import physiotherapydoctor.dto.TherophyDataDto;
 import physiotherapydoctor.dto.TreatmentPlan;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
@@ -1029,7 +1036,7 @@ int therapySessionCountTotal = 0; // → noOfSessionCount per therapy
 int exerciseIdCount          = 0; // → noExerciseIdCount per therapy
 int therapyCostTotal         = 0; // → therapyCost per therapy
 
-List<ExcerciseDTO> exerciseDtos = new ArrayList<>();
+List<Exercise> exerciseDtos = new ArrayList<>();
 
 List<TherapyExercise> exercises = therapyData.getExercises();
 
@@ -1037,7 +1044,7 @@ if (exercises != null && !exercises.isEmpty()) {
 
 for (TherapyExercise exercise : exercises) {
 
-ExcerciseDTO exerciseDTO = new ExcerciseDTO();
+Exercise exerciseDTO = new Exercise();
 
 // Map fields from TherapyExercise → ExcerciseDTO
 exerciseDTO.setExerciseId(exercise.getTherapyExercisesId());
@@ -1071,7 +1078,7 @@ exerciseDTO.setNoOfSessions(noOfSessions);
 
 // Parse pricePerSession from totalPrice
 Double pricePerSession = (double) exercise.getTotalPrice();
-exerciseDTO.setPricePerSession(pricePerSession);
+exerciseDTO.setPricePerSession(Integer.valueOf(String.valueOf(pricePerSession)));
 
 // ✅ Calculate totalSessionCost = noOfSessions * pricePerSession
 double totalSessionCost = (noOfSessions != null ? noOfSessions : 0) * pricePerSession;
@@ -1126,4 +1133,312 @@ response.setStatus(200);
 return response;
 }
 
+
+@Override
+public ResponseEntity<Response> getCalculations(String clinicId,
+                                                String branchId,
+                                                String patientId,
+                                                String bookingId) {
+    try {
+        Response fetchedResponse = getByWithoutTherapistRecordId(
+                clinicId, branchId, patientId, bookingId
+        );
+
+        if (fetchedResponse == null || fetchedResponse.getData() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new Response(false, null, "Record not found", 404));
+        }
+
+        // ✅ SAFE CAST HANDLING
+        PhysiotherapyRecord record = extractRecord(fetchedResponse.getData());
+
+        if (record == null || record.getTherapySessions() == null
+                || record.getTherapySessions().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                    .body(new Response(false, null, "No therapy sessions found", 204));
+        }
+
+        List<Object> result = new ArrayList<>();
+
+        for (TherapySession session : record.getTherapySessions()) {
+
+            String serviceType = session.getServiceType();
+            if (serviceType == null) continue;
+
+            switch (serviceType.toLowerCase()) {
+
+                case "package":
+                    result.add(handlePackage(record, session));
+                    break;
+
+                case "program":
+                    result.add(handleProgram(record, session));
+                    break;
+
+                case "therapy":
+                    result.add(handleTherapy(record, session));
+                    break;
+
+                case "exercise":
+                    result.add(handleExercise(record, session));
+                    break;
+
+                default:
+                    throw new RuntimeException("Invalid service type: " + serviceType);
+            }
+        }
+
+        return ResponseEntity.ok(
+                new Response(true, result, "Calculations fetched successfully", 200)
+        );
+
+    } catch (RuntimeException ex) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new Response(false, null, ex.getMessage(), 400));
+
+    } catch (Exception ex) {
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new Response(false, null, "Something went wrong", 500));
+    }
+} 
+
+private PackageCalculation handlePackage(PhysiotherapyRecord record, TherapySession session) {
+
+    PackageCalculation dto = new PackageCalculation();
+
+    dto.setServiceType("package");
+    dto.setBookingId(record.getBookingId());
+    dto.setTherapistRecordId(record.getTherapistRecordId());
+    dto.setClinicId(record.getClinicId());
+    dto.setBranchId(record.getBranchId());
+    dto.setPatientId(record.getPatientInfo().getPatientId());
+
+    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+    dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+    dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+    int totalPackageCost = 0;
+    List<ProgramDataForPackage> programList = new ArrayList<>();
+
+    for (Program program : session.getPrograms()) {
+
+        ProgramDataForPackage programDTO = new ProgramDataForPackage();
+        programDTO.setProgramId(program.getProgramId());
+        programDTO.setProgramName(program.getProgramName());
+
+        double programTotal = 0;
+        List<TherapyinfoForPackage> therapyList = new ArrayList<>();
+
+        for (TherapyData therapy : program.getTherapyData()) {
+
+            TherapyinfoForPackage therapyDTO = new TherapyinfoForPackage();
+            therapyDTO.setTherapyId(therapy.getTherapyId());
+            therapyDTO.setTherapyName(therapy.getTherapyName());
+
+            double therapyTotal = 0;
+            List<Exercise> exercises = mapExercises(therapy.getExercises());
+
+            for (Exercise ex : exercises) {
+                double total = calculateExerciseCost(ex);
+                ex.setTotalSessionCost(total);
+                therapyTotal += total;
+            }
+
+            therapyDTO.setExercises(exercises);
+            therapyDTO.setTotalPrice(therapyTotal);
+
+            programTotal += therapyTotal;
+            therapyList.add(therapyDTO);
+        }
+
+        programDTO.setTherapyData(therapyList);
+        programDTO.setTotalPrice(programTotal);
+
+        programList.add(programDTO);
+    }
+
+    dto.setTherapySessions(programList);
+    
+    for(ProgramDataForPackage t : programList) {
+    	totalPackageCost += t.getTotalPrice();
+    }
+    dto.setTotal(totalPackageCost);
+
+    return dto;
 }
+
+private ProgramCalculations handleProgram(PhysiotherapyRecord record, TherapySession session) {
+
+    ProgramCalculations dto = new ProgramCalculations();
+
+    dto.setServiceType("program");
+    dto.setBookingId(record.getBookingId());
+    dto.setTherapistRecordId(record.getTherapistRecordId());
+    dto.setClinicId(record.getClinicId());
+    dto.setBranchId(record.getBranchId());
+    dto.setPatientId(record.getPatientInfo().getPatientId());
+
+    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+
+    dto.setProgramId(session.getProgramId());
+    dto.setProgramName(session.getProgramName());
+
+    double programTotal = 0;
+
+    List<TheraphyInfo> therapyList = new ArrayList<>();
+
+    for (TherapyData therapy : session.getTherapyData()) {
+
+        TheraphyInfo therapyDTO = new TheraphyInfo();
+
+        therapyDTO.setTherapyId(therapy.getTherapyId());
+        therapyDTO.setTherapyName(therapy.getTherapyName());
+
+        double therapyTotal = 0;
+        List<Exercise> exercises = mapExercises(therapy.getExercises());
+
+        for (Exercise ex : exercises) {
+            double total = calculateExerciseCost(ex);
+            ex.setTotalSessionCost(total);
+            therapyTotal += total;
+        }
+
+        therapyDTO.setExercises(exercises);
+        therapyDTO.setTotalPrice(therapyTotal);
+
+        programTotal += therapyTotal;
+        therapyList.add(therapyDTO);
+    }
+
+    dto.setTherapyData(therapyList);
+    dto.setTotalPrice((int) programTotal);
+
+    return dto;
+}
+
+private TherapyCalculations handleTherapy(PhysiotherapyRecord record, TherapySession session) {
+
+    TherapyCalculations dto = new TherapyCalculations();
+
+    dto.setServiceType("therapy");
+    dto.setBookingId(record.getBookingId());
+    dto.setTherapistRecordId(record.getTherapistRecordId());
+    dto.setClinicId(record.getClinicId());
+    dto.setBranchId(record.getBranchId());
+    dto.setPatientId(record.getPatientInfo().getPatientId());
+
+    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+
+    dto.setTherapyId(session.getTherapyId());
+    dto.setTherapyName(session.getTherapyName());
+
+    List<Exercise> exercises = mapExercises(session.getExercises());
+
+    double total = 0;
+
+    for (Exercise ex : exercises) {
+        double cost = calculateExerciseCost(ex);
+        ex.setTotalSessionCost(cost);
+        total += cost;
+    }
+
+    dto.setExercises(exercises);
+    dto.setTotalPrice((int) total);
+
+    return dto;
+}
+
+private ExerciseCalculations handleExercise(PhysiotherapyRecord record, TherapySession session) {
+
+    ExerciseCalculations dto = new ExerciseCalculations();
+
+    dto.setServiceType("exercise");
+    dto.setBookingId(record.getBookingId());
+    dto.setTherapistRecordId(record.getTherapistRecordId());
+    dto.setClinicId(record.getClinicId());
+    dto.setBranchId(record.getBranchId());
+    dto.setPatientId(record.getPatientInfo().getPatientId());
+
+    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+
+    List<Exercise> exercises = mapExercises(session.getExercises());
+
+    double total = 0;
+
+    for (Exercise ex : exercises) {
+        double cost = calculateExerciseCost(ex);
+        ex.setTotalSessionCost(cost);
+        total += cost;
+    }
+
+    dto.setExercises(exercises);
+    dto.setTotalPrice((int) total);
+
+    return dto;
+}
+
+private List<Exercise> mapExercises(List<TherapyExercise> source) {
+
+    if (source == null) return new ArrayList<>();
+
+    return source.stream().map(te -> {
+        Exercise ex = new Exercise();
+
+        ex.setExerciseId(te.getTherapyExercisesId());
+        ex.setExerciseName(te.getName());
+        ex.setSets(te.getSets());
+        ex.setRepetitions(te.getRepetitions());
+        ex.setNotes(te.getNotes());
+        ex.setVideoUrl(te.getVideoUrl());
+
+        // Convert session & frequency safely
+        ex.setNoOfSessions(parseInteger(te.getSession()));
+        ex.setFrequancy(parseInteger(te.getFrequency()));
+
+        ex.setPricePerSession(te.getTotalPrice() != null ? te.getTotalPrice().intValue() : 0);
+
+        return ex;
+    }).toList();
+}
+
+private double calculateExerciseCost(Exercise ex) {
+
+    int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
+    int price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+
+    return sessions * price;
+}
+
+private Integer parseInteger(String value) {
+    try {
+        return value != null ? Integer.parseInt(value) : 0;
+    } catch (Exception e) {
+        return 0;
+    }
+}
+
+@SuppressWarnings("unchecked")
+private PhysiotherapyRecord extractRecord(Object data) {
+
+    if (data instanceof PhysiotherapyRecord) {
+        return (PhysiotherapyRecord) data;
+    }
+
+    if (data instanceof List<?>) {
+        List<?> list = (List<?>) data;
+
+        if (!list.isEmpty() && list.get(0) instanceof PhysiotherapyRecord) {
+            return (PhysiotherapyRecord) list.get(0);
+        }
+    }
+
+    throw new RuntimeException("Invalid data format: expected PhysiotherapyRecord");
+}
+}
+
+

@@ -48,6 +48,12 @@ public interface BookingService_Service {
 
 public List<BookingResponse> getTodayBookings(String cId,String bId);
 public ResponseEntity<?> physioAppointment(BookingRequset request);
+public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId);
+
+public ResponseEntity<Response> getUpcomingBookings(String clinicId,
+        String branchId,
+        int option);
+
 	
 	
 }
