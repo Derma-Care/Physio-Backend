@@ -208,11 +208,11 @@ public class BookingServiceController {
 	            HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
 	}
 
-	@PutMapping("/updateAppointment")
-	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse ){
-		return service.updateAppointment(bookingResponse);
-	
-	}
+//	@PutMapping("/updateAppointment")
+//	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse ){
+//		return service.updateAppointment(bookingResponse);
+//	
+//	}
 	
 	
 	@GetMapping("/getAppointmentByPatientId/{patientId}")
