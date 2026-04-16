@@ -29,8 +29,8 @@ public interface PhysiotherapyService {
 	Response getByWithoutTherapistRecordId(String clinicId, String branchId, String patientId, String bookingId);
 
 
-//	public Response getProgramAndTherapyInfo(String clinicId, String branchId,
-//            String patientId, String bookingId);
+	public Response getProgramAndTherapyInfo(String clinicId, String branchId,
+            String patientId, String bookingId);
 //	Response getAssignedPatients(String clinicId, String branchId, String therapistId);
 
 	Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus);
