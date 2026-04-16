@@ -120,5 +120,23 @@ public interface BookingFeign {
 	    		  @PathVariable String clinicId,
 	    		  @PathVariable String branchId,
 	    		  @PathVariable int option);
+	  
+	  @GetMapping("/api/v1//basedOnDate/{clinicId}/{branchId}/{patientId}/{date}")
+	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String patientId,
+	            @PathVariable String date);
+	  
+	  @GetMapping("/api/v1/customeRange/{clinicId}/{branchId}/{start}/{end}")
+	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String start,
+	            @PathVariable String end);
+	  
+	  @GetMapping("/api/v1/getBookingById/{bookingId}")
+	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId);
+	    
 
 }

@@ -307,6 +307,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		 Booking entity = null;
             try {
 		    entity = new ObjectMapper().convertValue(request, Booking.class);
+		    entity.setFollowupStatus("pending");
 		    entity.setPatientId(generatePatientId(request.getBranchId()));	  
 		    ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 		    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
@@ -315,7 +316,34 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		    entity.setDueAmount(due);
 		    entity.setBookedAt(istTime.format(formatter));}
 		    entity.setFreeFollowUpsLeft(request.getFreeFollowUps());
+		    entity.setFollowupStatus("pending");
+		   		        // Case 1: No free follow-ups → always true
+		        if (request.getFreeFollowUps() != null && request.getFreeFollowUps() == 0) {
+		        	entity.setIsFollowupStatus(true);}
+		            int days = 0;
+		            try{
+		            if(request.getConsultationExpiration() != null) {
+		            String consultationExp = request.getConsultationExpiration(); // e.g. "8 days"
+		            days = Integer.parseInt(consultationExp.replaceAll("[^0-9]", ""));}
 
+		            // Parse serviceDate (assumes format: yyyy-MM-dd)
+		            LocalDate serviceDate = LocalDate.parse(request.getServiceDate());
+
+		            // Add extracted days
+		            LocalDate expiryDate = serviceDate.plusDays(days);
+
+		            LocalDate today = LocalDate.now();
+		           
+		            if(!today.isAfter(expiryDate) && request.getFreeFollowUps() != null && request.getFreeFollowUps() == 0  ){
+		            	entity.setIsFollowupStatus(true);
+		            }else if(today.isAfter(expiryDate)){
+		            	entity.setIsFollowupStatus(true);
+		            }else {
+		            	entity.setIsFollowupStatus(false);
+		            }} catch (Exception e) {
+		            // fallback safety
+		            	entity.setIsFollowupStatus(false);}
+		    
 		    // ✅ Generate Custom Booking ID
 		    String bookingId = sequenceGeneratorService.generateBookingId(request.getClinicName().substring(0, 3),request.getBranchname().substring(0, 3));
 		    entity.setBookingId(bookingId);
@@ -354,7 +382,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	         mapper.registerModule(new JavaTimeModule());
 	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
 	     BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
-
+	     response.setIsFollowupStatus(entity.getIsFollowupStatus());
+	     System.out.println(entity.getIsFollowupStatus());
 	     // Attach prescription PDF if exists
 	     DoctorSaveDetailsDTO dto = getPrescriptionpdf(response.getBookingId());
 	     if (dto != null) {
@@ -2688,6 +2717,32 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			        // -------- TREATMENTS --------
 			        if (dto.getTreatments() != null)
 			            entity.setTreatments(dto.getTreatments());
+			        
+			        if (entity.getFreeFollowUps() != null && entity.getFreeFollowUps() == 0) {
+			        	entity.setIsFollowupStatus(true);}
+			            int days = 0;
+			            try{
+			            if(entity.getConsultationExpiration() != null) {
+			            String consultationExp = entity.getConsultationExpiration(); // e.g. "8 days"
+			            days = Integer.parseInt(consultationExp.replaceAll("[^0-9]", ""));}
+
+			            // Parse serviceDate (assumes format: yyyy-MM-dd)
+			            LocalDate serviceDate = LocalDate.parse(entity.getServiceDate());
+
+			            // Add extracted days
+			            LocalDate expiryDate = serviceDate.plusDays(days);
+
+			            LocalDate today = LocalDate.now();
+			           
+			            if(!today.isAfter(expiryDate) && entity.getFreeFollowUps() != null && entity.getFreeFollowUps() == 0  ){
+			            	entity.setIsFollowupStatus(true);
+			            }else if(today.isAfter(expiryDate)){
+			            	entity.setIsFollowupStatus(true);
+			            }else {
+			            	entity.setIsFollowupStatus(false);
+			            }} catch (Exception e) {
+			            // fallback safety
+			            	entity.setIsFollowupStatus(false);}
 
 			        Booking updated = repository.save(entity);
 
@@ -2914,7 +2969,13 @@ public List<BookingResponse> getTodayBookings(String cId,String bId) {
 
 
 private static final List<String> VALID_STATUS =
-        Arrays.asList("PENDING","pending","confirmed","CONFIRMED");
+        Arrays.asList("PENDING","pending","confirmed","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
+        		"INVESTIGATION DONE",
+        		"SESSION",
+        		"FOLLOW-UP PENDING");
+private static final List<String> VALID_WEEK_STATUS =
+Arrays.asList("PENDING","pending","confirmed","CONFIRMED","follow-up pending","RESCHEDULED","rescheduled",
+		"FOLLOW-UP PENDING");
 
 private static final DateTimeFormatter FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -2927,7 +2988,7 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
         String today = LocalDate.now().format(FORMATTER);
 
         List<Booking> bookings =
-                repository.findByClinicIdAndBranchIdAndServiceDateAndStatusIn(
+                repository.findByClinicIdAndBranchIdAndServiceDateAndFollowupStatusIn(
                         clinicId,
                         branchId,
                         today,
@@ -2973,7 +3034,7 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 
         // ✅ Optional: filter status
         bookings = bookings.stream()
-                .filter(b -> VALID_STATUS.contains(b.getStatus()))
+                .filter(b ->VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
                 .toList();
 
         return ResponseEntity.ok(
@@ -2985,6 +3046,98 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
                 .body(new Response(false, null, "Error fetching upcoming bookings", 500,null,null));
     }
 }
+
+@Override
+public ResponseEntity<Response> getBookingByDate(String clinicId, String branchId, String patientId,String date) {
+
+    try {
+    	  LocalDate dte = LocalDate.parse(date);
+//System.out.println(day);
+        List<Booking> bookings =
+                repository.findByClinicIdAndBranchIdAndServiceDateAndFollowupStatusIn(
+                        clinicId,
+                        branchId,
+                        dte.format(FORMATTER),
+                        VALID_STATUS
+                );
+        System.out.println(bookings); 
+        return ResponseEntity.ok(
+                new Response(true, toResponses(bookings), "bookings fetched", 200,null,null)
+        );
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new Response(false, null, "Error fetching today bookings", 500,null,null));
+    }
+}
+
+
+@Override
+public ResponseEntity<Response> getBookingByCustomRange(String clinicId, String branchId, String patientId,String start,String end) {
+
+	        try {
+	        LocalDate strt = LocalDate.parse(start);
+	        LocalDate endDte = LocalDate.parse(end);
+	        String endDate = endDte.plusDays(1).toString();
+	        
+	        List<Booking> bookings =
+	                repository.findByClinicIdAndBranchIdAndServiceDateBetween(
+	                        clinicId,
+	                        branchId,
+	                        strt.format(FORMATTER),
+	                        endDate
+	                );
+
+	        // ✅ Optional: filter status
+	        bookings = bookings.stream()
+	                .filter(b ->VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
+	                .toList();
+
+	        return ResponseEntity.ok(
+	                new Response(true, toResponses(bookings), "Upcoming bookings fetched", 200,null,null)
+	        );
+
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body(new Response(false, null, "Error fetching upcoming bookings", 500,null,null));
+	    }
+}
+
+
+public ResponseEntity<Response> getBookingById(String bookingId) {
+    try {
+        Optional<Booking> booking = repository.findByBookingId(bookingId);
+
+        if (booking.isPresent()) {
+            return ResponseEntity.ok(
+                    new Response(
+                            true,                      // success
+                           toResponse(booking.get()),             // data
+                            "Booking fetched successfully", // message
+                            200,null,null                       // status
+                    )
+            );
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new Response(
+                            false,
+                            null,
+                            "Booking not found",
+                            404,null,null 
+                    ));
+        }
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new Response(
+                        false,
+                        null,
+                        e.getMessage(),
+                        500,null,null 
+                ));
+    }
+}
+
 }
 
 

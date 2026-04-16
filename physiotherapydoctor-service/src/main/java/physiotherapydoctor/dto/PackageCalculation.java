@@ -20,6 +20,8 @@ public class PackageCalculation {
     private String doctorName;
     private String therapistId;
     private String therapistName;
+    private String packageId;
+    private String packageName;
     private int total;
     private List<ProgramDataForPackage> therapySessions;
 }

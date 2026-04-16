@@ -364,6 +364,31 @@ public class BookingServiceController {
 
 	        return service.getUpcomingBookings(clinicId, branchId, option);
 	    }
+	    
+	    @GetMapping("/basedOnDate/{clinicId}/{branchId}/{patientId}/{date}")
+	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String patientId,
+	            @PathVariable String date) {
+
+	        return service.getBookingByDate(clinicId, branchId, patientId, date);
+	    }
+	    
+	    @GetMapping("/customeRange/{clinicId}/{branchId}/{start}/{end}")
+	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String start,
+	            @PathVariable String end) {
+
+	        return service.getBookingByCustomRange(clinicId, branchId, end, start, end);
+	    }
+	    
+	    @GetMapping("/getBookingById/{bookingId}")
+	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId) {
+	        return service.getBookingById(bookingId);
+	    }
 			
 		}
 

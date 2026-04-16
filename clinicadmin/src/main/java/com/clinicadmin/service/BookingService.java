@@ -44,4 +44,10 @@ public interface BookingService {
 			String branchId);
 	public ResponseEntity<?> getUpcomingBookings(String clinicId,
 			String branchId,int option);
+	public ResponseEntity<?> getBookingsByDate(String clinicId,
+			String branchId,String patientId, String date);
+	public ResponseEntity<?> getBookingsByDateRange(String clinicId,
+			String branchId,String start, String end);
+	public ResponseEntity<?> getBookingById(String bookingId);
+
 }

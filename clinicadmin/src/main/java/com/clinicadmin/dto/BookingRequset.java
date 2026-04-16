@@ -71,4 +71,13 @@ public class BookingRequset {
 	private String policyNumber;
 	private List<String> activityLevels;
 	private String reasonforVisit;
+	private boolean isFollowupStatus;
+	
+	public void setIsFollowupStatus(boolean followupStatus) {
+	    isFollowupStatus = followupStatus;
+	}
+	
+	public boolean getFollowupStatus() {
+	    return isFollowupStatus;
+	}
 }

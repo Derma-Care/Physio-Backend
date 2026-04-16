@@ -1214,16 +1214,15 @@ private PackageCalculation handlePackage(PhysiotherapyRecord record, TherapySess
     dto.setClinicId(record.getClinicId());
     dto.setBranchId(record.getBranchId());
     dto.setPatientId(record.getPatientInfo().getPatientId());
-
     dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
     dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
     dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
     dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
     int totalPackageCost = 0;
     List<ProgramDataForPackage> programList = new ArrayList<>();
-
+    dto.setPackageName(session.getPackageName());
+	dto.setPackageId(session.getPackageId());
     for (Program program : session.getPrograms()) {
-
         ProgramDataForPackage programDTO = new ProgramDataForPackage();
         programDTO.setProgramId(program.getProgramId());
         programDTO.setProgramName(program.getProgramName());

@@ -248,6 +248,49 @@ public ResponseEntity<?> getUpcomingBookings(String clinicId,
     }
 }
 
+@Override
+public ResponseEntity<?> getBookingsByDate(String clinicId,
+		String branchId,String patientId, String date) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getPhysioBookingBasedOnDate(clinicId, branchId, patientId, date);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getBookingsByDateRange(String clinicId,
+		String branchId,String start, String end) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getPhysioBookingsByCustomeRange(clinicId, branchId, start, end);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getBookingById(String bookingId){
+	Response response = new Response();
+    try {
+        return bookingFeign.getBookingById(bookingId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
 
 @Override
 public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse) {
