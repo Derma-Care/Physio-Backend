@@ -9,7 +9,8 @@ public class TherapyData {
 
     private String therapyId;
     private String therapyName;
-    private Double totalPrice;
+    private Double totalTherapyPrice;  // ✅ RENAME
+    private String paymentStatus;      // ✅ ADD
 
     private List<TherapyExercise> exercises;
 }

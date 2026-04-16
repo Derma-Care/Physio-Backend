@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import physiotherapydoctor.dto.Assessment;
 import physiotherapydoctor.dto.Complaints;
 import physiotherapydoctor.dto.Diagnosis;
+import physiotherapydoctor.dto.DoctorTherapySession;
 import physiotherapydoctor.dto.ExercisePlan;
 import physiotherapydoctor.dto.FollowUp;
 import physiotherapydoctor.dto.Investigation;
@@ -41,7 +42,7 @@ public class PhysiotherapyRecord {
     private Diagnosis diagnosis;
     private TreatmentPlan treatmentPlan;
 
-    private List<TherapySession> therapySessions;
+    private List<DoctorTherapySession> therapySessions;
 
     private ExercisePlan exercisePlan;
     private FollowUp followUp;
