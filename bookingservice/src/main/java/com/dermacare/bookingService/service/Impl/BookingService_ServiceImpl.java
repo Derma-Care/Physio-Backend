@@ -52,12 +52,12 @@ import com.dermacare.bookingService.repository.BookingServiceRepository;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.util.Response;
 import com.dermacare.bookingService.util.ResponseStructure;
-import com.dermacare.bookingService.util.SequenceGeneratorService;
 import com.dermacare.bookingService.util.geneateIds;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.dermacare.bookingService.dto.ConsultationFeesDTO;
 
 @Service
 public class BookingService_ServiceImpl implements BookingService_Service {
@@ -333,7 +333,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		    } else if("foc".equalsIgnoreCase(request.getFoc())&&"not paid".equalsIgnoreCase(request.getPaymentType()))  {
 		        entity.setStatus("confirmed");
 		    }else {
-		    	if("foc".equalsIgnoreCase(request.getFoc()) && !request.getPaymentType().isEmpty()){
+		    	if("paid".equalsIgnoreCase(request.getFoc()) && !request.getPaymentType().isEmpty()){
 			        entity.setStatus("confirmed");}}}
             	List<Status> status = new LinkedList<>();
             	Status s = new Status();
@@ -2540,11 +2540,13 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			        if (dto.getConsultationFee()!=null) {
 			        	 ObjectMapper mapper = new ObjectMapper();
 			         mapper.registerModule(new JavaTimeModule());
-			         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
-			    
-			            entity.setConsultationFee(mapper.convertValue(dto.getConsultationFee(),new TypeReference<List<ConsultationFees>>() {
-						}));
-			        }
+			         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			         List<ConsultationFees> lst = entity.getConsultationFee();
+			         for(ConsultationFeesDTO c : dto.getConsultationFee()) {			         
+			         ConsultationFees fee = mapper.convertValue(c,ConsultationFees.class);
+			         lst.add(fee);}
+			         Collections.reverse(lst);
+			         entity.setConsultationFee(lst);}
 			        if (dto.getConsultationExpiration() != null && !dto.getConsultationExpiration().isEmpty())
 			            entity.setConsultationExpiration(dto.getConsultationExpiration());
 
