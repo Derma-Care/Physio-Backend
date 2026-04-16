@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import physiotherapydoctor.dto.PaymentHistory;
+import physiotherapydoctor.dto.PaymentTarget;
 import physiotherapydoctor.dto.TherapyWithSessions;
 
 @Document(collection = "payments")
@@ -25,24 +26,37 @@ public class PaymentRecord {
     private String bookingId;
     private String patientId;
 
-    // ✅ ADD THESE
     private String doctorId;
     private String doctorName;
 
     private String therapistId;
     private String therapistName;
-
     private String therapistRecordId;
 
+    private String serviceType;
+
+    // 💰 SUMMARY
     private double totalAmount;
-    private double finalAmount;
-    private double totalPaid;
     private double discountAmount;
+    private double finalAmount;
+
+    private double totalPaid;
     private double balanceAmount;
 
     private String paymentStatus;
 
+    // 📅 SESSION
+    private String sessionStartDate;
+    private int totalSessionCount;
+
+    private int noOfSessionCompletedCount;
+    private boolean noOfSessionCompletedStatus;
+
+    private boolean sessionTableCreatedStatus;
+
+    // 🧾 HISTORY
     private List<PaymentHistory> paymentHistory;
 
+    // 🌳 DATA
     private List<TherapyWithSessions> therapyWithSessions;
 }

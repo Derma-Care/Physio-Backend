@@ -9,9 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Session {
 
-    private String sessionId;
-    private Integer sessionNo;
+	private String sessionId;
+	private Integer sessionNo;
+	private String date;
 
-    private String status;
-    private String paymentStatus;
+	private String status;
+	private String paymentStatus;
 }

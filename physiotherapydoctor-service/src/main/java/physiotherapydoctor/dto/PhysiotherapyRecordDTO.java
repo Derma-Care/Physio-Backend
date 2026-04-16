@@ -22,7 +22,7 @@ public class PhysiotherapyRecordDTO {
     private Diagnosis diagnosis;
     private TreatmentPlan treatmentPlan;
 
-    private List<TherapySession> therapySessions;
+    private List<DoctorTherapySession> therapySessions;
 
     private ExercisePlan exercisePlan;
     private FollowUp followUp;
