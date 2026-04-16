@@ -423,8 +423,18 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentRecord getByBookingId(String bookingId) {
 
-        return repo.findByBookingId(bookingId)
+        PaymentRecord record = repo.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Payment not found for bookingId: " + bookingId));
+
+        // ✅ Recalculate completed sessions
+        int completed = countCompleted(record);
+
+        record.setNoOfSessionCompletedCount(completed);
+        record.setNoOfSessionCompletedStatus(
+                completed >= record.getTotalSessionCount()
+        );
+
+        return record;
     }
     @Override
     public void deleteByBookingId(String bookingId) {
