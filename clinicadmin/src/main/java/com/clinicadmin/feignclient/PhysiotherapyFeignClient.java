@@ -24,5 +24,9 @@ public interface PhysiotherapyFeignClient {
             @PathVariable("bookingId") String bookingId,
             @PathVariable("therapistRecordId") String therapistRecordId
     );
+    
+    @GetMapping("/api/physiotherapy-doctor/payment/{bookingId}")
+    Response getPayment(@PathVariable("bookingId") String bookingId);
+
 
 }
