@@ -371,8 +371,19 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             	s.setStatus(entity.getStatus());
             	status.add(s);
             	 Collections.reverse(status);
-            	 entity.setCurrentStatus(status);                                      
-		}catch (Exception e) {
+            	 entity.setCurrentStatus(status);  
+            	 if(request.getConsultationFee() != 0.0) {
+                	 ObjectMapper mapper = new ObjectMapper();
+			         mapper.registerModule(new JavaTimeModule());
+			         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			         List<ConsultationFees> lst = new LinkedList<>();
+			         ConsultationFees fee = new ConsultationFees();	
+			         fee.setConsulationFee(request.getConsultationFee());
+			         fee.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+			         lst.add(fee);
+			         Collections.reverse(lst);
+			         entity.setListOfConsultationFee(lst);
+            	 }}catch (Exception e) {
 			System.out.println(e.getMessage()); 
 		}return entity;}
 	 
@@ -2568,7 +2579,18 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			        if (dto.getConsultationType() != null && !dto.getConsultationType().isEmpty())
 			            entity.setConsultationType(dto.getConsultationType());
-
+                     if(dto.getConsultationFee() != 0.0) {
+                    	 ObjectMapper mapper = new ObjectMapper();
+    			         mapper.registerModule(new JavaTimeModule());
+    			         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    			         List<ConsultationFees> lst = entity.getListOfConsultationFee();
+    			         ConsultationFees fee = new ConsultationFees();	
+    			         fee.setConsulationFee(dto.getConsultationFee());
+    			         fee.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+    			         lst.add(fee);
+    			         Collections.reverse(lst);
+    			         entity.setListOfConsultationFee(lst);
+                     }
 			        if (dto.getListOfConsultationFee()!=null) {
 			        	 ObjectMapper mapper = new ObjectMapper();
 			         mapper.registerModule(new JavaTimeModule());
@@ -3037,7 +3059,7 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 public ResponseEntity<Response> getUpcomingBookings(String clinicId,
                                                     String branchId,
                                                     int option) {
-    try {
+        try {
         int days;
 
         if (option == 1) {
