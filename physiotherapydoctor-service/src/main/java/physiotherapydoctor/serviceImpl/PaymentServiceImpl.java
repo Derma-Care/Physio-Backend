@@ -25,9 +25,13 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Already exists, use update");
         }
 
+        if (req.getAmount() == null || req.getAmount() <= 0) {
+            throw new RuntimeException("Amount must be greater than 0");
+        }
+
         PaymentRecord record = new PaymentRecord();
 
-        // BASIC
+        // ================= BASIC =================
         record.setClinicId(req.getClinicId());
         record.setBranchId(req.getBranchId());
         record.setBookingId(req.getBookingId());
@@ -42,75 +46,235 @@ public class PaymentServiceImpl implements PaymentService {
 
         record.setServiceType(req.getServiceType());
 
-        // SESSION
+        // ================= SESSION =================
         record.setSessionStartDate(req.getSessionStartDate());
         record.setTotalSessionCount(req.getTotalSessionCount());
 
-        // TOTAL
+        // ================= TOTAL =================
         double total = calculateTotal(req.getTherapyWithSessions());
         double discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : 0;
 
+        double finalAmount = total - discount;
+
         record.setTotalAmount(total);
         record.setDiscountAmount(discount);
-        record.setFinalAmount(total - discount);
+        record.setFinalAmount(finalAmount);
 
-        // PAYMENT
-        record.setTotalPaid(req.getAmount());
-        record.setBalanceAmount(record.getFinalAmount() - req.getAmount());
+        double amount = req.getAmount();
+
+        // ================= 🔥 VALIDATIONS =================
+
+        // ❌ Overpayment
+        if (amount > finalAmount) {
+            throw new RuntimeException(
+                    "Amount exceeds final payable amount: " + finalAmount
+            );
+        }
+
+        // ❌ FULL payment validation
+        if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
+            if (amount != finalAmount) {
+                throw new RuntimeException(
+                        "Full payment must be exactly: " + finalAmount
+                );
+            }
+        }
+
+        // ================= PAYMENT =================
+        record.setTotalPaid(amount);
+        record.setBalanceAmount(finalAmount - amount);
         record.setPaymentStatus(getStatus(record));
 
-        // CREATE SESSIONS
+        // ================= CREATE SESSIONS =================
         boolean created = createSessions(req.getTherapyWithSessions(), req.getSessionStartDate());
         record.setSessionTableCreatedStatus(created);
 
         record.setTherapyWithSessions(req.getTherapyWithSessions());
 
-        // HISTORY
+        // ================= HISTORY =================
         record.setPaymentHistory(new ArrayList<>());
         record.getPaymentHistory().add(buildHistory(req));
 
-        // STATUS UPDATE
+        // ================= APPLY LEVEL =================
+        if (req.getPaymentTarget() != null) {
+            applyPaymentLevel(record, req);
+        }
+
+        // ================= STATUS PROPAGATION =================
         updateStatuses(record);
 
         return repo.save(record);
     }
+    //    @Override
+//    public PaymentRecord createPayment(PaymentRequest req) {
+//
+//        if (repo.findByBookingId(req.getBookingId()).isPresent()) {
+//            throw new RuntimeException("Already exists, use update");
+//        }
+//
+//        PaymentRecord record = new PaymentRecord();
+//
+//        // BASIC
+//        record.setClinicId(req.getClinicId());
+//        record.setBranchId(req.getBranchId());
+//        record.setBookingId(req.getBookingId());
+//        record.setPatientId(req.getPatientId());
+//
+//        record.setDoctorId(req.getDoctorId());
+//        record.setDoctorName(req.getDoctorName());
+//
+//        record.setTherapistId(req.getTherapistId());
+//        record.setTherapistName(req.getTherapistName());
+//        record.setTherapistRecordId(req.getTherapistRecordId());
+//
+//        record.setServiceType(req.getServiceType());
+//
+//        // SESSION
+//        record.setSessionStartDate(req.getSessionStartDate());
+//        record.setTotalSessionCount(req.getTotalSessionCount());
+//
+//        // TOTAL
+//        double total = calculateTotal(req.getTherapyWithSessions());
+//        double discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : 0;
+//
+//        record.setTotalAmount(total);
+//        record.setDiscountAmount(discount);
+//        record.setFinalAmount(total - discount);
+//
+//        // PAYMENT
+//        record.setTotalPaid(req.getAmount());
+//        record.setBalanceAmount(record.getFinalAmount() - req.getAmount());
+//        record.setPaymentStatus(getStatus(record));
+//
+//        // CREATE SESSIONS
+//        boolean created = createSessions(req.getTherapyWithSessions(), req.getSessionStartDate());
+//        record.setSessionTableCreatedStatus(created);
+//
+//        record.setTherapyWithSessions(req.getTherapyWithSessions());
+//
+//        // HISTORY
+//        record.setPaymentHistory(new ArrayList<>());
+//        record.getPaymentHistory().add(buildHistory(req));
+//
+//        // STATUS UPDATE
+//        updateStatuses(record);
+//
+//        return repo.save(record);
+//    }
 
     // ================= UPDATE =================
     @Override
     public PaymentRecord updatePayment(PaymentRequest req) {
 
         PaymentRecord record = repo.findByBookingId(req.getBookingId())
-                .orElseThrow(() -> new RuntimeException("Not found"));
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
 
+        // ❌ Prevent sending full structure in update
         if (req.getTherapyWithSessions() != null) {
             throw new RuntimeException("Do not send full data in update");
         }
 
-        double newPaid = record.getTotalPaid() + req.getAmount();
+        if (req.getAmount() == null || req.getAmount() <= 0) {
+            throw new RuntimeException("Amount must be greater than 0");
+        }
 
+        if (req.getPaymentTarget() == null) {
+            throw new RuntimeException("paymentTarget is required");
+        }
+
+        double currentPaid = record.getTotalPaid();
+        double finalAmount = record.getFinalAmount();
+        double remaining = finalAmount - currentPaid;
+
+        // ================= 🔥 FULL PAYMENT VALIDATION =================
+        if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
+
+            if (req.getAmount() != remaining) {
+                throw new RuntimeException(
+                        "Full payment must be exactly remaining amount: " + remaining
+                );
+            }
+        }
+
+        // ================= 🔥 OVERPAYMENT PREVENTION =================
+        double newPaid = currentPaid + req.getAmount();
+
+        if (newPaid > finalAmount) {
+            throw new RuntimeException(
+                    "Payment exceeds final amount. Remaining payable: " + remaining
+            );
+        }
+
+        // ================= UPDATE AMOUNT =================
         record.setTotalPaid(newPaid);
-        record.setBalanceAmount(record.getFinalAmount() - newPaid);
+        record.setBalanceAmount(finalAmount - newPaid);
         record.setPaymentStatus(getStatus(record));
 
+        // ================= APPLY PAYMENT LEVEL =================
         applyPaymentLevel(record, req);
 
+        // ================= SESSION COMPLETION =================
         int completed = countCompleted(record);
+
         record.setNoOfSessionCompletedCount(completed);
         record.setNoOfSessionCompletedStatus(
                 completed >= record.getTotalSessionCount()
         );
 
+        // ================= HISTORY =================
         record.getPaymentHistory().add(buildHistory(req));
 
+        // ================= STATUS PROPAGATION =================
         updateStatuses(record);
 
         return repo.save(record);
     }
+    
+//    @Override
+//    public PaymentRecord updatePayment(PaymentRequest req) {
+//
+//        PaymentRecord record = repo.findByBookingId(req.getBookingId())
+//                .orElseThrow(() -> new RuntimeException("Not found"));
+//
+//        if (req.getTherapyWithSessions() != null) {
+//            throw new RuntimeException("Do not send full data in update");
+//        }
+//
+//        double newPaid = record.getTotalPaid() + req.getAmount();
+//
+//        record.setTotalPaid(newPaid);
+//        record.setBalanceAmount(record.getFinalAmount() - newPaid);
+//        record.setPaymentStatus(getStatus(record));
+//
+//        applyPaymentLevel(record, req);
+//
+//        int completed = countCompleted(record);
+//        record.setNoOfSessionCompletedCount(completed);
+//        record.setNoOfSessionCompletedStatus(
+//                completed >= record.getTotalSessionCount()
+//        );
+//
+//        record.getPaymentHistory().add(buildHistory(req));
+//
+//        updateStatuses(record);
+//
+//        return repo.save(record);
+//    }
 
     // ================= APPLY LEVEL =================
     private void applyPaymentLevel(PaymentRecord record, PaymentRequest req) {
 
-        if (req.getPaymentLevel() == null) return;
+        if (req.getPaymentLevel() == null || req.getPaymentTarget() == null) return;
+
+        // 🔥 Only allow marking Paid when FULL payment is done
+        boolean isFullPaid = Double.compare(
+                record.getTotalPaid(),
+                record.getFinalAmount()
+        ) == 0;
+
+        if (!isFullPaid) {
+            return; // ❌ DO NOTHING for partial payment
+        }
 
         String level = req.getPaymentLevel().toUpperCase();
 
@@ -135,14 +299,45 @@ public class PaymentServiceImpl implements PaymentService {
             case "PACKAGE":
                 payPackages(record, req.getPaymentTarget().getPackageIds());
                 break;
-
-            default:
-                throw new RuntimeException("Invalid payment level");
         }
     }
+//    private void applyPaymentLevel(PaymentRecord record, PaymentRequest req) {
+//
+//        if (req.getPaymentLevel() == null) return;
+//
+//        String level = req.getPaymentLevel().toUpperCase();
+//
+//        switch (level) {
+//
+//            case "SESSION":
+//                paySessions(record, req.getPaymentTarget().getSessionIds());
+//                break;
+//
+//            case "EXERCISE":
+//                payExercises(record, req.getPaymentTarget().getExerciseIds());
+//                break;
+//
+//            case "THERAPY":
+//                payTherapies(record, req.getPaymentTarget().getTherapyIds());
+//                break;
+//
+//            case "PROGRAM":
+//                payPrograms(record, req.getPaymentTarget().getProgramIds());
+//                break;
+//
+//            case "PACKAGE":
+//                payPackages(record, req.getPaymentTarget().getPackageIds());
+//                break;
+//
+//            default:
+//                throw new RuntimeException("Invalid payment level");
+//        }
+//    }
 
     // ================= PACKAGE =================
     private void payPackages(PaymentRecord record, List<String> ids) {
+
+        if (ids == null || ids.isEmpty()) return;
 
         for (var pkg : record.getTherapyWithSessions()) {
             if (ids.contains(pkg.getPackageId())) {
@@ -167,6 +362,31 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
     }
+    //    private void payPackages(PaymentRecord record, List<String> ids) {
+//
+//        for (var pkg : record.getTherapyWithSessions()) {
+//            if (ids.contains(pkg.getPackageId())) {
+//
+//                pkg.setPaymentStatus("Paid");
+//
+//                for (var prog : pkg.getPrograms()) {
+//                    prog.setPaymentStatus("Paid");
+//
+//                    for (var therapy : prog.getTherapyData()) {
+//                        therapy.setPaymentStatus("Paid");
+//
+//                        for (var ex : therapy.getExercises()) {
+//                            ex.setPaymentStatus("Paid");
+//
+//                            for (var s : ex.getSessions()) {
+//                                s.setPaymentStatus("Paid");
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     // ================= PROGRAM =================
     private void payPrograms(PaymentRecord record, List<String> ids) {
@@ -305,9 +525,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     // ================= UTIL =================
     private String getStatus(PaymentRecord r) {
-        if (r.getTotalPaid() == 0) return "Unpaid";
+
+        if (r.getTotalPaid() <= 0) return "Unpaid";
+
         if (r.getTotalPaid() < r.getFinalAmount()) return "Partial";
-        return "Paid";
+
+        if (Double.compare(r.getTotalPaid(), r.getFinalAmount()) == 0) return "Paid";
+
+        return "Overpaid"; // safety fallback
     }
 
     private PaymentHistory buildHistory(PaymentRequest req) {

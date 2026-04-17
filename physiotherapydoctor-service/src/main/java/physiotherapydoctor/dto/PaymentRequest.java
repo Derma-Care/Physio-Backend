@@ -34,7 +34,7 @@ public class PaymentRequest {
     // ✅ STRING BASED LEVEL
     private String paymentLevel; // PACKAGE / PROGRAM / THERAPY / EXERCISE / SESSION
 
-    private PaymentTarget paymentTarget;
+    private PaymentTarget paymentTarget; //pakageId = all sessins are paid(sessionSatus)   if programId=only that program session are paid   if therpyId=that therpy session paid if exercise session paid ,session just paid 
 
     private String paymentDate;
 
