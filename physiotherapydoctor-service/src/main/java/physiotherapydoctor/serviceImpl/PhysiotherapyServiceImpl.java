@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
 import physiotherapydoctor.dto.BookingResponse;
@@ -35,6 +37,7 @@ import physiotherapydoctor.dto.TherophyDataDto;
 import physiotherapydoctor.dto.TreatmentPlan;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
 import physiotherapydoctor.feign.BookingFeign;
+import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PhysiotherapyService;
 
@@ -47,73 +50,105 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@Autowired
 	private BookingFeign bookingFeign;
 
+	@Autowired
+	private ClinicAdminFeign clinicAdminFeign;
 	@Override
 	public Response create(PhysiotherapyRecordDTO dto) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		if (dto == null) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Request body is null");
-			response.setStatus(400);
-			return response;
-		}
+	    if (dto == null) {
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Request body is null");
+	        response.setStatus(400);
+	        return response;
+	    }
 
-		calculateTherapyPrices(dto.getTherapySessions());
+	    calculateTherapyPrices(dto.getTherapySessions());
 
-		PhysiotherapyRecord entity = mapToEntity(dto);
+	    PhysiotherapyRecord entity = mapToEntity(dto);
 
-		// ✅ ID
-		entity.setTherapistRecordId(dto.getTherapistRecordId());
+	    // ✅ ID
+	    entity.setTherapistRecordId(dto.getTherapistRecordId());
 
-		// ✅ STATUS
-		entity.setOverallStatus("Pending");
+	    // ✅ STATUS
+	    entity.setOverallStatus("Pending");
 
-		// ✅ DATE
-		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+	    // ✅ DATE
+	    String now = java.time.LocalDateTime.now()
+	            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-		entity.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : now);
-		entity.setUpdatedAt(now);
+	    entity.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : now);
+	    entity.setUpdatedAt(now);
 
-		// ✅ SAVE
-		PhysiotherapyRecord saved = repository.save(entity);
+	    // ✅ SAVE
+	    PhysiotherapyRecord saved = repository.save(entity);
+	    
+	 // ✅ BOOKING UPDATE (only changed to ClinicAdminFeign + in-progress)
+	    if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
+	        try {
+	            ResponseStructure<BookingResponse> res =
+	                    clinicAdminFeign.getBookingById(dto.getBookingId());
 
-		// ✅ BOOKING UPDATE
-		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
-			try {
-				ResponseStructure<BookingResponse> res = bookingFeign.getBookingById(dto.getBookingId());
+	            if (res != null && res.getData() != null) {
 
-				if (res != null && res.getData() != null) {
-					BookingResponse oldBooking = res.getData();
+	                BookingResponse oldBooking = res.getData();
 
-					BookingResponse updateRequest = new BookingResponse();
-					updateRequest.setBookingId(oldBooking.getBookingId());
-					updateRequest.setStatus("Active");
-					updateRequest.setName(oldBooking.getName());
-					updateRequest.setMobileNumber(oldBooking.getMobileNumber());
+	                BookingResponse updateRequest = new BookingResponse();
+	                updateRequest.setBookingId(oldBooking.getBookingId());
+	                updateRequest.setStatus("in-progress");
+	                updateRequest.setName(oldBooking.getName());
+	                updateRequest.setMobileNumber(oldBooking.getMobileNumber());
 
-					bookingFeign.updateAppointment(updateRequest);
-				}
+	                clinicAdminFeign.updateAppointment(updateRequest);
+	            }
 
-			} catch (Exception e) {
-				System.out.println("Booking update failed: " + e.getMessage());
-			}
-		}
+	        } catch (Exception e) {
+	            System.out.println("Booking update failed: " + e.getMessage());
+	        }
+	    }
 
-		// 🔥🔥 IMPORTANT: TRANSFORM RESPONSE
-		List<Map<String, Object>> cleanSessions = transformTherapySessions(saved.getTherapySessions());
+	    // ✅ BOOKING UPDATE
+	    if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
+	        try {
+	            ResponseStructure<BookingResponse> res =
+	                    bookingFeign.getBookingById(dto.getBookingId());
 
-		saved.setTherapySessions((List) cleanSessions);
+	            if (res != null && res.getData() != null) {
 
-		response.setSuccess(true);
-		response.setData(saved);
-		response.setMessage("Record created successfully");
-		response.setStatus(201);
+	                BookingResponse oldBooking = res.getData();
 
-		return response;
+	                BookingResponse updateRequest = new BookingResponse();
+	                updateRequest.setBookingId(oldBooking.getBookingId());
+
+	                // ✅ Updated status here
+	                updateRequest.setStatus("in-progress");
+
+	                updateRequest.setName(oldBooking.getName());
+	                updateRequest.setMobileNumber(oldBooking.getMobileNumber());
+
+	                bookingFeign.updateAppointment(updateRequest);
+	            }
+
+	        } catch (Exception e) {
+	            System.out.println("Booking update failed: " + e.getMessage());
+	        }
+	    }
+
+	    // ✅ RESPONSE TRANSFORM
+	    List<Map<String, Object>> cleanSessions =
+	            transformTherapySessions(saved.getTherapySessions());
+
+	    saved.setTherapySessions((List) cleanSessions);
+
+	    response.setSuccess(true);
+	    response.setData(saved);
+	    response.setMessage("Record created successfully");
+	    response.setStatus(201);
+
+	    return response;
 	}
-
 	private List<Map<String, Object>> transformTherapySessions(List<TherapySession> sessions) {
 
 		if (sessions == null)
