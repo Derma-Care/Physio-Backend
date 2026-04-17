@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 public class Response {
 	private boolean success;
 	private Object data;
+	private Map<String,Object> counts;
 	private String message;
 	private int status;
 	private String hospitalName;
@@ -26,5 +27,6 @@ public class Response {
     private String branchName;
 	private String role;
 	private Map<String, List<String>> permissions;
+	
 
 }

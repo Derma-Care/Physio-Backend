@@ -112,4 +112,21 @@ public class TherapistController {
         return ResponseEntity.status(response.getHttpStatus())
                 .body(response);
     }
+ // ================= GET ONLY PAID SESSIONS =================
+    @GetMapping("/getPaidSessionsByClinicIdBranchIdBookingIdAndTherapistRecordId/{clinicId}/{branchId}/{bookingId}/{therapistRecordId}")
+    public ResponseEntity<Response> getPaidSessions(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String bookingId,
+            @PathVariable String therapistRecordId) {
+
+        Response response = service.getPaidSessions(
+                clinicId,
+                branchId,
+                bookingId,
+                therapistRecordId
+        );
+
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }

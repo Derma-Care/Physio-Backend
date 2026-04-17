@@ -316,7 +316,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		    entity.setDueAmount(due);
 		    entity.setBookedAt(istTime.format(formatter));}
 		    entity.setFreeFollowUpsLeft(request.getFreeFollowUps());
-		    entity.setFollowupStatus("pending");
+		    entity.setFollowupStatus("pending");		  
 		   		        // Case 1: No free follow-ups → always true
 		        if (request.getFreeFollowUps() != null && request.getFreeFollowUps() == 0) {
 		        	entity.setIsFollowupStatus(true);}
@@ -383,8 +383,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
 	     BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
 	     response.setIsFollowupStatus(entity.getIsFollowupStatus());
-	     System.out.println(entity.getIsFollowupStatus());
-	     // Attach prescription PDF if exists
+	     response.setConsultationFee(entity.getListOfConsultationFee().get(0).getConsulationFee());
+	     System.out.println(entity.getListOfConsultationFee());
 	     DoctorSaveDetailsDTO dto = getPrescriptionpdf(response.getBookingId());
 	     if (dto != null) {
 	         response.setPrescriptionPdf(dto.getPrescriptionPdf());
@@ -2496,24 +2496,27 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			        if (dto.getFollowupDate() != null && !dto.getFollowupDate().isEmpty())
 			            entity.setFollowupDate(dto.getFollowupDate());
 
-			        if(dto.getFollowupStatus() != null && dto.getFollowupStatus().equalsIgnoreCase("no-followup")) {
-				        entity.setStatus("Completed");
-				    }else {
-				    	try {
-				    		//System.out.println(dto);
-				    		if(entity.getTreatments().getGeneratedData().containsKey(dto.getTreatmentName())) {
-				    		TreatmentDetailsDTO	treatmentDetailsDTO = entity.getTreatments().getGeneratedData().get(dto.getTreatmentName());
-				    		//System.out.println(treatmentDetailsDTO);
-				    		if(treatmentDetailsDTO != null) {
-				    			for(DatesDTO datesDTO : treatmentDetailsDTO.getDates()) {
-				    				//System.out.println(datesDTO);
-				    				if(datesDTO.getDate().equals(dto.getTreatmentDate())){
-				    					datesDTO.setFollowupStatus(dto.getFollowupStatus());}
-				    				TreatmentResponseDTO treatmentResponseDTO = entity.getTreatments();
-				    				//System.out.println(treatmentResponseDTO);
-				    					entity.setTreatments(treatmentResponseDTO);		
-				    			}}}}catch(Exception e) {System.out.println(e.getMessage());}}
-
+//			        if(dto.getFollowupStatus() != null && dto.getFollowupStatus().equalsIgnoreCase("no-followup")) {
+//				        entity.setStatus("Completed");
+//				        
+//				    }else {
+//				    	try {
+//				    		//System.out.println(dto);
+//				    		if(entity.getTreatments().getGeneratedData().containsKey(dto.getTreatmentName())) {
+//				    		TreatmentDetailsDTO	treatmentDetailsDTO = entity.getTreatments().getGeneratedData().get(dto.getTreatmentName());
+//				    		//System.out.println(treatmentDetailsDTO);
+//				    		if(treatmentDetailsDTO != null) {
+//				    			for(DatesDTO datesDTO : treatmentDetailsDTO.getDates()) {
+//				    				//System.out.println(datesDTO);
+//				    				if(datesDTO.getDate().equals(dto.getTreatmentDate())){
+//				    					datesDTO.setFollowupStatus(dto.getFollowupStatus());}
+//				    				TreatmentResponseDTO treatmentResponseDTO = entity.getTreatments();
+//				    				//System.out.println(treatmentResponseDTO);
+//				    					entity.setTreatments(treatmentResponseDTO);		
+//				    			}}}}catch(Exception e) {System.out.println(e.getMessage());}}
+			        if(dto.getFollowupStatus() != null ) {
+				        entity.setFollowupStatus(dto.getFollowupStatus());
+				        System.out.println(dto.getFollowupStatus()); }
 			        // -------- PROBLEM --------
 			        if (dto.getProblem() != null && !dto.getProblem().isEmpty())
 			            entity.setProblem(dto.getProblem());
@@ -2566,16 +2569,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			        if (dto.getConsultationType() != null && !dto.getConsultationType().isEmpty())
 			            entity.setConsultationType(dto.getConsultationType());
 
-			        if (dto.getConsultationFee()!=null) {
+			        if (dto.getListOfConsultationFee()!=null) {
 			        	 ObjectMapper mapper = new ObjectMapper();
 			         mapper.registerModule(new JavaTimeModule());
 			         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-			         List<ConsultationFees> lst = entity.getConsultationFee();
-			         for(ConsultationFeesDTO c : dto.getConsultationFee()) {			         
+			         List<ConsultationFees> lst = entity.getListOfConsultationFee();
+			         for(ConsultationFeesDTO c : dto.getListOfConsultationFee()) {			         
 			         ConsultationFees fee = mapper.convertValue(c,ConsultationFees.class);
 			         lst.add(fee);}
 			         Collections.reverse(lst);
-			         entity.setConsultationFee(lst);}
+			         entity.setListOfConsultationFee(lst);}
 			        if (dto.getConsultationExpiration() != null && !dto.getConsultationExpiration().isEmpty())
 			            entity.setConsultationExpiration(dto.getConsultationExpiration());
 
@@ -2901,7 +2904,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		                patientList.add(info);
 
 		                // 🔥 Aggregation
-		                totalConsultation += booking.getConsultationFee().get(0).getConsulationFee();
+		                totalConsultation += booking.getListOfConsultationFee().get(0).getConsulationFee();
 		                totalTherapy += booking.getTotalFee();
 		                totalDue += booking.getDueAmount();
 		            }
@@ -2969,12 +2972,12 @@ public List<BookingResponse> getTodayBookings(String cId,String bId) {
 
 
 private static final List<String> VALID_STATUS =
-        Arrays.asList("PENDING","pending","confirmed","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
+        Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
         		"INVESTIGATION DONE",
         		"SESSION",
         		"FOLLOW-UP PENDING");
 private static final List<String> VALID_WEEK_STATUS =
-Arrays.asList("PENDING","pending","confirmed","CONFIRMED","follow-up pending","RESCHEDULED","rescheduled",
+Arrays.asList("PENDING","pending","confirmed","CONFIRMED","In-progress","IN-PROGRESS","follow-up pending","RESCHEDULED","rescheduled",
 		"FOLLOW-UP PENDING");
 
 private static final DateTimeFormatter FORMATTER =
@@ -2994,13 +2997,38 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
                         today,
                         VALID_STATUS
                 );
+
+        // Total count
+        long totalCount = bookings.size();
+
+        // Status counts
+        long pendingCount = bookings.stream()
+                .filter(b -> "PENDING".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long confirmedCount = bookings.stream()
+                .filter(b -> "CONFIRMED".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long inProgressCount = bookings.stream()
+                .filter(b -> "IN-PROGRESS".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        // Prepare response map
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalAppointments", totalCount);
+        summary.put("pending", pendingCount);
+        summary.put("confirmed", confirmedCount);
+        summary.put("inProgress", inProgressCount);
+        // optional
+
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings), "Today bookings fetched", 200,null,null)
+                new Response(true, toResponses(bookings),summary, "Today bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new Response(false, null, "Error fetching today bookings", 500,null,null));
+                .body(new Response(false, null,null, "Error fetching today bookings", 500, null, null));
     }
 }
 
@@ -3018,11 +3046,11 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
             days = 7;
         } else {
             return ResponseEntity.badRequest()
-                    .body(new Response(false, null, "Invalid option", 400,null,null));
+                    .body(new Response(false, null,null, "Invalid option", 400, null, null));
         }
 
         LocalDate startDate = LocalDate.now();
-        LocalDate endDate = startDate.plusDays(days+1);
+        LocalDate endDate = startDate.plusDays(days + 1);
 
         List<Booking> bookings =
                 repository.findByClinicIdAndBranchIdAndServiceDateBetween(
@@ -3032,27 +3060,53 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
                         endDate.format(FORMATTER)
                 );
 
-        // ✅ Optional: filter status
+        // ✅ Filter valid statuses
         bookings = bookings.stream()
-                .filter(b ->VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
+                .filter(b -> VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
                 .toList();
 
+        // ✅ Total count
+        long totalCount = bookings.size();
+
+        // ✅ Status counts
+        long pendingCount = bookings.stream()
+                .filter(b -> "PENDING".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long confirmedCount = bookings.stream()
+                .filter(b -> "CONFIRMED".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long inProgressCount = bookings.stream()
+                .filter(b -> "IN-PROGRESS".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        // ✅ Prepare response
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalAppointments", totalCount);
+        summary.put("pending", pendingCount);
+        summary.put("confirmed", confirmedCount);
+        summary.put("inProgress", inProgressCount);
+      
+
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings), "Upcoming bookings fetched", 200,null,null)
+                new Response(true, toResponses(bookings), summary,"Upcoming bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new Response(false, null, "Error fetching upcoming bookings", 500,null,null));
+                .body(new Response(false, null,null, "Error fetching upcoming bookings", 500, null, null));
     }
 }
 
 @Override
-public ResponseEntity<Response> getBookingByDate(String clinicId, String branchId, String patientId,String date) {
+public ResponseEntity<Response> getBookingByDate(String clinicId,
+                                                 String branchId,
+                                                 String date) {
 
     try {
-    	  LocalDate dte = LocalDate.parse(date);
-//System.out.println(day);
+        LocalDate dte = LocalDate.parse(date);
+
         List<Booking> bookings =
                 repository.findByClinicIdAndBranchIdAndServiceDateAndFollowupStatusIn(
                         clinicId,
@@ -3060,47 +3114,98 @@ public ResponseEntity<Response> getBookingByDate(String clinicId, String branchI
                         dte.format(FORMATTER),
                         VALID_STATUS
                 );
-        System.out.println(bookings); 
+
+        // ✅ Total count
+        long totalCount = bookings.size();
+
+        // ✅ Status counts
+        long pendingCount = bookings.stream()
+                .filter(b -> "PENDING".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long confirmedCount = bookings.stream()
+                .filter(b -> "CONFIRMED".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long inProgressCount = bookings.stream()
+                .filter(b -> "IN-PROGRESS".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        // ✅ Prepare response
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalAppointments", totalCount);
+        summary.put("pending", pendingCount);
+        summary.put("confirmed", confirmedCount);
+        summary.put("inProgress", inProgressCount);
+        
+
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings), "bookings fetched", 200,null,null)
+                new Response(true, toResponses(bookings),summary, "Bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new Response(false, null, "Error fetching today bookings", 500,null,null));
+                .body(new Response(false, null, null,"Error fetching bookings", 500, null, null));
     }
 }
 
 
 @Override
-public ResponseEntity<Response> getBookingByCustomRange(String clinicId, String branchId, String patientId,String start,String end) {
+public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
+                                                        String branchId,                                                       
+                                                        String start,
+                                                        String end) {
 
-	        try {
-	        LocalDate strt = LocalDate.parse(start);
-	        LocalDate endDte = LocalDate.parse(end);
-	        String endDate = endDte.plusDays(1).toString();
-	        
-	        List<Booking> bookings =
-	                repository.findByClinicIdAndBranchIdAndServiceDateBetween(
-	                        clinicId,
-	                        branchId,
-	                        strt.format(FORMATTER),
-	                        endDate
-	                );
+    try {
+        LocalDate strt = LocalDate.parse(start);
+        LocalDate endDte = LocalDate.parse(end);
+        String endDate = endDte.plusDays(1).format(FORMATTER);
 
-	        // ✅ Optional: filter status
-	        bookings = bookings.stream()
-	                .filter(b ->VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
-	                .toList();
+        List<Booking> bookings =
+                repository.findByClinicIdAndBranchIdAndServiceDateBetween(
+                        clinicId,
+                        branchId,
+                        strt.format(FORMATTER),
+                        endDate
+                );
 
-	        return ResponseEntity.ok(
-	                new Response(true, toResponses(bookings), "Upcoming bookings fetched", 200,null,null)
-	        );
+        // ✅ Filter valid statuses
+        bookings = bookings.stream()
+                .filter(b -> VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
+                .toList();
 
-	    } catch (Exception e) {
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                .body(new Response(false, null, "Error fetching upcoming bookings", 500,null,null));
-	    }
+        // ✅ Total count
+        long totalCount = bookings.size();
+
+        // ✅ Status counts
+        long pendingCount = bookings.stream()
+                .filter(b -> "PENDING".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long confirmedCount = bookings.stream()
+                .filter(b -> "CONFIRMED".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        long inProgressCount = bookings.stream()
+                .filter(b -> "IN-PROGRESS".equalsIgnoreCase(b.getFollowupStatus()))
+                .count();
+
+        // ✅ Prepare response
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalAppointments", totalCount);
+        summary.put("pending", pendingCount);
+        summary.put("confirmed", confirmedCount);
+        summary.put("inProgress", inProgressCount);
+        
+
+        return ResponseEntity.ok(
+                new Response(true, toResponses(bookings), summary,"Custom range bookings fetched", 200, null, null)
+        );
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new Response(false, null,null, "Error fetching bookings", 500, null, null));
+    }
 }
 
 
@@ -3112,16 +3217,16 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
             return ResponseEntity.ok(
                     new Response(
                             true,                      // success
-                           toResponse(booking.get()),             // data
+                           toResponse(booking.get()),null,            // data
                             "Booking fetched successfully", // message
-                            200,null,null                       // status
+                            200,null, null                      // status
                     )
             );
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new Response(
                             false,
-                            null,
+                            null,null,
                             "Booking not found",
                             404,null,null 
                     ));
@@ -3131,9 +3236,9 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new Response(
                         false,
-                        null,
+                        null,null,
                         e.getMessage(),
-                        500,null,null 
+                        500,null,null
                 ));
     }
 }

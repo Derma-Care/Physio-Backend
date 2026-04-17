@@ -46,168 +46,189 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	@Autowired
 	private BookingFeign bookingFeign;
+
 	@Override
 	public Response create(PhysiotherapyRecordDTO dto) {
 
-	    Response response = new Response();
+		Response response = new Response();
 
-	    if (dto == null) {
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage("Request body is null");
-	        response.setStatus(400);
-	        return response;
-	    }
+		if (dto == null) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("Request body is null");
+			response.setStatus(400);
+			return response;
+		}
 
-	    calculateTherapyPrices(dto.getTherapySessions());
+		calculateTherapyPrices(dto.getTherapySessions());
 
-	    PhysiotherapyRecord entity = mapToEntity(dto);
+		PhysiotherapyRecord entity = mapToEntity(dto);
 
-	    // ✅ ID
-	    entity.setTherapistRecordId(dto.getTherapistRecordId());
+		// ✅ ID
+		entity.setTherapistRecordId(dto.getTherapistRecordId());
 
-	    // ✅ STATUS
-	    entity.setOverallStatus("Pending");
+		// ✅ STATUS
+		entity.setOverallStatus("Pending");
 
-	    // ✅ DATE
-	    String now = java.time.LocalDateTime.now()
-	            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+		// ✅ DATE
+		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-	    entity.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : now);
-	    entity.setUpdatedAt(now);
+		entity.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : now);
+		entity.setUpdatedAt(now);
 
-	    // ✅ SAVE
-	    PhysiotherapyRecord saved = repository.save(entity);
+		// ✅ SAVE
+		PhysiotherapyRecord saved = repository.save(entity);
 
-	    // ✅ BOOKING UPDATE
-	    if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
-	        try {
-	            ResponseStructure<BookingResponse> res =
-	                    bookingFeign.getBookingById(dto.getBookingId());
+		// ✅ BOOKING UPDATE
+		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
+			try {
+				ResponseStructure<BookingResponse> res = bookingFeign.getBookingById(dto.getBookingId());
 
-	            if (res != null && res.getData() != null) {
-	                BookingResponse oldBooking = res.getData();
+				if (res != null && res.getData() != null) {
+					BookingResponse oldBooking = res.getData();
 
-	                BookingResponse updateRequest = new BookingResponse();
-	                updateRequest.setBookingId(oldBooking.getBookingId());
-	                updateRequest.setStatus("Active");
-	                updateRequest.setName(oldBooking.getName());
-	                updateRequest.setMobileNumber(oldBooking.getMobileNumber());
+					BookingResponse updateRequest = new BookingResponse();
+					updateRequest.setBookingId(oldBooking.getBookingId());
+					updateRequest.setStatus("Active");
+					updateRequest.setName(oldBooking.getName());
+					updateRequest.setMobileNumber(oldBooking.getMobileNumber());
 
-	                bookingFeign.updateAppointment(updateRequest);
-	            }
+					bookingFeign.updateAppointment(updateRequest);
+				}
 
-	        } catch (Exception e) {
-	            System.out.println("Booking update failed: " + e.getMessage());
-	        }
-	    }
+			} catch (Exception e) {
+				System.out.println("Booking update failed: " + e.getMessage());
+			}
+		}
 
-	    // 🔥🔥 IMPORTANT: TRANSFORM RESPONSE
-	    List<Map<String, Object>> cleanSessions =
-	            transformTherapySessions(saved.getTherapySessions());
+		// 🔥🔥 IMPORTANT: TRANSFORM RESPONSE
+		List<Map<String, Object>> cleanSessions = transformTherapySessions(saved.getTherapySessions());
 
-	    saved.setTherapySessions((List) cleanSessions);
+		saved.setTherapySessions((List) cleanSessions);
 
-	    response.setSuccess(true);
-	    response.setData(saved);
-	    response.setMessage("Record created successfully");
-	    response.setStatus(201);
+		response.setSuccess(true);
+		response.setData(saved);
+		response.setMessage("Record created successfully");
+		response.setStatus(201);
 
-	    return response;
-	}private List<Map<String, Object>> transformTherapySessions(List<TherapySession> sessions) {
-
-	    if (sessions == null) return null;
-
-	    List<Map<String, Object>> result = new ArrayList<>();
-
-	    for (TherapySession s : sessions) {
-
-	        Map<String, Object> obj = new LinkedHashMap<>();
-
-	        // ✅ Always include
-	        obj.put("serviceType", s.getServiceType());
-	        obj.put("totalPrice", s.getTotalPrice());
-
-	        switch (s.getServiceType().toLowerCase()) {
-
-	            case "package":
-	                obj.put("packageId", s.getPackageId());
-	                obj.put("packageName", s.getPackageName());
-	                obj.put("programs", s.getPrograms());
-	                break;
-
-	            case "program":
-	                obj.put("programId", s.getProgramId());
-	                obj.put("programName", s.getProgramName());
-	                obj.put("therapyData", s.getTherapyData());
-	                break;
-
-	            case "therapy":
-	                obj.put("therapyId", s.getTherapyId());
-	                obj.put("therapyName", s.getTherapyName());
-	                obj.put("exercises", s.getExercises());
-	                break;
-
-	            case "exercise":
-	                obj.put("exercises", s.getExercises());
-	                break;
-	        }
-
-	        // 🔥 Remove null fields
-	        obj.values().removeIf(Objects::isNull);
-
-	        result.add(obj);
-	    }
-
-	    return result;
+		return response;
 	}
+
+	private List<Map<String, Object>> transformTherapySessions(List<TherapySession> sessions) {
+
+		if (sessions == null)
+			return null;
+
+		List<Map<String, Object>> result = new ArrayList<>();
+
+		for (TherapySession s : sessions) {
+
+			Map<String, Object> obj = new LinkedHashMap<>();
+
+			// ✅ Always include
+			obj.put("serviceType", s.getServiceType());
+			obj.put("totalPrice", s.getTotalPrice());
+
+			switch (s.getServiceType().toLowerCase()) {
+
+			case "package":
+				obj.put("packageId", s.getPackageId());
+				obj.put("packageName", s.getPackageName());
+				obj.put("programs", s.getPrograms());
+				break;
+
+			case "program":
+				obj.put("programId", s.getProgramId());
+				obj.put("programName", s.getProgramName());
+				obj.put("therapyData", s.getTherapyData());
+				break;
+
+			case "therapy":
+				obj.put("therapyId", s.getTherapyId());
+				obj.put("therapyName", s.getTherapyName());
+				obj.put("exercises", s.getExercises());
+				break;
+
+			case "exercise":
+				obj.put("exercises", s.getExercises());
+				break;
+			}
+
+			// 🔥 Remove null fields
+			obj.values().removeIf(Objects::isNull);
+
+			result.add(obj);
+		}
+
+		return result;
+	}
+
 	private void calculateTherapyPrices(List<TherapySession> sessions) {
 
-	    if (sessions == null) return;
+		if (sessions == null)
+			return;
 
-	    for (TherapySession session : sessions) {
+		for (TherapySession session : sessions) {
 
-	        // PACKAGE
-	        if (session.getPrograms() != null) {
-	            for (Program p : session.getPrograms()) {
+			if (session.getPrograms() != null) {
 
-	                if (p.getTherapyData() != null) {
-	                    for (TherapyData t : p.getTherapyData()) {
+				for (Program p : session.getPrograms()) {
 
-	                        double total = 0;
+					double programTotal = 0; // ✅ ADD THIS
 
-	                        if (t.getExercises() != null) {
-	                            for (TherapyExercise ex : t.getExercises()) {
-	                                if (ex.getTotalPrice() != null) {
-	                                    total += ex.getTotalPrice();
-	                                }
-	                            }
-	                        }
+					if (p.getTherapyData() != null) {
 
-	                        t.setTotalPrice(total); // ✅ FIX
-	                    }
-	                }
-	            }
-	        }
+						for (TherapyData t : p.getTherapyData()) {
 
-	        // PROGRAM
-	        if (session.getTherapyData() != null) {
-	            for (TherapyData t : session.getTherapyData()) {
+							double therapyTotal = 0;
 
-	                double total = 0;
+							if (t.getExercises() != null) {
 
-	                if (t.getExercises() != null) {
-	                    for (TherapyExercise ex : t.getExercises()) {
-	                        if (ex.getTotalPrice() != null) {
-	                            total += ex.getTotalPrice();
-	                        }
-	                    }
-	                }
+								for (TherapyExercise ex : t.getExercises()) {
 
-	                t.setTotalPrice(total); // ✅ FIX
-	            }
-	        }
-	    }
+									double exerciseTotal = 0;
+
+									if (ex.getTotalExercisePrice() != null) {
+										exerciseTotal = ex.getTotalExercisePrice();
+									} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
+										exerciseTotal = ex.getPricePerSession() * ex.getNoOfSessions();
+									}
+
+									ex.setTotalExercisePrice(exerciseTotal);
+									therapyTotal += exerciseTotal;
+								}
+							}
+
+							t.setTotalTherapyPrice(therapyTotal);
+
+							// ✅ ADD THIS
+							programTotal += therapyTotal;
+						}
+					}
+
+					// ✅ VERY IMPORTANT (THIS FIXES YOUR ISSUE)
+					p.setTotalProgramPrice(programTotal);
+				}
+			}
+
+			// PROGRAM
+			if (session.getTherapyData() != null) {
+				for (TherapyData t : session.getTherapyData()) {
+
+					double total = 0;
+
+					if (t.getExercises() != null) {
+						for (TherapyExercise ex : t.getExercises()) {
+							if (ex.getTotalExercisePrice() != null) {
+								total += ex.getTotalExercisePrice();
+							}
+						}
+					}
+
+					t.setTotalTherapyPrice(total); // ✅ FIX
+				}
+			}
+		}
 	}
 //	@Override
 //	public Response create(PhysiotherapyRecordDTO dto) {
@@ -413,7 +434,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 //	        existing.setProgressAnalytics(dto.getProgressAnalytics());
 //	    }
 
-	
 		if (dto.getOverallStatus() != null) {
 			existing.setOverallStatus(dto.getOverallStatus());
 		}
@@ -468,83 +488,83 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	// ---------------- MAPPER ----------------
 	private PhysiotherapyRecord mapToEntity(PhysiotherapyRecordDTO dto) {
 
-	    PhysiotherapyRecord entity = new PhysiotherapyRecord();
+		PhysiotherapyRecord entity = new PhysiotherapyRecord();
 
-	    if (dto == null)
-	        return entity;
+		if (dto == null)
+			return entity;
 
-	    // =========================
-	    // ✅ BASIC DETAILS
-	    // =========================
-	    entity.setBookingId(dto.getBookingId());
-	    entity.setClinicId(dto.getClinicId());
-	    entity.setBranchId(dto.getBranchId());
-	    entity.setOverallStatus(dto.getOverallStatus());
+		// =========================
+		// ✅ BASIC DETAILS
+		// =========================
+		entity.setBookingId(dto.getBookingId());
+		entity.setClinicId(dto.getClinicId());
+		entity.setBranchId(dto.getBranchId());
+		entity.setOverallStatus(dto.getOverallStatus());
 
-	    // =========================
-	    // ✅ PATIENT INFO
-	    // =========================
-	    if (dto.getPatientInfo() != null) {
-	        entity.setPatientInfo(dto.getPatientInfo());
-	    }
+		// =========================
+		// ✅ PATIENT INFO
+		// =========================
+		if (dto.getPatientInfo() != null) {
+			entity.setPatientInfo(dto.getPatientInfo());
+		}
 
-	    // =========================
-	    // ✅ COMPLAINTS
-	    // =========================
-	    if (dto.getComplaints() != null) {
-	        entity.setComplaints(dto.getComplaints());
-	    }
+		// =========================
+		// ✅ COMPLAINTS
+		// =========================
+		if (dto.getComplaints() != null) {
+			entity.setComplaints(dto.getComplaints());
+		}
 
-	    // =========================
-	    // 🔥 INVESTIGATION (MISSING FIX)
-	    // =========================
-	    if (dto.getInvestigation() != null) {
-	        entity.setInvestigation(dto.getInvestigation());
-	    }
+		// =========================
+		// 🔥 INVESTIGATION (MISSING FIX)
+		// =========================
+		if (dto.getInvestigation() != null) {
+			entity.setInvestigation(dto.getInvestigation());
+		}
 
-	    // =========================
-	    // ✅ ASSESSMENT
-	    // =========================
-	    if (dto.getAssessment() != null) {
-	        entity.setAssessment(dto.getAssessment());
-	    }
+		// =========================
+		// ✅ ASSESSMENT
+		// =========================
+		if (dto.getAssessment() != null) {
+			entity.setAssessment(dto.getAssessment());
+		}
 
-	    // =========================
-	    // ✅ DIAGNOSIS
-	    // =========================
-	    if (dto.getDiagnosis() != null) {
-	        entity.setDiagnosis(dto.getDiagnosis());
-	    }
+		// =========================
+		// ✅ DIAGNOSIS
+		// =========================
+		if (dto.getDiagnosis() != null) {
+			entity.setDiagnosis(dto.getDiagnosis());
+		}
 
-	    // =========================
-	    // ✅ TREATMENT PLAN
-	    // =========================
-	    if (dto.getTreatmentPlan() != null) {
-	        entity.setTreatmentPlan(dto.getTreatmentPlan());
-	    }
+		// =========================
+		// ✅ TREATMENT PLAN
+		// =========================
+		if (dto.getTreatmentPlan() != null) {
+			entity.setTreatmentPlan(dto.getTreatmentPlan());
+		}
 
-	    // =========================
-	    // ✅ THERAPY SESSIONS
-	    // =========================
-	    if (dto.getTherapySessions() != null && !dto.getTherapySessions().isEmpty()) {
-	        entity.setTherapySessions(dto.getTherapySessions());
-	    }
+		// =========================
+		// ✅ THERAPY SESSIONS
+		// =========================
+		if (dto.getTherapySessions() != null && !dto.getTherapySessions().isEmpty()) {
+			entity.setTherapySessions(dto.getTherapySessions());
+		}
 
-	    // =========================
-	    // ✅ EXERCISE PLAN
-	    // =========================
-	    if (dto.getExercisePlan() != null) {
-	        entity.setExercisePlan(dto.getExercisePlan());
-	    }
+		// =========================
+		// ✅ EXERCISE PLAN
+		// =========================
+		if (dto.getExercisePlan() != null) {
+			entity.setExercisePlan(dto.getExercisePlan());
+		}
 
-	    // =========================
-	    // ✅ FOLLOW UP
-	    // =========================
-	    if (dto.getFollowUp() != null) {
-	        entity.setFollowUp(dto.getFollowUp());
-	    }
-
-	    return entity;
+		// =========================
+		// ✅ FOLLOW UP
+		// =========================
+		if (dto.getFollowUp() != null) {
+			entity.setFollowUp(dto.getFollowUp());
+		}
+		entity.setPerceptionPdf(dto.getPerceptionPdf());
+		return entity;
 	}
 
 	@Override
@@ -611,128 +631,125 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		return response;
 	}
-@Override
-public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
 
-    Response response = new Response();
+	@Override
+	public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
 
-    List<PhysiotherapyRecord> records =
-            repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
-                    clinicId, branchId, therapistId);
+		Response response = new Response();
 
-    if (records == null || records.isEmpty()) {
-        response.setSuccess(false);
-        response.setMessage("No assigned patients found");
-        response.setStatus(404);
-        return response;
-    }
+		List<PhysiotherapyRecord> records = repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(clinicId,
+				branchId, therapistId);
 
-    // 🔥 STATUS MAPPING (1 → Pending, 2 → Active, 3 → Completed)
-    String statusFilter = null;
+		if (records == null || records.isEmpty()) {
+			response.setSuccess(false);
+			response.setMessage("No assigned patients found");
+			response.setStatus(404);
+			return response;
+		}
 
-    if (overallStatus != null) {
-        switch (overallStatus) {
-            case 1:
-                statusFilter = "Pending";
-                break;
-            case 2:
-                statusFilter = "Active";
-                break;
-            case 3:
-                statusFilter = "Completed";
-                break;
-        }
-    }
+		// 🔥 STATUS MAPPING (1 → Pending, 2 → Active, 3 → Completed)
+		String statusFilter = null;
 
-    // 🔥 MAP FOR UNIQUE RECORDS
-    Map<String, AssignTherapistPatientListDTO> map = new LinkedHashMap<>();
+		if (overallStatus != null) {
+			switch (overallStatus) {
+			case 1:
+				statusFilter = "Pending";
+				break;
+			case 2:
+				statusFilter = "Active";
+				break;
+			case 3:
+				statusFilter = "Completed";
+				break;
+			}
+		}
 
-    for (PhysiotherapyRecord record : records) {
+		// 🔥 MAP FOR UNIQUE RECORDS
+		Map<String, AssignTherapistPatientListDTO> map = new LinkedHashMap<>();
 
-        // ✅ STATUS FILTER
-        if (statusFilter != null) {
-            if (record.getOverallStatus() == null ||
-                !record.getOverallStatus().equalsIgnoreCase(statusFilter)) {
-                continue;
-            }
-        }
+		for (PhysiotherapyRecord record : records) {
 
-        if (record.getTherapySessions() == null) continue;
-        if (record.getPatientInfo() == null) continue;
+			// ✅ STATUS FILTER
+			if (statusFilter != null) {
+				if (record.getOverallStatus() == null || !record.getOverallStatus().equalsIgnoreCase(statusFilter)) {
+					continue;
+				}
+			}
 
-        for (TherapySession session : record.getTherapySessions()) {
+			if (record.getTherapySessions() == null)
+				continue;
+			if (record.getPatientInfo() == null)
+				continue;
 
-            if (session.getProgramId() == null && session.getProgramName() == null) {
-                continue;
-            }
+			for (TherapySession session : record.getTherapySessions()) {
 
-            // 🔥 UPDATED KEY (FIXED ISSUE)
-            String key = record.getTherapistRecordId() + "_" +
-                         (session.getProgramId() != null ? session.getProgramId() : "NA");
+				if (session.getProgramId() == null && session.getProgramName() == null) {
+					continue;
+				}
 
-            if (map.containsKey(key)) continue;
+				// 🔥 UPDATED KEY (FIXED ISSUE)
+				String key = record.getTherapistRecordId() + "_"
+						+ (session.getProgramId() != null ? session.getProgramId() : "NA");
 
-            AssignTherapistPatientListDTO dto = new AssignTherapistPatientListDTO();
+				if (map.containsKey(key))
+					continue;
 
-            // ✅ BASIC
-            dto.setBookingId(record.getBookingId());
-            dto.setTherapistRecordId(record.getTherapistRecordId());
-            dto.setClinicId(record.getClinicId());
-            dto.setBranchId(record.getBranchId());
+				AssignTherapistPatientListDTO dto = new AssignTherapistPatientListDTO();
 
-            // ✅ PATIENT INFO
-            dto.setPatientId(record.getPatientInfo().getPatientId());
-            dto.setPatientName(
-                    record.getPatientInfo().getPatientName() != null
-                            ? record.getPatientInfo().getPatientName()
-                            : "Unknown"
-            );
-            dto.setMobileNumber(record.getPatientInfo().getMobileNumber());
-            dto.setAge(record.getPatientInfo().getAge());
-            dto.setSex(record.getPatientInfo().getSex());
+				// ✅ BASIC
+				dto.setBookingId(record.getBookingId());
+				dto.setTherapistRecordId(record.getTherapistRecordId());
+				dto.setClinicId(record.getClinicId());
+				dto.setBranchId(record.getBranchId());
 
-            // ✅ TREATMENT PLAN
-            if (record.getTreatmentPlan() != null) {
-                dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-                dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+				// ✅ PATIENT INFO
+				dto.setPatientId(record.getPatientInfo().getPatientId());
+				dto.setPatientName(
+						record.getPatientInfo().getPatientName() != null ? record.getPatientInfo().getPatientName()
+								: "Unknown");
+				dto.setMobileNumber(record.getPatientInfo().getMobileNumber());
+				dto.setAge(record.getPatientInfo().getAge());
+				dto.setSex(record.getPatientInfo().getSex());
 
-                dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-                dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
-            }
+				// ✅ TREATMENT PLAN
+				if (record.getTreatmentPlan() != null) {
+					dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+					dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
 
-            // ✅ SESSION DATA
-            dto.setProgramId(
-                    session.getProgramId() != null ? session.getProgramId() : "N/A"
-            );
-            dto.setProgramName(session.getProgramName());
-            dto.setSerivceType(
-                    session.getServiceType() != null ? session.getServiceType() : "N/A"
-            );
+					dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+					dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+				}
 
-            // 🔥 ADD STATUS ALSO (IMPORTANT FOR UI)
-            dto.setOverallStatus(record.getOverallStatus());
+				// ✅ SESSION DATA
+				dto.setProgramId(session.getProgramId() != null ? session.getProgramId() : "N/A");
+				dto.setProgramName(session.getProgramName());
+				dto.setSerivceType(session.getServiceType() != null ? session.getServiceType() : "N/A");
 
-            map.put(key, dto);
-        }
-    }
+				// 🔥 ADD STATUS ALSO (IMPORTANT FOR UI)
+				dto.setOverallStatus(record.getOverallStatus());
+				
 
-    List<AssignTherapistPatientListDTO> dtoList = new ArrayList<>(map.values());
+				map.put(key, dto);
+			}
+		}
 
-    if (dtoList.isEmpty()) {
-        response.setSuccess(false);
-        response.setMessage("No patients found for given status");
-        response.setStatus(404);
-        return response;
-    }
+		List<AssignTherapistPatientListDTO> dtoList = new ArrayList<>(map.values());
 
-    response.setSuccess(true);
-    response.setData(dtoList);
-    response.setMessage("Assigned patients fetched successfully");
-    response.setStatus(200);
+		if (dtoList.isEmpty()) {
+			response.setSuccess(false);
+			response.setMessage("No patients found for given status");
+			response.setStatus(404);
+			return response;
+		}
 
-    return response;
-}
-	//	@Override
+		response.setSuccess(true);
+		response.setData(dtoList);
+		response.setMessage("Assigned patients fetched successfully");
+		response.setStatus(200);
+
+		return response;
+	}
+	// @Override
 //	public Response getTherapistDashboard(String clinicId, String branchId, String therapistId) {
 //
 //		Response response = new Response();
@@ -968,8 +985,6 @@ public Response getAssignedPatients(String clinicId, String branchId, String the
 //
 //		return "Pending";
 //	}
-	
-	
 public Response getProgramAndTherapyInfo(String clinicId, String branchId,
             String patientId, String bookingId) {
 Response response = new Response();
@@ -1047,12 +1062,12 @@ for (TherapyExercise exercise : exercises) {
 Exercise exerciseDTO = new Exercise();
 
 // Map fields from TherapyExercise → ExcerciseDTO
-exerciseDTO.setExerciseId(exercise.getTherapyExercisesId());
-exerciseDTO.setExerciseName(exercise.getName());
+exerciseDTO.setExerciseId(exercise.getExerciseId());
+exerciseDTO.setExerciseName(exercise.getExerciseName());
 exerciseDTO.setSets(exercise.getSets());
 exerciseDTO.setRepetitions(exercise.getRepetitions());
 exerciseDTO.setNotes(exercise.getNotes());
-exerciseDTO.setVideoUrl(exercise.getVideoUrl());
+exerciseDTO.setVideoUrl(exercise.getYoutubeUrl());
 
 // Parse frequency → frequancy field
 Integer frequencyVal = null;
@@ -1067,9 +1082,9 @@ exerciseDTO.setFrequancy(frequencyVal);
 
 // Parse noOfSessions from session field
 Integer noOfSessions = null;
-if (exercise.getSession() != null && !exercise.getSession().isBlank()) {
+if (exercise.getNoOfSessions() != null) {
   try {
-      noOfSessions = Integer.parseInt(exercise.getSession().trim());
+      noOfSessions = exercise.getNoOfSessions();
   } catch (NumberFormatException e) {
       noOfSessions = 0;
   }
@@ -1077,8 +1092,8 @@ if (exercise.getSession() != null && !exercise.getSession().isBlank()) {
 exerciseDTO.setNoOfSessions(noOfSessions);
 
 // Parse pricePerSession from totalPrice
-Double pricePerSession = (double) exercise.getTotalPrice();
-exerciseDTO.setPricePerSession(Integer.valueOf(String.valueOf(pricePerSession)));
+Double pricePerSession = (double) exercise.getPricePerSession();
+exerciseDTO.setPricePerSession(noOfSessions);
 
 // ✅ Calculate totalSessionCost = noOfSessions * pricePerSession
 double totalSessionCost = (noOfSessions != null ? noOfSessions : 0) * pricePerSession;
@@ -1388,18 +1403,18 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
     return source.stream().map(te -> {
         Exercise ex = new Exercise();
 
-        ex.setExerciseId(te.getTherapyExercisesId());
-        ex.setExerciseName(te.getName());
+        ex.setExerciseId(te.getExerciseId());
+        ex.setExerciseName(te.getExerciseName());
         ex.setSets(te.getSets());
         ex.setRepetitions(te.getRepetitions());
         ex.setNotes(te.getNotes());
-        ex.setVideoUrl(te.getVideoUrl());
+        ex.setVideoUrl(te.getYoutubeUrl());
 
         // Convert session & frequency safely
-        ex.setNoOfSessions(parseInteger(te.getSession()));
+        ex.setNoOfSessions(te.getNoOfSessions());
         ex.setFrequancy(parseInteger(te.getFrequency()));
 
-        ex.setPricePerSession(te.getTotalPrice() != null ? te.getTotalPrice().intValue() : 0);
+        ex.setPricePerSession(te.getPricePerSession() != null ? te.getPricePerSession().intValue() : 0);
 
         return ex;
     }).toList();
@@ -1438,6 +1453,6 @@ private PhysiotherapyRecord extractRecord(Object data) {
 
     throw new RuntimeException("Invalid data format: expected PhysiotherapyRecord");
 }
+	
 }
-
 

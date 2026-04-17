@@ -49,7 +49,7 @@ public class ProbableDiagnosisController {
                 dtoList.add(dto);
             }
         } catch (IllegalArgumentException e) {
-            Response error = new Response(false, "Invalid request data: " + e.getMessage(), null, 400, null, null, null, null, null, null);
+            Response error = new Response(false, "Invalid request data: " + e.getMessage(),null, null, 400, null, null, null, null, null, null);
             return ResponseEntity.status(400).body(error);
         }
 

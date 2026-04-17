@@ -14,6 +14,8 @@ public class TreatmentPlan {
 	private String therapistName;
 
 	private String manualTherapy;
+	private String modalitiesUsed;
+	private String patientResponse; 
 	private List<String >precautions;
 //	private String frequency;
 //	private List<String> modalities;

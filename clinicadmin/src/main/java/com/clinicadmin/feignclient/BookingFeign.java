@@ -121,11 +121,10 @@ public interface BookingFeign {
 	    		  @PathVariable String branchId,
 	    		  @PathVariable int option);
 	  
-	  @GetMapping("/api/v1//basedOnDate/{clinicId}/{branchId}/{patientId}/{date}")
+	  @GetMapping("/api/v1//basedOnDate/{clinicId}/{branchId}/{date}")
 	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId,
-	            @PathVariable String patientId,
 	            @PathVariable String date);
 	  
 	  @GetMapping("/api/v1/customeRange/{clinicId}/{branchId}/{start}/{end}")
@@ -138,5 +137,9 @@ public interface BookingFeign {
 	  @GetMapping("/api/v1/getBookingById/{bookingId}")
 	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId);
 	    
+	  
+	  @GetMapping("/api/v1/getTodayBookings/{clincId}/{branchId}")
+		public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
+		
 
 }

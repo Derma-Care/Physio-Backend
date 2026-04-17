@@ -1,22 +1,30 @@
 package physiotherapydoctor.dto;
 
+import java.util.List;
+
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class TherapyExercise {
 
-    private String therapyExercisesId;
-    private String name;
+	private String exerciseId;
+	private String exerciseName;
 
-    private String session;
-    private String frequency;
+	private Double pricePerSession;
+	private Integer noOfSessions;
+	private Double totalExercisePrice;
 
-    private String notes;
+	private String paymentStatus;
 
-    private Integer sets;
-    private Integer repetitions;
+	private Integer repetitions;
+	private String frequency;
+	private Integer sets;
+	private String youtubeUrl;
+	private String notes;
 
-    private String videoUrl;
-
-    private Double totalPrice;
+	private List<Session> sessions;
 }

@@ -2,18 +2,22 @@ package com.clinicadmin.service.impl;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
+import com.clinicadmin.dto.TheraphyAnswersDTO;
+import com.clinicadmin.entity.QuestionsByPartEntity;
+import com.clinicadmin.entity.QuestionsEntity;
 import com.clinicadmin.feignclient.BookingFeign;
+import com.clinicadmin.feignclient.CustomerServiceFeignClient;
 import com.clinicadmin.service.BookingService;
 import com.clinicadmin.service.DoctorService;
 import com.clinicadmin.utils.ExtractFeignMessage;
@@ -27,11 +31,11 @@ public class BookingServiceImpl implements BookingService {
 	BookingFeign bookingFeign;
 
 	@Autowired
-	DoctorService doctorService;
-
-	
+	DoctorService doctorService;	
 	@Autowired	
 	DoctorServiceImpl doctorServiceImpl;
+	@Autowired
+	private CustomerServiceFeignClient customerServiceFeignClient;
 
 	@Override
 	public Response deleteBookedService(String id) {
@@ -250,10 +254,10 @@ public ResponseEntity<?> getUpcomingBookings(String clinicId,
 
 @Override
 public ResponseEntity<?> getBookingsByDate(String clinicId,
-		String branchId,String patientId, String date) {
+		String branchId, String date) {
 	Response response = new Response();
     try {
-        return bookingFeign.getPhysioBookingBasedOnDate(clinicId, branchId, patientId, date);
+        return bookingFeign.getPhysioBookingBasedOnDate(clinicId, branchId, date);
     } catch (FeignException e) {
     	response.setStatus(e.status());
 		response.setMessage(e.getMessage());
@@ -293,18 +297,72 @@ public ResponseEntity<?> getBookingById(String bookingId){
 
 
 @Override
-public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse) {
+public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId){
+	Response response = new Response();
+    try {
+        return bookingFeign.getTodayBookings(clinicId, branchId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
+public ResponseEntity<?> physioAppointment(BookingRequset req) {
     ResponseEntity<Response> res = null;
     Response response = new Response();
+    ResponseEntity<ResponseStructure<BookingResponse>> op = null;
+    BookingResponse bookingResponse = null;
     try {
-    	res = bookingFeign.bookPhysioAppointment(bookingResponse);
+    	 if(req.getTheraphyAnswers()!= null) {
+ 	        
+	        	if (req.getTheraphyAnswers() != null && !req.getTheraphyAnswers().isEmpty()) {
+
+	        	    Map<String, List<TheraphyAnswersDTO>> map = req.getTheraphyAnswers();
+
+	        	    for (Map.Entry<String, List<TheraphyAnswersDTO>> entry : map.entrySet()) {
+
+	        	        String key = entry.getKey(); // e.g., "back"
+	        	        List<TheraphyAnswersDTO> answersList = entry.getValue();
+
+	        	        // 🔍 Fetch DB data based on key
+	        	        QuestionsByPartEntity entity = customerServiceFeignClient.getByKey(key).getBody();
+
+	        	        if (entity == null || entity.getQuestionsByPart() == null) {
+	        	            continue;
+	        	        }
+
+	        	        List<QuestionsEntity> questionsList = entity.getQuestionsByPart().get(key);
+
+	        	        if (questionsList == null || questionsList.isEmpty()  ) {
+	        	            continue;
+	        	        }
+
+	        	        // 🔁 Match questionId and set question
+	        	        for (TheraphyAnswersDTO dto : answersList) {
+
+	        	            for (QuestionsEntity q : questionsList) {
+
+	        	                if (q.getQuestionId() == dto.getQuestionId()) {
+	        	                    dto.setQuestion(q.getQuestion());
+	        	                    break; // stop once matched
+	        	                }
+	        	            }
+	        	        }
+	        	    }
+	        	}
+	        res = bookingFeign.bookPhysioAppointment(req);
+	        }else {
+    	    res = bookingFeign.bookPhysioAppointment(req);}
     	//System.out.println(res);
     	 if(res.getBody().getData() != null) {
     		 doctorServiceImpl.updateSlot(         
-	                    bookingResponse.getDoctorId(),
-	                    bookingResponse.getBranchId(),
-	                    bookingResponse.getServiceDate(),
-	                    bookingResponse.getServicetime()
+    				 req.getDoctorId(),
+	                    req.getBranchId(),
+	                    req.getServiceDate(),
+	                    req.getServicetime()
 	            );}else {
 	            	response.setStatus(400);
 	       			response.setMessage("error occured");

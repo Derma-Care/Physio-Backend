@@ -47,7 +47,8 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
-	private List<ConsultationFeesDTO> consultationFee;
+	private List<ConsultationFeesDTO> listOfConsultationFee;
+	private double consultationFee;
 	private Integer visitCount;
 	private String channelId;
 	private String reasonForCancel;
@@ -96,7 +97,7 @@ public class BookingResponse {
 	private List<String> activityLevels;
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
-	
+		
 	public void setIsFollowupStatus(boolean followupStatus) {
 	    isFollowupStatus = followupStatus;
 	}

@@ -1,11 +1,12 @@
 package physiotherapydoctor.repository;
 
+import java.util.Optional;
+
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
 
 import physiotherapydoctor.entity.PaymentRecord;
 
-@Repository
-public interface PaymentRepository extends MongoRepository<PaymentRecord, String>{
+public interface PaymentRepository extends MongoRepository<PaymentRecord, String> {
 
+    Optional<PaymentRecord> findByBookingId(String bookingId);
 }

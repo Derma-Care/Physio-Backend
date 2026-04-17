@@ -21,6 +21,7 @@ import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Documents;
 import com.clinicadmin.entity.Therapist;
 import com.clinicadmin.feignclient.AdminServiceClient;
+import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.TherapistRepository;
 import com.clinicadmin.service.EmailService;
@@ -50,6 +51,9 @@ public class TherapistServiceImpl implements TherapistService {
     
 	@Autowired
 	private EmailService emailService;
+	
+	@Autowired
+	private PhysiotherapyFeignClient physiotherapyFeignClient;
     @Override
 
     public Response therapistOnboarding(TherapistDTO dto) {
@@ -565,5 +569,100 @@ public class TherapistServiceImpl implements TherapistService {
             sb.append(chars.charAt(random.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+    @Override
+    public Response getPaidSessions(String clinicId,String branchId,String bookingId,String therapistRecordId) {
+
+        Response response = new Response();
+
+        try {
+
+            Response paymentResponse =
+                    physiotherapyFeignClient.getPayment(bookingId);
+
+            Map<String, Object> data =
+                    (Map<String, Object>) paymentResponse.getData();
+
+            if (data == null) {
+                throw new RuntimeException("Payment data not found");
+            }
+
+            // Validate fields
+            if (!clinicId.equals(String.valueOf(data.get("clinicId")))
+                    || !branchId.equals(String.valueOf(data.get("branchId")))
+                    || !bookingId.equals(String.valueOf(data.get("bookingId")))
+                    || !therapistRecordId.equals(String.valueOf(data.get("therapistRecordId")))) {
+
+                throw new RuntimeException("Record mismatch");
+            }
+
+            List<Map<String, Object>> therapyWithSessions =
+                    (List<Map<String, Object>>) data.get("therapyWithSessions");
+
+            if (therapyWithSessions != null) {
+
+                for (Map<String, Object> pkg : therapyWithSessions) {
+
+                    List<Map<String, Object>> programs =
+                            (List<Map<String, Object>>) pkg.get("programs");
+
+                    if (programs == null) continue;
+
+                    for (Map<String, Object> program : programs) {
+
+                        List<Map<String, Object>> therapyData =
+                                (List<Map<String, Object>>) program.get("therapyData");
+
+                        if (therapyData == null) continue;
+
+                        for (Map<String, Object> therapy : therapyData) {
+
+                            List<Map<String, Object>> exercises =
+                                    (List<Map<String, Object>>) therapy.get("exercises");
+
+                            if (exercises == null) continue;
+
+                            for (Map<String, Object> exercise : exercises) {
+
+                                List<Map<String, Object>> sessions =
+                                        (List<Map<String, Object>>) exercise.get("sessions");
+
+                                if (sessions == null) {
+                                    exercise.put("sessions", List.of());
+                                    continue;
+                                }
+
+                                List<Map<String, Object>> paidSessions =
+                                        sessions.stream()
+                                                .filter(session ->
+                                                        "Paid".equalsIgnoreCase(
+                                                                String.valueOf(
+                                                                        session.get("paymentStatus")
+                                                                )
+                                                        )
+                                                )
+                                                .toList();
+
+                                exercise.put("sessions", paidSessions);
+                            }
+                        }
+                    }
+                }
+            }
+
+            response.setSuccess(true);
+            response.setData(data);
+            response.setMessage("Paid sessions fetched successfully");
+            response.setStatus(200);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage(e.getMessage());
+            response.setStatus(500);
+        }
+
+        return response;
     }
 }

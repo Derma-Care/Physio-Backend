@@ -887,8 +887,8 @@ public Response updateCustomerBasicDetails( CustomerDTO customerDTO ,String mobi
 //	        //Optional<QuestionsEntity> entity = physiotherapyRepo.findByQuestionId(dto.getQuestionId());
 //	        if(entity.isPresent()) {
 //	        dto.setQuestion(entity.get().getQuestion());}}
-	        res = bookingFeign.bookService(req);
-	        bookingResponse = res.getBody().getData();
+//	        res = bookingFeign.bookService(req);
+//	        bookingResponse = res.getBody().getData();
 //	        }else {
 //	        res = bookingFeign.bookService(req);
 //	        bookingResponse = res.getBody().getData();}
