@@ -45,6 +45,6 @@ public class PhysiotherapyRecord {
 
     private ExercisePlan exercisePlan;
     private FollowUp followUp;
-    private String perceptionPdf;
+    private String prescriptionPdf;
     
 }

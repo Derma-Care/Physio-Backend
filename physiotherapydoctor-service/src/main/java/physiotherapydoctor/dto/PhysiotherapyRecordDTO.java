@@ -26,5 +26,5 @@ public class PhysiotherapyRecordDTO {
 
     private ExercisePlan exercisePlan;
     private FollowUp followUp;
-    private String perceptionPdf;
+    private String prescriptionPdf;
 }

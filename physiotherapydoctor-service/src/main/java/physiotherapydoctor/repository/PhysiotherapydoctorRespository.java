@@ -16,8 +16,7 @@ public interface PhysiotherapydoctorRespository extends MongoRepository<Physioth
 //	        String branchId,
 //	        String therapistId
 //	);
-	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(String clinicId, String branchId,
-			String therapistId);
+
 
 	Optional<PhysiotherapyRecord> findByTherapistRecordId(String therapistRecordId);
 	
@@ -32,4 +31,12 @@ public interface PhysiotherapydoctorRespository extends MongoRepository<Physioth
 
 	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingId(String clinicId,
 			String branchId, String patientId, String bookingId);
+
+	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlan_TherapistId(String clinicId, String branchId,
+			String therapistId);
+	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
+	        String clinicId,
+	        String branchId,
+	        String therapistId
+	);
 }

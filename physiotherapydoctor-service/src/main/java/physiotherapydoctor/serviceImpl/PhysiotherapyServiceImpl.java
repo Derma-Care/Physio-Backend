@@ -563,7 +563,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		if (dto.getFollowUp() != null) {
 			entity.setFollowUp(dto.getFollowUp());
 		}
-		entity.setPerceptionPdf(dto.getPerceptionPdf());
+		entity.setPrescriptionPdf(dto.getPrescriptionPdf());
 		return entity;
 	}
 
@@ -631,125 +631,244 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		return response;
 	}
+@Override
+public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
 
-	@Override
-	public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
+    Response response = new Response();
 
-		Response response = new Response();
+    // ✅ FETCH DATA
+    List<PhysiotherapyRecord> records =
+            repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
+                    clinicId, branchId, therapistId);
 
-		List<PhysiotherapyRecord> records = repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(clinicId,
-				branchId, therapistId);
+    System.out.println("Total records fetched: " + (records != null ? records.size() : 0));
 
-		if (records == null || records.isEmpty()) {
-			response.setSuccess(false);
-			response.setMessage("No assigned patients found");
-			response.setStatus(404);
-			return response;
-		}
+    if (records == null || records.isEmpty()) {
+        response.setSuccess(false);
+        response.setMessage("No assigned patients found");
+        response.setStatus(404);
+        return response;
+    }
 
-		// 🔥 STATUS MAPPING (1 → Pending, 2 → Active, 3 → Completed)
-		String statusFilter = null;
+    // ✅ STATUS MAP
+    Map<Integer, String> statusMap = Map.of(
+            1, "pending",
+            2, "in-progress",
+            3, "completed"
+    );
 
-		if (overallStatus != null) {
-			switch (overallStatus) {
-			case 1:
-				statusFilter = "Pending";
-				break;
-			case 2:
-				statusFilter = "Active";
-				break;
-			case 3:
-				statusFilter = "Completed";
-				break;
-			}
-		}
+    String expectedStatus = statusMap.get(overallStatus);
 
-		// 🔥 MAP FOR UNIQUE RECORDS
-		Map<String, AssignTherapistPatientListDTO> map = new LinkedHashMap<>();
+    Map<String, AssignTherapistPatientListDTO> map = new LinkedHashMap<>();
 
-		for (PhysiotherapyRecord record : records) {
+    for (PhysiotherapyRecord record : records) {
 
-			// ✅ STATUS FILTER
-			if (statusFilter != null) {
-				if (record.getOverallStatus() == null || !record.getOverallStatus().equalsIgnoreCase(statusFilter)) {
-					continue;
-				}
-			}
+        String dbStatus = record.getOverallStatus();
 
-			if (record.getTherapySessions() == null)
-				continue;
-			if (record.getPatientInfo() == null)
-				continue;
+        System.out.println("DB Status: " + dbStatus);
+        System.out.println("Expected Status: " + expectedStatus);
 
-			for (TherapySession session : record.getTherapySessions()) {
+        // ✅ STATUS FILTER
+        if (expectedStatus != null) {
 
-				if (session.getProgramId() == null && session.getProgramName() == null) {
-					continue;
-				}
+            if (dbStatus == null) continue;
 
-				// 🔥 UPDATED KEY (FIXED ISSUE)
-				String key = record.getTherapistRecordId() + "_"
-						+ (session.getProgramId() != null ? session.getProgramId() : "NA");
+            String status = dbStatus.trim().toLowerCase().replace("_", "-");
 
-				if (map.containsKey(key))
-					continue;
+            if (!status.equals(expectedStatus)) continue;
+        }
 
-				AssignTherapistPatientListDTO dto = new AssignTherapistPatientListDTO();
+        // ✅ SKIP ONLY IF NO SESSIONS
+        if (record.getTherapySessions() == null || record.getTherapySessions().isEmpty())
+            continue;
 
-				// ✅ BASIC
-				dto.setBookingId(record.getBookingId());
-				dto.setTherapistRecordId(record.getTherapistRecordId());
-				dto.setClinicId(record.getClinicId());
-				dto.setBranchId(record.getBranchId());
+        if (record.getPatientInfo() == null)
+            continue;
 
-				// ✅ PATIENT INFO
-				dto.setPatientId(record.getPatientInfo().getPatientId());
-				dto.setPatientName(
-						record.getPatientInfo().getPatientName() != null ? record.getPatientInfo().getPatientName()
-								: "Unknown");
-				dto.setMobileNumber(record.getPatientInfo().getMobileNumber());
-				dto.setAge(record.getPatientInfo().getAge());
-				dto.setSex(record.getPatientInfo().getSex());
+        for (TherapySession session : record.getTherapySessions()) {
 
-				// ✅ TREATMENT PLAN
-				if (record.getTreatmentPlan() != null) {
-					dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-					dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+            // ✅ UNIQUE KEY (SAFE)
+            String key = record.getTherapistRecordId() + "_" +
+                    (session.getProgramId() != null ? session.getProgramId() : "NA");
 
-					dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-					dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
-				}
+            if (map.containsKey(key))
+                continue;
 
-				// ✅ SESSION DATA
-				dto.setProgramId(session.getProgramId() != null ? session.getProgramId() : "N/A");
-				dto.setProgramName(session.getProgramName());
-				dto.setSerivceType(session.getServiceType() != null ? session.getServiceType() : "N/A");
+            AssignTherapistPatientListDTO dto = new AssignTherapistPatientListDTO();
 
-				// 🔥 ADD STATUS ALSO (IMPORTANT FOR UI)
-				dto.setOverallStatus(record.getOverallStatus());
-				
+            // ✅ BASIC
+            dto.setBookingId(record.getBookingId());
+            dto.setTherapistRecordId(record.getTherapistRecordId());
+            dto.setClinicId(record.getClinicId());
+            dto.setBranchId(record.getBranchId());
 
-				map.put(key, dto);
-			}
-		}
+            // ✅ PATIENT INFO
+            dto.setPatientId(record.getPatientInfo().getPatientId());
+            dto.setPatientName(
+                    record.getPatientInfo().getPatientName() != null
+                            ? record.getPatientInfo().getPatientName()
+                            : "Unknown"
+            );
+            dto.setMobileNumber(record.getPatientInfo().getMobileNumber());
+            dto.setAge(record.getPatientInfo().getAge());
+            dto.setSex(record.getPatientInfo().getSex());
 
-		List<AssignTherapistPatientListDTO> dtoList = new ArrayList<>(map.values());
+            // ✅ TREATMENT PLAN
+            if (record.getTreatmentPlan() != null) {
+                dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+                dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+                dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+                dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+            }
 
-		if (dtoList.isEmpty()) {
-			response.setSuccess(false);
-			response.setMessage("No patients found for given status");
-			response.setStatus(404);
-			return response;
-		}
+            // ✅ SESSION DATA (NO SKIP ANYMORE 🔥)
+            dto.setProgramId(session.getProgramId() != null ? session.getProgramId() : "N/A");
+            dto.setProgramName(session.getProgramName() != null ? session.getProgramName() : "N/A");
+            dto.setSerivceType(session.getServiceType() != null ? session.getServiceType() : "N/A");
 
-		response.setSuccess(true);
-		response.setData(dtoList);
-		response.setMessage("Assigned patients fetched successfully");
-		response.setStatus(200);
+            // ✅ STATUS
+            dto.setOverallStatus(record.getOverallStatus());
 
-		return response;
-	}
+            map.put(key, dto);
+        }
+    }
+
+    List<AssignTherapistPatientListDTO> dtoList = new ArrayList<>(map.values());
+
+    if (dtoList.isEmpty()) {
+        response.setSuccess(false);
+        response.setMessage("No patients found for given status");
+        response.setStatus(404);
+        return response;
+    }
+
+    response.setSuccess(true);
+    response.setData(dtoList);
+    response.setMessage("Assigned patients fetched successfully");
+    response.setStatus(200);
+
+    return response;
+}//	public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
+//
+//	    Response response = new Response();
+//
+//	    List<PhysiotherapyRecord> records =
+//	            repository.findByClinicIdAndBranchIdAndTreatmentPlan_TherapistId(
+//	                    clinicId, branchId, therapistId);
+//
+//	    if (records == null || records.isEmpty()) {
+//	        response.setSuccess(false);
+//	        response.setMessage("No assigned patients found");
+//	        response.setStatus(404);
+//	        return response;
+//	    }
+//
+//	    Map<String, AssignTherapistPatientListDTO> map = new LinkedHashMap<>();
+//
+//	    for (PhysiotherapyRecord record : records) {
+//
+//	        String dbStatus = record.getOverallStatus();
+//
+//	        // ✅ FINAL STATUS FILTER (ROBUST)
+//	        if (overallStatus != null) {
+//
+//	            if (dbStatus == null) continue;
+//
+//	            String status = dbStatus.trim().toLowerCase();
+////1-pending, 2-in-progrss 3,completed
+//	            switch (overallStatus) {
+//
+//	                case 1: // Pending
+//	                    if (!status.startsWith("pending")) continue;
+//	                    break;
+//
+//	                case 2: 
+//	                    if (!(status.startsWith("in-progrss") )) continue;
+//	                    break;
+//
+//	                case 3: // Completed
+//	                    if (!(status.startsWith("completed"))) continue;
+//	                    break;
+//	            }
+//	        }
+//
+//	        if (record.getTherapySessions() == null || record.getTherapySessions().isEmpty())
+//	            continue;
+//
+//	        if (record.getPatientInfo() == null)
+//	            continue;
+//
+//	        for (TherapySession session : record.getTherapySessions()) {
+//
+//	            if (session.getProgramId() == null && session.getProgramName() == null) {
+//	                continue;
+//	            }
+//
+//	            // ✅ UNIQUE KEY
+//	            String key = record.getTherapistRecordId() + "_" +
+//	                    (session.getProgramId() != null ? session.getProgramId() : "NA");
+//
+//	            if (map.containsKey(key))
+//	                continue;
+//
+//	            AssignTherapistPatientListDTO dto = new AssignTherapistPatientListDTO();
+//
+//	            // ✅ BASIC
+//	            dto.setBookingId(record.getBookingId());
+//	            dto.setTherapistRecordId(record.getTherapistRecordId());
+//	            dto.setClinicId(record.getClinicId());
+//	            dto.setBranchId(record.getBranchId());
+//
+//	            // ✅ PATIENT INFO
+//	            dto.setPatientId(record.getPatientInfo().getPatientId());
+//	            dto.setPatientName(
+//	                    record.getPatientInfo().getPatientName() != null
+//	                            ? record.getPatientInfo().getPatientName()
+//	                            : "Unknown"
+//	            );
+//	            dto.setMobileNumber(record.getPatientInfo().getMobileNumber());
+//	            dto.setAge(record.getPatientInfo().getAge());
+//	            dto.setSex(record.getPatientInfo().getSex());
+//
+//	            // ✅ TREATMENT PLAN
+//	            if (record.getTreatmentPlan() != null) {
+//	                dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+//	                dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+//	                dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+//	                dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+//	            }
+//
+//	            // ✅ SESSION DATA
+//	            dto.setProgramId(session.getProgramId() != null ? session.getProgramId() : "N/A");
+//	            dto.setProgramName(session.getProgramName());
+//	            dto.setSerivceType(session.getServiceType() != null ? session.getServiceType() : "N/A");
+//
+//	            // ✅ STATUS
+//	            dto.setOverallStatus(record.getOverallStatus());
+//
+//	            map.put(key, dto);
+//	        }
+//	    }
+//
+//	    List<AssignTherapistPatientListDTO> dtoList = new ArrayList<>(map.values());
+//
+//	    if (dtoList.isEmpty()) {
+//	        response.setSuccess(false);
+//	        response.setMessage("No patients found for given status");
+//	        response.setStatus(404);
+//	        return response;
+//	    }
+//
+//	    response.setSuccess(true);
+//	    response.setData(dtoList);
+//	    response.setMessage("Assigned patients fetched successfully");
+//	    response.setStatus(200);
+//
+//	    return response;
+//	}
+//	
 	// @Override
+	
 //	public Response getTherapistDashboard(String clinicId, String branchId, String therapistId) {
 //
 //		Response response = new Response();
