@@ -85,11 +85,13 @@ public class BookingResponse {
 	private List<String> activityLevels;
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
+	private Session session;
 	
 	public void setIsFollowupStatus(boolean followupStatus) {
 	    isFollowupStatus = followupStatus;
 	}
 	
+
 	public boolean getIsFollowupStatus() {
 	    return isFollowupStatus;
 	}

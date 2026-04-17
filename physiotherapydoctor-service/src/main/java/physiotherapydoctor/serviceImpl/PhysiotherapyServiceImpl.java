@@ -25,6 +25,7 @@ import physiotherapydoctor.dto.ProgramCalculations;
 import physiotherapydoctor.dto.ProgramDataForPackage;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
+import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.TheraphyInfo;
 import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
@@ -1573,5 +1574,78 @@ private PhysiotherapyRecord extractRecord(Object data) {
     throw new RuntimeException("Invalid data format: expected PhysiotherapyRecord");
 }
 	
+
+public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
+
+    try {
+        Optional<PhysiotherapyRecord> optional = repository.findByBookingId(bookingId);
+
+        if (optional.isEmpty()) {
+            return ResponseEntity.ok(null);
+        }
+
+        PhysiotherapyRecord record = optional.get();
+        List<Session> matchedSessions = new ArrayList<>();
+
+        if (record.getTherapySessions() == null) {
+            return ResponseEntity.ok(null);
+        }
+
+        for (TherapySession ts : record.getTherapySessions()) {
+
+            String type = ts.getServiceType();
+
+            if ("package".equalsIgnoreCase(type)) {
+                handlePackage(ts, date, matchedSessions);
+
+            } else if ("program".equalsIgnoreCase(type)) {
+                handleProgram(ts.getTherapyData(), date, matchedSessions);
+
+            } else if ("therapy".equalsIgnoreCase(type)) {
+                handleTherapy(ts.getExercises(), date, matchedSessions);
+            }
+        }
+
+        return matchedSessions.isEmpty()
+                ? ResponseEntity.ok(null)
+                : ResponseEntity.ok(matchedSessions);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(e.getMessage());
+    }
 }
+private void handlePackage(TherapySession ts, String date, List<Session> result) {
+
+    if (ts.getPrograms() == null) return;
+
+    for (Program program : ts.getPrograms()) {
+        handleProgram(program.getTherapyData(), date, result);
+    }}
+
+private void handleProgram(List<TherapyData> therapyDataList,
+        String date,
+        List<Session> result) {
+
+if (therapyDataList == null) return;
+
+for (TherapyData td : therapyDataList) {
+handleTherapy(td.getExercises(), date, result);
+}
+}
+
+private void handleTherapy(List<TherapyExercise> exercises,
+        String date,
+        List<Session> result) {
+
+if (exercises == null) return;
+
+for (TherapyExercise ex : exercises) {
+
+if (ex.getSessions() == null) continue;
+
+for (Session session : ex.getSessions()) {
+
+if (date.equals(session.getDate())) {
+result.add(session);
+}}}}}
 

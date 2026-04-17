@@ -39,4 +39,6 @@ public interface PhysiotherapydoctorRespository extends MongoRepository<Physioth
 	        String branchId,
 	        String therapistId
 	);
+
+	Optional<PhysiotherapyRecord> findByBookingId(String bookingId);
 }

@@ -1,5 +1,7 @@
 package physiotherapydoctor.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
+import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.service.PhysiotherapyService;
 
 @RestController
@@ -67,6 +70,12 @@ public class PhysiotherapyController {
 		Response response = service.delete(id);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
+	
+	@GetMapping("/getPhysioByBookingId/{bookingId}/{date}")
+	public ResponseEntity<List<Session>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String date) {		
+		return service.getSessionsByBookingIdAndDate(bookingId, date);
+	}
+	
 	@GetMapping("/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}/{therapistRecordId}")
 	public ResponseEntity<Response> getRecord(
 	        @PathVariable String clinicId,
