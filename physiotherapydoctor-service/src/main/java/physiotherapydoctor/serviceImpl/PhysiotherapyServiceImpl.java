@@ -1107,7 +1107,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    // ===================== GET SESSIONS BY DATE =====================
 
-	public Response getProgramAndTherapyInfo(String clinicId, String branchId,
+public Response getProgramAndTherapyInfo(String clinicId, String branchId,
             String patientId, String bookingId) {
 Response response = new Response();
 
