@@ -63,7 +63,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return response;
 		}
 
-//		calculateTherapyPrices(dto.getTherapySessions());
+	calculateTherapyPrices(dto.getTherapySessions());
 
 		PhysiotherapyRecord entity = mapToEntity(dto);
 
