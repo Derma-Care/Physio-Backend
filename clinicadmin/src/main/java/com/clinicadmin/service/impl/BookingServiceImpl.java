@@ -157,13 +157,14 @@ public class BookingServiceImpl implements BookingService {
 			ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);
 			BookingResponse bookingResponse = res.getBody().getData();
 			if (bookingResponse != null) {
-				doctorService.updateSlot(bookingResponse.getDoctorId(), bookingResponse.getBranchId(),
-						bookingResponse.getServiceDate(), bookingResponse.getServicetime());
-				response.setData(res.getBody());
+				response.setData(bookingResponse);
+				response.setMessage("follow up appointment found");
+				response.setSuccess(true);
 				response.setStatus(res.getBody().getStatusCode());
-			} else {
-				response.setStatus(res.getBody().getHttpStatus().value());
-				response.setData(res.getBody());
+			} else {				
+				response.setMessage("follow up appointment not found");
+				response.setSuccess(false);
+				response.setStatus(res.getStatusCode().value());
 			}
 		} catch (FeignException e) {
 			response.setStatus(e.status());
@@ -313,8 +314,6 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
 public ResponseEntity<?> physioAppointment(BookingRequset req) {
     ResponseEntity<Response> res = null;
     Response response = new Response();
-    ResponseEntity<ResponseStructure<BookingResponse>> op = null;
-    BookingResponse bookingResponse = null;
     try {
     	 if(req.getTheraphyAnswers()!= null) {
  	        

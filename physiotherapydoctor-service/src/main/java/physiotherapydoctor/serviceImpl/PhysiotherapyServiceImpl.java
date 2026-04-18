@@ -49,6 +49,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	@Autowired
 	private BookingFeign bookingFeign;
+	
 
 	@Override
 	public Response create(PhysiotherapyRecordDTO dto) {
@@ -1613,7 +1614,7 @@ public Response getByClinicBranchAndBooking(String clinicId, String branchId, St
 	return response;
 }
 
-public ResponseEntity<?> getSessionsByBookingIdAndDate(String bookingId, String date) {
+public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
 
     try {
         Optional<PhysiotherapyRecord> optional = repository.findByBookingId(bookingId);
@@ -1649,7 +1650,8 @@ public ResponseEntity<?> getSessionsByBookingIdAndDate(String bookingId, String 
                 : ResponseEntity.ok(matchedSessions);
 
     } catch (Exception e) {
-        return ResponseEntity.status(500).body(e.getMessage());
+    System.out.println(e.getMessage());
+        return ResponseEntity.status(500).body(null);
     }}
     private void handlePackage(TherapySession ts, String date, List<Session> result) {
 

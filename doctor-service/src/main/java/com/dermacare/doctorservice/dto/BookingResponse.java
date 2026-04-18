@@ -3,7 +3,6 @@ package com.dermacare.doctorservice.dto;
 import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -96,7 +95,7 @@ public class BookingResponse {
 	private List<String> activityLevels;
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
-	private Session session;
+	private  List<Session> session;
 	
 	
 	public void setIsFollowupStatus(boolean followupStatus) {

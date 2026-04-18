@@ -39,7 +39,7 @@ public interface PhysiotherapyService {
 	Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus);
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId, String bookingId);
 
-	//public ResponseEntity< List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date);
+	public ResponseEntity< List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date);
 
 	Response getByClinicBranchAndBooking(String clinicId, String branchId, String bookingId);
 
