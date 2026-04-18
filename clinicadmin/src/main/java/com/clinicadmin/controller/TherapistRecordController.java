@@ -3,7 +3,6 @@ package com.clinicadmin.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
 import com.clinicadmin.service.TherapistRecordService;
@@ -31,15 +30,15 @@ public class TherapistRecordController {
     }
 
     //  GET API 
-    @GetMapping("/getRecordByClinicIdBranchIdtherapistRecordIdAndSessionId/{clinicId}/{branchId}/{therapistRecordId}/{bookingId}")
+    @GetMapping("/getRecordByClinicIdBranchIdtherapistRecordIdAndSessionId/{clinicId}/{branchId}/{therapistRecordId}/{sessionId}")
     public ResponseEntity<ResponseStructure<TherapistRecordDTO>> getRecordByClinicIdBranchIdtherapistRecordIdAndSessionId(
             @PathVariable String clinicId,
             @PathVariable String branchId,
             @PathVariable String therapistRecordId,
-            @PathVariable String bookingId) {
+            @PathVariable String sessionId) {
 
         ResponseStructure<TherapistRecordDTO> response =
-                service.getByIds(clinicId, branchId, therapistRecordId,bookingId);
+                service.getByIds(clinicId, branchId, therapistRecordId,sessionId);
 
         return ResponseEntity
                 .status(response.getStatusCode())
