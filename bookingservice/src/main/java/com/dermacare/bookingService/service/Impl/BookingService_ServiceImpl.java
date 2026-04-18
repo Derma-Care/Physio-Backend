@@ -2647,16 +2647,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			        // -------- PAYMENT --------
 			         if( dto.getPaymentType() != null && !dto.getPaymentType().isEmpty()) {
-				        	entity.setStatus("confirmed");
-				        	List<Status> status = entity.getCurrentStatus();
-			            	Status s = new Status();
-			            	ZoneId zone = ZoneId.of("Asia/Kolkata");
-			            	LocalDateTime dateTime = LocalDateTime.now(zone);
-			            	s.setDATE_TIME(dateTime);
-			            	s.setStatus(entity.getStatus());
-			            	status.add(s);
-			            	 Collections.reverse(status);
-			            	 entity.setCurrentStatus(status);}
+				        	entity.setPaymentType(dto.getPaymentType());}
 			        if (dto.getPaymentStatus() != null && !dto.getPaymentStatus().isEmpty())
 			            entity.setPaymentStatus(dto.getPaymentStatus());
 
