@@ -29,6 +29,10 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Amount must be greater than 0");
         }
 
+        if (req.getTherapyWithSessions() == null || req.getTherapyWithSessions().isEmpty()) {
+            throw new RuntimeException("therapyWithSessions is required");
+        }
+
         PaymentRecord record = new PaymentRecord();
 
         // ================= BASIC =================
@@ -62,22 +66,13 @@ public class PaymentServiceImpl implements PaymentService {
 
         double amount = req.getAmount();
 
-        // ================= 🔥 VALIDATIONS =================
-
-        // ❌ Overpayment
+        // ================= VALIDATIONS =================
         if (amount > finalAmount) {
-            throw new RuntimeException(
-                    "Amount exceeds final payable amount: " + finalAmount
-            );
+            throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
         }
 
-        // ❌ FULL payment validation
-        if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
-            if (amount != finalAmount) {
-                throw new RuntimeException(
-                        "Full payment must be exactly: " + finalAmount
-                );
-            }
+        if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
+            throw new RuntimeException("Full payment must be exactly: " + finalAmount);
         }
 
         // ================= PAYMENT =================
@@ -89,7 +84,11 @@ public class PaymentServiceImpl implements PaymentService {
         boolean created = createSessions(req.getTherapyWithSessions(), req.getSessionStartDate());
         record.setSessionTableCreatedStatus(created);
 
+        // 🔥 FIX 1: SET DATA FIRST
         record.setTherapyWithSessions(req.getTherapyWithSessions());
+
+        // 🔥 FIX 2: THEN DISTRIBUTE
+        distributePaymentToSessions(record);
 
         // ================= HISTORY =================
         record.setPaymentHistory(new ArrayList<>());
@@ -104,8 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
         updateStatuses(record);
 
         return repo.save(record);
-    }
-    //    @Override
+    }    //    @Override
 //    public PaymentRecord createPayment(PaymentRequest req) {
 //
 //        if (repo.findByBookingId(req.getBookingId()).isPresent()) {
@@ -209,7 +207,8 @@ public class PaymentServiceImpl implements PaymentService {
         record.setTotalPaid(newPaid);
         record.setBalanceAmount(finalAmount - newPaid);
         record.setPaymentStatus(getStatus(record));
-
+     // 🔥 NEW LINE
+        distributePaymentToSessions(record);
         // ================= APPLY PAYMENT LEVEL =================
         applyPaymentLevel(record, req);
 
@@ -266,41 +265,119 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (req.getPaymentLevel() == null || req.getPaymentTarget() == null) return;
 
-        // 🔥 Only allow marking Paid when FULL payment is done
-        boolean isFullPaid = Double.compare(
-                record.getTotalPaid(),
-                record.getFinalAmount()
-        ) == 0;
-
-        if (!isFullPaid) {
-            return; // ❌ DO NOTHING for partial payment
-        }
-
         String level = req.getPaymentLevel().toUpperCase();
+        String status = getStatus(record); // Unpaid / Partial / Paid
 
         switch (level) {
+
+            case "PACKAGE":
+                updatePackageStatus(record, req.getPaymentTarget().getPackageIds(), status);
+                break;
+
+            case "PROGRAM":
+                updateProgramStatus(record, req.getPaymentTarget().getProgramIds(), status);
+                break;
+
+            case "THERAPY":
+                updateTherapyStatus(record, req.getPaymentTarget().getTherapyIds(), status);
+                break;
+
+            case "EXERCISE":
+                updateExerciseStatus(record, req.getPaymentTarget().getExerciseIds(), status);
+                break;
 
             case "SESSION":
                 paySessions(record, req.getPaymentTarget().getSessionIds());
                 break;
-
-            case "EXERCISE":
-                payExercises(record, req.getPaymentTarget().getExerciseIds());
-                break;
-
-            case "THERAPY":
-                payTherapies(record, req.getPaymentTarget().getTherapyIds());
-                break;
-
-            case "PROGRAM":
-                payPrograms(record, req.getPaymentTarget().getProgramIds());
-                break;
-
-            case "PACKAGE":
-                payPackages(record, req.getPaymentTarget().getPackageIds());
-                break;
         }
     }
+    private void distributePaymentToSessions(PaymentRecord record) {
+
+        if (record.getTherapyWithSessions() == null) return; // 🔥 FIX
+
+        double remaining = record.getTotalPaid();
+
+        for (var pkg : record.getTherapyWithSessions()) {
+            if (pkg.getPrograms() == null) continue;
+
+            for (var prog : pkg.getPrograms()) {
+                if (prog.getTherapyData() == null) continue;
+
+                for (var therapy : prog.getTherapyData()) {
+                    if (therapy.getExercises() == null) continue;
+
+                    for (var ex : therapy.getExercises()) {
+
+                        if (ex.getSessions() == null) continue;
+
+                        double price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+
+                        for (var s : ex.getSessions()) {
+
+                            if (remaining <= 0) {
+                                s.setPaymentStatus("Unpaid");
+                            } else if (remaining >= price) {
+                                s.setPaymentStatus("Paid");
+                                remaining -= price;
+                            } else {
+                                s.setPaymentStatus("Partial");
+                                remaining = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }    private static class SessionWrapper {
+        Session session;
+        double price;
+
+        SessionWrapper(Session s, double p) {
+            this.session = s;
+            this.price = p;
+        }
+    }
+    //    private void applyPaymentLevel(PaymentRecord record, PaymentRequest req) {
+    
+
+//
+//        if (req.getPaymentLevel() == null || req.getPaymentTarget() == null) return;
+//
+//        // 🔥 Only allow marking Paid when FULL payment is done
+//        boolean isFullPaid = Double.compare(
+//                record.getTotalPaid(),
+//                record.getFinalAmount()
+//        ) == 0;
+//
+//        if (!isFullPaid) {
+//            return; // ❌ DO NOTHING for partial payment
+//        }
+//
+//        String level = req.getPaymentLevel().toUpperCase();
+//
+//        switch (level) {
+//
+//            case "SESSION":
+//                paySessions(record, req.getPaymentTarget().getSessionIds());
+//                break;
+//
+//            case "EXERCISE":
+//                payExercises(record, req.getPaymentTarget().getExerciseIds());
+//                break;
+//
+//            case "THERAPY":
+//                payTherapies(record, req.getPaymentTarget().getTherapyIds());
+//                break;
+//
+//            case "PROGRAM":
+//                payPrograms(record, req.getPaymentTarget().getProgramIds());
+//                break;
+//
+//            case "PACKAGE":
+//                payPackages(record, req.getPaymentTarget().getPackageIds());
+//                break;
+//        }
+//    }
 //    private void applyPaymentLevel(PaymentRecord record, PaymentRequest req) {
 //
 //        if (req.getPaymentLevel() == null) return;
@@ -335,27 +412,23 @@ public class PaymentServiceImpl implements PaymentService {
 //    }
 
     // ================= PACKAGE =================
-    private void payPackages(PaymentRecord record, List<String> ids) {
+    private void updatePackageStatus(PaymentRecord record, List<String> ids, String status) {
 
-        if (ids == null || ids.isEmpty()) return;
+        if (ids == null) return;
 
         for (var pkg : record.getTherapyWithSessions()) {
             if (ids.contains(pkg.getPackageId())) {
 
-                pkg.setPaymentStatus("Paid");
+                pkg.setPaymentStatus(status);
 
                 for (var prog : pkg.getPrograms()) {
-                    prog.setPaymentStatus("Paid");
+                    prog.setPaymentStatus(status);
 
                     for (var therapy : prog.getTherapyData()) {
-                        therapy.setPaymentStatus("Paid");
+                        therapy.setPaymentStatus(status);
 
                         for (var ex : therapy.getExercises()) {
-                            ex.setPaymentStatus("Paid");
-
-                            for (var s : ex.getSessions()) {
-                                s.setPaymentStatus("Paid");
-                            }
+                            ex.setPaymentStatus(status);
                         }
                     }
                 }
@@ -389,33 +462,28 @@ public class PaymentServiceImpl implements PaymentService {
 //    }
 
     // ================= PROGRAM =================
-    private void payPrograms(PaymentRecord record, List<String> ids) {
+    private void updateProgramStatus(PaymentRecord record, List<String> ids, String status) {
 
         for (var pkg : record.getTherapyWithSessions()) {
             for (var prog : pkg.getPrograms()) {
 
                 if (ids.contains(prog.getProgramId())) {
 
-                    prog.setPaymentStatus("Paid");
+                    prog.setPaymentStatus(status);
 
                     for (var therapy : prog.getTherapyData()) {
-                        therapy.setPaymentStatus("Paid");
+                        therapy.setPaymentStatus(status);
 
                         for (var ex : therapy.getExercises()) {
-                            ex.setPaymentStatus("Paid");
-
-                            for (var s : ex.getSessions()) {
-                                s.setPaymentStatus("Paid");
-                            }
+                            ex.setPaymentStatus(status);
                         }
                     }
                 }
             }
         }
     }
-
     // ================= THERAPY =================
-    private void payTherapies(PaymentRecord record, List<String> ids) {
+    private void updateTherapyStatus(PaymentRecord record, List<String> ids, String status) {
 
         for (var pkg : record.getTherapyWithSessions()) {
             for (var prog : pkg.getPrograms()) {
@@ -423,23 +491,18 @@ public class PaymentServiceImpl implements PaymentService {
 
                     if (ids.contains(therapy.getTherapyId())) {
 
-                        therapy.setPaymentStatus("Paid");
+                        therapy.setPaymentStatus(status);
 
                         for (var ex : therapy.getExercises()) {
-                            ex.setPaymentStatus("Paid");
-
-                            for (var s : ex.getSessions()) {
-                                s.setPaymentStatus("Paid");
-                            }
+                            ex.setPaymentStatus(status);
                         }
                     }
                 }
             }
         }
     }
-
     // ================= EXERCISE =================
-    private void payExercises(PaymentRecord record, List<String> ids) {
+    private void updateExerciseStatus(PaymentRecord record, List<String> ids, String status) {
 
         for (var pkg : record.getTherapyWithSessions()) {
             for (var prog : pkg.getPrograms()) {
@@ -447,12 +510,7 @@ public class PaymentServiceImpl implements PaymentService {
                     for (var ex : therapy.getExercises()) {
 
                         if (ids.contains(ex.getExerciseId())) {
-
-                            ex.setPaymentStatus("Paid");
-
-                            for (var s : ex.getSessions()) {
-                                s.setPaymentStatus("Paid");
-                            }
+                            ex.setPaymentStatus(status);
                         }
                     }
                 }
@@ -487,43 +545,43 @@ public class PaymentServiceImpl implements PaymentService {
     // ================= STATUS PROPAGATION =================
     private void updateStatuses(PaymentRecord record) {
 
+        if (record.getTherapyWithSessions() == null) return; // 🔥 FIX
+
         for (var pkg : record.getTherapyWithSessions()) {
 
-            boolean allPkgPaid = true;
+            if (pkg.getPrograms() == null) continue;
 
             for (var prog : pkg.getPrograms()) {
 
-                boolean allProgPaid = true;
+                if (prog.getTherapyData() == null) continue;
 
                 for (var therapy : prog.getTherapyData()) {
 
-                    boolean allTherapyPaid = true;
+                    if (therapy.getExercises() == null) continue;
 
                     for (var ex : therapy.getExercises()) {
 
-                        boolean allExPaid = ex.getSessions().stream()
+                        if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
+                            ex.setPaymentStatus("Unpaid");
+                            continue;
+                        }
+
+                        boolean allPaid = ex.getSessions().stream()
                                 .allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
 
-                        ex.setPaymentStatus(allExPaid ? "Paid" : "Partial");
+                        boolean anyPaid = ex.getSessions().stream()
+                                .anyMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
 
-                        if (!allExPaid) allTherapyPaid = false;
+                        if (allPaid) ex.setPaymentStatus("Paid");
+                        else if (anyPaid) ex.setPaymentStatus("Partial");
+                        else ex.setPaymentStatus("Unpaid");
                     }
-
-                    therapy.setPaymentStatus(allTherapyPaid ? "Paid" : "Partial");
-
-                    if (!allTherapyPaid) allProgPaid = false;
                 }
-
-                prog.setPaymentStatus(allProgPaid ? "Paid" : "Partial");
-
-                if (!allProgPaid) allPkgPaid = false;
             }
-
-            pkg.setPaymentStatus(allPkgPaid ? "Paid" : "Partial");
         }
     }
-
     // ================= UTIL =================
+    
     private String getStatus(PaymentRecord r) {
 
         if (r.getTotalPaid() <= 0) return "Unpaid";
