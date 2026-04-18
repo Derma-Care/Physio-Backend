@@ -12,10 +12,15 @@ public interface PhysiotherapyFeignClient {
 
     @PutMapping("/api/physiotherapy-doctor/updateSessionFromTherapist/{therapistRecordId}/{sessionId}")
     void updateSessionStatus(
-            @PathVariable String therapistRecordId,
-            @PathVariable String sessionId);
-    
-    
+            @PathVariable("therapistRecordId") String therapistRecordId,
+            @PathVariable("sessionId") String sessionId
+    );
+
+    @GetMapping("/api/physiotherapy-doctor/payment/{bookingId}")
+    Response getPayment(
+            @PathVariable("bookingId") String bookingId
+    );
+
     @GetMapping("/api/physiotherapy-doctor/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}/{therapistRecordId}")
     Response getRecord(
             @PathVariable("clinicId") String clinicId,
@@ -24,9 +29,4 @@ public interface PhysiotherapyFeignClient {
             @PathVariable("bookingId") String bookingId,
             @PathVariable("therapistRecordId") String therapistRecordId
     );
-    
-    @GetMapping("/api/physiotherapy-doctor/payment/{bookingId}")
-    Response getPayment(@PathVariable("bookingId") String bookingId);
-
-
 }

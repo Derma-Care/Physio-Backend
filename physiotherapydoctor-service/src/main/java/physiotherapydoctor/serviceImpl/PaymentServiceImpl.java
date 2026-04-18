@@ -2,13 +2,22 @@ package physiotherapydoctor.serviceImpl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
-import physiotherapydoctor.dto.*;
+import physiotherapydoctor.dto.BookingResponse;
+import physiotherapydoctor.dto.PaymentHistory;
+import physiotherapydoctor.dto.PaymentRequest;
+import physiotherapydoctor.dto.Program;
+import physiotherapydoctor.dto.Session;
+import physiotherapydoctor.dto.TherapyData;
+import physiotherapydoctor.dto.TherapyExercise;
+import physiotherapydoctor.dto.TherapyWithSessions;
 import physiotherapydoctor.entity.PaymentRecord;
+import physiotherapydoctor.feign.BookingFeign;
+import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.service.PaymentService;
 @Service
@@ -16,7 +25,12 @@ import physiotherapydoctor.service.PaymentService;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository repo;
+    
+    @Autowired
+	private BookingFeign bookingFeign;
 
+    @Autowired
+    private ClinicAdminFeign clinicAdminFeign;
     // ================= CREATE =================
     @Override
     public PaymentRecord createPayment(PaymentRequest req) {
@@ -40,6 +54,7 @@ public class PaymentServiceImpl implements PaymentService {
         record.setBranchId(req.getBranchId());
         record.setBookingId(req.getBookingId());
         record.setPatientId(req.getPatientId());
+        record.setOverallSatatus("Pending");
 
         record.setDoctorId(req.getDoctorId());
         record.setDoctorName(req.getDoctorName());
@@ -726,5 +741,188 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new RuntimeException("Payment not found for bookingId: " + bookingId));
 
         repo.delete(record);
+    }
+    @Override
+    public void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId) {
+
+        PaymentRecord record = repo.findByTherapistRecordId(therapistRecordId)
+                .orElseThrow(() -> new RuntimeException("Payment record not found"));
+
+        List<TherapyWithSessions> packageList = record.getTherapyWithSessions();
+
+        if (packageList == null || packageList.isEmpty()) {
+            throw new RuntimeException("No sessions found");
+        }
+
+        boolean sessionFound = false;
+
+        for (TherapyWithSessions packageData : packageList) {
+
+            List<Program> programList = packageData.getPrograms();
+
+            if (programList == null || programList.isEmpty()) {
+                continue;
+            }
+
+            for (Program program : programList) {
+
+                List<TherapyData> therapyList = program.getTherapyData();
+
+                if (therapyList == null || therapyList.isEmpty()) {
+                    continue;
+                }
+
+                for (TherapyData therapy : therapyList) {
+
+                    List<TherapyExercise> exerciseList = therapy.getExercises();
+
+                    if (exerciseList == null || exerciseList.isEmpty()) {
+                        continue;
+                    }
+
+                    for (TherapyExercise exercise : exerciseList) {
+
+                        List<Session> sessionList = exercise.getSessions();
+
+                        if (sessionList == null || sessionList.isEmpty()) {
+                            continue;
+                        }
+
+                        for (Session session : sessionList) {
+
+                            if (sessionId.equals(session.getSessionId())) {
+                                session.setStatus("Completed");
+                                sessionFound = true;
+                                break;
+                            }
+                        }
+
+                        if (sessionFound) {
+                            break;
+                        }
+                    }
+
+                    if (sessionFound) {
+                        break;
+                    }
+                }
+
+                if (sessionFound) {
+                    break;
+                }
+            }
+
+            if (sessionFound) {
+                break;
+            }
+        }
+
+        if (!sessionFound) {
+            throw new RuntimeException("Session not found with ID: " + sessionId);
+        }
+
+        record.setOverallSatatus(calculateOverallStatus(record));
+
+        repo.save(record);
+
+        updateBookingStatus(record);
+    }
+
+    private String calculateOverallStatus(PaymentRecord record) {
+
+        List<TherapyWithSessions> packageList = record.getTherapyWithSessions();
+
+        if (packageList == null || packageList.isEmpty()) {
+            return "Pending";
+        }
+
+        boolean allCompleted = true;
+        boolean anyCompleted = false;
+
+        for (TherapyWithSessions packageData : packageList) {
+
+            List<Program> programList = packageData.getPrograms();
+
+            if (programList == null || programList.isEmpty()) {
+                continue;
+            }
+
+            for (Program program : programList) {
+
+                List<TherapyData> therapyList = program.getTherapyData();
+
+                if (therapyList == null || therapyList.isEmpty()) {
+                    continue;
+                }
+
+                for (TherapyData therapy : therapyList) {
+
+                    List<TherapyExercise> exerciseList = therapy.getExercises();
+
+                    if (exerciseList == null || exerciseList.isEmpty()) {
+                        continue;
+                    }
+
+                    for (TherapyExercise exercise : exerciseList) {
+
+                        List<Session> sessionList = exercise.getSessions();
+
+                        if (sessionList == null || sessionList.isEmpty()) {
+                            continue;
+                        }
+
+                        for (Session session : sessionList) {
+
+                            if ("Completed".equalsIgnoreCase(session.getStatus())) {
+                                anyCompleted = true;
+                            } else {
+                                allCompleted = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (allCompleted) {
+            return "Completed";
+        }
+
+        if (anyCompleted) {
+            return "Active";
+        }
+
+        return "Pending";
+    }
+
+    private void updateBookingStatus(PaymentRecord record) {
+
+        if (record.getBookingId() == null || record.getBookingId().trim().isEmpty()) {
+            return;
+        }
+
+        try {
+
+            BookingResponse request = new BookingResponse();
+            request.setBookingId(record.getBookingId().trim());
+
+            // ✅ Map payment overall status to booking status
+            if ("Completed".equalsIgnoreCase(record.getOverallSatatus())) {
+                request.setStatus("completed");
+            } else if ("Active".equalsIgnoreCase(record.getOverallSatatus())) {
+                request.setStatus("in-progress");
+            } else {
+                request.setStatus("pending");
+            }
+
+            clinicAdminFeign.updateAppointment(request);
+
+            System.out.println("Booking status updated successfully => "
+                    + request.getBookingId() + " | " + request.getStatus());
+
+        } catch (Exception e) {
+            System.out.println("Booking status update failed");
+            e.printStackTrace();
+        }
     }
 }

@@ -22,4 +22,6 @@ public interface ClinicAdminFeign {
     @PutMapping("/clinic-admin/updateAppointmentBasedOnBookingId")
     ResponseEntity<?> updateAppointment(
             @RequestBody BookingResponse bookingResponse);
+    
+    
 }

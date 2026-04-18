@@ -37,7 +37,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         TherapistRecord record = mapToEntity(dto);
 
-        // ✅ TherapistRecord status (separate from session)
+        // ✅ TherapistRecord status
         record.setStatus("COMPLETED");
 
         // ================= ENCODE =================
@@ -65,34 +65,47 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                     Base64.getEncoder().encodeToString(dto.getAfterVideo().getBytes())
             );
         }
+
         if (dto.getVoiceRecord() != null) {
             record.setVoiceRecord(
-                Base64.getEncoder().encodeToString(dto.getVoiceRecord().getBytes())
+                    Base64.getEncoder().encodeToString(dto.getVoiceRecord().getBytes())
             );
         }
 
-        // ✅ IMPORTANT: ensure IDs are set
+        // ✅ Ensure IDs
         record.setTherapistRecordId(dto.getTherapistRecordId());
         record.setSessionId(dto.getSessionId());
 
-        // ✅ SAVE RECORD
+        // ✅ Save therapist record
         TherapistRecord saved = repository.save(record);
 
-        // 🔥 CALL PHYSIOTHERAPY SERVICE
+        // 🔥 Call Physiotherapy Service
         try {
-            if (dto.getTherapistRecordId() != null && dto.getSessionId() != null) {
 
-                System.out.println("Calling Physio API: "
-                        + dto.getTherapistRecordId() + " | " + dto.getSessionId());
+            if (dto.getTherapistRecordId() != null
+                    && !dto.getTherapistRecordId().trim().isEmpty()
+                    && dto.getSessionId() != null
+                    && !dto.getSessionId().trim().isEmpty()) {
+
+                String therapistRecordId = dto.getTherapistRecordId().trim();
+                String sessionId = dto.getSessionId().trim();
+
+                System.out.println("Calling Physio API => "
+                        + therapistRecordId + " | " + sessionId);
 
                 physiotherapyFeignClient.updateSessionStatus(
-                        dto.getTherapistRecordId(),
-                        dto.getSessionId()
+                        therapistRecordId,
+                        sessionId
                 );
+
+                System.out.println("Physio session status updated successfully");
+            } else {
+                System.out.println("TherapistRecordId or SessionId is empty");
             }
+
         } catch (Exception e) {
-            // ✅ LOG ERROR (important for debugging)
-            System.out.println("Physio update failed: " + e.getMessage());
+            System.out.println("Physio update failed");
+            e.printStackTrace();
         }
 
         return ResponseStructure.buildResponse(

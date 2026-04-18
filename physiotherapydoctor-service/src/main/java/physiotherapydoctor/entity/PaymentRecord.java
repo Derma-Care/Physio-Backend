@@ -18,45 +18,47 @@ import physiotherapydoctor.dto.TherapyWithSessions;
 @NoArgsConstructor
 public class PaymentRecord {
 
-    @Id
-    private String id;
+	@Id
+	private String id;
 
-    private String clinicId;
-    private String branchId;
-    private String bookingId;
-    private String patientId;
+	private String clinicId;
+	private String branchId;
+	private String bookingId;
+	private String patientId;
 
-    private String doctorId;
-    private String doctorName;
+	private String doctorId;
+	private String doctorName;
 
-    private String therapistId;
-    private String therapistName;
-    private String therapistRecordId;
+	private String therapistId;
+	private String therapistName;
+	private String therapistRecordId;
 
-    private String serviceType;
+	private String serviceType;
+	private String overallSatatus;
+	// 💰 SUMMARY
+	private double totalAmount;
+	private double discountAmount;
+	private double finalAmount;
 
-    // 💰 SUMMARY
-    private double totalAmount;
-    private double discountAmount;
-    private double finalAmount;
+	private double totalPaid;
+	private double balanceAmount;
 
-    private double totalPaid;
-    private double balanceAmount;
+	private String paymentStatus;
 
-    private String paymentStatus;
+	// 📅 SESSION
+	private String sessionStartDate;
+	private int totalSessionCount;
 
-    // 📅 SESSION
-    private String sessionStartDate;
-    private int totalSessionCount;
+	private int noOfSessionCompletedCount;
+	private boolean noOfSessionCompletedStatus;
 
-    private int noOfSessionCompletedCount;
-    private boolean noOfSessionCompletedStatus;
+	private boolean sessionTableCreatedStatus;
 
-    private boolean sessionTableCreatedStatus;
+	// 🧾 HISTORY
+	private List<PaymentHistory> paymentHistory;
 
-    // 🧾 HISTORY
-    private List<PaymentHistory> paymentHistory;
+	// 🌳 DATA
+	private List<TherapyWithSessions> therapyWithSessions;
 
-    // 🌳 DATA
-    private List<TherapyWithSessions> therapyWithSessions;
+	
 }

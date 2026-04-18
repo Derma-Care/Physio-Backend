@@ -12,4 +12,6 @@ public interface PaymentService {
     PaymentRecord getByBookingId(String bookingId);
 
     void deleteByBookingId(String bookingId);
+
+	void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId);
 }
