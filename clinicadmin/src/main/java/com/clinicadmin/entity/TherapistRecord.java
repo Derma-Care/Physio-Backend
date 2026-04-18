@@ -20,7 +20,6 @@ public class TherapistRecord {
     private String patientId;
     private String bookingId;
     private String therapistId;
-
     private String patientName;
     private String therapy;
 

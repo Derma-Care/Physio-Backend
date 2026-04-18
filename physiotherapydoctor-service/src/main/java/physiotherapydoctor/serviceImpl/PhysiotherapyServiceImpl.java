@@ -38,6 +38,7 @@ import physiotherapydoctor.dto.TherophyDataDto;
 import physiotherapydoctor.dto.TreatmentPlan;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
 import physiotherapydoctor.feign.BookingFeign;
+import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PhysiotherapyService;
 
@@ -50,6 +51,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@Autowired
 	private BookingFeign bookingFeign;
 	
+	@Autowired	
+	private ClinicAdminFeign  clinicAdminFeign;
+
 
 	@Override
 	public Response create(PhysiotherapyRecordDTO dto) {
@@ -64,7 +68,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return response;
 		}
 
-//		calculateTherapyPrices(dto.getTherapySessions());
+	calculateTherapyPrices(dto.getTherapySessions());
 
 		PhysiotherapyRecord entity = mapToEntity(dto);
 
@@ -82,6 +86,30 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		// ✅ SAVE
 		PhysiotherapyRecord saved = repository.save(entity);
+		
+		// ✅ BOOKING UPDATE (only changed to ClinicAdminFeign + in-progress)
+		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
+		    try {
+		        ResponseStructure<BookingResponse> res =
+		                clinicAdminFeign.getBookingById(dto.getBookingId());
+
+		        if (res != null && res.getData() != null) {
+
+		            BookingResponse oldBooking = res.getData();
+
+		            BookingResponse updateRequest = new BookingResponse();
+		            updateRequest.setBookingId(oldBooking.getBookingId());
+		            updateRequest.setStatus("in-progress");
+		            updateRequest.setName(oldBooking.getName());
+		            updateRequest.setMobileNumber(oldBooking.getMobileNumber());
+
+		            clinicAdminFeign.updateAppointment(updateRequest);
+		        }
+
+		    } catch (Exception e) {
+		        System.out.println("Booking update failed: " + e.getMessage());
+		    }
+		}
 
 		// ✅ BOOKING UPDATE
 		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
