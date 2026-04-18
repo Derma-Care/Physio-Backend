@@ -1643,10 +1643,10 @@ public Response getByClinicBranchAndBooking(String clinicId, String branchId, St
 }
 
 public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
-
+//System.out.println("reced");
     try {
         Optional<PhysiotherapyRecord> optional = repository.findByBookingId(bookingId);
-
+//System.out.println(optional.get()); 
         if (optional.isEmpty()) {
             return ResponseEntity.ok(null);
         }
@@ -1661,10 +1661,10 @@ public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookin
         for (TherapySession ts : record.getTherapySessions()) {
 
             String type = ts.getServiceType();
-
+         // System.out.println(type); 
             if ("package".equalsIgnoreCase(type)) {
                 handlePackage(ts, date, matchedSessions);
-
+               // System.out.println(matchedSessions);
             } else if ("program".equalsIgnoreCase(type)) {
                 handleProgram(ts.getTherapyData(), date, matchedSessions);
 

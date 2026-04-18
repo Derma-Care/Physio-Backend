@@ -2862,7 +2862,8 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
     List<BookingResponse> res = toResponses(bookings);
 try {
 	 res = res.stream().map(n->{ List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate()).getBody();
-	n.setSession(lst);return n;}).toList();
+	//System.out.println(lst);
+	 n.setSession(lst);return n;}).toList();
 }catch(Exception e) {}
         // Total count
         long totalCount = bookings.size();
@@ -2889,7 +2890,7 @@ try {
         // optional
 
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings),summary, "Today bookings fetched", 200, null, null)
+                new Response(true, res,summary, "Today bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
@@ -2961,7 +2962,7 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
       
 
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings), summary,"Upcoming bookings fetched", 200, null, null)
+                new Response(true, res, summary,"Upcoming bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
@@ -3015,7 +3016,7 @@ public ResponseEntity<Response> getBookingByDate(String clinicId,
         
 
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings),summary, "Bookings fetched", 200, null, null)
+                new Response(true, res,summary, "Bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
@@ -3078,7 +3079,7 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
         
 
         return ResponseEntity.ok(
-                new Response(true, toResponses(bookings), summary,"Custom range bookings fetched", 200, null, null)
+                new Response(true, res, summary,"Custom range bookings fetched", 200, null, null)
         );
 
     } catch (Exception e) {
@@ -3092,15 +3093,16 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
     try {
         Optional<Booking> booking = repository.findByBookingId(bookingId);
         BookingResponse res = toResponse(booking.get());
+        List<Session> lst = new ArrayList<>();
         if (booking.isPresent()) {
         	try {
-        	List<Session> lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
+        	lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
         	res.setSession(lst);        	
         	}catch(Exception e) {}
             return ResponseEntity.ok(
                     new Response(
                             true,                      // success
-                           toResponse(booking.get()),null,            // data
+                           res,null,            // data
                             "Booking fetched successfully", // message
                             200,null, null                      // status
                     )
