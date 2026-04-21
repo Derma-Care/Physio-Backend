@@ -8,11 +8,11 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerAppointments
-#  kafka:
-#    producer:
-#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-#    bootstrap-servers: localhost:9092
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    bootstrap-servers: localhost:9092
 
 server:
   port: 9900

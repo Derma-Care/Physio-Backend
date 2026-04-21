@@ -104,7 +104,7 @@ public class ReportsServiceImpl implements ReportsService {
                 dto.setPatientId(bookingData.getPatientId());
 
                 // Update booking service record
-                bookingFeign.updateAppointment(bookingData);
+                bookingFeign.updateAppointmentBasedOnBookingId(bookingData);
             }
 
             // ✅ Save report in MongoDB

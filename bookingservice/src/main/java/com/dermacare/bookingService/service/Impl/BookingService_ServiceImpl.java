@@ -91,13 +91,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	 private static final List<String> VALID_STATUS =
 		        Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
-		        		"INVESTIGATION DONE",
-		        		"SESSION",
+		        		"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
 		        		"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
 		private static final List<String> VALID_WEEK_STATUS =
 		Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
-				"INVESTIGATION DONE",
-				"SESSION",
+				"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
 				"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
 
 	 
@@ -109,6 +107,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	Optional<Booking> booking = repository.findByBookingId(request.getBookingId());
 	if(booking.isPresent()) {
 	BookingResponse bookingResponse = toResponse(booking.get());
+	bookingResponse.setConsultationType("follow-up");;
 	response = ResponseStructure.buildResponse(
 			bookingResponse,
             "Service booked successfully",
@@ -164,7 +163,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             try {
 		    entity = new ObjectMapper().convertValue(request, Booking.class);
 		    entity.setFollowupStatus("pending");
-		    entity.setPatientId(generatePatientId(request.getBranchId()));	  
+		    entity.setPatientId(generatePatientId(request.getBranchId()));	
+		    entity.setConsultationType("First-Time");
 		    ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 		    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
             if(request.getTotalFee() != 0.0) {

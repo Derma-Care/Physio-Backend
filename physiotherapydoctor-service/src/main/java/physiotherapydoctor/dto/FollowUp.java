@@ -8,5 +8,5 @@ public class FollowUp {
 	private String nextVisitDate;
 	private String reviewNotes;
 //    private String continueTreatment;
-//	private String modifications;
+	private String modifications;
 }
