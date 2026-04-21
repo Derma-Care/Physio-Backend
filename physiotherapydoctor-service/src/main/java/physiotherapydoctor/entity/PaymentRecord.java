@@ -34,7 +34,7 @@ public class PaymentRecord {
 	private String therapistRecordId;
 
 	private String serviceType;
-	private String overallSatatus;
+	private String overallStatus;
 	// 💰 SUMMARY
 	private double totalAmount;
 	private double discountAmount;

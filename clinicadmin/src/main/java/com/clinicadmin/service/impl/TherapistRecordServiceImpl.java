@@ -118,11 +118,12 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     // ================= GET =================
     @Override
     public ResponseStructure<TherapistRecordDTO> getByIds(
-            String clinicId, String branchId, String therapistRecordId,String bookingId) {
+            String clinicId, String branchId, String therapistRecordId,String sessionId) {
 
         TherapistRecord record = repository
-                .findByClinicIdAndBranchIdAndTherapistRecordIdAndBookingId(clinicId, branchId, therapistRecordId,bookingId)
-                .orElseThrow(() -> new RuntimeException("Record not found"));
+        		.findByClinicIdAndBranchIdAndTherapistRecordIdAndSessionId(
+        		        clinicId, branchId, therapistRecordId, sessionId)
+        		.orElseThrow(() -> new RuntimeException("Record not found"));
 
         return ResponseStructure.buildResponse(
                 mapToDTO(record),

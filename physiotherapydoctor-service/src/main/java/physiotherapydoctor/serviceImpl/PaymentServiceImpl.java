@@ -54,7 +54,7 @@ public class PaymentServiceImpl implements PaymentService {
         record.setBranchId(req.getBranchId());
         record.setBookingId(req.getBookingId());
         record.setPatientId(req.getPatientId());
-        record.setOverallSatatus("Pending");
+        record.setOverallStatus("Pending");
 
         record.setDoctorId(req.getDoctorId());
         record.setDoctorName(req.getDoctorName());
@@ -821,7 +821,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Session not found with ID: " + sessionId);
         }
 
-        record.setOverallSatatus(calculateOverallStatus(record));
+        record.setOverallStatus(calculateOverallStatus(record));
 
         repo.save(record);
 
@@ -907,9 +907,9 @@ public class PaymentServiceImpl implements PaymentService {
             request.setBookingId(record.getBookingId().trim());
 
             // ✅ Map payment overall status to booking status
-            if ("Completed".equalsIgnoreCase(record.getOverallSatatus())) {
+            if ("Completed".equalsIgnoreCase(record.getOverallStatus())) {
                 request.setStatus("completed");
-            } else if ("Active".equalsIgnoreCase(record.getOverallSatatus())) {
+            } else if ("Active".equalsIgnoreCase(record.getOverallStatus())) {
                 request.setStatus("in-progress");
             } else {
                 request.setStatus("pending");

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import physiotherapydoctor.entity.PhysiotherapyRecord;
@@ -32,13 +33,13 @@ public interface PhysiotherapydoctorRespository extends MongoRepository<Physioth
 	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingId(String clinicId,
 			String branchId, String patientId, String bookingId);
 
-	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlan_TherapistId(String clinicId, String branchId,
-			String therapistId);
-	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
-	        String clinicId,
-	        String branchId,
-	        String therapistId
-	);
+//	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlan_TherapistId(String clinicId, String branchId,
+//			String therapistId);
+
+		List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
+		        String clinicId,
+		        String branchId,
+		        String therapistId);
 
 
 	Optional<PhysiotherapyRecord> findByBookingId(String bookingId);
