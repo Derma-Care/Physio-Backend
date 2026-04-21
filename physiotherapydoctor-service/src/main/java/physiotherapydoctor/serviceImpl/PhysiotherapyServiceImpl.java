@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
 import physiotherapydoctor.dto.BookingResponse;
@@ -1689,6 +1690,20 @@ public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookin
             handleProgram(program.getTherapyData(), date, result);
         }
     }
+    
+    @Override
+    public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+    		String bookingId) {
+    	Response response = new Response();
+        try {
+            return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
+        } catch (FeignException e) {
+        	response.setStatus(e.status());
+    		response.setMessage(e.getMessage());
+    		response.setSuccess(false);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+        }
     
 private void handleProgram(List<TherapyData> therapyDataList,
             String date,
