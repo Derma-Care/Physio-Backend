@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import com.dermacare.bookingService.dto.BookingInfoByInput;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
+import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.util.Response;
 
 public interface BookingService_Service {
@@ -57,5 +58,7 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 public ResponseEntity<Response> getBookingByDate(String clinicId, String branchId,String date);
 public ResponseEntity<Response> getBookingByCustomRange(String clinicId, String branchId,String start,String end);
 public ResponseEntity<Response> getBookingById(String bookingId);
+public List<BookingResponse> bookingByPatientIdAndBookingId(String patientId,String bookingId);
+public List<ReportsDTO> getReportsByPatientId(String patientId);	
 	   	
 }

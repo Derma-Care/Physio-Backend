@@ -1690,7 +1690,7 @@ public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookin
         }
     }
     
-    private void handleProgram(List<TherapyData> therapyDataList,
+private void handleProgram(List<TherapyData> therapyDataList,
             String date,
             List<Session> result) {
 
@@ -1698,10 +1698,9 @@ if (therapyDataList == null) return;
 
 for (TherapyData td : therapyDataList) {
 handleTherapy(td.getExercises(), date, result);
-}
-}
+}}
     
-    private void handleTherapy(List<TherapyExercise> exercises,
+private void handleTherapy(List<TherapyExercise> exercises,
             String date,
             List<Session> result) {
 

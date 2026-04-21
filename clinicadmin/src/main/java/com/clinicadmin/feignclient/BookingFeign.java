@@ -141,5 +141,13 @@ public interface BookingFeign {
 	  @GetMapping("/api/v1/getTodayBookings/{clincId}/{branchId}")
 		public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
 		
+	  
+	  @GetMapping("/api/v1/in-progress/appointments/{patientId}/{bookingId}")
+		public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId);
+		
+	  @GetMapping("/api/v1/reports/patientId/{patientId}")
+	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId);
+
+	      
 
 }

@@ -238,6 +238,33 @@ public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
     }
 }
 
+@Override
+public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+		String bookingId) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getReportsByPatientId(String patientId) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getReportsByPatientId(patientId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(ExtractFeignMessage.clearMessage(e));
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
 
 @Override
 public ResponseEntity<?> getUpcomingBookings(String clinicId,

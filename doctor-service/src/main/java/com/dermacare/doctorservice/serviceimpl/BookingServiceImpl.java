@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.dermacare.doctorservice.dto.Response;
 import com.dermacare.doctorservice.feignclient.BookingFeignClient;
 import com.dermacare.doctorservice.service.BookingService;
 
@@ -93,6 +94,19 @@ public class BookingServiceImpl implements BookingService {
             return ResponseEntity.status(ex.status()).body(ex.contentUTF8());
         }
     }
+    
+    @Override
+    public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+    		String bookingId) {
+    	Response response = new Response();
+        try {
+            return bookingFeignClient.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
+        } catch (FeignException e) {
+        	response.setStatus(e.status());
+    		response.setMessage(e.getMessage());
+    		response.setSuccess(false);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
 
-}
+}}
 

@@ -23,5 +23,7 @@ public interface BookingService {
 	ResponseEntity<?> getAllBookedServicesByDoctorId(String doctorId);
 
 	ResponseEntity<?> getDoctorFutureAppointments(String doctorId);
+	 public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+	    		String bookingId);
 }
 

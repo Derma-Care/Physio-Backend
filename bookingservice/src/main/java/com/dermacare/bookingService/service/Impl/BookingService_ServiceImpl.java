@@ -32,12 +32,14 @@ import org.springframework.stereotype.Service;
 import com.dermacare.bookingService.dto.BookingInfoByInput;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
+import com.dermacare.bookingService.dto.ConsultationFeesDTO;
 import com.dermacare.bookingService.dto.CustomerOnbordingDTO;
 import com.dermacare.bookingService.dto.DatesDTO;
 import com.dermacare.bookingService.dto.DoctorSaveDetailsDTO;
 import com.dermacare.bookingService.dto.PatientAndPriceInfo;
 import com.dermacare.bookingService.dto.PatientInfo;
 import com.dermacare.bookingService.dto.RelationInfoDTO;
+import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.dto.Session;
 import com.dermacare.bookingService.dto.TreatmentDetailsDTO;
 import com.dermacare.bookingService.dto.TreatmentResponseDTO;
@@ -59,7 +61,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.dermacare.bookingService.dto.ConsultationFeesDTO;
 
 @Service
 public class BookingService_ServiceImpl implements BookingService_Service {
@@ -91,13 +92,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	 private static final List<String> VALID_STATUS =
 		        Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
-		        		"INVESTIGATION DONE",
-		        		"SESSION",
+		        		"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
 		        		"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
 		private static final List<String> VALID_WEEK_STATUS =
 		Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
-				"INVESTIGATION DONE",
-				"SESSION",
+				"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
 				"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
 
 	 
@@ -109,6 +108,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	Optional<Booking> booking = repository.findByBookingId(request.getBookingId());
 	if(booking.isPresent()) {
 	BookingResponse bookingResponse = toResponse(booking.get());
+	bookingResponse.setConsultationType("follow-up");;
 	response = ResponseStructure.buildResponse(
 			bookingResponse,
             "Service booked successfully",
@@ -164,7 +164,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             try {
 		    entity = new ObjectMapper().convertValue(request, Booking.class);
 		    entity.setFollowupStatus("pending");
-		    entity.setPatientId(generatePatientId(request.getBranchId()));	  
+		    entity.setPatientId(generatePatientId(request.getBranchId()));	
+		    entity.setConsultationType("First-Time");
 		    ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 		    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
             if(request.getTotalFee() != 0.0) {
@@ -833,14 +834,59 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		List<Booking> bookings = repository.findByPatientId(patientId);
 		List<Booking> reversedBookings = new ArrayList<>();
 		for(int i = bookings.size()-1; i >= 0; i--) {
-			if(bookings.get(i).getStatus().equalsIgnoreCase("In-Progress")) {
-			reversedBookings.add(bookings.get(i));
-		}}
+			//if(bookings.get(i).getStatus().equalsIgnoreCase("In-Progress")) {
+			reversedBookings.add(bookings.get(i));}
+		//}
 		if (bookings == null  || bookings.isEmpty()) {
 			return null;
 		}
 		return toResponses(reversedBookings);
 	}
+	
+	
+	@Override
+	public List<BookingResponse> bookingByPatientIdAndBookingId(String patientId,String bookingId) {
+		List<Booking> bookings = repository.findByPatientIdAndBookingId(patientId, bookingId);
+		List<Booking> reversedBookings = new ArrayList<>();
+		for(int i = bookings.size()-1; i >= 0; i--) {
+			if(bookings.get(i).getStatus().equalsIgnoreCase("In-Progress")) {
+			reversedBookings.add(bookings.get(i));}
+		}
+		if (bookings == null  || bookings.isEmpty()) {
+			return null;
+		}
+		return toResponses(reversedBookings);
+	}
+	
+	  @Override
+	  public List<ReportsDTO> getReportsByPatientId(String patientId) {
+		  ObjectMapper mapper = new ObjectMapper();
+	         mapper.registerModule(new JavaTimeModule());
+	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
+	        List<Booking> bookings = repository.findByPatientId(patientId);
+
+	        List<ReportsDTO> responseList = new ArrayList<>();
+
+	        for (Booking booking : bookings) {
+
+	            if (booking.getReports() != null) {
+
+	                for (ReportsList report : booking.getReports()) {
+
+	                    // Convert ReportsList → ReportsDTO
+	                    ReportsDTO dto = mapper.convertValue(report, ReportsDTO.class);
+
+	                    // Manually set missing fields (important!)
+	                    dto.setBookingId(booking.getBookingId());
+	                    dto.setCustomerMobileNumber(booking.getMobileNumber());
+
+	                    responseList.add(dto);
+	                }
+	            }
+	        }
+
+	        return responseList;
+	    }
 		
 	@Override
 	public BookingInfoByInput bookingByInput(String input,String clinicId) {
@@ -1395,7 +1441,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId,String clinicId) {
 		    ResponseStructure<List<BookingResponse>> response = new ResponseStructure<>();
 
-		    try {
+		        try {
 		        // Fetch all bookings for this patient
 		        List<Booking> bookings = repository.findByPatientIdAndClinicId(patientId,clinicId);
 

@@ -50,6 +50,8 @@ public interface BookingService {
 			String branchId,String start, String end);
 	public ResponseEntity<?> getBookingById(String bookingId);
 	public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId);
-
+	public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+			String bookingId);
+	public ResponseEntity<?> getReportsByPatientId(String patientId);
 
 }

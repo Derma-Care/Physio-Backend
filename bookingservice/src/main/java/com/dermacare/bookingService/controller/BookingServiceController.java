@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dermacare.bookingService.dto.BookingInfoByInput;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
+import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.dto.TempBlockingSlot;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.util.Response;
@@ -221,6 +222,20 @@ public class BookingServiceController {
 	
 	}
 	
+	@GetMapping("/in-progress/appointments/{patientId}/{bookingId}")
+	public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId){
+		  List<BookingResponse> response = service.bookingByPatientIdAndBookingId(patientId,bookingId);
+		    if (response == null || response.isEmpty()) {
+		        return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+		                "No bookings found",
+		                HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+		    }
+
+		    return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+		            "Bookings fetched successfully",
+		            HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+	}
+	
 	
 	@GetMapping("/getAppointsByInput/{input}")
 	public ResponseEntity<?> getAppointsByInput(@PathVariable String input){
@@ -387,6 +402,32 @@ public class BookingServiceController {
 	    @GetMapping("/getBookingById/{bookingId}")
 	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId) {
 	        return service.getBookingById(bookingId);
+	    }
+	    
+	    
+	    @GetMapping("/reports/patientId/{patientId}")
+	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId) {
+
+	        List<ReportsDTO> reports = service.getReportsByPatientId(patientId);
+
+	        if (reports.isEmpty()) {
+	            Response response = Response.builder()
+	                    .success(false)
+	                    .message("No reports found for given patientId")
+	                    .status(HttpStatus.OK.value())
+	                    .build();
+
+	            return ResponseEntity.status(HttpStatus.OK).body(response);
+	        }
+
+	        Response response = Response.builder()
+	                .success(true)
+	                .data(reports)
+	                .message("Reports fetched successfully")
+	                .status(HttpStatus.OK.value())
+	                .build();
+
+	        return ResponseEntity.ok(response);
 	    }
 			
 		}

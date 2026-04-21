@@ -69,6 +69,18 @@ public class BookingServiceController {
 		   return bookingService.retrieveAppointnmentsByPatientId(patientId);
 		   
 	 }
+	   
+	   @GetMapping("/in-progress/PatientId/bookingId/{patientId}/{bookingId}")
+	   public ResponseEntity<?> getInprogressBookingsByPatientId(
+				 @PathVariable String patientId, @PathVariable String bookingId){
+		   return bookingService.getInProgressBookingsByIds(patientId, bookingId);
+		   
+	 }
+	   
+	   @GetMapping("/reports/patientId/{patientId}")
+	    public ResponseEntity<?> getReportsByPatientId(@PathVariable String patientId){
+	    return bookingService.getReportsByPatientId(patientId);}
+	   
 	   @PostMapping("/bookService")
 	   public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws JsonProcessingException  {
 	   	Response response = bookingService.bookService(req);

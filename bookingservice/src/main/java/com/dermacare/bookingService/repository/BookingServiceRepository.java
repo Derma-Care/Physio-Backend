@@ -47,4 +47,5 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 			String format2);
 	public List<Booking> findByClinicIdAndBranchIdAndServiceDateAndFollowupStatusIn(String clinicId, String branchId,
 			String today, List<String> validStatus);
+	public List<Booking> findByPatientIdAndBookingId(String patientId,String bookingId);
 	}
