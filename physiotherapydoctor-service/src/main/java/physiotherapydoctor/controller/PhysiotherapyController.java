@@ -140,6 +140,8 @@ public class PhysiotherapyController {
 //	    service.updateSessionStatusFromTherapist(therapistRecordId, sessionId);
 //	}
 	
+//	-------------------------Booking Apis-----------------------------------------------------
+	
 	 @GetMapping("/getIn-progressByUsingPatientIdAndBookingId/{patientId}/{bookingId}")
 	   public ResponseEntity<?> getInprogressBookingsByPatientId(
 				 @PathVariable String patientId, @PathVariable String bookingId){
