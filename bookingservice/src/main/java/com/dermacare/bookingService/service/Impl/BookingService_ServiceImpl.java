@@ -108,10 +108,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	Optional<Booking> booking = repository.findByBookingId(request.getBookingId());
 	if(booking.isPresent()) {
 	BookingResponse bookingResponse = toResponse(booking.get());
-	bookingResponse.setConsultationType("follow-up");;
+	bookingResponse.setConsultationType("follow-up");
+	booking.get().setConsultationType("follow-up");
+	repository.save(booking.get());
 	response = ResponseStructure.buildResponse(
 			bookingResponse,
-            "Service booked successfully",
+            "Booking retrieved successfully",
             HttpStatus.CREATED,
             HttpStatus.CREATED.value());
 	try {
