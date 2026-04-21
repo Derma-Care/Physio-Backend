@@ -45,6 +45,8 @@ public interface PhysiotherapyService {
 
 	ResponseEntity<?> getInProgressBookingsByIds(String patientId, String bookingId);
 
+	ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId);
+
 
 
 //	Response getTherapistDashboard(String clinicId, String branchId, String therapistId);

@@ -146,4 +146,10 @@ public class PhysiotherapyController {
 		   return service.getInProgressBookingsByIds(patientId, bookingId);
 		   
 	 }
+	 @GetMapping("/getTodaysAppointmentsByUsingClinicIdAndDoctorId/{clinicId}/{doctorId}")
+	    public ResponseEntity<?> getTodaysAppointments(
+	            @PathVariable String clinicId,
+	            @PathVariable String doctorId) {
+	        return service.getTodaysAppointments(clinicId, doctorId);
+	    }
 }

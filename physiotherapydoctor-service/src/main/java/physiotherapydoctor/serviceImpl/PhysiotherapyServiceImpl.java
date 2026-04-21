@@ -1704,6 +1704,14 @@ public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookin
             return ResponseEntity.status(response.getStatus()).body(response);
         }
         }
+    @Override
+    public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId) {
+        try {
+            return bookingFeign.getTodayDoctorAppointmentsByDoctorId(clinicId, doctorId);
+        } catch (FeignException ex) {
+            return ResponseEntity.status(ex.status()).body(ex.contentUTF8());
+        }
+    }
     
 private void handleProgram(List<TherapyData> therapyDataList,
             String date,
