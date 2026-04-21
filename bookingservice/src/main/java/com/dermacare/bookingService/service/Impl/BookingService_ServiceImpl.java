@@ -3140,9 +3140,9 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 public ResponseEntity<Response> getBookingById(String bookingId) {
     try {
         Optional<Booking> booking = repository.findByBookingId(bookingId);
+        if(booking.isPresent()) {
         BookingResponse res = toResponse(booking.get());
         List<Session> lst = new ArrayList<>();
-        if (booking.isPresent()) {
         	try {
         	lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
         	res.setSession(lst);        	
