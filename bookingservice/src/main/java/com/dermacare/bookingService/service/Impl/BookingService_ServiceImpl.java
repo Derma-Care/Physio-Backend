@@ -36,6 +36,7 @@ import com.dermacare.bookingService.dto.ConsultationFeesDTO;
 import com.dermacare.bookingService.dto.CustomerOnbordingDTO;
 import com.dermacare.bookingService.dto.DatesDTO;
 import com.dermacare.bookingService.dto.DoctorSaveDetailsDTO;
+import com.dermacare.bookingService.dto.FollowupBookingDto;
 import com.dermacare.bookingService.dto.PatientAndPriceInfo;
 import com.dermacare.bookingService.dto.PatientInfo;
 import com.dermacare.bookingService.dto.RelationInfoDTO;
@@ -45,6 +46,7 @@ import com.dermacare.bookingService.dto.TreatmentDetailsDTO;
 import com.dermacare.bookingService.dto.TreatmentResponseDTO;
 import com.dermacare.bookingService.entity.Booking;
 import com.dermacare.bookingService.entity.ConsultationFees;
+import com.dermacare.bookingService.entity.FollowupBooking;
 import com.dermacare.bookingService.entity.ReportsList;
 import com.dermacare.bookingService.entity.Status;
 import com.dermacare.bookingService.entity.TheraphyAnswersEntity;
@@ -102,56 +104,65 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 
 	 @Override
 	 public ResponseEntity<?> addService(BookingRequset request) {
-	     ResponseStructure<BookingResponse> response = new ResponseStructure<>();
-    try {
-	if(request.getVisitType().equalsIgnoreCase("follow-up")) {
-	Optional<Booking> booking = repository.findByBookingId(request.getBookingId());
-	if(booking.isPresent()) {
-	BookingResponse bookingResponse = toResponse(booking.get());
-	bookingResponse.setConsultationType("follow-up");
-	booking.get().setConsultationType("follow-up");
-	repository.save(booking.get());
-	response = ResponseStructure.buildResponse(
-			bookingResponse,
-            "Booking retrieved successfully",
-            HttpStatus.CREATED,
-            HttpStatus.CREATED.value());
-	try {
-    	List<Session> lst = physioDoctorFeign.getPhysioByBookingId(bookingResponse.getBookingId(),bookingResponse.getServiceDate()).getBody();
-    	//System.out.println(lst);
-    	bookingResponse.setSession(lst);        	
-    	}catch(Exception e) {System.out.println(e.getMessage());}
-//	 try {
-//    	 updatedBooking.setAttachments(null); 
-//    	 updatedBooking.setPartImage(null);
-//    	 updatedBooking.setConsentFormPdf(null);
-//    	 updatedBooking.setPrescriptionPdf(null);
-//         kafkaProducer.publishBooking(updatedBooking);
-//     } catch (Exception e) {	            	 
-//    	  res.setMessage(e.getMessage());
-//    	  res.setStatus(500);
-//    	  res.setSuccess(false);
-//    	  repnse = ResponseEntity.status(res.getStatus()).body(res);}
-	}else {
-		response = ResponseStructure.buildResponse(
-				null,
-	            "Appointment Not Found",
-	            HttpStatus.BAD_REQUEST,
-	            HttpStatus.BAD_REQUEST.value());
-	}}else{
-		response = ResponseStructure.buildResponse(
-				null,
-	            "Not a Follow up request",
-	            HttpStatus.BAD_REQUEST,
-	            HttpStatus.BAD_REQUEST.value());}
-	}catch(Exception e) {
-		response = ResponseStructure.buildResponse(
-				null,
-	            e.getMessage(),
-	            HttpStatus.INTERNAL_SERVER_ERROR,
-	            HttpStatus.INTERNAL_SERVER_ERROR.value());
-	}return ResponseEntity.status(response.getStatusCode()).body(response);}
-	   
+	     ResponseStructure<FollowupBookingDto> response = new ResponseStructure<>();
+	     ObjectMapper mapper = new ObjectMapper();
+         mapper.registerModule(new JavaTimeModule());
+         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
+	     try {
+	    	    Booking updatedBooking =
+	    	    		updateForFollowup(request);
+
+	    	    if (updatedBooking != null) {
+	    	      
+	    	        List<FollowupBooking> followups = updatedBooking.getFollwupBookings();
+
+	    	        if (followups != null && !followups.isEmpty()) {
+
+	    	            FollowupBooking lastFollowup = followups.get(followups.size() - 1);
+
+	    	            // Map FollowupBooking → BookingResponse
+	    	            FollowupBookingDto finalResponse =  mapper.convertValue(lastFollowup, FollowupBookingDto.class);
+
+	    	            response = ResponseStructure.buildResponse(
+	    	                    finalResponse,
+	    	                    "Last follow-up booking retrieved successfully",
+	    	                    HttpStatus.CREATED,
+	    	                    HttpStatus.CREATED.value()
+	    	            );
+
+	    	        } else {
+	    	            response = ResponseStructure.buildResponse(
+	    	                    null,
+	    	                    "No follow-up bookings found",
+	    	                    HttpStatus.BAD_REQUEST,
+	    	                    HttpStatus.BAD_REQUEST.value()
+	    	            );
+	    	        }
+
+	    	    } else {
+	    	        response = ResponseStructure.buildResponse(
+	    	                null,
+	    	                "Update failed or no data found",
+	    	                HttpStatus.INTERNAL_SERVER_ERROR,
+	    	                HttpStatus.INTERNAL_SERVER_ERROR.value()
+	    	        );
+	    	    }
+
+	    	} catch (Exception e) {
+
+	    	    // Log properly (avoid System.out in real apps)
+	    	    e.printStackTrace();
+
+	    	    response = ResponseStructure.buildResponse(
+	    	            null,
+	    	            "Exception occurred: " + e.getMessage(),
+	    	            HttpStatus.INTERNAL_SERVER_ERROR,
+	    	            HttpStatus.INTERNAL_SERVER_ERROR.value()
+	    	    );
+}return ResponseEntity.status(response.getHttpStatus().value()).body(response);}
+	 
+	 
 	 private void nullifyLargeFields(Booking booking) {
 	     if (booking == null) return;
 	     booking.setReports(null);
@@ -2359,8 +2370,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 }
 		
 		
-			public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse dto) {
-			    try {
+			public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(BookingResponse dto) {
+				Booking updated = null;
+				try {
 			        Booking entity = repository.findByBookingId(dto.getBookingId())
 			                .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
 
@@ -2493,6 +2505,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
     			         fee.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
     			         lst.add(fee);
     			         Collections.reverse(lst);
+    			         entity.setConsultationFee(lst.get(0).getConsulationFee());
     			         entity.setListOfConsultationFee(lst);
                      }
 			        if (dto.getListOfConsultationFee()!=null) {
@@ -2664,11 +2677,24 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			            }} catch (Exception e) {
 			            // fallback safety
 			            	entity.setIsFollowupStatus(false);}
-
-			        Booking updated = repository.save(entity);
+			           if(dto.getVisitType().equalsIgnoreCase("follow-up")) {
+			        		 FollowupBooking bookng = null;
+			           if(entity.getFollwupBookings() != null || !entity.getFollwupBookings().isEmpty()) {
+			        	   ObjectMapper mapper = new ObjectMapper();
+			               mapper.registerModule(new JavaTimeModule());
+			               mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			               entity.setVisitType("follow-up");
+			      		   bookng = mapper.convertValue(entity,FollowupBooking.class );
+			        	List<FollowupBooking> list = entity.getFollwupBookings(); 
+			        	list.add(bookng);
+			           }else{
+			        	   List<FollowupBooking> lst = new LinkedList<>();
+			        	   lst.add(bookng);
+			           }}else {
+			                 updated = repository.save(entity);}
 
 			        return new ResponseEntity<>(
-			                ResponseStructure.buildResponse(updated, "Updated Successfully",
+			                ResponseStructure.buildResponse(toResponse(updated), "Updated Successfully",
 			                        HttpStatus.OK, HttpStatus.OK.value()),
 			                HttpStatus.OK
 			        );
@@ -3139,7 +3165,19 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
 public ResponseEntity<Response> getBookingById(String bookingId) {
     try {
-        Optional<Booking> booking = repository.findByBookingId(bookingId);
+    	 String[] parts = bookingId.split("-");
+
+    	    for (int i = 0; i < parts.length; i++) {
+    	        String part = parts[i];
+
+    	        if (!part.isEmpty()) {
+    	            parts[i] = part.substring(0, 1).toUpperCase() +
+    	                       part.substring(1).toLowerCase();
+    	        }
+    	    }
+
+    	 String letter  =  String.join("-", parts);
+        Optional<Booking> booking = repository.findByBookingId(letter);
         if(booking.isPresent()) {
         BookingResponse res = toResponse(booking.get());
         List<Session> lst = new ArrayList<>();
@@ -3156,12 +3194,12 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
                     )
             );
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.status(HttpStatus.OK)
                     .body(new Response(
                             false,
                             null,null,
                             "Booking not found",
-                            404,null,null 
+                            200,null,null 
                     ));
         }
 
@@ -3174,6 +3212,261 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
                         500,null,null
                 ));
     }
+}
+
+
+private Booking updateForFollowup(BookingRequset dto) { 
+try {
+    Booking entity = repository.findByBookingId(dto.getBookingId())
+            .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
+
+    // -------- BASIC --------
+    if (dto.getBookingFor() != null && !dto.getBookingFor().isEmpty())
+        entity.setBookingFor(dto.getBookingFor());
+
+    if (dto.getName() != null && !dto.getName().isEmpty())
+        entity.setName(dto.getName());
+
+    if (dto.getRelation() != null && !dto.getRelation().isEmpty())
+        entity.setRelation(dto.getRelation());
+
+    if (dto.getPatientMobileNumber() != null && !dto.getPatientMobileNumber().isEmpty())
+        entity.setPatientMobileNumber(dto.getPatientMobileNumber());
+
+    if (dto.getPatientId() != null && !dto.getPatientId().isEmpty())
+        entity.setPatientId(dto.getPatientId());
+
+    if (dto.getVisitType() != null && !dto.getVisitType().isEmpty())
+        entity.setVisitType(dto.getVisitType());
+
+    if (dto.getPatientAddress() != null && !dto.getPatientAddress().isEmpty())
+        entity.setPatientAddress(dto.getPatientAddress());
+
+    if (dto.getAge() != null && !dto.getAge().isEmpty())
+        entity.setAge(dto.getAge());
+
+    if (dto.getGender() != null && !dto.getGender().isEmpty())
+        entity.setGender(dto.getGender());
+
+    if (dto.getMobileNumber() != null && !dto.getMobileNumber().isEmpty())
+        entity.setMobileNumber(dto.getMobileNumber());
+
+    if (dto.getCustomerId() != null && !dto.getCustomerId().isEmpty())
+        entity.setCustomerId(dto.getCustomerId());
+
+    if (dto.getCustomerDeviceId() != null && !dto.getCustomerDeviceId().isEmpty())
+        entity.setCustomerDeviceId(dto.getCustomerDeviceId());
+
+    // -------- FOLLOWUPS -------
+
+    if (dto.getFreeFollowUps() != null)
+        entity.setFreeFollowUps(dto.getFreeFollowUps());
+
+    if (dto.getFollowupDate() != null && !dto.getFollowupDate().isEmpty())
+        entity.setFollowupDate(dto.getFollowupDate());
+
+    if(dto.getFollowupStatus() != null ) {
+        entity.setFollowupStatus(dto.getFollowupStatus());
+        System.out.println(dto.getFollowupStatus()); }
+    // -------- PROBLEM --------
+    if (dto.getProblem() != null && !dto.getProblem().isEmpty())
+        entity.setProblem(dto.getProblem());
+
+    if (dto.getSymptomsDuration() != null && !dto.getSymptomsDuration().isEmpty())
+        entity.setSymptomsDuration(dto.getSymptomsDuration());
+
+    // -------- CLINIC --------
+    if (dto.getClinicId() != null && !dto.getClinicId().isEmpty())
+        entity.setClinicId(dto.getClinicId());
+
+    if (dto.getClinicName() != null && !dto.getClinicName().isEmpty())
+        entity.setClinicName(dto.getClinicName());
+
+    if (dto.getClinicDeviceId() != null && !dto.getClinicDeviceId().isEmpty())
+        entity.setClinicDeviceId(dto.getClinicDeviceId());
+
+    if (dto.getBranchId() != null && !dto.getBranchId().isEmpty())
+        entity.setBranchId(dto.getBranchId());
+
+    if (dto.getBranchname() != null && !dto.getBranchname().isEmpty())
+        entity.setBranchname(dto.getBranchname());
+
+    // -------- DOCTOR --------
+    if (dto.getDoctorId() != null && !dto.getDoctorId().isEmpty())
+        entity.setDoctorId(dto.getDoctorId());
+
+    if (dto.getDoctorName() != null && !dto.getDoctorName().isEmpty())
+        entity.setDoctorName(dto.getDoctorName());
+
+    if (dto.getDoctorMobileDeviceId() != null && !dto.getDoctorMobileDeviceId().isEmpty())
+        entity.setDoctorDeviceId(dto.getDoctorMobileDeviceId());
+
+    if (dto.getDoctorWebDeviceId() != null && !dto.getDoctorWebDeviceId().isEmpty())
+        entity.setDoctorWebDeviceId(dto.getDoctorWebDeviceId());
+
+    // -------- SERVICE --------
+    if (dto.getSubServiceId() != null && !dto.getSubServiceId().isEmpty())
+        entity.setSubServiceId(dto.getSubServiceId());
+
+    if (dto.getSubServiceName() != null && !dto.getSubServiceName().isEmpty())
+        entity.setSubServiceName(dto.getSubServiceName());
+
+    if (dto.getServiceDate() != null && !dto.getServiceDate().isEmpty())
+        entity.setServiceDate(dto.getServiceDate());
+
+    if (dto.getServicetime() != null && !dto.getServicetime().isEmpty())
+        entity.setServicetime(dto.getServicetime());
+
+    if (dto.getConsultationType() != null && !dto.getConsultationType().isEmpty())
+        entity.setConsultationType(dto.getConsultationType());
+     if(dto.getConsultationFee() != 0.0) {
+    	 ObjectMapper mapper = new ObjectMapper();
+         mapper.registerModule(new JavaTimeModule());
+         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+         List<ConsultationFees> lst = entity.getListOfConsultationFee();
+         ConsultationFees fee = new ConsultationFees();	
+         fee.setConsulationFee(dto.getConsultationFee());
+         fee.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+         lst.add(fee);
+         Collections.reverse(lst);
+         entity.setConsultationFee(lst.get(0).getConsulationFee());
+         entity.setListOfConsultationFee(lst);
+     }
+    if (dto.getConsultationExpiration() != null && !dto.getConsultationExpiration().isEmpty())
+        entity.setConsultationExpiration(dto.getConsultationExpiration());
+
+    // -------- STATUS --------
+   if (dto.getStatus() != null) {entity.setStatus(dto.getStatus());}
+
+    // -------- FILES --------
+    if (dto.getAttachments() != null && !dto.getAttachments().isEmpty())
+        entity.setAttachments(
+            new ObjectMapper().convertValue(dto.getAttachments(),
+                    new TypeReference<List<byte[]>>() {})
+        );
+
+    if (dto.getConsentFormPdf() != null && !dto.getConsentFormPdf().isEmpty())
+        entity.setConsentFormPdf(Base64.getDecoder().decode(dto.getConsentFormPdf()));
+
+    // -------- PAYMENT --------
+     if( dto.getPaymentType() != null && !dto.getPaymentType().isEmpty()) {
+        	entity.setPaymentType(dto.getPaymentType());}
+    if (dto.getPaymentStatus() != null && !dto.getPaymentStatus().isEmpty())
+        entity.setPaymentStatus(dto.getPaymentStatus());
+
+    if (dto.getTotalFee() > 0)
+        entity.setTotalFee(dto.getTotalFee());
+
+    if (dto.getDoctorRefCode() != null && !dto.getDoctorRefCode().isEmpty())
+        entity.setDoctorRefCode(dto.getDoctorRefCode());
+
+    // -------- BODY PART --------
+    if (dto.getBodyPartId() != null && !dto.getBodyPartId().isEmpty())
+        entity.setBodyPartId(dto.getBodyPartId());
+
+    if (dto.getBodyPartName() != null && !dto.getBodyPartName().isEmpty())
+        entity.setBodyPartName(dto.getBodyPartName());
+
+    if (dto.getPartImage() != null && !dto.getPartImage().isEmpty())
+        entity.setPartImage(Base64.getDecoder().decode(dto.getPartImage()));
+
+    // -------- THERAPY --------
+    if (dto.getTheraphyAnswers() != null)
+        entity.setTheraphyAnswers(new ObjectMapper().convertValue(dto.getTheraphyAnswers(),new TypeReference<Map<String,List<TheraphyAnswersEntity>>>() {
+		}));
+
+    if (dto.getParts() != null && !dto.getParts().isEmpty())
+        entity.setParts(dto.getParts());
+
+    if (dto.getPartAmount() > 0)
+        entity.setPartAmount(dto.getPartAmount());
+
+    if (dto.getDueAmount() >= 0)
+        entity.setDueAmount(dto.getDueAmount());
+
+    // -------- REFERRAL --------
+    if (dto.getReferredByType() != null && !dto.getReferredByType().isEmpty())
+        entity.setReferredByType(dto.getReferredByType());
+
+    if (dto.getReferredByName() != null && !dto.getReferredByName().isEmpty())
+        entity.setReferredByName(dto.getReferredByName());
+
+    // -------- MEDICAL --------
+    if (dto.getPreviousInjuries() != null && !dto.getPreviousInjuries().isEmpty())
+        entity.setPreviousInjuries(dto.getPreviousInjuries());
+
+    if (dto.getCurrentMedications() != null && !dto.getCurrentMedications().isEmpty())
+        entity.setCurrentMedications(dto.getCurrentMedications());
+
+    if (dto.getAllergies() != null && !dto.getAllergies().isEmpty())
+        entity.setAllergies(dto.getAllergies());
+
+    if (dto.getOccupation() != null && !dto.getOccupation().isEmpty())
+        entity.setOccupation(dto.getOccupation());
+
+    // -------- INSURANCE --------
+    if (dto.getInsuranceProvider() != null && !dto.getInsuranceProvider().isEmpty())
+        entity.setInsuranceProvider(dto.getInsuranceProvider());
+
+    if (dto.getPolicyNumber() != null && !dto.getPolicyNumber().isEmpty())
+        entity.setPolicyNumber(dto.getPolicyNumber());
+
+    // -------- ACTIVITY --------
+    if (dto.getActivityLevels() != null && !dto.getActivityLevels().isEmpty())
+        entity.setActivityLevels(dto.getActivityLevels());
+
+    // -------- TREATMENTS --------
+    if(dto.getFoc() != null)
+       entity.setFoc(dto.getFoc());			        
+    if (entity.getFreeFollowUps() != null && entity.getFreeFollowUps() == 0) {
+    	entity.setIsFollowupStatus(true);}
+        int days = 0;
+        try{
+        if(entity.getConsultationExpiration() != null) {
+        String consultationExp = entity.getConsultationExpiration(); // e.g. "8 days"
+        days = Integer.parseInt(consultationExp.replaceAll("[^0-9]", ""));}
+
+        // Parse serviceDate (assumes format: yyyy-MM-dd)
+        LocalDate serviceDate = LocalDate.parse(entity.getServiceDate());
+
+        // Add extracted days
+        LocalDate expiryDate = serviceDate.plusDays(days);
+
+        LocalDate today = LocalDate.now();
+       
+        if(!today.isAfter(expiryDate) && entity.getFreeFollowUps() != null && entity.getFreeFollowUps() == 0  ){
+        	entity.setIsFollowupStatus(true);
+        }else if(today.isAfter(expiryDate)){
+        	entity.setIsFollowupStatus(true);
+        }else {
+        	entity.setIsFollowupStatus(false);
+        }} catch (Exception e) {
+        // fallback safety
+        	entity.setIsFollowupStatus(false);}
+    		 FollowupBooking bookng = null;
+       try {
+       if(entity.getFollwupBookings() == null) {
+    	   List<FollowupBooking> lst = new LinkedList<>();
+       	   lst.add(bookng);
+           entity.setFollwupBookings(lst);	  
+           }else{
+        	 ObjectMapper mapper = new ObjectMapper();
+             mapper.registerModule(new JavaTimeModule());
+             mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+             entity.setVisitType("follow-up");
+    		   bookng = mapper.convertValue(entity,FollowupBooking.class );
+      	List<FollowupBooking> list = entity.getFollwupBookings(); 
+      	list.add(bookng);}
+       }catch(Exception e) {
+    	   System.out.println(e.getMessage());
+       }
+          Booking updated = repository.save(entity);
+
+    return updated;
+
+} catch (Exception e) {
+    return null;
+}
 }
 
 }

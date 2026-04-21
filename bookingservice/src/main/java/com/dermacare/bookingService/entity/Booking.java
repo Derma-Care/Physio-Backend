@@ -95,6 +95,7 @@ public class Booking  {
 	private List<String> activityLevels;
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
+	private List<FollowupBooking> follwupBookings;
 	
 	public void setIsFollowupStatus(boolean followupStatus) {
 	    isFollowupStatus = followupStatus;

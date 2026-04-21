@@ -48,4 +48,6 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public List<Booking> findByClinicIdAndBranchIdAndServiceDateAndFollowupStatusIn(String clinicId, String branchId,
 			String today, List<String> validStatus);
 	public List<Booking> findByPatientIdAndBookingId(String patientId,String bookingId);
+	@Query("{ 'bookingId': { $regex: ?0, $options: 'i' } }")
+	Optional<Booking> findByBookingIdIgnoreCase(String bookingId);
 	}
