@@ -28,6 +28,9 @@ public class PaymentServiceImpl implements PaymentService {
     
     @Autowired
 	private BookingFeign bookingFeign;
+    
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private ClinicAdminFeign clinicAdminFeign;
