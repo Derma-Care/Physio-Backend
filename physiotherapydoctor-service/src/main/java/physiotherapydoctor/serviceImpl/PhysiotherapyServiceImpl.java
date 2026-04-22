@@ -682,8 +682,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
 	                    clinicId, branchId, therapistId);
 
-	    System.out.println("Total records fetched: " + (records != null ? records.size() : 0));
-
 	    if (records == null || records.isEmpty()) {
 	        response.setSuccess(false);
 	        response.setMessage("No assigned patients found");
@@ -722,9 +720,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        if (paymentOpt.isPresent()) {
 	            dbStatus = paymentOpt.get().getOverallStatus();
 	        }
-
-	        System.out.println("DB Status: " + dbStatus);
-	        System.out.println("Expected Status: " + expectedStatus);
 
 	        // ✅ STATUS FILTER
 	        if (expectedStatus != null) {
