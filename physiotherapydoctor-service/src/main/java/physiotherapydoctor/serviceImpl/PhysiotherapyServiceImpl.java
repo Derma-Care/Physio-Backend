@@ -1804,7 +1804,13 @@ result.add(session);
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+            mapper.setDefaultPropertyInclusion(
+                JsonInclude.Value.construct(
+                    JsonInclude.Include.NON_NULL,
+                    JsonInclude.Include.NON_NULL
+                )
+            );
 
             List<Map<String, Object>> result = new ArrayList<>();
 
