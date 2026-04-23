@@ -179,7 +179,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             try {
 		    entity = new ObjectMapper().convertValue(request, Booking.class);
 		    entity.setFollowupStatus("pending");
-		    ///entity.setPatientId(generatePatientId(request.getBranchId()));	
+		    if(request.getPatientId().isEmpty()) {
+		    entity.setPatientId(generatePatientId(request.getBranchId()));}
 		    entity.setConsultationType("First-Time");
 		    ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 		    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
