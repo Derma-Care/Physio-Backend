@@ -95,10 +95,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 private static final List<String> VALID_STATUS =
 		        Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
 		        		"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
-		        		"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
+		        		"follow-up pending",
+						"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
 		private static final List<String> VALID_WEEK_STATUS =
 		Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
 				"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
+				"follow-up pending",
 				"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
 
 	 
@@ -444,8 +446,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                        LocalDate bookingDate = LocalDate.parse(b.getServiceDate(), dateFormatter);
 
 	                        if (bookingDate.equals(currentDate) &&
-	                                (b.getStatus().equalsIgnoreCase("Confirmed") ||
-	                                 b.getStatus().equalsIgnoreCase("In-Progress"))) {
+	                                (b.getStatus().equalsIgnoreCase("Confirmed"))){
 
 	                            BookingResponse temp = toResponse(b);
 	                            temp.setServiceDate(b.getServiceDate());
@@ -469,8 +470,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                                LocalDate sittingDate = LocalDate.parse(d.getDate(), dateFormatter);
 
 	                                if (sittingDate.equals(currentDate) &&
-	                                        (d.getStatus().equalsIgnoreCase("Confirmed") ||
-	                                         d.getStatus().equalsIgnoreCase("In-Progress"))) {
+	                                        (d.getStatus().equalsIgnoreCase("Confirmed"))) {
 
 	                                    BookingResponse temp = toResponse(b);
 	                                    temp.setSubServiceName(treatmentName);
@@ -2677,21 +2677,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			            }} catch (Exception e) {
 			            // fallback safety
 			            	entity.setIsFollowupStatus(false);}
-			           if(dto.getVisitType().equalsIgnoreCase("follow-up")) {
-			        		 FollowupBooking bookng = null;
-			           if(entity.getFollwupBookings() != null || !entity.getFollwupBookings().isEmpty()) {
-			        	   ObjectMapper mapper = new ObjectMapper();
-			               mapper.registerModule(new JavaTimeModule());
-			               mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-			               entity.setVisitType("follow-up");
-			      		   bookng = mapper.convertValue(entity,FollowupBooking.class );
-			        	List<FollowupBooking> list = entity.getFollwupBookings(); 
-			        	list.add(bookng);
-			           }else{
-			        	   List<FollowupBooking> lst = new LinkedList<>();
-			        	   lst.add(bookng);
-			           }}else {
-			                 updated = repository.save(entity);}
+			          
+			                 updated = repository.save(entity);
 
 			        return new ResponseEntity<>(
 			                ResponseStructure.buildResponse(toResponse(updated), "Updated Successfully",
