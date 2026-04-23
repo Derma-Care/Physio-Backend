@@ -1,8 +1,10 @@
 package physiotherapydoctor.serviceImpl;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +36,7 @@ import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.TheraphyInfo;
+import physiotherapydoctor.dto.TherapistRecordDTO;
 import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
 import physiotherapydoctor.dto.TherapyExercise;
@@ -87,10 +94,18 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		entity.setOverallStatus("Pending");
 
 		// ✅ DATE
-		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+		// ✅ SAVE DATE & TIME ONLY ON CREATE
+	    LocalDateTime now = LocalDateTime.now();
 
-		entity.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : now);
-		entity.setUpdatedAt(now);
+	    String createdDate =
+	            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+	    String createdTime =
+	            now.format(DateTimeFormatter.ofPattern("hh:mm a"));
+
+	    entity.setCreatedAt(createdDate);
+	    entity.setCreatedTime(createdTime);
+	    entity.setUpdatedAt(createdDate);
 
 		// ✅ SAVE
 		PhysiotherapyRecord saved = repository.save(entity);
@@ -1756,8 +1771,92 @@ result.add(session);
             return ResponseEntity.status(response.getStatus()).body(response);
         }
         }
-    
+    @Override
+    public Response getVisitHistory(String patientId, String bookingId) {
 
+        Response response = new Response();
+
+        try {
+
+            List<PhysiotherapyRecord> records =
+                    repository.findByPatientInfoPatientIdAndBookingId(patientId, bookingId);
+
+            if (records == null || records.isEmpty()) {
+                response.setSuccess(false);
+                response.setData(null);
+                response.setMessage("No visit history found");
+                response.setStatus(404);
+                return response;
+            }
+
+            List<TherapistRecordDTO> visits = new ArrayList<>();
+
+            try {
+                ResponseStructure<List<TherapistRecordDTO>> feignRes =
+                        clinicAdminFeign.getByPatientIdAndBookingId(patientId, bookingId);
+
+                if (feignRes != null && feignRes.getData() != null) {
+                    visits = feignRes.getData();
+                }
+
+            } catch (Exception e) {
+                visits = new ArrayList<>();
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+            List<Map<String, Object>> result = new ArrayList<>();
+
+            for (int i = 0; i < records.size(); i++) {
+
+                PhysiotherapyRecord record = records.get(i);
+
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("visitNumber", "Visit " + (i + 1));
+                map.put("visitDate", record.getCreatedAt());
+                map.put("visitTime", record.getCreatedTime());
+
+                map.put("physiotherapyDoctorData",
+                        mapper.convertValue(record,
+                                new TypeReference<Map<String, Object>>() {}));
+
+                // Match by IDs only
+                List<Map<String, Object>> matchedTherapy = new ArrayList<>();
+
+                for (TherapistRecordDTO visit : visits) {
+
+                    if (patientId.equals(visit.getPatientId()) &&
+                        bookingId.equals(visit.getBookingId())) {
+
+                        matchedTherapy.add(
+                            mapper.convertValue(visit,
+                                new TypeReference<Map<String, Object>>() {})
+                        );
+                    }
+                }
+
+                map.put("therapyRecordData", matchedTherapy);
+
+                result.add(map);
+            }
+
+            response.setSuccess(true);
+            response.setData(result);
+            response.setMessage("Visit history fetched successfully");
+            response.setStatus(200);
+
+            return response;
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage("Something went wrong");
+            response.setStatus(500);
+            return response;
+        }
+    }
 @Override
 public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId) {
     try {
@@ -1766,4 +1865,6 @@ public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId
         return ResponseEntity.status(ex.status()).body(ex.contentUTF8());
     }
 }}
+
+
 

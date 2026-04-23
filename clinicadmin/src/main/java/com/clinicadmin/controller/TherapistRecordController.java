@@ -1,8 +1,16 @@
 package com.clinicadmin.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
 import com.clinicadmin.service.TherapistRecordService;
@@ -43,5 +51,15 @@ public class TherapistRecordController {
         return ResponseEntity
                 .status(response.getStatusCode())
                 .body(response);
+    }
+    @GetMapping("/getByPatientIdAndBookingId/{patientId}/{bookingId}")
+    public ResponseEntity<ResponseStructure<List<TherapistRecordDTO>>> 
+    getByPatientIdAndBookingId(
+            @PathVariable String patientId,
+            @PathVariable String bookingId) {
+
+        return ResponseEntity.ok(
+                service.getByPatientIdAndBookingId(patientId, bookingId)
+        );
     }
 }

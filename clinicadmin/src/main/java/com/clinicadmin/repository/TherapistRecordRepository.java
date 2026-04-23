@@ -1,5 +1,6 @@
 package com.clinicadmin.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -16,5 +17,6 @@ public interface TherapistRecordRepository extends MongoRepository<TherapistReco
             String therapistRecordId,
             String sessionId
     );
+  List<TherapistRecord> findAllByPatientIdAndBookingId(String patientId, String bookingId);
 	
 }

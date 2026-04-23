@@ -25,5 +25,10 @@ public class TherapySession {
 	    private List<TherapyExercise> exercises;
 
 	    private Double totalPrice;
+
+		public String getSessionId() {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	
 }

@@ -18,7 +18,7 @@ public final class PermissionsUtil {
         adminPermissions.put("Doctors", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Therapist", List.of("create", "read", "update", "delete"));
 //        adminPermissions.put("Pharmacist", List.of("create", "read", "update", "delete"));
-//        adminPermissions.put("Lab Technician", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Lab Technician", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Administrator", List.of("create", "read", "update", "delete"));
         adminPermissions.put("FrontDesk", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Security", List.of("create", "read", "update", "delete"));

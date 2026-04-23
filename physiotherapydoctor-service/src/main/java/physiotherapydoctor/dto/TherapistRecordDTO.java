@@ -1,26 +1,17 @@
-package com.clinicadmin.entity;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
+package physiotherapydoctor.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Document(collection = "therapist_records")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
+public class TherapistRecordDTO {
 
-public class TherapistRecord {
-
-    @Id
-    private String id;
+	private String id;
     private String therapistRecordId;
 
     private String clinicId;
@@ -28,6 +19,7 @@ public class TherapistRecord {
     private String patientId;
     private String bookingId;
     private String therapistId;
+
     private String patientName;
     private String therapy;
 
@@ -43,12 +35,12 @@ public class TherapistRecord {
 
     private String therapistNotes;
     private String patientResponse;
-
+    private String sessionId;
     private String result;
     private String status;
     private String mode;
     private String nextPlan;
-    private String sessionId;
+
     private String beforeImage;
     private String afterImage;
     private String beforeVideo;
@@ -56,5 +48,5 @@ public class TherapistRecord {
     private String voiceRecord;
     private int repetationDone;
     private int setsDone;
-
+    
 }

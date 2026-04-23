@@ -1,6 +1,7 @@
 package com.clinicadmin.service.impl;
 
 import java.util.Base64;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -243,5 +244,31 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         return dto;
+    }
+    
+ // ===================== getByPatientIdAndBookingId =====================
+
+    @Override
+    public ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
+            String patientId,
+            String bookingId) {
+
+        List<TherapistRecord> records =
+                repository.findAllByPatientIdAndBookingId(patientId, bookingId);
+
+        if (records == null || records.isEmpty()) {
+            throw new RuntimeException("No records found");
+        }
+
+        List<TherapistRecordDTO> dtoList = records.stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseStructure.buildResponse(
+                dtoList,
+                "Records fetched successfully",
+                HttpStatus.OK,
+                200
+        );
     }
 }

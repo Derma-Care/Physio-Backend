@@ -154,4 +154,15 @@ public class PhysiotherapyController {
 	            @PathVariable String doctorId) {
 	        return service.getTodaysAppointments(clinicId, doctorId);
 	    }
+	 @GetMapping("/visitHistoryByUsingPatientIdAndBooking/{patientId}/{bookingId}")
+	 public ResponseEntity<Response> getVisitHistory(
+	         @PathVariable String patientId,
+	         @PathVariable String bookingId) {
+
+	     Response response = service.getVisitHistory(patientId, bookingId);
+
+	     return ResponseEntity
+	             .status(response.getStatus())
+	             .body(response);
+	 }
 }

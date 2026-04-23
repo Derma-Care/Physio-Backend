@@ -560,7 +560,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             ), "All visit history fetched successfully", HttpStatus.OK.value());
 
         } catch (Exception e) {
-            return buildResponse(false, null, "Error fetching visit history: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return buildResponse(true, null, "Error fetching visit history: " + e.getMessage(), HttpStatus.OK.value());
         }
     }
 
