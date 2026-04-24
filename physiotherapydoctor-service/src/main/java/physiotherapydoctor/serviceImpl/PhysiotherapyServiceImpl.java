@@ -1782,10 +1782,10 @@ result.add(session);
                     repository.findByPatientInfoPatientIdAndBookingId(patientId, bookingId);
 
             if (records == null || records.isEmpty()) {
-                response.setSuccess(false);
+                response.setSuccess(true);
                 response.setData(null);
                 response.setMessage("No visit history found");
-                response.setStatus(404);
+                response.setStatus(200);
                 return response;
             }
 
