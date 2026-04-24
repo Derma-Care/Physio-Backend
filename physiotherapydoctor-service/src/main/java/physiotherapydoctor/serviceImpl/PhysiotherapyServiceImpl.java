@@ -1795,7 +1795,7 @@ result.add(session);
                 ResponseStructure<List<TherapistRecordDTO>> feignRes =
                         clinicAdminFeign.getByPatientIdAndBookingId(patientId, bookingId);
 
-                if (feignRes != null && feignRes.getData() != null) {
+                if (feignRes != null && feignRes.getData() != null) {    
                     visits = feignRes.getData();
                 }
 
