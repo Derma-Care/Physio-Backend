@@ -41,6 +41,15 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		Response response = new Response();
 
 		try {
+			Optional<CustomerOnbording> existingCustomer =
+	                onboardingRepository.findByMobileNumber(dto.getMobileNumber());
+
+	        if (existingCustomer.isPresent()) {
+	            response.setSuccess(false);
+	            response.setMessage("Mobile number already exists");
+	            response.setStatus(400);
+	            return response;
+	        }
 			// Generate unique IDs
 			long customerSeq = sequenceGeneratorService.getNextSequence(dto.getBranchId() + "_customer");
 			long patientSeq = sequenceGeneratorService
