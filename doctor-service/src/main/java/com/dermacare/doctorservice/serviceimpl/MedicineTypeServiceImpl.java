@@ -130,9 +130,9 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
             List<MedicineType> list = repository.findAll();
 
             if (list.isEmpty()) {
-                response.setSuccess(false);
+                response.setSuccess(true);
                 response.setMessage("No medicine types found");
-                response.setStatus(404);
+                response.setStatus(200);
             } else {
                 response.setSuccess(true);
                 response.setData(list);

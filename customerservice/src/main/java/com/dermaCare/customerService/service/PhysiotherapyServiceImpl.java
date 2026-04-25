@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import com.dermaCare.customerService.dto.MutiplePartsDto;
 import com.dermaCare.customerService.dto.QuestionsByPartDTO;
 import com.dermaCare.customerService.dto.QuestionsDTO;
@@ -16,11 +15,14 @@ import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.entity.QuestionsEntity;
 import com.dermaCare.customerService.repository.PhysiotherapyRepo;
 import com.dermaCare.customerService.util.GetByKey;
+import com.dermaCare.customerService.util.Response;
+import com.dermaCare.customerService.util.SequenceGeneratorService;
 import com.dermaCare.customerService.util.PysioQuestionsRes;
 import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.SequenceGeneratorService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 @Service
 public class PhysiotherapyServiceImpl implements PhysiotherapyService {

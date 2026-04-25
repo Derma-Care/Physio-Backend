@@ -1,6 +1,7 @@
 package com.clinicadmin.service.impl;
 
 import java.util.Base64;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,7 +38,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         TherapistRecord record = mapToEntity(dto);
 
-        // ✅ TherapistRecord status (separate from session)
+        // ✅ TherapistRecord status
         record.setStatus("COMPLETED");
 
         // ================= ENCODE =================
@@ -66,28 +67,46 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
             );
         }
 
-        // ✅ IMPORTANT: ensure IDs are set
+        if (dto.getVoiceRecord() != null) {
+            record.setVoiceRecord(
+                    Base64.getEncoder().encodeToString(dto.getVoiceRecord().getBytes())
+            );
+        }
+
+        // ✅ Ensure IDs
         record.setTherapistRecordId(dto.getTherapistRecordId());
         record.setSessionId(dto.getSessionId());
 
-        // ✅ SAVE RECORD
+        // ✅ Save therapist record
         TherapistRecord saved = repository.save(record);
 
-        // 🔥 CALL PHYSIOTHERAPY SERVICE
+        // 🔥 Call Physiotherapy Service
         try {
-            if (dto.getTherapistRecordId() != null && dto.getSessionId() != null) {
 
-                System.out.println("Calling Physio API: "
-                        + dto.getTherapistRecordId() + " | " + dto.getSessionId());
+            if (dto.getTherapistRecordId() != null
+                    && !dto.getTherapistRecordId().trim().isEmpty()
+                    && dto.getSessionId() != null
+                    && !dto.getSessionId().trim().isEmpty()) {
+
+                String therapistRecordId = dto.getTherapistRecordId().trim();
+                String sessionId = dto.getSessionId().trim();
+
+                System.out.println("Calling Physio API => "
+                        + therapistRecordId + " | " + sessionId);
 
                 physiotherapyFeignClient.updateSessionStatus(
-                        dto.getTherapistRecordId(),
-                        dto.getSessionId()
+                        therapistRecordId,
+                        sessionId
                 );
+
+                System.out.println("Physio session status updated successfully");
+            } else {
+                System.out.println("TherapistRecordId or SessionId is empty");
             }
+
         } catch (Exception e) {
-            // ✅ LOG ERROR (important for debugging)
-            System.out.println("Physio update failed: " + e.getMessage());
+            System.out.println("Physio update failed");
+            e.printStackTrace();
         }
 
         return ResponseStructure.buildResponse(
@@ -103,8 +122,9 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
             String clinicId, String branchId, String therapistRecordId,String sessionId) {
 
         TherapistRecord record = repository
-                .findByClinicIdAndBranchIdAndTherapistRecordIdAndSessionId(clinicId, branchId, therapistRecordId,sessionId)
-                .orElseThrow(() -> new RuntimeException("Record not found"));
+        		.findByClinicIdAndBranchIdAndTherapistRecordIdAndSessionId(
+        		        clinicId, branchId, therapistRecordId, sessionId)
+        		.orElseThrow(() -> new RuntimeException("Record not found"));
 
         return ResponseStructure.buildResponse(
                 mapToDTO(record),
@@ -147,6 +167,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 //        record.setStatus(dto.getStatus());
         record.setMode(dto.getMode());
         record.setNextPlan(dto.getNextPlan());
+        record.setRepetationDone(dto.getRepetationDone());
+        record.setSetsDone(dto.getSetsDone());
 
         return record;
     }
@@ -185,6 +207,10 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setStatus(record.getStatus());
         dto.setMode(record.getMode());
         dto.setNextPlan(record.getNextPlan());
+//        dto.setVoiceRecord(record.getVoiceRecord());
+        dto.setRepetationDone(record.getRepetationDone());
+        dto.setSetsDone(record.getSetsDone());
+        
 
         // ================= DECODE =================
 
@@ -211,7 +237,38 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                     new String(Base64.getDecoder().decode(record.getAfterVideo()))
             );
         }
+        if (record.getVoiceRecord() != null) {
+            dto.setVoiceRecord(
+                new String(Base64.getDecoder().decode(record.getVoiceRecord()))
+            );
+        }
 
         return dto;
+    }
+    
+ // ===================== getByPatientIdAndBookingId =====================
+
+    @Override
+    public ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
+            String patientId,
+            String bookingId) {
+
+        List<TherapistRecord> records =
+                repository.findAllByPatientIdAndBookingId(patientId, bookingId);
+
+        if (records == null || records.isEmpty()) {
+            throw new RuntimeException("No records found");
+        }
+
+        List<TherapistRecordDTO> dtoList = records.stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseStructure.buildResponse(
+                dtoList,
+                "Records fetched successfully",
+                HttpStatus.OK,
+                200
+        );
     }
 }

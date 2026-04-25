@@ -1,5 +1,7 @@
 package physiotherapydoctor.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
+import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.service.PhysiotherapyService;
 
 @RestController
@@ -46,6 +49,13 @@ public class PhysiotherapyController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
+	@GetMapping("/getTherapySessionsByServiceType/{clinicId}/{branchId}/{patientId}/{bookingId}")
+	public ResponseEntity<Response> getTherapySessionsByServiceType(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String patientId, @PathVariable String bookingId) {
+
+		return service.getCalculations(clinicId, branchId, patientId, bookingId);
+	}
+
 	// ✅ UPDATE
 	@PutMapping("/physiotherapy-record/updateById/{id}")
 	public ResponseEntity<Response> update(@PathVariable String id, @RequestBody PhysiotherapyRecordDTO dto) {
@@ -61,59 +71,57 @@ public class PhysiotherapyController {
 		Response response = service.delete(id);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
-	@GetMapping("/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}/{therapistRecordId}")
-	public ResponseEntity<Response> getRecord(
-	        @PathVariable String clinicId,
-	        @PathVariable String branchId,
-	        @PathVariable String patientId,
-	        @PathVariable String bookingId,
-	        @PathVariable String therapistRecordId) {
-
-		Response response =  service.getByMultipleFields(
-	            clinicId, branchId, patientId, bookingId, therapistRecordId
-	    );
-		return ResponseEntity.status(response.getStatus()).body(response);
-
+	
+	@GetMapping("/getPhysioByBookingId/{bookingId}/{date}")
+	public ResponseEntity<List<Session>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String date) {		
+		return service.getSessionsByBookingIdAndDate(bookingId, date);
 	}
 	
-	@GetMapping("/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}")
-	public ResponseEntity<Response> getRecordsWithoutTherapistId(
-	        @PathVariable String clinicId,
-	        @PathVariable String branchId,
-	        @PathVariable String patientId,
-	        @PathVariable String bookingId) {
+	@GetMapping("/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}/{therapistRecordId}")
+	public ResponseEntity<Response> getRecord(@PathVariable String clinicId, @PathVariable String branchId,
+			@PathVariable String patientId, @PathVariable String bookingId, @PathVariable String therapistRecordId) {
 
-		Response response =  service.getByWithoutTherapistRecordId(
-	            clinicId, branchId, patientId, bookingId
-	    );
+		Response response = service.getByMultipleFields(clinicId, branchId, patientId, bookingId, therapistRecordId);
 		return ResponseEntity.status(response.getStatus()).body(response);
 
 	}
-	 // ✅ GET Assigned Patients by clinic + branch + therapist
-    @GetMapping("/assigned-patients/{clinicId}/{branchId}/{therapistId}/{overallStatus}")
-    public ResponseEntity<Response> getAssignedPatients(
-            @PathVariable String clinicId,
-            @PathVariable String branchId,
-            @PathVariable String therapistId,
-            @PathVariable Integer overallStatus) {
-    	
 
-    	Response response =  service.getAssignedPatients(
-                clinicId, branchId, therapistId,overallStatus
-        );
+	@GetMapping("/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}")
+	public ResponseEntity<Response> getRecordsWithoutTherapistId(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String patientId, @PathVariable String bookingId) {
+
+		Response response = service.getByWithoutTherapistRecordId(clinicId, branchId, patientId, bookingId);
 		return ResponseEntity.status(response.getStatus()).body(response);
 
-    }
-    @GetMapping("/getProgramAndTherapyInfo/{clinicId}/{branchId}/{patientId}/{bookingId}")
-    public ResponseEntity<Response> getProgramAndTherapyInfo(
-            @PathVariable String clinicId,
-            @PathVariable String branchId,
-            @PathVariable String patientId, @PathVariable String bookingId) {
+	}
 
-    	Response response =  service.getProgramAndTherapyInfo(clinicId,branchId,patientId,bookingId);
+	// ✅ GET Assigned Patients by clinic + branch + therapist
+	@GetMapping("/assigned-patients/{clinicId}/{branchId}/{therapistId}/{overallStatus}")
+	public ResponseEntity<Response> getAssignedPatients(@PathVariable String clinicId, @PathVariable String branchId,
+			@PathVariable String therapistId, @PathVariable Integer overallStatus) {
+
+		Response response = service.getAssignedPatients(clinicId, branchId, therapistId, overallStatus);
 		return ResponseEntity.status(response.getStatus()).body(response);
 
-    }
+	}
+
+	@GetMapping("/getProgramAndTherapyInfo/{clinicId}/{branchId}/{patientId}/{bookingId}")
+	public ResponseEntity<Response> getProgramAndTherapyInfo(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String patientId, @PathVariable String bookingId) {
+
+		Response response = service.getProgramAndTherapyInfo(clinicId, branchId, patientId, bookingId);
+		return ResponseEntity.status(response.getStatus()).body(response);
+
+	}
+
+	@GetMapping("/clinic-branch-booking/{clinicId}/{branchId}/{bookingId}")
+	public ResponseEntity<Response> getByClinicBranchAndBooking(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String bookingId) {
+
+		Response response = service.getByClinicBranchAndBooking(clinicId, branchId, bookingId);
+
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
 //	@GetMapping("physiotherapy-record/dashboard/{clinicId}/{branchId}/{therapistId}")
 //	public ResponseEntity<Response> getDashboard(
 //	        @PathVariable String clinicId,
@@ -131,4 +139,30 @@ public class PhysiotherapyController {
 //
 //	    service.updateSessionStatusFromTherapist(therapistRecordId, sessionId);
 //	}
+	
+//	-------------------------Booking Api's-----------------------------------------------------
+	
+	 @GetMapping("/getIn-progressByUsingPatientIdAndBookingId/{patientId}/{bookingId}")
+	   public ResponseEntity<?> getInprogressBookingsByPatientId(
+				 @PathVariable String patientId, @PathVariable String bookingId){
+		   return service.getInProgressBookingsByIds(patientId, bookingId);
+		   
+	 }
+	 @GetMapping("/getTodaysAppointmentsByUsingClinicIdAndDoctorId/{clinicId}/{doctorId}")
+	    public ResponseEntity<?> getTodaysAppointments(
+	            @PathVariable String clinicId,
+	            @PathVariable String doctorId) {
+	        return service.getTodaysAppointments(clinicId, doctorId);
+	    }
+	 @GetMapping("/visitHistoryByUsingPatientIdAndBooking/{patientId}/{bookingId}")
+	 public ResponseEntity<Response> getVisitHistory(
+	         @PathVariable String patientId,
+	         @PathVariable String bookingId) {
+
+	     Response response = service.getVisitHistory(patientId, bookingId);
+
+	     return ResponseEntity
+	             .status(response.getStatus())
+	             .body(response);
+	 }
 }

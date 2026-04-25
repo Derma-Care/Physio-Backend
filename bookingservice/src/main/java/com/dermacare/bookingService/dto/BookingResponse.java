@@ -3,6 +3,7 @@ package com.dermacare.bookingService.dto;
 import java.util.List;
 import java.util.Map;
 
+import com.dermacare.bookingService.entity.FollowupBooking;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class BookingResponse {
 	
 	private String bookingId;
@@ -48,6 +48,7 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
+	private List<ConsultationFeesDTO> listOfConsultationFee;
 	private double consultationFee;
 	private Integer visitCount;
 	private String channelId;
@@ -55,8 +56,8 @@ public class BookingResponse {
 	private String notes;
 	private List<ReportsDtoList> reports;
 	private String BookedAt;
-	private List<String> status;
-	private String currentStatus;
+	private List<StatusDTO> currentStatus;
+	private String status;
 	private double totalFee;
 	private List<String> attachments;
 	private String consentFormPdf;
@@ -95,6 +96,18 @@ public class BookingResponse {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
+	private String reasonforVisit;
+	private boolean isFollowupStatus;
+	private List<Session> session;
+	//private List<FollowupBookingDto> follwupBookings;
+		
+	public void setIsFollowupStatus(boolean followupStatus) {
+	    isFollowupStatus = followupStatus;
+	}
+	
+	public boolean getIsFollowupStatus() {
+	    return isFollowupStatus;
+	}
 	
    	
 }

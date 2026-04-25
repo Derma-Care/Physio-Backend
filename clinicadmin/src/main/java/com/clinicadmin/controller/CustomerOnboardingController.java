@@ -1,5 +1,7 @@
 package com.clinicadmin.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -37,6 +39,14 @@ public class CustomerOnboardingController {
         Response response = customerOnboardingService.getAllCustomers();
         return ResponseEntity.status(response.getStatus()).body(response);
     }
+    
+    // ✅ Get All Customers
+    @GetMapping("/customers/mobilenumber/{mobilenumber}/name/{name}")
+    public  Map<String,String> getCustomerByMobilenumberAndName(@PathVariable String mobilenumber,@PathVariable String name){
+        return customerOnboardingService.getCustomerByMobilenumberAndName(mobilenumber, name);
+    }
+    
+    
 
     // ✅ Get Customers by HospitalId
     @GetMapping("/customers/hospital/{hospitalId}")

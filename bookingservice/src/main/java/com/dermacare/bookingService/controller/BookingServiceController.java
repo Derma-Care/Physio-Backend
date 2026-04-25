@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dermacare.bookingService.dto.BookingInfoByInput;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
+import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.dto.TempBlockingSlot;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.util.Response;
@@ -42,6 +43,17 @@ public class BookingServiceController {
 	public ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(@PathVariable String id) {
 		BookingResponse response = service.deleteService(id);
 		if(response != null) {
+			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
+					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
+			else {
+				return new ResponseEntity<>(ResponseStructure.buildResponse(null, "Booked Service Not Found",
+						HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}}
+	
+	
+	@GetMapping("/getTodayBookings/{clincId}/{branchId}")
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
+		List<BookingResponse> response = service.getTodayBookings(clincId, branchId);
+		if(response != null || !response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
 					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
 			else {
@@ -197,17 +209,31 @@ public class BookingServiceController {
 	            HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
 	}
 
-	@PutMapping("/updateAppointment")
-	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse ){
-		return service.updateAppointment(bookingResponse);
-	
-	}
+//	@PutMapping("/updateAppointment")
+//	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse ){
+//		return service.updateAppointment(bookingResponse);
+//	
+//	}
 	
 	
 	@GetMapping("/getAppointmentByPatientId/{patientId}")
 	public ResponseEntity<?> getAppointmentByPatientId(@PathVariable String patientId){
 		return service.getAppointsByPatientId(patientId);
 	
+	}
+	
+	@GetMapping("/in-progress/appointments/{patientId}/{bookingId}")
+	public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId){
+		  List<BookingResponse> response = service.bookingByPatientIdAndBookingId(patientId,bookingId);
+		    if (response == null || response.isEmpty()) {
+		        return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+		                "No bookings found",
+		                HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+		    }
+
+		    return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+		            "Bookings fetched successfully",
+		            HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
 	}
 	
 	
@@ -329,5 +355,80 @@ public class BookingServiceController {
 		    return service.getPatientAndPriceInfo(clinicId, branchId, number, startDate, endDate);
 		}
 		
+		
+		@PostMapping("/bookPhysioAppointment")
+		public  ResponseEntity<?> bookPhysioAppointment(@RequestBody BookingRequset req) {
+			return service.physioAppointment(req);}
+		
+		
+		  // ✅ API 1
+	    @GetMapping("/today/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getTodayPhysioBookings(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId) {
+
+	        return service.getTodayAllBookings(clinicId, branchId);
+	    }
+
+	    // ✅ API 2
+	    @GetMapping("/upcoming/{clinicId}/{branchId}/{option}")
+	    public ResponseEntity<Response> getUpcomingBookings(
+	    		  @PathVariable String clinicId,
+	    		  @PathVariable String branchId,
+	    		  @PathVariable int option) {
+
+	        return service.getUpcomingBookings(clinicId, branchId, option);
+	    }
+	    
+	    @GetMapping("/basedOnDate/{clinicId}/{branchId}/{date}")
+	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String date) {
+
+	        return service.getBookingByDate(clinicId, branchId, date);
+	    }
+	    
+	    @GetMapping("/customeRange/{clinicId}/{branchId}/{start}/{end}")
+	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String start,
+	            @PathVariable String end) {
+
+	        return service.getBookingByCustomRange(clinicId, branchId,start, end);
+	    }
+	    
+	    @GetMapping("/getBookingById/{bookingId}")
+	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId) {
+	        return service.getBookingById(bookingId);
+	    }
+	    
+	    
+	    @GetMapping("/reports/patientId/{patientId}")
+	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId) {
+
+	        List<ReportsDTO> reports = service.getReportsByPatientId(patientId);
+
+	        if (reports == null || reports.isEmpty()) {
+	            Response response = Response.builder()
+	                    .success(false)
+	                    .message("No reports found for given patientId")
+	                    .status(HttpStatus.OK.value())
+	                    .build();
+
+	            return ResponseEntity.status(HttpStatus.OK).body(response);
+	        }
+
+	        Response response = Response.builder()
+	                .success(true)
+	                .data(reports)
+	                .message("Reports fetched successfully")
+	                .status(HttpStatus.OK.value())
+	                .build();
+
+	        return ResponseEntity.ok(response);
+	    }
+			
 		}
 

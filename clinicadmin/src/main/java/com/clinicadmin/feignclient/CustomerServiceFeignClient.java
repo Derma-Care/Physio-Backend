@@ -5,8 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.entity.QuestionsByPartEntity;
+
 
 @FeignClient(name = "customerservice")
 public interface CustomerServiceFeignClient {
@@ -25,4 +26,7 @@ public interface CustomerServiceFeignClient {
 	
 	@GetMapping("/api/customer/getSubServiceInfo/{subServiceId}")
 	   public ResponseEntity<Object> getSubServiceInfoBySubServiceId(@PathVariable String subServiceId);
+	 @GetMapping("/api/customer/getByKey/{key}")
+	   public ResponseEntity<QuestionsByPartEntity> getByKey(@PathVariable String key);
+	
 }

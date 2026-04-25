@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class Admin {
 @Id
 private String id;
-private String mobileNumber;
+private String mobileNumber;///mobilenumber
 private String userName;
 private String password;
 }

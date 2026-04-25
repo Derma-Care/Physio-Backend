@@ -2,18 +2,22 @@ package com.clinicadmin.service.impl;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
+import com.clinicadmin.dto.TheraphyAnswersDTO;
+import com.clinicadmin.entity.QuestionsByPartEntity;
+import com.clinicadmin.entity.QuestionsEntity;
 import com.clinicadmin.feignclient.BookingFeign;
+import com.clinicadmin.feignclient.CustomerServiceFeignClient;
 import com.clinicadmin.service.BookingService;
 import com.clinicadmin.service.DoctorService;
 import com.clinicadmin.utils.ExtractFeignMessage;
@@ -27,7 +31,11 @@ public class BookingServiceImpl implements BookingService {
 	BookingFeign bookingFeign;
 
 	@Autowired
-	DoctorService doctorService;
+	DoctorService doctorService;	
+	@Autowired	
+	DoctorServiceImpl doctorServiceImpl;
+	@Autowired
+	private CustomerServiceFeignClient customerServiceFeignClient;
 
 	@Override
 	public Response deleteBookedService(String id) {
@@ -149,13 +157,14 @@ public class BookingServiceImpl implements BookingService {
 			ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);
 			BookingResponse bookingResponse = res.getBody().getData();
 			if (bookingResponse != null) {
-				doctorService.updateSlot(bookingResponse.getDoctorId(), bookingResponse.getBranchId(),
-						bookingResponse.getServiceDate(), bookingResponse.getServicetime());
-				response.setData(res.getBody());
+				response.setData(bookingResponse);
+				response.setMessage("follow up appointment found");
+				response.setSuccess(true);
 				response.setStatus(res.getBody().getStatusCode());
-			} else {
-				response.setStatus(res.getBody().getHttpStatus().value());
-				response.setData(res.getBody());
+			} else {				
+				response.setMessage("follow up appointment not found");
+				response.setSuccess(false);
+				response.setStatus(res.getStatusCode().value());
 			}
 		} catch (FeignException e) {
 			response.setStatus(e.status());
@@ -212,5 +221,186 @@ public ResponseEntity<?> getReprts(String clinicId,
         );
         return ResponseEntity.status(res.getStatusCode()).body(res);
     }
+}
+
+
+@Override
+public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
+		String branchId) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getTodayPhysioBookings(clinicId, branchId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
+public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+		String bookingId) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getReportsByPatientId(String patientId) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getReportsByPatientId(patientId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(ExtractFeignMessage.clearMessage(e));
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
+public ResponseEntity<?> getUpcomingBookings(String clinicId,
+		String branchId,int option) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getUpcomingBookings(clinicId, branchId, option);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
+public ResponseEntity<?> getBookingsByDate(String clinicId,
+		String branchId, String date) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getPhysioBookingBasedOnDate(clinicId, branchId, date);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getBookingsByDateRange(String clinicId,
+		String branchId,String start, String end) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getPhysioBookingsByCustomeRange(clinicId, branchId, start, end);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getBookingById(String bookingId){
+	Response response = new Response();
+    try {
+        return bookingFeign.getBookingById(bookingId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
+public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId){
+	Response response = new Response();
+    try {
+        return bookingFeign.getTodayBookings(clinicId, branchId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
+public ResponseEntity<?> physioAppointment(BookingRequset req) {
+    ResponseEntity<Response> res = null;
+    Response response = new Response();
+    try {
+    	 if(req.getTheraphyAnswers()!= null) {
+ 	        
+	        	if (req.getTheraphyAnswers() != null && !req.getTheraphyAnswers().isEmpty()) {
+
+	        	    Map<String, List<TheraphyAnswersDTO>> map = req.getTheraphyAnswers();
+
+	        	    for (Map.Entry<String, List<TheraphyAnswersDTO>> entry : map.entrySet()) {
+
+	        	        String key = entry.getKey(); // e.g., "back"
+	        	        List<TheraphyAnswersDTO> answersList = entry.getValue();
+
+	        	        // 🔍 Fetch DB data based on key
+	        	        QuestionsByPartEntity entity = customerServiceFeignClient.getByKey(key).getBody();
+
+	        	        if (entity == null || entity.getQuestionsByPart() == null) {
+	        	            continue;
+	        	        }
+
+	        	        List<QuestionsEntity> questionsList = entity.getQuestionsByPart().get(key);
+
+	        	        if (questionsList == null || questionsList.isEmpty()  ) {
+	        	            continue;
+	        	        }
+
+	        	        // 🔁 Match questionId and set question
+	        	        for (TheraphyAnswersDTO dto : answersList) {
+
+	        	            for (QuestionsEntity q : questionsList) {
+
+	        	                if (q.getQuestionId() == dto.getQuestionId()) {
+	        	                    dto.setQuestion(q.getQuestion());
+	        	                    break; // stop once matched
+	        	                }
+	        	            }
+	        	        }
+	        	    }
+	        	}
+	        res = bookingFeign.bookPhysioAppointment(req);
+	        }else {
+    	    res = bookingFeign.bookPhysioAppointment(req);}
+    	//System.out.println(res);
+    	 if(res.getBody().getData() != null) {
+    		 doctorServiceImpl.updateSlot(         
+    				 req.getDoctorId(),
+	                    req.getBranchId(),
+	                    req.getServiceDate(),
+	                    req.getServicetime()
+	            );}else {
+	            	response.setStatus(400);
+	       			response.setMessage("error occured");
+	       			response.setSuccess(false);
+	       			//response.setData(Collections.emptyList());
+	            }
+    	return res;
+      } catch (FeignException e) {
+    	    response.setStatus(e.status());
+			response.setMessage(e.getMessage());
+			response.setSuccess(false);
+			//response.setData(Collections.emptyList());
+        return ResponseEntity.status(response.getStatus()).body(response);}
 }
 }

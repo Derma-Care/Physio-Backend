@@ -2,19 +2,19 @@ package physiotherapydoctor.dto;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class TherapyWithSessions {
-	private String doctorId;
-	private String doctorName;
-	private Integer noOfSessionCount;
-	private Integer noTherapyCount;
-	private String programId;
-	private String programName;
-	private String therapistId;
-	private String therapistName;
-	private String therapistRecordId;
-    private List<TheraphyData> therophyData;
 
+    private String packageId;
+    private String packageName;
+    private Double totalPackagePrice;   // ✅ Added
+    private String paymentStatus;       // ✅ Added
+    
+    private List<Program> programs;
 }

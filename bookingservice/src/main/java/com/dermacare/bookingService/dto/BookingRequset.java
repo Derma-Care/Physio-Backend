@@ -2,6 +2,8 @@ package com.dermacare.bookingService.dto;
 
 import java.util.List;
 import java.util.Map;
+
+import com.clinicadmin.dto.ReportsDtoList;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -45,12 +47,12 @@ public class BookingRequset {
 	private String servicetime;
 	private String followupDate;
 	private String consultationType;
+	private List<ConsultationFeesDTO> listOfConsultationFee;	
 	private double consultationFee;
 	private double totalFee;    ///theraphy fee
 	private String paymentType;
 	private List<String> attachments;
-	private List<String> status;
-	private String currentStatus;
+	private String status;
 	private String consentFormPdf;
 	private String doctorRefCode;
 	private String bookedAt;
@@ -74,5 +76,17 @@ public class BookingRequset {
 	private String insuranceProvider;
 	private String policyNumber;
 	private List<String> activityLevels;
+	private String reasonforVisit;
+	private boolean isFollowupStatus;
+	private List<ReportsDtoList> reports;
+	
+	
+	public void setIsFollowupStatus(boolean followupStatus) {
+	    isFollowupStatus = followupStatus;
+	}
+	
+	public boolean getIsFollowupStatus() {
+	    return isFollowupStatus;
+	}
 	
 }

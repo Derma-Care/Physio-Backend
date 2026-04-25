@@ -42,4 +42,8 @@ public class TherapistRecordDTO {
     private String afterImage;
     private String beforeVideo;
     private String afterVideo;
+    private String voiceRecord;
+    private int repetationDone;
+    private int setsDone;
+    
 }

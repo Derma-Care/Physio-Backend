@@ -25,7 +25,9 @@ import com.dermaCare.customerService.dto.FavouriteDoctorsDTO;
 import com.dermaCare.customerService.dto.LoginDTO;
 import com.dermaCare.customerService.dto.NotificationToCustomer;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
+import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.service.CustomerService;
+import com.dermaCare.customerService.util.GetByKey;
 import com.dermaCare.customerService.util.OtpUtil;
 import com.dermaCare.customerService.util.ResBody;
 import com.dermaCare.customerService.util.Response;
@@ -42,6 +44,8 @@ public class CustomerController {
 
 	@Autowired
 	private CustomerService customerService;
+	@Autowired
+	private GetByKey getByKey;
 	
 	private static final Logger log = LoggerFactory.getLogger(CustomerController.class);
 		
@@ -589,5 +593,16 @@ public ResponseEntity<Response> getAverageRatingByDoctorId( @PathVariable String
 			 @PathVariable String token ){
 	   return customerService.getCustomerByToken(token);
  }
+   
+   @GetMapping("getByKey/{key}")
+   public ResponseEntity<QuestionsByPartEntity> getByKey(@PathVariable String key) {
+       QuestionsByPartEntity response = getByKey.getByKey(key);
+
+       if (response != null) {
+           return ResponseEntity.ok(response);
+       } else {
+           return ResponseEntity.notFound().build();
+       }
+   }
 
 }

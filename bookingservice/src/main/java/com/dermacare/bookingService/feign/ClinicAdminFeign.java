@@ -1,5 +1,7 @@
 package com.dermacare.bookingService.feign;
 
+import java.util.Map;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +35,10 @@ public interface ClinicAdminFeign {
 	    public Double customFilter(
 	    		@PathVariable String startDate,
 	    		@PathVariable String endDate);
+	  
+	  @GetMapping("/clinic-admin/customers/mobilenumber/{mobilenumber}/name/{name}")
+	    public Map<String,String> getCustomerByMobilenumberAndName(@PathVariable String mobilenumber,@PathVariable String name);
+	     
 
 
 }

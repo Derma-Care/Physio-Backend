@@ -1,5 +1,7 @@
 package com.clinicadmin.service;
 
+import java.util.Map;
+
 import com.clinicadmin.dto.CustomerLoginDTO;
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.dto.Response;
@@ -27,6 +29,7 @@ public interface CustomerOnboardingService {
 	
 	public CustomerOnbordingDTO getCustomerByToken(String token);
 	public Response getCustomerByMobiileNumber(String mobilenumber);
+	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name);	
 		
 //
 //	Response resetPassword(ChangeDoctorPasswordDTO dto);

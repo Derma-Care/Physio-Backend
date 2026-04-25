@@ -31,4 +31,6 @@ public interface TherapistService {
     ResponseStructure<String> deleteBytherapistId(String therapistId);
 
 	Response therapistOnboarding(TherapistDTO dto);
+
+	Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId);
 }

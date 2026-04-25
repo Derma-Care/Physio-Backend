@@ -23,4 +23,6 @@ public interface CustomerOnboardingRepository extends MongoRepository<CustomerOn
 
 	CustomerOnbording findByDeviceId(String token);
 	
+	Optional<CustomerOnbording>	findByMobileNumberAndFullName(String mobileNumber,String name);
+	
 }

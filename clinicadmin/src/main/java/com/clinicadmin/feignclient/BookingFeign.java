@@ -106,4 +106,48 @@ public interface BookingFeign {
 			@PathVariable Integer number,
 			@PathVariable String startDate,
 			@PathVariable String endDate);
+	
+	@PostMapping("/api/v1/bookPhysioAppointment")
+	public  ResponseEntity<Response> bookPhysioAppointment(@RequestBody BookingRequset req);
+	
+	  @GetMapping("/api/v1/today/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getTodayPhysioBookings(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId);
+	  
+	  @GetMapping("/api/v1/upcoming/{clinicId}/{branchId}/{option}")
+	    public ResponseEntity<Response> getUpcomingBookings(
+	    		  @PathVariable String clinicId,
+	    		  @PathVariable String branchId,
+	    		  @PathVariable int option);
+	  
+	  @GetMapping("/api/v1//basedOnDate/{clinicId}/{branchId}/{date}")
+	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String date);
+	  
+	  @GetMapping("/api/v1/customeRange/{clinicId}/{branchId}/{start}/{end}")
+	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String start,
+	            @PathVariable String end);
+	  
+	  @GetMapping("/api/v1/getBookingById/{bookingId}")
+	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId);
+	    
+	  
+	  @GetMapping("/api/v1/getTodayBookings/{clincId}/{branchId}")
+		public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
+		
+	  
+	  @GetMapping("/api/v1/in-progress/appointments/{patientId}/{bookingId}")
+		public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId);
+		
+	  @GetMapping("/api/v1/reports/patientId/{patientId}")
+	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId);
+
+	      
+
 }

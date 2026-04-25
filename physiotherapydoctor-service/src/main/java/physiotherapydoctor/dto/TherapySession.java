@@ -5,25 +5,30 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-public class TherapySession {
+public class TherapySession {	
 
-	private String programId;
-	private String programName;
-	private String clinicId;
-	private String branchId;
-	private int totalTherapyIds;
-	private String serviceType; // Program or package;
-	private List<TherapyData> therapyData;
+	    private String serviceType;
 
+	    // PACKAGE
+	    private String packageId;
+	    private String packageName;
+	    private List<Program> programs;
 
-//	private String sessionId;
-//	private String sessionDate;
-//	private String status;
-//	private List<String> modalitiesUsed;
-//	private List<String> exercisesDone;
-//	private String patientResponse;
-//	private String frequency;
-//	private String duration;
-////	private String therapistNotes;
-////	private String overallStatus; // ✅ NEW
+	    // PROGRAM
+	    private String programId;
+	    private String programName;
+	    private List<TherapyData> therapyData;
+
+	    // THERAPY
+	    private String therapyId;
+	    private String therapyName;
+	    private List<TherapyExercise> exercises;
+
+	    private Double totalPrice;
+
+		public String getSessionId() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+	
 }

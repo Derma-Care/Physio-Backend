@@ -38,4 +38,20 @@ public interface BookingService {
 		    String startDate,
 			String endDate);
 
+	public ResponseEntity<?> physioAppointment(BookingRequset bookingResponse);
+
+	public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
+			String branchId);
+	public ResponseEntity<?> getUpcomingBookings(String clinicId,
+			String branchId,int option);
+	public ResponseEntity<?> getBookingsByDate(String clinicId,
+			String branchId,String date);
+	public ResponseEntity<?> getBookingsByDateRange(String clinicId,
+			String branchId,String start, String end);
+	public ResponseEntity<?> getBookingById(String bookingId);
+	public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId);
+	public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
+			String bookingId);
+	public ResponseEntity<?> getReportsByPatientId(String patientId);
+
 }

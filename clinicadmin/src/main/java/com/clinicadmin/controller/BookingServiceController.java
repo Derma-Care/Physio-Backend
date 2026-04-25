@@ -69,6 +69,18 @@ public class BookingServiceController {
 		   return bookingService.retrieveAppointnmentsByPatientId(patientId);
 		   
 	 }
+	   
+	   @GetMapping("/in-progress/PatientId/bookingId/{patientId}/{bookingId}")
+	   public ResponseEntity<?> getInprogressBookingsByPatientId(
+				 @PathVariable String patientId, @PathVariable String bookingId){
+		   return bookingService.getInProgressBookingsByIds(patientId, bookingId);
+		   
+	 }
+	   
+	   @GetMapping("/reports/patientId/{patientId}")
+	    public ResponseEntity<?> getReportsByPatientId(@PathVariable String patientId){
+	    return bookingService.getReportsByPatientId(patientId);}
+	   
 	   @PostMapping("/bookService")
 	   public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws JsonProcessingException  {
 	   	Response response = bookingService.bookService(req);
@@ -80,6 +92,7 @@ public class BookingServiceController {
 	   			 return null;
 	   		 }
 	   	}
+	   
 	   @GetMapping("/bookings/Inprogress/patientId/{patientId}")
 	   public ResponseEntity<?> getInprogressAppointmentsByPatientId(
 				 @PathVariable String patientId){
@@ -93,6 +106,11 @@ public class BookingServiceController {
 	       return bookingService.getInprogressBookingsByPatientIdAndClinicId(patientId, clinicId);
 	   }
 	   
+	   @PostMapping("/physioAppointment")
+	   public ResponseEntity<?> physioAppointment(
+			   @RequestBody BookingRequset req){
+		   return bookingService.physioAppointment(req);
+	 }
 	   
 	   @GetMapping("/reprts/{clinicId}/{branchId}/{number}/{startDate}/{endDate}")
 	   public ResponseEntity<?> getReprts(@PathVariable String clinicId,
@@ -103,5 +121,72 @@ public class BookingServiceController {
 
 	       return bookingService.getReprts(clinicId, branchId, number, startDate, endDate);
 	   }
+	   
+	   @GetMapping("/today/{clinicId}/{branchId}")
+	    public ResponseEntity<?> getTodayPhysioBookings(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId) {
+
+	        return bookingService.getTodayPhysioBookings(clinicId, branchId);
+	    }
+
+	   
+	   @GetMapping("/date/{clinicId}/{branchId}/{date}")
+	    public ResponseEntity<?> getBookingsByDate(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,         
+	            @PathVariable String date) {
+
+	        return bookingService.getBookingsByDate(clinicId, branchId,date);
+	    }
+	   
+	   @GetMapping("/dateRange/{clinicId}/{branchId}/{start}/{end}")
+	    public ResponseEntity<?> getBookingsByDateRange(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String start,
+	            @PathVariable String end) {
+
+	        return bookingService.getBookingsByDateRange(clinicId, branchId, start, end);
+	    }
+	   
+	   
+	   @GetMapping("/getBookingById/{bookingId}")
+	    public ResponseEntity<?> getBookingById(
+	            @PathVariable String bookingId) {
+
+	        return bookingService.getBookingById(bookingId);
+	    }
+	   
+	   @GetMapping("/getTodayBookingsByClinicIdAndBranchId/{clinicId}/{branchId}")
+	    public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(
+	            @PathVariable String clinicId, @PathVariable String branchId) {
+
+	        return bookingService.getTodayBookingsByClinicIdAndBranchId(clinicId, branchId);
+	    }
+	    
+	    /**
+	     * ✅ API 2: Get Upcoming Bookings
+	     * option:
+	     * 1 → next 3 days
+	     * 2 → next 7 days
+	     *
+	     * URL Example:
+	     * /api/physio/bookings/upcoming/CL001/BR001/1
+	     */
+	    @GetMapping("/upcoming/{clinicId}/{branchId}/{option}")
+	    public ResponseEntity<?> getUpcomingBookings(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable int option) {
+
+	        // ✅ Optional validation (recommended)
+	        if (option != 1 && option != 2) {
+	            return ResponseEntity.badRequest()
+	                    .body("Option must be 1 (3 days) or 2 (7 days)");
+	        }
+
+	        return bookingService.getUpcomingBookings(clinicId, branchId, option);
+	    }
 	   
 }

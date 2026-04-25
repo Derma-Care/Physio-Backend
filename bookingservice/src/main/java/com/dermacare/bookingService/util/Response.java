@@ -1,6 +1,8 @@
 package com.dermacare.bookingService.util;
 
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,8 +17,10 @@ import lombok.NoArgsConstructor;
 public class Response {
 	private boolean success;
 	private Object data;
+	private Map<String,Object> counts;
 	private String message;
 	private int status;
 	private String hospitalName;
 	private String hospitalId;
+	
 }

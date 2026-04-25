@@ -1,7 +1,6 @@
 package com.dermaCare.customerService.dto;
 
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,5 +14,6 @@ public class QuestionsDTO {
 	private String question;
 	private String type;
 	private List<String> options;
+
 	
 }
