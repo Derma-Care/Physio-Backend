@@ -43,7 +43,8 @@ public class TherapistRecordDTO {
     private String beforeVideo;
     private String afterVideo;
     private String voiceRecord;
-    private int repetationDone;
-    private int setsDone;
+    private String setsDone;
+    private String repetationDone;
+    private String serviceType;
     
 }
