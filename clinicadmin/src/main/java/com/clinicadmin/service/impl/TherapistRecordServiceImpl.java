@@ -169,6 +169,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         record.setNextPlan(dto.getNextPlan());
         record.setRepetationDone(dto.getRepetationDone());
         record.setSetsDone(dto.getSetsDone());
+        record.setServiceType(dto.getServiceType());
+        
 
         return record;
     }
@@ -210,6 +212,9 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 //        dto.setVoiceRecord(record.getVoiceRecord());
         dto.setRepetationDone(record.getRepetationDone());
         dto.setSetsDone(record.getSetsDone());
+        dto.setServiceType(record.getServiceType());
+        
+        
         
 
         // ================= DECODE =================
