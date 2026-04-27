@@ -18,5 +18,4 @@ public interface SubServiceInfo {
 	    Response updateBySubServiceId(String subServiceId, SubServicesInfoDto domainServices);
 
 	    Response getAllSubServices();
-
-}
+	  }
