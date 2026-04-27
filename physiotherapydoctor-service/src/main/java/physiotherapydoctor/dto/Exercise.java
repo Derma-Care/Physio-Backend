@@ -19,7 +19,7 @@ public class Exercise {
 	private Integer noOfSessions;
 	private Integer sets;
 	private Integer repetitions;
-	private Integer frequancy;
+	private String frequancy;
 	private String notes;
 	private String videoUrl;
 

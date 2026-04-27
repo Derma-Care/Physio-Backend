@@ -1268,12 +1268,12 @@ exerciseDTO.setNotes(exercise.getNotes());
 exerciseDTO.setVideoUrl(exercise.getYoutubeUrl());
 
 // Parse frequency → frequancy field
-Integer frequencyVal = null;
+String frequencyVal = null;
 if (exercise.getFrequency() != null && !exercise.getFrequency().isBlank()) {
   try {
-      frequencyVal = Integer.parseInt(exercise.getFrequency().trim());
+      frequencyVal = exercise.getFrequency();
   } catch (NumberFormatException e) {
-      frequencyVal = 0;
+      frequencyVal = null;
   }
 }
 exerciseDTO.setFrequancy(frequencyVal);
@@ -1610,7 +1610,7 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
 
         // Convert session & frequency safely
         ex.setNoOfSessions(te.getNoOfSessions());
-        ex.setFrequancy(parseInteger(te.getFrequency()));
+        ex.setFrequancy(te.getFrequency());
 
         ex.setPricePerSession(te.getPricePerSession() != null ? te.getPricePerSession().intValue() : 0);
 
