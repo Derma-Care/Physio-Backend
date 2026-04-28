@@ -29,14 +29,14 @@ public class TherapistRecord {
     private String bookingId;
     private String therapistId;
     private String patientName;
-    private String therapy;
+//    private String therapy;
 
-    private String date;
+//    private String date;
     private String completedDate;
     private String completedTime;
 
     private String duration;
-    private String exercises;
+//    private String exercises;
 
     private String painBefore;
     private String painAfter;
@@ -57,8 +57,5 @@ public class TherapistRecord {
     private String setsDone;
     private String repetationDone;
     private String serviceType;
-
-
- 
 
 }

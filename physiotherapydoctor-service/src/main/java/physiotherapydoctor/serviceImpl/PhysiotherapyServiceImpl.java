@@ -112,10 +112,20 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	                Integer freeLeft = res.getData().getFreeFollowUpsLeft();
 
-	                if (freeLeft != null && freeLeft > 0) {
-	                    updatedFreeLeft = freeLeft - 1;
-	                } else {
+	                // ✅ First time for bookingId + patientId ignore
+	                long visitCount = repository.countByBookingIdAndPatientInfoPatientId(
+	                        dto.getBookingId(),
+	                        dto.getPatientInfo().getPatientId()
+	                );
+
+	                if (visitCount <= 1) {
 	                    updatedFreeLeft = freeLeft;
+	                } else {
+	                    if (freeLeft != null && freeLeft > 0) {
+	                        updatedFreeLeft = freeLeft - 1;
+	                    } else {
+	                        updatedFreeLeft = freeLeft;
+	                    }
 	                }
 	            }
 
