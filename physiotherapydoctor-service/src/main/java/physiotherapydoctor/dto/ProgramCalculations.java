@@ -18,6 +18,8 @@ public class ProgramCalculations {
     private String patientId;
     private String doctorId;
     private String doctorName;
+    private String therapistId;
+    private String therapistName;
     private int totalPrice;
     private String programId;
 	 private String programName;

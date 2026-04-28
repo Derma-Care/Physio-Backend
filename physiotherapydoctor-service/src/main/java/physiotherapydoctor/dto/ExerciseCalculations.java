@@ -15,6 +15,8 @@ public class ExerciseCalculations {
 	    private String patientId;
 	    private String doctorId;
 	    private String doctorName;
+	    private String therapistId;
+	    private String therapistName;
 	    private int totalPrice;
 	    private List<Exercise> exercises;
 	
