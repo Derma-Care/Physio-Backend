@@ -147,14 +147,14 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         record.setTherapistId(dto.getTherapistId());
 
         record.setPatientName(dto.getPatientName());
-        record.setTherapy(dto.getTherapy());
+//        record.setTherapy(dto.getTherapy());
 
-        record.setDate(dto.getDate());
+//        record.setDate(dto.getDate());
         record.setCompletedDate(dto.getCompletedDate());
         record.setCompletedTime(dto.getCompletedTime());
 
         record.setDuration(dto.getDuration());
-        record.setExercises(dto.getExercises());
+//        record.setExercises(dto.getExercises());
 
         record.setPainBefore(dto.getPainBefore());
         record.setPainAfter(dto.getPainAfter());
@@ -189,14 +189,14 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setTherapistId(record.getTherapistId());
 
         dto.setPatientName(record.getPatientName());
-        dto.setTherapy(record.getTherapy());
+//        dto.setTherapy(record.getTherapy());
 
-        dto.setDate(record.getDate());
+//        dto.setDate(record.getDate());
         dto.setCompletedDate(record.getCompletedDate());
         dto.setCompletedTime(record.getCompletedTime());
 
         dto.setDuration(record.getDuration());
-        dto.setExercises(record.getExercises());
+//        dto.setExercises(record.getExercises());
 
         dto.setPainBefore(record.getPainBefore());
         dto.setPainAfter(record.getPainAfter());

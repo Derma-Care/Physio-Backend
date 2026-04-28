@@ -7,7 +7,7 @@ spring:
     name: bookingservice
   data:
     mongodb:
-      uri: mongodb://mongodb:27017/customerAppointments
+      uri: mongodb://localhost:27017/customerAppointments
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -24,7 +24,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://eureka-server:8761/eureka/
+      defaultZone: http://localhost:8761/eureka/
   instance:
     prefer-ip-address: true
 
