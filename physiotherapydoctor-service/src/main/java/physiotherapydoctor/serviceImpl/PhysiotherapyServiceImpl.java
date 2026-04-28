@@ -112,8 +112,11 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	                Integer freeLeft = res.getData().getFreeFollowUpsLeft();
 
-	                // ✅ First visit ignore, second visit onwards decrease
-	                long visitCount = repository.countByBookingId(dto.getBookingId());
+	                // ✅ First time for bookingId + patientId ignore
+	                long visitCount = repository.countByBookingIdAndPatientInfoPatientId(
+	                        dto.getBookingId(),
+	                        dto.getPatientInfo().getPatientId()
+	                );
 
 	                if (visitCount <= 1) {
 	                    updatedFreeLeft = freeLeft;
