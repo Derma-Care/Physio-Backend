@@ -14,7 +14,7 @@ public class BookingInfoByInput {
 	private String patientMobileNumber;
 	private String mobileNumber;
 	private String patientId;
-	private String patientAddress;
+	private Address patientAddress;
 	private String age;
 	private String gender;
 	private String customerId;

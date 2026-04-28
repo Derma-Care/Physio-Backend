@@ -5,6 +5,7 @@ import java.util.Map;
 import com.clinicadmin.dto.CustomerLoginDTO;
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.entity.CustomerOnbording;
 
 public interface CustomerOnboardingService {
 	Response onboardCustomer(CustomerOnbordingDTO dto);
@@ -30,7 +31,10 @@ public interface CustomerOnboardingService {
 	public CustomerOnbordingDTO getCustomerByToken(String token);
 	public Response getCustomerByMobiileNumber(String mobilenumber);
 	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name);	
+	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId);
+	public CustomerOnbordingDTO getCustomerByNameAndClinicId(String name,String clinicId);	
 		
+			
 //
 //	Response resetPassword(ChangeDoctorPasswordDTO dto);
 }

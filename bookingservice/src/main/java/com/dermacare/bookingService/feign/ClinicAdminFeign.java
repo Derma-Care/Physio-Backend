@@ -6,6 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import com.dermacare.bookingService.dto.CustomerOnbordingDTO;
 import com.dermacare.bookingService.util.Response;
 
 
@@ -39,6 +40,13 @@ public interface ClinicAdminFeign {
 	  @GetMapping("/clinic-admin/customers/mobilenumber/{mobilenumber}/name/{name}")
 	    public Map<String,String> getCustomerByMobilenumberAndName(@PathVariable String mobilenumber,@PathVariable String name);
 	     
-
+	  @GetMapping("/clinic-admin/customer/mobilenumber/{mobilenumber}/{clinicId}")
+	    public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(@PathVariable String mobilenumber,@PathVariable String clinicId);
+	    
+	    
+	    @GetMapping("/clinic-admin/customer/name/{name}/{clinicId}")
+	    public CustomerOnbordingDTO getCustomerByNameAndClinicId(@PathVariable String name,@PathVariable String clinicId);
+	    	
+	    
 
 }

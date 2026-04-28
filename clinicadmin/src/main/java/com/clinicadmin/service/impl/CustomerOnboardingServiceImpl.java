@@ -191,6 +191,33 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		}
 		return response;
 	}
+	
+	@Override
+	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId) {	
+		try {
+			CustomerOnbording optional = onboardingRepository.findByMobileNumberAndHospitalId(mobilenumber,clinicId);
+			if (optional != null) {
+				return convertToDTO(optional);
+			} else {
+				return null;
+			}
+		} catch (Exception e) {
+			return null;
+		}}
+	
+	@Override
+	public CustomerOnbordingDTO getCustomerByNameAndClinicId(String name,String clinicId) {	
+		try {
+			CustomerOnbording optional = onboardingRepository.findByFullNameIgnoreCaseAndHospitalId(name,clinicId);
+			if (optional != null) {
+				return convertToDTO(optional);
+			} else {
+				return null;
+			}
+		} catch (Exception e) {
+			return null;
+		}}
+	
 	// ----------------- UPDATE -----------------
 	@Override
 	public Response updateCustomer(String customerId, CustomerOnbordingDTO dto) {

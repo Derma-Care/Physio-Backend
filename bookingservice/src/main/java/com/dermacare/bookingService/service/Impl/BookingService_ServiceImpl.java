@@ -912,74 +912,60 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		
 	@Override
 	public BookingInfoByInput bookingByInput(String input,String clinicId) {
-		   List<BookingInfoByInput> outpt = new ArrayList<>();
+		   BookingInfoByInput bkng = new BookingInfoByInput();
 	       try {
-	    	 List<Booking> bookings = repository.findByMobileNumberAndClinicId(input,clinicId);
-		        // If still not found, try customerId
-	    	// System.out.println(bookings);
-		    	 if(bookings == null || bookings.isEmpty()) {
-		            bookings = repository.findByCustomerIdAndClinicId(input,clinicId);
-		            //System.out.println(bookings);
-		    	} 
-	        	 if(bookings == null || bookings.isEmpty()) {
-		            bookings = repository.findByNameContainingIgnoreCaseAndClinicId(input,clinicId);
-		          // System.out.println(bookings);
-		        }
-	        	if(bookings != null && !bookings.isEmpty()) {
-		        for(Booking b : bookings) {
-		        	//System.out.println(b);
-		        BookingInfoByInput bkng = new BookingInfoByInput() ;	
-		        bkng.setAge(b.getAge());
-		        bkng.setClinicId(b.getClinicId());
+	        	if(isValidMobileNumber(input)) {	        	
+	        	CustomerOnbordingDTO b = clinicAdminFeign.getCustomerByMobileNumberAndClinicId(input,clinicId);
+	   		    bkng.setAge(b.getAge());
+		        bkng.setClinicId(b.getHospitalId());
 		        bkng.setCustomerId(b.getCustomerId());
 		        bkng.setGender(b.getGender());
 		        bkng.setMobileNumber(b.getMobileNumber());
-		        bkng.setName(b.getName());
-		        bkng.setPatientAddress(b.getPatientAddress());
+		        bkng.setName(b.getFullName());
+		        bkng.setPatientAddress(b.getAddress());
 		        bkng.setPatientId(b.getPatientId());
-		        bkng.setPatientMobileNumber(b.getPatientMobileNumber());
-		        bkng.setRelation(b.getRelation());
-		        outpt.add(bkng);}}
-	        if(input.contains("_")){
-		    List<Booking> bookgs = repository.findByPatientIdAndClinicId(input,clinicId);
-	    	if( bookgs != null && !bookgs.isEmpty()) {
-		        Booking b = bookgs.get(0);	
-		        BookingInfoByInput bkng = new BookingInfoByInput() ;	
+		        bkng.setPatientMobileNumber(b.getMobileNumber());
+		        bkng.setRelation(null);		       
+	            }else if(input.contains("_")){
+	        	 Response res = clinicAdminFeign.getCustomerByPatientId(input,clinicId).getBody();			   
+			      CustomerOnbordingDTO b = new ObjectMapper().convertValue(res.getData(), CustomerOnbordingDTO.class);		    	     
+	        	    bkng.setAge(b.getAge());
+			        bkng.setClinicId(b.getHospitalId());
+			        bkng.setCustomerId(b.getCustomerId());
+			        bkng.setGender(b.getGender());
+			        bkng.setMobileNumber(b.getMobileNumber());
+			        bkng.setName(b.getFullName());
+			        bkng.setPatientAddress(b.getAddress());
+			        bkng.setPatientId(b.getPatientId());
+			        bkng.setPatientMobileNumber(b.getMobileNumber());
+			        bkng.setRelation(null);		       
+		        }else{		       
+		        CustomerOnbordingDTO b = clinicAdminFeign.getCustomerByNameAndClinicId(input,clinicId);		        	
 		        bkng.setAge(b.getAge());
-		        bkng.setClinicId(b.getClinicId());
+		        bkng.setClinicId(b.getHospitalId());
 		        bkng.setCustomerId(b.getCustomerId());
 		        bkng.setGender(b.getGender());
 		        bkng.setMobileNumber(b.getMobileNumber());
-		        bkng.setName(b.getName());
-		        bkng.setPatientAddress(b.getPatientAddress());
+		        bkng.setName(b.getFullName());
+		        bkng.setPatientAddress(b.getAddress());
 		        bkng.setPatientId(b.getPatientId());
-		        bkng.setPatientMobileNumber(b.getPatientMobileNumber());
-		        bkng.setRelation(b.getRelation());
-		        outpt.add(bkng); 
-		        }else{
-		      Response res = clinicAdminFeign.getCustomerByPatientId(input,clinicId).getBody();
-		     // System.out.println(res);
-		      CustomerOnbordingDTO bg = new ObjectMapper().convertValue(res.getData(), CustomerOnbordingDTO.class);
-		      //System.out.println(bg);
-		      BookingInfoByInput bkng = new BookingInfoByInput() ;	
-		        bkng.setAge(bg.getAge());
-		        bkng.setClinicId(null);
-		        bkng.setCustomerId(bg.getCustomerId());
-		        bkng.setGender(bg.getGender());
-		        bkng.setMobileNumber(bg.getMobileNumber());
-		        bkng.setName(bg.getFullName());
-		        bkng.setPatientAddress(bg.getAddress().toString());
-		        bkng.setPatientId(bg.getPatientId());
-		        bkng.setPatientMobileNumber(bg.getMobileNumber());
-		        bkng.setRelation(null);
-		        outpt.add(bkng);}} 
+		        bkng.setPatientMobileNumber(b.getMobileNumber());
+		        bkng.setRelation(null);} 
 	       }catch (Exception e) {
 	        //System.err.println("Error fetching bookings: " + e.getMessage());
 	        System.out.println(e.getMessage());; // safe fallback
 	    }
-	    return outpt.get(0);
+	    return bkng;
 	}
 
+	private boolean isValidMobileNumber(String input) {
+	    if (input == null) {
+	        return false;
+	    }
+	    String regex = "^[6-9]\\d{9}$";
+	    return input.matches(regex);
+	}
+	
 		
 	@Override
 	public List<BookingResponse> bookingByClinicId(String clinicId) {
@@ -3168,15 +3154,16 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
 
     	        if (!part.isEmpty()) {
     	            parts[i] = part.substring(0, 1).toUpperCase() +
-    	                       part.substring(1).toLowerCase();
-    	        }
-    	    }
-
+    	                       part.substring(1).toLowerCase();}}
     	 String letter  =  String.join("-", parts);
         Optional<Booking> booking = repository.findByBookingId(letter);
         if(booking.isPresent()) {
-        BookingResponse res = toResponse(booking.get());
-        List<Session> lst = new ArrayList<>();
+        if(booking.get().getFollwupBookings() != null || !booking.get().getFollwupBookings().isEmpty()) {
+        	 ObjectMapper mapper = new ObjectMapper();
+	         mapper.registerModule(new JavaTimeModule());
+	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
+	     BookingResponse res = mapper.convertValue(booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size()-1), BookingResponse.class);	    
+         List<Session> lst = new ArrayList<>();
         	try {
         	lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
         	res.setSession(lst);        	
@@ -3184,12 +3171,18 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
             return ResponseEntity.ok(
                     new Response(
                             true,                      // success
-                           res,null,            // data
+                            res,null,            // data
                             "Booking fetched successfully", // message
                             200,null, null                      // status
-                    )
-            );
-        } else {
+                    ));}else {
+        	 return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                     .body(new Response(
+                             false,
+                             null,null,
+                            "follow up appoiintment not found",
+                             404,null,null
+                     ));
+        	}}else{
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new Response(
                             false,
@@ -3197,9 +3190,7 @@ public ResponseEntity<Response> getBookingById(String bookingId) {
                             "Booking not found",
                             200,null,null 
                     ));
-        }
-
-    } catch (Exception e) {
+        }} catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new Response(
                         false,

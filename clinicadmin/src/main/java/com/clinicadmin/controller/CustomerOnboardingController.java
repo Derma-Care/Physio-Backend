@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.clinicadmin.dto.CustomerLoginDTO;
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.service.CustomerOnboardingService;
 import jakarta.validation.Valid;
 
@@ -81,6 +82,18 @@ public class CustomerOnboardingController {
     public ResponseEntity<Response> getCustomerByMobileNumber(@PathVariable String mobileNumber) {
         Response response = customerOnboardingService.getCustomerByMobiileNumber(mobileNumber);
         return ResponseEntity.status(response.getStatus()).body(response);
+    }
+    
+    @GetMapping("/customer/mobilenumber/{mobilenumber}/{clinicId}")
+    public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(@PathVariable String mobilenumber,@PathVariable String clinicId) {
+    	CustomerOnbordingDTO response = customerOnboardingService.getCustomerByMobileNumberAndClinicId(mobilenumber,clinicId);
+        return response;
+    }
+    
+    @GetMapping("/customer/name/{name}/{clinicId}")
+    public CustomerOnbordingDTO getCustomerByNameAndClinicId(@PathVariable String name,@PathVariable String clinicId) {
+    	CustomerOnbordingDTO response = customerOnboardingService.getCustomerByNameAndClinicId(name,clinicId);
+        return response;
     }
     
     @GetMapping("/customer/patientId/{patientId}/{clinicId}")
