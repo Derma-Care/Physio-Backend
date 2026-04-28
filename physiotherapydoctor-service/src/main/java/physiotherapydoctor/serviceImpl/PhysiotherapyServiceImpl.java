@@ -1683,7 +1683,7 @@ public Response getByClinicBranchAndBooking(String clinicId, String branchId, St
 	}
 
 	// ✅ Fetch from DB
-	Optional<PhysiotherapyRecord> record = repository.findByClinicIdAndBranchIdAndBookingId(clinicId, branchId,
+	List<PhysiotherapyRecord> record = repository.findByClinicIdAndBranchIdAndBookingId(clinicId, branchId,
 			bookingId);
 
 	if (record == null || record.isEmpty()) {
@@ -1693,9 +1693,9 @@ public Response getByClinicBranchAndBooking(String clinicId, String branchId, St
 		response.setStatus(404);
 		return response;
 	}
-	PhysiotherapyRecord data = record.get();
+
 	response.setSuccess(true);
-	response.setData(data);
+	response.setData(record);
 	response.setMessage("Records fetched successfully");
 	response.setStatus(200);
 
