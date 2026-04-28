@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.Exercise;
 import physiotherapydoctor.dto.ExerciseCalculations;
 import physiotherapydoctor.dto.PackageCalculation;
+import physiotherapydoctor.dto.PatientHistoryResponse;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Program;
 import physiotherapydoctor.dto.ProgramAndTherophyAndExcercisesInfo;
@@ -37,6 +37,7 @@ import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.TheraphyInfo;
 import physiotherapydoctor.dto.TherapistRecordDTO;
+import physiotherapydoctor.dto.TherapistRecordDetails;
 import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
 import physiotherapydoctor.dto.TherapyExercise;
@@ -1702,6 +1703,109 @@ public Response getByClinicBranchAndBooking(String clinicId, String branchId, St
 	return response;
 }
 
+@Override
+public Response getPatientHistory(String patientId) {
+
+    Response response = new Response();
+
+    try {
+
+        List<PhysiotherapyRecord> records =
+                repository.findByPatientInfoPatientId(patientId);
+
+        if (records == null || records.isEmpty()) {
+            response.setSuccess(false);
+            response.setStatus(404);
+            response.setMessage("No records found");
+            return response;
+        }
+
+        List<PatientHistoryResponse> result = new ArrayList<>();
+
+        for (PhysiotherapyRecord record : records) {
+
+            PatientHistoryResponse dto = new PatientHistoryResponse();
+
+            dto.setBookingId(record.getBookingId());
+
+            if (record.getPatientInfo() != null) {
+                dto.setPatientId(record.getPatientInfo().getPatientId());
+                dto.setPatientName(record.getPatientInfo().getPatientName());
+            }
+
+            if (record.getTreatmentPlan() != null) {
+                dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+                dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+                dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+                dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+            }
+
+            dto.setBookingDate(record.getCreatedAt());
+            dto.setBookingTime(record.getCreatedTime());
+
+            List<TherapistRecordDetails> detailsList = new ArrayList<>();
+
+            if (record.getTherapySessions() != null) {
+
+                for (TherapySession session : record.getTherapySessions()) {
+
+                    TherapistRecordDetails details =
+                            new TherapistRecordDetails();
+
+                    details.setTherapistRecordId(
+                            record.getTherapistRecordId());
+
+                    details.setServiceType(
+                            session.getServiceType());
+
+                    if (session.getPackageId() != null) {
+                        details.setPackageId(session.getPackageId());
+                        details.setPackageName(session.getPackageName());
+                    }
+
+                    if (session.getProgramId() != null) {
+                        details.setProgramId(session.getProgramId());
+                        details.setProgramName(session.getProgramName());
+                    }
+
+                    if (session.getTherapyId() != null) {
+                        details.setTherapyId(session.getTherapyId());
+                        details.setTherapyName(session.getTherapyName());
+                    }
+
+                    if (session.getExercises() != null &&
+                            !session.getExercises().isEmpty()) {
+
+                        TherapyExercise ex =
+                                session.getExercises().get(0);
+
+                        details.setExerciseId(ex.getExerciseId());
+                        details.setExerciseName(ex.getExerciseName());
+                    }
+
+                    detailsList.add(details);
+                }
+            }
+
+            dto.setTherapistRecordId(detailsList);
+            result.add(dto);
+        }
+
+        response.setSuccess(true);
+        response.setStatus(200);
+        response.setMessage("Patient history fetched successfully");
+        response.setData(result);
+
+    } catch (Exception e) {
+
+        response.setSuccess(false);
+        response.setStatus(500);
+        response.setMessage("Error : " + e.getMessage());
+    }
+
+    return response;
+}
+
 public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
 
     try {
@@ -1882,7 +1986,9 @@ public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId
     } catch (FeignException ex) {
         return ResponseEntity.status(ex.status()).body(ex.contentUTF8());
     }
-}}
+}
+
+}
 
 
 

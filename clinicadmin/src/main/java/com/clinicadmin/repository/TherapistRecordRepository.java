@@ -18,5 +18,9 @@ public interface TherapistRecordRepository extends MongoRepository<TherapistReco
             String sessionId
     );
   List<TherapistRecord> findAllByPatientIdAndBookingId(String patientId, String bookingId);
+List<TherapistRecord> findAllByPatientIdAndBookingIdAndTherapistRecordId(String patientId, String bookingId,
+		String therapistRecordId);
+Optional<TherapistRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndSessionId(String clinicId,
+		String branchId, String bookingId, String patientId, String sessionId);
 	
 }

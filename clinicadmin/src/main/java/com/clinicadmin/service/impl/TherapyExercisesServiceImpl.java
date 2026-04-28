@@ -91,7 +91,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
             entity.setName(dto.getName());
 
         if (dto.getVideo() != null)
-            entity.setVideo(encode(dto.getVideo()));
+            entity.setVideo(dto.getVideo());
 
         if (dto.getImage() != null)
             entity.setImage(encode(dto.getImage()));
@@ -220,8 +220,9 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         e.setClinicId(dto.getClinicId());
         e.setBranchId(dto.getBranchId());
         e.setName(dto.getName());
+        e.setVideo(dto.getVideo());
 
-        e.setVideo(encode(dto.getVideo()));
+       
         e.setImage(encode(dto.getImage()));
 
         e.setSession(dto.getSession());
@@ -273,7 +274,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         dto.setDuration(e.getDuration());
         dto.setFrequency(e.getFrequency());
         dto.setNotes(e.getNotes());
-
+      
         // ✅ NEW FIELDS
         dto.setPricePerSession(e.getPricePerSession());
         dto.setGst(e.getGst());

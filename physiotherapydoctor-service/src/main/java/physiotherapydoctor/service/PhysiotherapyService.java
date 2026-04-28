@@ -47,7 +47,11 @@ public interface PhysiotherapyService {
 
 	ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId);
 
+
+
 	Response getVisitHistory(String patientId, String bookingId);
+
+	Response getPatientHistory(String patientId);
 
 
 

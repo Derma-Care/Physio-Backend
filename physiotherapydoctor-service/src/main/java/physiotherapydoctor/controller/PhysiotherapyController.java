@@ -165,4 +165,15 @@ public class PhysiotherapyController {
 	             .status(response.getStatus())
 	             .body(response);
 	 }
+	 
+	 @GetMapping("/patienthistoryByUsingPatientId/{patientId}")
+	 public ResponseEntity<Response> getPatientHistory(
+	         @PathVariable String patientId) {
+
+	     Response response = service.getPatientHistory(patientId);
+
+	     return ResponseEntity
+	             .status(response.getStatus())
+	             .body(response);
+	 }
 }

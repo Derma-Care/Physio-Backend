@@ -26,9 +26,6 @@ public class TherapySession {
 
 	    private Double totalPrice;
 
-		public String getSessionId() {
-			// TODO Auto-generated method stub
-			return null;
-		}
+	
 	
 }

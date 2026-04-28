@@ -1,9 +1,13 @@
 package physiotherapydoctor.serviceImpl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -11,7 +15,10 @@ import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.PaymentHistory;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Program;
+import physiotherapydoctor.dto.Response;
+import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
+import physiotherapydoctor.dto.TherapistRecordDTO;
 import physiotherapydoctor.dto.TherapyData;
 import physiotherapydoctor.dto.TherapyExercise;
 import physiotherapydoctor.dto.TherapyWithSessions;
@@ -927,5 +934,111 @@ public class PaymentServiceImpl implements PaymentService {
             System.out.println("Booking status update failed");
             e.printStackTrace();
         }
+    }
+    @Override
+    public Response getExerciseSessionsWithRecords(
+            String clinicId,
+            String branchId,
+            String bookingId,
+            String patientId,
+            String therapistRecordId,
+            String exerciseId) {
+
+        Response response = new Response();
+
+        try {
+
+            PaymentRecord record = paymentRepository
+                    .findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(
+                            clinicId, branchId, bookingId, patientId, therapistRecordId)
+                    .orElseThrow(() -> new RuntimeException("Payment record not found"));
+
+            for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
+                if (pkg.getPrograms() == null) continue;
+
+                for (Program program : pkg.getPrograms()) {
+                    if (program.getTherapyData() == null) continue;
+
+                    for (TherapyData therapy : program.getTherapyData()) {
+                        if (therapy.getExercises() == null) continue;
+
+                        for (TherapyExercise exercise : therapy.getExercises()) {
+
+                            if (!exerciseId.equals(exercise.getExerciseId())) {
+                                continue;
+                            }
+
+                            List<Object> sessionList = new ArrayList<>();
+
+                            for (Session session : exercise.getSessions()) {
+
+                                Map<String, Object> map = new LinkedHashMap<>();
+
+                                // ✅ First session details
+                                map.put("sessionId", session.getSessionId());
+                                map.put("sessionNo", session.getSessionNo());
+                                map.put("date", session.getDate());
+                                map.put("paymentStatus", session.getPaymentStatus());
+
+                                try {
+
+                                    ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr =
+                                            clinicAdminFeign.getRecordBySession(
+                                                    clinicId,
+                                                    branchId,
+                                                    bookingId,
+                                                    patientId,
+                                                    session.getSessionId()
+                                            );
+
+                                    if (tr != null
+                                            && tr.getBody() != null
+                                            && tr.getBody().getData() != null) {
+
+                                        map.put("status", "Completed");
+
+                                        // ✅ Later therapist record
+                                        map.put("therapistRecord",
+                                                tr.getBody().getData());
+
+                                    } else {
+                                        map.put("status", session.getStatus());
+                                        map.put("therapistRecord", null);
+                                    }
+
+                                } catch (Exception e) {
+                                    map.put("status", session.getStatus());
+                                    map.put("therapistRecord", null);
+                                }
+
+                                sessionList.add(map);
+                            }
+
+                            Map<String, Object> finalData = new LinkedHashMap<>();
+                            finalData.put("exerciseId", exercise.getExerciseId());
+                            finalData.put("exerciseName", exercise.getExerciseName());
+                            finalData.put("sessions", sessionList);
+
+                            response.setSuccess(true);
+                            response.setStatus(200);
+                            response.setMessage("Sessions fetched successfully");
+                            response.setData(finalData);
+                            return response;
+                        }
+                    }
+                }
+            }
+
+            response.setSuccess(false);
+            response.setStatus(404);
+            response.setMessage("Exercise not found");
+
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+        }
+
+        return response;
     }
 }

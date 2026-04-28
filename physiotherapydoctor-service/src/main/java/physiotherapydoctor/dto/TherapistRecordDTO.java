@@ -40,7 +40,7 @@ public class TherapistRecordDTO {
     private String status;
     private String mode;
     private String nextPlan;
-
+   private String exerciseId;
     private String beforeImage;
     private String afterImage;
     private String beforeVideo;

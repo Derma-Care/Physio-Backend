@@ -62,4 +62,17 @@ public class TherapistRecordController {
                 service.getByPatientIdAndBookingId(patientId, bookingId)
         );
     }
+    @GetMapping("/getRecordBySession/{clinicId}/{branchId}/{bookingId}/{patientId}/{sessionId}")
+    public ResponseEntity<ResponseStructure<TherapistRecordDTO>> getRecordBySession(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String bookingId,
+            @PathVariable String patientId,
+            @PathVariable String sessionId) {
+
+        return ResponseEntity.ok(
+            service.getBySession(clinicId, branchId, bookingId, patientId, sessionId)
+        );
+    }
+    
 }

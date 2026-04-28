@@ -30,6 +30,15 @@ public interface ClinicAdminFeign {
     ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
             @PathVariable String patientId,
             @PathVariable String bookingId);
+    
+    @GetMapping("/clinic-admin/getRecordBySession/{clinicId}/{branchId}/{bookingId}/{patientId}/{sessionId}")
+    ResponseEntity<ResponseStructure<TherapistRecordDTO>> getRecordBySession(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String bookingId,
+            @PathVariable String patientId,
+            @PathVariable String sessionId);
+    
 }
     
     

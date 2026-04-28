@@ -276,4 +276,40 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                 200
         );
     }
+    
+ // ================= GET BY SESSION =================
+    @Override
+    public ResponseStructure<TherapistRecordDTO> getBySession(
+            String clinicId,
+            String branchId,
+            String bookingId,
+            String patientId,
+            String sessionId) {
+
+        TherapistRecord record = repository
+                .findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndSessionId(
+                        clinicId,
+                        branchId,
+                        bookingId,
+                        patientId,
+                        sessionId
+                )
+                .orElse(null);
+
+        if (record == null) {
+            return ResponseStructure.buildResponse(
+                    null,
+                    "Therapist record not found",
+                    HttpStatus.NOT_FOUND,
+                    404
+            );
+        }
+
+        return ResponseStructure.buildResponse(
+                mapToDTO(record),
+                "Therapist record fetched successfully",
+                HttpStatus.OK,
+                200
+        );
+    }
 }

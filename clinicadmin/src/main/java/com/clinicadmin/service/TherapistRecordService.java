@@ -12,6 +12,12 @@ public interface TherapistRecordService {
     ResponseStructure<TherapistRecordDTO> getByIds(
             String clinicId, String branchId, String therapistRecordId,String sessionId);
 
+
+
 	ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(String patientId, String bookingId);
+
+	ResponseStructure<TherapistRecordDTO> getBySession(String clinicId, String branchId, String bookingId,
+			String patientId, String sessionId);
+	
 
 }
