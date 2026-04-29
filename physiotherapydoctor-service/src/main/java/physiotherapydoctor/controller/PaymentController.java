@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.entity.PaymentRecord;
+import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.service.PaymentService;
 
 @RestController
@@ -30,7 +30,7 @@ public class PaymentController {
         Response response = new Response();
 
         try {
-            PaymentRecord result = service.createPayment(req);
+            PaymentRecordResponse result = service.createPayment(req);
 
             response.setSuccess(true);
             response.setData(result);
@@ -55,7 +55,7 @@ public class PaymentController {
         Response response = new Response();
 
         try {
-            PaymentRecord result = service.updatePayment(req);
+            PaymentRecordResponse result = service.updatePayment(req);
 
             response.setSuccess(true);
             response.setData(result);
@@ -80,7 +80,7 @@ public class PaymentController {
         Response response = new Response();
 
         try {
-            PaymentRecord result = service.getByBookingId(bookingId);
+            PaymentRecordResponse result = service.getByBookingId(bookingId);
 
             response.setSuccess(true);
             response.setData(result);
@@ -122,33 +122,31 @@ public class PaymentController {
 
         return ResponseEntity.status(response.getStatus()).body(response);
     }
-    
+
+    // ================= UPDATE SESSION FROM THERAPIST =================
     @PutMapping("/updateSessionFromTherapist/{therapistRecordId}/{sessionId}")
-    public ResponseEntity<String> updateSessionStatus(
+    public ResponseEntity<Response> updateSessionStatus(
             @PathVariable String therapistRecordId,
             @PathVariable String sessionId) {
 
-        service.updateSessionStatusFromTherapist(therapistRecordId, sessionId);
-        return ResponseEntity.ok("Updated Successfully");
-    }
-    @GetMapping("/payment/getExerciseSessionsWithRecords/{clinicId}/{branchId}/{bookingId}/{patientId}/{therapistRecordId}/{exerciseId}")
-    public ResponseEntity<Response> getExerciseSessionsWithRecords(
-            @PathVariable String clinicId,
-            @PathVariable String branchId,
-            @PathVariable String bookingId,
-            @PathVariable String patientId,
-            @PathVariable String therapistRecordId,
-            @PathVariable String exerciseId) {
+        Response response = new Response();
 
-        Response response = service.getExerciseSessionsWithRecords(
-                clinicId,
-                branchId,
-                bookingId,
-                patientId,
-                therapistRecordId,
-                exerciseId
-        );
+        try {
+            service.updateSessionStatusFromTherapist(therapistRecordId, sessionId);
 
-        return ResponseEntity.ok(response);
+            response.setSuccess(true);
+            response.setData(null);
+            response.setMessage("Session updated successfully");
+            response.setStatus(200);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage(e.getMessage());
+            response.setStatus(400);
+        }
+
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 }

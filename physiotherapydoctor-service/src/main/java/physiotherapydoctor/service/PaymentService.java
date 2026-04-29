@@ -1,21 +1,56 @@
 package physiotherapydoctor.service;
 
-
 import physiotherapydoctor.dto.PaymentRequest;
-import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.entity.PaymentRecord;
+import physiotherapydoctor.dto.response.PaymentRecordResponse;
+
 public interface PaymentService {
 
-    PaymentRecord createPayment(PaymentRequest request);
+    PaymentRecordResponse createPayment(PaymentRequest req);
 
-    PaymentRecord updatePayment(PaymentRequest request);
+    PaymentRecordResponse updatePayment(PaymentRequest req);
 
-    PaymentRecord getByBookingId(String bookingId);
+    PaymentRecordResponse getByBookingId(String bookingId);
 
     void deleteByBookingId(String bookingId);
 
-	void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId);
-
-	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
-			String therapistRecordId, String exerciseId);
+    void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//package physiotherapydoctor.service;
+//
+//
+//import physiotherapydoctor.dto.PaymentRequest;
+//import physiotherapydoctor.dto.Response;
+//import physiotherapydoctor.entity.PaymentRecord;
+//public interface PaymentService {
+//
+//    PaymentRecord createPayment(PaymentRequest request);
+//
+//    PaymentRecord updatePayment(PaymentRequest request);
+//
+//    PaymentRecord getByBookingId(String bookingId);
+//
+//    void deleteByBookingId(String bookingId);
+//
+//	void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId);
+//
+//	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
+//			String therapistRecordId, String exerciseId);
+//}
