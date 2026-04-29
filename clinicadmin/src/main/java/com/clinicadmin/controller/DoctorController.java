@@ -261,22 +261,22 @@ public class DoctorController {
 	}
 
 //		------------------Get Doctors by hopital id and subServiceId----------------------------------------------------------------------------------------
-	@GetMapping("/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
-	public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
-			@PathVariable String subServiceId) {
-		Response response = doctorService.getDoctorsBySubserviceId(hospitalId, subServiceId);
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+//	@GetMapping("/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
+//	public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
+//			@PathVariable String subServiceId) {
+//		Response response = doctorService.getDoctorsBySubserviceId(hospitalId, subServiceId);
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
 
-	  @GetMapping("doctors/{hospitalId}/{branchId}/{subServiceId}")
-	    public ResponseEntity<Response> getDoctorsByHospitalBranchAndSubService(
-	            @PathVariable String hospitalId,
-	            @PathVariable String branchId,
-	            @PathVariable String subServiceId) {
-
-	        Response response = doctorService.getDoctorsByHospitalIdAndBranchIdSubserviceId(hospitalId, branchId, subServiceId);
-	        return ResponseEntity.status(response.getStatus()).body(response);
-	    }
+//	  @GetMapping("doctors/{hospitalId}/{branchId}/{subServiceId}")
+//	    public ResponseEntity<Response> getDoctorsByHospitalBranchAndSubService(
+//	            @PathVariable String hospitalId,
+//	            @PathVariable String branchId,
+//	            @PathVariable String subServiceId) {
+//
+//	        Response response = doctorService.getDoctorsByHospitalIdAndBranchIdSubserviceId(hospitalId, branchId, subServiceId);
+//	        return ResponseEntity.status(response.getStatus()).body(response);
+//	    }
 	/*
 	 * -----------------------------------------------------------------------------
 	 * -------------------------------------------------
@@ -369,18 +369,18 @@ public class DoctorController {
 //		---------------------------------------------------------------------------------------------------------------------------
 
 // -------------------------Get Hopitals and Doctors using SubserviceId------------------------------------------------
-	@GetMapping("/getHospitalAndDoctorUsingSubServiceId/{subServiceId}")
-	public ResponseEntity<Response> getHospitalAndDoctorUsingSubServiceId(@PathVariable String subServiceId) {
-		Response response = doctorService.getHospitalAndDoctorsUsingSubserviceId(subServiceId);
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+//	@GetMapping("/getHospitalAndDoctorUsingSubServiceId/{subServiceId}")
+//	public ResponseEntity<Response> getHospitalAndDoctorUsingSubServiceId(@PathVariable String subServiceId) {
+//		Response response = doctorService.getHospitalAndDoctorsUsingSubserviceId(subServiceId);
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
 //--------------------------- Get ALl Doctors By SubServiceId ----------------------------------------------------------------
-	
-			@GetMapping("/getAllDoctorsBySubServiceId/{subServiceId}")
-			public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId) {
-				Response response = doctorService.getAllDoctorsBySubserviceId(subServiceId);
-				return ResponseEntity.status(response.getStatus()).body(response);
-			}
+//	
+//			@GetMapping("/getAllDoctorsBySubServiceId/{subServiceId}")
+//			public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId) {
+//				Response response = doctorService.getAllDoctorsBySubserviceId(subServiceId);
+//				return ResponseEntity.status(response.getStatus()).body(response);
+//			}
 
 	/* ---------------------------------------------------------------------------------------------------------------------------
        --------------------------------------------- Notes -----------------------------------------------------------------------
@@ -409,11 +409,11 @@ public class DoctorController {
 			return ResponseEntity.status(response.getStatus()).body(response);
 		}
 		// -----------------------------Get Best Doctor subserviceId---------------------------------
-		@GetMapping("/bestDoctor/{subServiceId}")
-		public ResponseEntity<Response> getBestDoctors(@PathVariable String subServiceId){
-			Response response=doctorService.getBestDoctorBySubService(subServiceId);
-			return ResponseEntity.status(response.getStatus()).body(response);
-		}
+//		@GetMapping("/bestDoctor/{subServiceId}")
+//		public ResponseEntity<Response> getBestDoctors(@PathVariable String subServiceId){
+//			Response response=doctorService.getBestDoctorBySubService(subServiceId);
+//			return ResponseEntity.status(response.getStatus()).body(response);
+//		}
 		// ----------------------------- Using key GET CLINICS AND DOCTORS BUY RECOMMONDATION ----------------------------------------
 		@GetMapping("/clinics/{keyPoints}")
 		public ResponseEntity<Response> getRecommendedClinicsAndDoctors(@PathVariable String keyPoints) {

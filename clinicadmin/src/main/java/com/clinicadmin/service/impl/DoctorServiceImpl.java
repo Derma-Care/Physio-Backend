@@ -92,8 +92,8 @@ public class DoctorServiceImpl implements DoctorService {
 	@Autowired
 	private DoctorSlotRepository slotRepository;
 
-	@Autowired
-	private ServiceFeignClient serviceFeignClient;
+//	@Autowired
+//	private ServiceFeignClient serviceFeignClient;
 
 	@Autowired
 	AdminServiceClient adminServiceClient;
@@ -124,7 +124,7 @@ public class DoctorServiceImpl implements DoctorService {
 		this.credentialsRepository = credentialsRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.slotRepository = slotRepository;
-		this.serviceFeignClient = serviceFeignClient;
+//		this.serviceFeignClient = serviceFeignClient;
 
 	}
 
@@ -208,47 +208,47 @@ public class DoctorServiceImpl implements DoctorService {
 				response.setStatus(HttpStatus.NOT_FOUND.value());
 				return response;
 			}
-			// Validate categories
-			if (dto.getCategory() != null) {
-				for (DoctorCategoryDTO DoctorCatDTO : dto.getCategory()) {
-					log.debug("Validating categoryId={}", DoctorCatDTO.getCategoryId());
-					if (!serviceFeignClient.isCategoryExists(DoctorCatDTO.getCategoryId())) {
-						log.warn("Invalid categoryId detected :{}", DoctorCatDTO.getCategoryId());
-						response.setSuccess(false);
-						response.setMessage("Category does not exist: " + DoctorCatDTO.getCategoryId());
-						response.setStatus(HttpStatus.NOT_FOUND.value());
-						return response;
-					}
-				}
-			}
-			
-			// Validate services
-			if (dto.getService() != null) {
-				for (DoctorServicesDTO DoctorSerDTO : dto.getService()) {
-					log.debug("Validating serviceId={}", DoctorSerDTO.getServiceId());
-					if (!serviceFeignClient.isServiceExists(DoctorSerDTO.getServiceId())) {
-						log.warn("Invalid serviceId={}", DoctorSerDTO.getServiceId());
-						response.setSuccess(false);
-						response.setMessage("Service does not exist: " + DoctorSerDTO.getServiceId());
-						response.setStatus(HttpStatus.NOT_FOUND.value());
-						return response;
-					}
-				}
-			}
-
-			// Validate sub-services
-			if (dto.getSubServices() != null) {
-				for (DoctorSubServiceDTO DoctorSubSerDTO : dto.getSubServices()) {
-					log.debug("Validating subServieId={}", DoctorSubSerDTO.getSubServiceId());
-					if (!serviceFeignClient.isSubServiceExists(DoctorSubSerDTO.getSubServiceId())) {
-						log.warn("Invalid subServicId={}", DoctorSubSerDTO.getSubServiceId());
-						response.setSuccess(false);
-						response.setMessage("SubService does not exist: " + DoctorSubSerDTO.getSubServiceId());
-						response.setStatus(HttpStatus.NOT_FOUND.value());
-						return response;
-					}
-				}
-			}
+//			// Validate categories
+//			if (dto.getCategory() != null) {
+//				for (DoctorCategoryDTO DoctorCatDTO : dto.getCategory()) {
+//					log.debug("Validating categoryId={}", DoctorCatDTO.getCategoryId());
+//					if (!serviceFeignClient.isCategoryExists(DoctorCatDTO.getCategoryId())) {
+//						log.warn("Invalid categoryId detected :{}", DoctorCatDTO.getCategoryId());
+//						response.setSuccess(false);
+//						response.setMessage("Category does not exist: " + DoctorCatDTO.getCategoryId());
+//						response.setStatus(HttpStatus.NOT_FOUND.value());
+//						return response;
+//					}
+//				}
+//			}
+//			
+//			// Validate services
+//			if (dto.getService() != null) {
+//				for (DoctorServicesDTO DoctorSerDTO : dto.getService()) {
+//					log.debug("Validating serviceId={}", DoctorSerDTO.getServiceId());
+//					if (!serviceFeignClient.isServiceExists(DoctorSerDTO.getServiceId())) {
+//						log.warn("Invalid serviceId={}", DoctorSerDTO.getServiceId());
+//						response.setSuccess(false);
+//						response.setMessage("Service does not exist: " + DoctorSerDTO.getServiceId());
+//						response.setStatus(HttpStatus.NOT_FOUND.value());
+//						return response;
+//					}
+//				}
+//			}
+//
+//			// Validate sub-services
+//			if (dto.getSubServices() != null) {
+//				for (DoctorSubServiceDTO DoctorSubSerDTO : dto.getSubServices()) {
+//					log.debug("Validating subServieId={}", DoctorSubSerDTO.getSubServiceId());
+//					if (!serviceFeignClient.isSubServiceExists(DoctorSubSerDTO.getSubServiceId())) {
+//						log.warn("Invalid subServicId={}", DoctorSubSerDTO.getSubServiceId());
+//						response.setSuccess(false);
+//						response.setMessage("SubService does not exist: " + DoctorSubSerDTO.getSubServiceId());
+//						response.setStatus(HttpStatus.NOT_FOUND.value());
+//						return response;
+//					}
+//				}
+//			}
 
 			Branch branchDTO = objectMapper.convertValue(branchRes.getBody().getData(), Branch.class);
 			log.debug("After Mapping branch details branchName={}, branchId={}, clinicId={}", branchDTO.getBranchName(),
@@ -618,47 +618,47 @@ public class DoctorServiceImpl implements DoctorService {
 				return response;
 			}
 
-			/* ---------- CATEGORY VALIDATION ---------- */
-			if (dto.getCategory() != null) {
-				log.debug("Validating categories for doctorId={}", doctorId);
-				for (DoctorCategoryDTO catDTO : dto.getCategory()) {
-					if (!serviceFeignClient.isCategoryExists(catDTO.getCategoryId())) {
-						log.warn("Invalid categoryId={} for doctorId={}", catDTO.getCategoryId(), doctorId);
-						response.setSuccess(false);
-						response.setMessage("Category does not exist: " + catDTO.getCategoryId());
-						response.setStatus(HttpStatus.NOT_FOUND.value());
-						return response;
-					}
-				}
-			}
-
-			/* ---------- SERVICE VALIDATION ---------- */
-			if (dto.getService() != null) {
-				log.debug("Validating services for doctorId={}", doctorId);
-				for (DoctorServicesDTO serDTO : dto.getService()) {
-					if (!serviceFeignClient.isServiceExists(serDTO.getServiceId())) {
-						log.warn("Invalid serviceId={} for doctorId={}", serDTO.getServiceId(), doctorId);
-						response.setSuccess(false);
-						response.setMessage("Service does not exist: " + serDTO.getServiceId());
-						response.setStatus(HttpStatus.NOT_FOUND.value());
-						return response;
-					}
-				}
-			}
-
-			/* ---------- SUB-SERVICE VALIDATION ---------- */
-			if (dto.getSubServices() != null) {
-				log.debug("Validating sub-services for doctorId={}", doctorId);
-				for (DoctorSubServiceDTO subDTO : dto.getSubServices()) {
-					if (!serviceFeignClient.isSubServiceExists(subDTO.getSubServiceId())) {
-						log.warn("Invalid subServiceId={} for doctorId={}", subDTO.getSubServiceId(), doctorId);
-						response.setSuccess(false);
-						response.setMessage("SubService does not exist: " + subDTO.getSubServiceId());
-						response.setStatus(HttpStatus.NOT_FOUND.value());
-						return response;
-					}
-				}
-			}
+//			/* ---------- CATEGORY VALIDATION ---------- */
+//			if (dto.getCategory() != null) {
+//				log.debug("Validating categories for doctorId={}", doctorId);
+//				for (DoctorCategoryDTO catDTO : dto.getCategory()) {
+//					if (!serviceFeignClient.isCategoryExists(catDTO.getCategoryId())) {
+//						log.warn("Invalid categoryId={} for doctorId={}", catDTO.getCategoryId(), doctorId);
+//						response.setSuccess(false);
+//						response.setMessage("Category does not exist: " + catDTO.getCategoryId());
+//						response.setStatus(HttpStatus.NOT_FOUND.value());
+//						return response;
+//					}
+//				}
+//			}
+//
+//			/* ---------- SERVICE VALIDATION ---------- */
+//			if (dto.getService() != null) {
+//				log.debug("Validating services for doctorId={}", doctorId);
+//				for (DoctorServicesDTO serDTO : dto.getService()) {
+//					if (!serviceFeignClient.isServiceExists(serDTO.getServiceId())) {
+//						log.warn("Invalid serviceId={} for doctorId={}", serDTO.getServiceId(), doctorId);
+//						response.setSuccess(false);
+//						response.setMessage("Service does not exist: " + serDTO.getServiceId());
+//						response.setStatus(HttpStatus.NOT_FOUND.value());
+//						return response;
+//					}
+//				}
+//			}
+//
+//			/* ---------- SUB-SERVICE VALIDATION ---------- */
+//			if (dto.getSubServices() != null) {
+//				log.debug("Validating sub-services for doctorId={}", doctorId);
+//				for (DoctorSubServiceDTO subDTO : dto.getSubServices()) {
+//					if (!serviceFeignClient.isSubServiceExists(subDTO.getSubServiceId())) {
+//						log.warn("Invalid subServiceId={} for doctorId={}", subDTO.getSubServiceId(), doctorId);
+//						response.setSuccess(false);
+//						response.setMessage("SubService does not exist: " + subDTO.getSubServiceId());
+//						response.setStatus(HttpStatus.NOT_FOUND.value());
+//						return response;
+//					}
+//				}
+//			}
 
 			Doctors doctor = doctorOptional.get();
 			log.debug("Doctor found. Updating fields for doctorId={}", doctorId);
@@ -676,12 +676,12 @@ public class DoctorServiceImpl implements DoctorService {
 				doctor.setDoctorMobileNumber(dto.getDoctorMobileNumber());
 			if (dto.getDoctorName() != null)
 				doctor.setDoctorName(dto.getDoctorName());
-			if (dto.getCategory() != null)
-				doctor.setCategory(dto.getCategory());
-			if (dto.getService() != null)
-				doctor.setService(dto.getService());
-			if (dto.getSubServices() != null)
-				doctor.setSubServices(dto.getSubServices());
+//			if (dto.getCategory() != null)
+//				doctor.setCategory(dto.getCategory());
+//			if (dto.getService() != null)
+//				doctor.setService(dto.getService());
+//			if (dto.getSubServices() != null)
+//				doctor.setSubServices(dto.getSubServices());
 			if (dto.getSpecialization() != null)
 				doctor.setSpecialization(dto.getSpecialization());
 			if (dto.getGender() != null)
@@ -2383,181 +2383,181 @@ public class DoctorServiceImpl implements DoctorService {
 
 //	-----------------------------slots end------------------------------------------------------------------
 
-	@Override
-	public Response getDoctorsBySubserviceId(String hospitalId, String subServiceId) {
-		Response response = new Response();
+//	@Override
+//	public Response getDoctorsBySubserviceId(String hospitalId, String subServiceId) {
+//		Response response = new Response();
+//
+//		try {
+//			// Validate hospitalId
+//			if (hospitalId == null || hospitalId.trim().isEmpty()) {
+//				response.setSuccess(false);
+//				response.setMessage("Hospital ID must not be null or empty.");
+//				response.setStatus(400); // Bad Request
+//				return response;
+//			}
+//
+//			// Validate subServiceId
+//			if (subServiceId == null || subServiceId.trim().isEmpty()) {
+//				response.setSuccess(false);
+//				response.setMessage("SubService ID must not be null or empty.");
+//				response.setStatus(400); // Bad Request
+//				return response;
+//			}
+//
+//			// Fetch doctors by hospitalId and subServiceId
+//			List<Doctors> doctors = doctorsRepository.findByHospitalIdAndSubServicesSubServiceId(hospitalId,
+//					subServiceId);
+//
+//			if (doctors.isEmpty()) {
+//				response.setSuccess(true); // ✅ success true
+//				response.setData(Collections.emptyList());
+//				response.setStatus(HttpStatus.OK.value()); // ✅ 200
+//				response.setMessage(
+//						"No doctors found for subservice ID: " + subServiceId + " in hospital ID: " + hospitalId);
+//			} else {
+//				response.setSuccess(true);
+//				response.setData(doctors);
+//				response.setMessage("Doctors fetched successfully.");
+//				response.setStatus(200);
+//			}
+//
+//		} catch (Exception e) {
+//			response.setSuccess(false);
+//			response.setMessage("Internal server error: " + e.getMessage());
+//			response.setStatus(500); // Internal Server Error
+//		}
+//
+//		return response;
+//	}
 
-		try {
-			// Validate hospitalId
-			if (hospitalId == null || hospitalId.trim().isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("Hospital ID must not be null or empty.");
-				response.setStatus(400); // Bad Request
-				return response;
-			}
+//	@Override
+//	public Response getDoctorsByHospitalIdAndBranchIdSubserviceId(String hospitalId, String branchId,
+//			String subServiceId) {
+//		Response response = new Response();
+//
+//		try {
+//			// Validate hospitalId
+//			if (hospitalId == null || hospitalId.trim().isEmpty()) {
+//				response.setSuccess(false);
+//				response.setMessage("Hospital ID must not be null or empty.");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
+//
+//			// Validate branchId
+//			if (branchId == null || branchId.trim().isEmpty()) {
+//				response.setSuccess(false);
+//				response.setMessage("Branch ID must not be null or empty.");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
+//
+//			// Validate subServiceId
+//			if (subServiceId == null || subServiceId.trim().isEmpty()) {
+//				response.setSuccess(false);
+//				response.setMessage("SubService ID must not be null or empty.");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
+//
+//			// Fetch doctors by hospitalId, branchId, and subServiceId
+//			List<Doctors> doctors = doctorsRepository
+//					.findByHospitalIdAndBranchesBranchIdAndSubServicesSubServiceId(hospitalId, branchId, subServiceId);
+//
+//			List<DoctorsDTO> doctorDTOs = doctors.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
+//					.collect(Collectors.toList());
+//
+//			if (doctorDTOs.isEmpty()) {
+//				response.setSuccess(true);
+//				response.setData(Collections.emptyList());
+//				response.setStatus(HttpStatus.OK.value());
+//				response.setMessage("No doctors found for hospitalId: " + hospitalId + ", branchId: " + branchId
+//						+ ", subServiceId: " + subServiceId);
+//			} else {
+//				response.setSuccess(true);
+//				response.setData(doctorDTOs); // ✅ Use DTOs here
+//				response.setMessage("Doctors fetched successfully.");
+//				response.setStatus(HttpStatus.OK.value());
+//			}
+//
+//		} catch (Exception e) {
+//			response.setSuccess(false);
+//			response.setMessage("Internal server error occurred.");
+//			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+//		}
+//
+//		return response;
+//	}
 
-			// Validate subServiceId
-			if (subServiceId == null || subServiceId.trim().isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("SubService ID must not be null or empty.");
-				response.setStatus(400); // Bad Request
-				return response;
-			}
-
-			// Fetch doctors by hospitalId and subServiceId
-			List<Doctors> doctors = doctorsRepository.findByHospitalIdAndSubServicesSubServiceId(hospitalId,
-					subServiceId);
-
-			if (doctors.isEmpty()) {
-				response.setSuccess(true); // ✅ success true
-				response.setData(Collections.emptyList());
-				response.setStatus(HttpStatus.OK.value()); // ✅ 200
-				response.setMessage(
-						"No doctors found for subservice ID: " + subServiceId + " in hospital ID: " + hospitalId);
-			} else {
-				response.setSuccess(true);
-				response.setData(doctors);
-				response.setMessage("Doctors fetched successfully.");
-				response.setStatus(200);
-			}
-
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Internal server error: " + e.getMessage());
-			response.setStatus(500); // Internal Server Error
-		}
-
-		return response;
-	}
-
-	@Override
-	public Response getDoctorsByHospitalIdAndBranchIdSubserviceId(String hospitalId, String branchId,
-			String subServiceId) {
-		Response response = new Response();
-
-		try {
-			// Validate hospitalId
-			if (hospitalId == null || hospitalId.trim().isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("Hospital ID must not be null or empty.");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
-
-			// Validate branchId
-			if (branchId == null || branchId.trim().isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("Branch ID must not be null or empty.");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
-
-			// Validate subServiceId
-			if (subServiceId == null || subServiceId.trim().isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("SubService ID must not be null or empty.");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
-
-			// Fetch doctors by hospitalId, branchId, and subServiceId
-			List<Doctors> doctors = doctorsRepository
-					.findByHospitalIdAndBranchesBranchIdAndSubServicesSubServiceId(hospitalId, branchId, subServiceId);
-
-			List<DoctorsDTO> doctorDTOs = doctors.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-					.collect(Collectors.toList());
-
-			if (doctorDTOs.isEmpty()) {
-				response.setSuccess(true);
-				response.setData(Collections.emptyList());
-				response.setStatus(HttpStatus.OK.value());
-				response.setMessage("No doctors found for hospitalId: " + hospitalId + ", branchId: " + branchId
-						+ ", subServiceId: " + subServiceId);
-			} else {
-				response.setSuccess(true);
-				response.setData(doctorDTOs); // ✅ Use DTOs here
-				response.setMessage("Doctors fetched successfully.");
-				response.setStatus(HttpStatus.OK.value());
-			}
-
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Internal server error occurred.");
-			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-
-		return response;
-	}
-
-	// -------------------------Get Hospitals and Doctors using
-	// SubserviceId------------------------------------------------
-	@Override
-	public Response getHospitalAndDoctorsUsingSubserviceId(String subServiceId) {
-		Response response = new Response();
-
-		try {
-			List<Doctors> doctors = doctorsRepository.findBySubServiceById(subServiceId);
-			log.info("Total doctors found for subServiceId {}: {}", subServiceId, doctors.size());
-
-			if (doctors.isEmpty()) {
-				response.setSuccess(true);
-				response.setStatus(HttpStatus.OK.value());
-				response.setData(Collections.emptyList());
-				response.setMessage("No doctors found for the given subServiceId");
-				return response;
-			}
-
-			// Group by hospitalId
-			Map<String, List<Doctors>> doctorsGroupedByHospital = doctors.stream()
-					.filter(doc -> doc.getHospitalId() != null).collect(Collectors.groupingBy(Doctors::getHospitalId));
-
-			List<ClinicWithDoctorsDTO> resultList = new ArrayList<>();
-
-			for (Map.Entry<String, List<Doctors>> entry : doctorsGroupedByHospital.entrySet()) {
-				String hospitalId = entry.getKey();
-				List<Doctors> doctorList = entry.getValue();
-
-				try {
-					log.info("Fetching clinic for hospitalId: {}", hospitalId);
-					ResponseEntity<Response> hospitalRes = adminServiceClient.getClinicById(hospitalId);
-
-					if (hospitalRes.getStatusCode().is2xxSuccessful() && hospitalRes.getBody() != null) {
-						Object data = hospitalRes.getBody().getData();
-						ClinicDTO clinic = objectMapper.convertValue(data, ClinicDTO.class);
-
-						// ✅ Use simplified mapper
-						ClinicWithDoctorsDTO dto = mapToClinicWithDoctorsDTO(clinic, doctorList);
-						resultList.add(dto);
-					} else {
-						log.warn("Invalid response from clinic API for hospitalId: {}", hospitalId);
-					}
-				} catch (Exception e) {
-					log.error("Error while fetching clinic for hospitalId {}: {}", hospitalId, e.getMessage());
-				}
-			}
-
-			if (resultList.isEmpty()) {
-				response.setSuccess(true);
-				response.setStatus(HttpStatus.OK.value());
-				response.setData(Collections.emptyList());
-				response.setMessage("No clinics with matching doctors found for the given subServiceId");
-				return response;
-			}
-
-			response.setSuccess(true);
-			response.setStatus(HttpStatus.OK.value());
-			response.setData(resultList);
-			response.setMessage("Fetched successfully");
-			return response;
-
-		} catch (Exception ex) {
-			log.error("Exception in getHospitalAndDoctorsUsingSubserviceId: {}", ex.getMessage(), ex);
-			response.setSuccess(false);
-			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-			response.setMessage("Internal error: " + ex.getMessage());
-			return response;
-		}
-	}
+//	// -------------------------Get Hospitals and Doctors using
+//	// SubserviceId------------------------------------------------
+//	@Override
+//	public Response getHospitalAndDoctorsUsingSubserviceId(String subServiceId) {
+//		Response response = new Response();
+//
+//		try {
+//			List<Doctors> doctors = doctorsRepository.findBySubServiceById(subServiceId);
+//			log.info("Total doctors found for subServiceId {}: {}", subServiceId, doctors.size());
+//
+//			if (doctors.isEmpty()) {
+//				response.setSuccess(true);
+//				response.setStatus(HttpStatus.OK.value());
+//				response.setData(Collections.emptyList());
+//				response.setMessage("No doctors found for the given subServiceId");
+//				return response;
+//			}
+//
+//			// Group by hospitalId
+//			Map<String, List<Doctors>> doctorsGroupedByHospital = doctors.stream()
+//					.filter(doc -> doc.getHospitalId() != null).collect(Collectors.groupingBy(Doctors::getHospitalId));
+//
+//			List<ClinicWithDoctorsDTO> resultList = new ArrayList<>();
+//
+//			for (Map.Entry<String, List<Doctors>> entry : doctorsGroupedByHospital.entrySet()) {
+//				String hospitalId = entry.getKey();
+//				List<Doctors> doctorList = entry.getValue();
+//
+//				try {
+//					log.info("Fetching clinic for hospitalId: {}", hospitalId);
+//					ResponseEntity<Response> hospitalRes = adminServiceClient.getClinicById(hospitalId);
+//
+//					if (hospitalRes.getStatusCode().is2xxSuccessful() && hospitalRes.getBody() != null) {
+//						Object data = hospitalRes.getBody().getData();
+//						ClinicDTO clinic = objectMapper.convertValue(data, ClinicDTO.class);
+//
+//						// ✅ Use simplified mapper
+//						ClinicWithDoctorsDTO dto = mapToClinicWithDoctorsDTO(clinic, doctorList);
+//						resultList.add(dto);
+//					} else {
+//						log.warn("Invalid response from clinic API for hospitalId: {}", hospitalId);
+//					}
+//				} catch (Exception e) {
+//					log.error("Error while fetching clinic for hospitalId {}: {}", hospitalId, e.getMessage());
+//				}
+//			}
+//
+//			if (resultList.isEmpty()) {
+//				response.setSuccess(true);
+//				response.setStatus(HttpStatus.OK.value());
+//				response.setData(Collections.emptyList());
+//				response.setMessage("No clinics with matching doctors found for the given subServiceId");
+//				return response;
+//			}
+//
+//			response.setSuccess(true);
+//			response.setStatus(HttpStatus.OK.value());
+//			response.setData(resultList);
+//			response.setMessage("Fetched successfully");
+//			return response;
+//
+//		} catch (Exception ex) {
+//			log.error("Exception in getHospitalAndDoctorsUsingSubserviceId: {}", ex.getMessage(), ex);
+//			response.setSuccess(false);
+//			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+//			response.setMessage("Internal error: " + ex.getMessage());
+//			return response;
+//		}
+//	}
 
 	// -------------------Simplified
 	// Mapper----------------------------------------------
@@ -2569,16 +2569,16 @@ public class DoctorServiceImpl implements DoctorService {
 		List<DoctorsDTO> doctorDTOs = doctorList.stream().map(doc -> {
 			DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(doc);
 
-			if (doc.getConsultation() != null) {
-				ConsultationType consultation = doc.getConsultation();
-				ConsultationTypeDTO consultationDTO = new ConsultationTypeDTO();
-				consultationDTO.setServiceAndTreatments(consultation.getServiceAndTreatments());
-				consultationDTO.setInClinic(consultation.getInClinic());
-				consultationDTO.setVideoOrOnline(consultation.getVideoOrOnline());
-				doctorDTO.setConsultation(consultationDTO);
-			} else {
-				doctorDTO.setConsultation(null);
-			}
+//			if (doc.getConsultation() != null) {
+//				ConsultationType consultation = doc.getConsultation();
+//				ConsultationTypeDTO consultationDTO = new ConsultationTypeDTO();
+//				consultationDTO.setServiceAndTreatments(consultation.getServiceAndTreatments());
+//				consultationDTO.setInClinic(consultation.getInClinic());
+//				consultationDTO.setVideoOrOnline(consultation.getVideoOrOnline());
+//				doctorDTO.setConsultation(consultationDTO);
+//			} else {
+//				doctorDTO.setConsultation(null);
+//			}
 
 			return doctorDTO;
 		}).collect(Collectors.toList());
@@ -2588,32 +2588,32 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 //----------------------------------Get Doctors By SubserviceId----------------------------------------------------------------
-	@Override
-	public Response getAllDoctorsBySubserviceId(String subServiceId) {
-		Response response = new Response();
-		try {
-			List<Doctors> doctors = doctorsRepository.findBySubServiceById(subServiceId);
-			if (doctors.isEmpty()) {
-				response.setSuccess(false);
-				response.setData(Collections.emptyList());
-				response.setStatus(200);
-				response.setMessage("No doctors found for subservice ID: " + subServiceId);
-			} else {
-				response.setSuccess(true);
-				response.setData(new ObjectMapper().convertValue(doctors, new TypeReference<List<DoctorsDTO>>() {
-				}));
-				response.setMessage("Doctors fetched successfully.");
-				response.setStatus(200);
-			}
-
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Internal server error: " + e.getMessage());
-			response.setStatus(500); // Internal Server Error
-		}
-
-		return response;
-	}
+//	@Override
+//	public Response getAllDoctorsBySubserviceId(String subServiceId) {
+//		Response response = new Response();
+//		try {
+//			List<Doctors> doctors = doctorsRepository.findBySubServiceById(subServiceId);
+//			if (doctors.isEmpty()) {
+//				response.setSuccess(false);
+//				response.setData(Collections.emptyList());
+//				response.setStatus(200);
+//				response.setMessage("No doctors found for subservice ID: " + subServiceId);
+//			} else {
+//				response.setSuccess(true);
+//				response.setData(new ObjectMapper().convertValue(doctors, new TypeReference<List<DoctorsDTO>>() {
+//				}));
+//				response.setMessage("Doctors fetched successfully.");
+//				response.setStatus(200);
+//			}
+//
+//		} catch (Exception e) {
+//			response.setSuccess(false);
+//			response.setMessage("Internal server error: " + e.getMessage());
+//			response.setStatus(500); // Internal Server Error
+//		}
+//
+//		return response;
+//	}
 
 	/// NOTIFICATIONOFDOCTOR
 
@@ -2698,102 +2698,102 @@ public class DoctorServiceImpl implements DoctorService {
 //		}
 //	}
 
-	@Override
-	public Response getBestDoctorBySubService(String subServiceId) {
-		List<Doctors> doctors = doctorsRepository.findBySubServiceById(subServiceId);
-
-		Doctors bestDoctor = null;
-		double highestScore = -1.0;
-		ClinicDTO selectedClinic = null;
-
-		for (Doctors doctor : doctors) {
-			if (!doctor.isDoctorAvailabilityStatus())
-				continue;
-
-			// Call main admin service to get clinic by hospitalId
-			ResponseEntity<Response> clinicResponse = adminServiceClient.getClinicById(doctor.getHospitalId());
-
-			if (clinicResponse == null || clinicResponse.getBody() == null
-					|| clinicResponse.getBody().getData() == null)
-				continue;
-
-			// Convert Object to ClinicDTO safely using ObjectMapper
-			ClinicDTO clinic;
-			try {
-				Object data = clinicResponse.getBody().getData();
-				clinic = objectMapper.convertValue(data, ClinicDTO.class);
-			} catch (Exception e) {
-				continue; // skip if conversion fails
-			}
-
-			boolean isGoodClinic = clinic.isRecommended() || clinic.getHospitalOverallRating() >= 4.0;
-			if (!isGoodClinic)
-				continue;
-
-			// Calculate doctor score
-			double score = 0;
-			if (doctor.isRecommendation())
-				score += 3;
-			score += doctor.getDoctorAverageRating();
-
-			try {
-				score += Double.parseDouble(doctor.getExperience()) * 0.2;
-			} catch (Exception ignored) {
-			}
-
-			// Choose the doctor with the highest score
-			if (score > highestScore) {
-				highestScore = score;
-				bestDoctor = doctor;
-				selectedClinic = clinic;
-			}
-		}
-
-		if (bestDoctor == null || selectedClinic == null) {
-			return Response.builder().success(false).status(404)
-					.message("No suitable doctor found for subService ID: " + subServiceId).build();
-		}
-
-		// Convert doctor to DoctorsDTO using your mapper
-		DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(bestDoctor);
-
-		// Build combined clinic + doctor response
-		ClinicWithDoctorsDTO2 responseDTO = ClinicWithDoctorsDTO2.builder().hospitalId(selectedClinic.getHospitalId())
-				.name(selectedClinic.getName()).address(selectedClinic.getAddress()).city(selectedClinic.getCity())
-				.hospitalOverallRating(selectedClinic.getHospitalOverallRating())
-				.contactNumber(selectedClinic.getContactNumber()).openingTime(selectedClinic.getOpeningTime())
-				.closingTime(selectedClinic.getClosingTime()).hospitalLogo(selectedClinic.getHospitalLogo())
-				.emailAddress(selectedClinic.getEmailAddress()).website(selectedClinic.getWebsite())
-				.licenseNumber(selectedClinic.getLicenseNumber()).issuingAuthority(selectedClinic.getIssuingAuthority())
-				.contractorDocuments(selectedClinic.getContractorDocuments())
-				.hospitalDocuments(selectedClinic.getHospitalDocuments()).recommended(selectedClinic.isRecommended())
-				.clinicalEstablishmentCertificate(selectedClinic.getClinicalEstablishmentCertificate())
-				.businessRegistrationCertificate(selectedClinic.getBusinessRegistrationCertificate())
-				.clinicType(selectedClinic.getClinicType()).medicinesSoldOnSite(selectedClinic.getMedicinesSoldOnSite())
-				.drugLicenseCertificate(selectedClinic.getDrugLicenseCertificate())
-				.drugLicenseFormType(selectedClinic.getDrugLicenseFormType())
-				.hasPharmacist(selectedClinic.getHasPharmacist())
-				.pharmacistCertificate(selectedClinic.getPharmacistCertificate())
-				.biomedicalWasteManagementAuth(selectedClinic.getBiomedicalWasteManagementAuth())
-				.tradeLicense(selectedClinic.getTradeLicense())
-				.fireSafetyCertificate(selectedClinic.getFireSafetyCertificate())
-				.professionalIndemnityInsurance(selectedClinic.getProfessionalIndemnityInsurance())
-				.gstRegistrationCertificate(selectedClinic.getGstRegistrationCertificate())
-				.consultationExpiration(selectedClinic.getConsultationExpiration())
-				.subscription(selectedClinic.getSubscription()).others(selectedClinic.getOthers())
-				.freeFollowUps(selectedClinic.getFreeFollowUps()).latitude(selectedClinic.getLatitude())
-				.longitude(selectedClinic.getLongitude()).nabhScore(selectedClinic.getNabhScore())
-				.branch(selectedClinic.getBranch()).walkthrough(selectedClinic.getWalkthrough())
-				.instagramHandle(selectedClinic.getInstagramHandle()).twitterHandle(selectedClinic.getTwitterHandle())
-				.facebookHandle(selectedClinic.getFacebookHandle()).branches(selectedClinic.getBranches()) // ✅ if
-																											// available
-				.role(selectedClinic.getRole()) // ✅ optional
-				.permissions(selectedClinic.getPermissions()) // ✅ optional
-				.doctors(doctorDTO).build();
-
-		return Response.builder().success(true).status(200).message("Best doctor with clinic retrieved successfully")
-				.data(responseDTO).build();
-	}
+//	@Override
+//	public Response getBestDoctorBySubService(String subServiceId) {
+//		List<Doctors> doctors = doctorsRepository.findBySubServiceById(subServiceId);
+//
+//		Doctors bestDoctor = null;
+//		double highestScore = -1.0;
+//		ClinicDTO selectedClinic = null;
+//
+//		for (Doctors doctor : doctors) {
+//			if (!doctor.isDoctorAvailabilityStatus())
+//				continue;
+//
+//			// Call main admin service to get clinic by hospitalId
+//			ResponseEntity<Response> clinicResponse = adminServiceClient.getClinicById(doctor.getHospitalId());
+//
+//			if (clinicResponse == null || clinicResponse.getBody() == null
+//					|| clinicResponse.getBody().getData() == null)
+//				continue;
+//
+//			// Convert Object to ClinicDTO safely using ObjectMapper
+//			ClinicDTO clinic;
+//			try {
+//				Object data = clinicResponse.getBody().getData();
+//				clinic = objectMapper.convertValue(data, ClinicDTO.class);
+//			} catch (Exception e) {
+//				continue; // skip if conversion fails
+//			}
+//
+//			boolean isGoodClinic = clinic.isRecommended() || clinic.getHospitalOverallRating() >= 4.0;
+//			if (!isGoodClinic)
+//				continue;
+//
+//			// Calculate doctor score
+//			double score = 0;
+//			if (doctor.isRecommendation())
+//				score += 3;
+//			score += doctor.getDoctorAverageRating();
+//
+//			try {
+//				score += Double.parseDouble(doctor.getExperience()) * 0.2;
+//			} catch (Exception ignored) {
+//			}
+//
+//			// Choose the doctor with the highest score
+//			if (score > highestScore) {
+//				highestScore = score;
+//				bestDoctor = doctor;
+//				selectedClinic = clinic;
+//			}
+//		}
+//
+//		if (bestDoctor == null || selectedClinic == null) {
+//			return Response.builder().success(false).status(404)
+//					.message("No suitable doctor found for subService ID: " + subServiceId).build();
+//		}
+//
+//		// Convert doctor to DoctorsDTO using your mapper
+//		DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(bestDoctor);
+//
+//		// Build combined clinic + doctor response
+//		ClinicWithDoctorsDTO2 responseDTO = ClinicWithDoctorsDTO2.builder().hospitalId(selectedClinic.getHospitalId())
+//				.name(selectedClinic.getName()).address(selectedClinic.getAddress()).city(selectedClinic.getCity())
+//				.hospitalOverallRating(selectedClinic.getHospitalOverallRating())
+//				.contactNumber(selectedClinic.getContactNumber()).openingTime(selectedClinic.getOpeningTime())
+//				.closingTime(selectedClinic.getClosingTime()).hospitalLogo(selectedClinic.getHospitalLogo())
+//				.emailAddress(selectedClinic.getEmailAddress()).website(selectedClinic.getWebsite())
+//				.licenseNumber(selectedClinic.getLicenseNumber()).issuingAuthority(selectedClinic.getIssuingAuthority())
+//				.contractorDocuments(selectedClinic.getContractorDocuments())
+//				.hospitalDocuments(selectedClinic.getHospitalDocuments()).recommended(selectedClinic.isRecommended())
+//				.clinicalEstablishmentCertificate(selectedClinic.getClinicalEstablishmentCertificate())
+//				.businessRegistrationCertificate(selectedClinic.getBusinessRegistrationCertificate())
+//				.clinicType(selectedClinic.getClinicType()).medicinesSoldOnSite(selectedClinic.getMedicinesSoldOnSite())
+//				.drugLicenseCertificate(selectedClinic.getDrugLicenseCertificate())
+//				.drugLicenseFormType(selectedClinic.getDrugLicenseFormType())
+//				.hasPharmacist(selectedClinic.getHasPharmacist())
+//				.pharmacistCertificate(selectedClinic.getPharmacistCertificate())
+//				.biomedicalWasteManagementAuth(selectedClinic.getBiomedicalWasteManagementAuth())
+//				.tradeLicense(selectedClinic.getTradeLicense())
+//				.fireSafetyCertificate(selectedClinic.getFireSafetyCertificate())
+//				.professionalIndemnityInsurance(selectedClinic.getProfessionalIndemnityInsurance())
+//				.gstRegistrationCertificate(selectedClinic.getGstRegistrationCertificate())
+//				.consultationExpiration(selectedClinic.getConsultationExpiration())
+//				.subscription(selectedClinic.getSubscription()).others(selectedClinic.getOthers())
+//				.freeFollowUps(selectedClinic.getFreeFollowUps()).latitude(selectedClinic.getLatitude())
+//				.longitude(selectedClinic.getLongitude()).nabhScore(selectedClinic.getNabhScore())
+//				.branch(selectedClinic.getBranch()).walkthrough(selectedClinic.getWalkthrough())
+//				.instagramHandle(selectedClinic.getInstagramHandle()).twitterHandle(selectedClinic.getTwitterHandle())
+//				.facebookHandle(selectedClinic.getFacebookHandle()).branches(selectedClinic.getBranches()) // ✅ if
+//																											// available
+//				.role(selectedClinic.getRole()) // ✅ optional
+//				.permissions(selectedClinic.getPermissions()) // ✅ optional
+//				.doctors(doctorDTO).build();
+//
+//		return Response.builder().success(true).status(200).message("Best doctor with clinic retrieved successfully")
+//				.data(responseDTO).build();
+//	}
 
 //	@Override
 //	public Response getRecommendedClinicsAndDoctors(List<String> keyPointsFromUser) {
@@ -2942,38 +2942,38 @@ public class DoctorServiceImpl implements DoctorService {
 		for (String key : keyPoints) {
 			String lowerKey = key.toLowerCase();
 
-			// SubServices
-			if (doctor.getSubServices() != null) {
-				for (DoctorSubServiceDTO sub : doctor.getSubServices()) {
-					if (sub != null && sub.getSubServiceName() != null
-							&& sub.getSubServiceName().toLowerCase().contains(lowerKey)) {
-						logger.debug("Matched subService: {} with keyword: {}", sub.getSubServiceName(), key);
-						return true;
-					}
-				}
-			}
-
-			// Services
-			if (doctor.getService() != null) {
-				for (DoctorServicesDTO service : doctor.getService()) {
-					if (service != null && service.getServiceName() != null
-							&& service.getServiceName().toLowerCase().contains(lowerKey)) {
-						logger.debug("Matched service: {} with keyword: {}", service.getServiceName(), key);
-						return true;
-					}
-				}
-			}
-
-			// Category
-			if (doctor.getCategory() != null) {
-				for (DoctorCategoryDTO category : doctor.getCategory()) {
-					if (category != null && category.getCategoryName() != null
-							&& category.getCategoryName().toLowerCase().contains(lowerKey)) {
-						logger.debug("Matched category: {} with keyword: {}", category.getCategoryName(), key);
-						return true;
-					}
-				}
-			}
+//			// SubServices
+//			if (doctor.getSubServices() != null) {
+//				for (DoctorSubServiceDTO sub : doctor.getSubServices()) {
+//					if (sub != null && sub.getSubServiceName() != null
+//							&& sub.getSubServiceName().toLowerCase().contains(lowerKey)) {
+//						logger.debug("Matched subService: {} with keyword: {}", sub.getSubServiceName(), key);
+//						return true;
+//					}
+//				}
+//			}
+//
+//			// Services
+//			if (doctor.getService() != null) {
+//				for (DoctorServicesDTO service : doctor.getService()) {
+//					if (service != null && service.getServiceName() != null
+//							&& service.getServiceName().toLowerCase().contains(lowerKey)) {
+//						logger.debug("Matched service: {} with keyword: {}", service.getServiceName(), key);
+//						return true;
+//					}
+//				}
+//			}
+//
+//			// Category
+//			if (doctor.getCategory() != null) {
+//				for (DoctorCategoryDTO category : doctor.getCategory()) {
+//					if (category != null && category.getCategoryName() != null
+//							&& category.getCategoryName().toLowerCase().contains(lowerKey)) {
+//						logger.debug("Matched category: {} with keyword: {}", category.getCategoryName(), key);
+//						return true;
+//					}
+//				}
+//			}
 
 			// Specialization
 			if (doctor.getSpecialization() != null && doctor.getSpecialization().toLowerCase().contains(lowerKey)) {
@@ -3048,28 +3048,28 @@ public class DoctorServiceImpl implements DoctorService {
 				// Fetch doctors by hospitalId
 				List<Doctors> doctorsDbData = doctorsRepository.findByHospitalId(clinicDTO.getHospitalId());
 
-				// Convert to DTOs and filter based on consultation type
-				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-						.filter(dto -> {
-							ConsultationTypeDTO consultation = dto.getConsultation();
-							if (consultation == null)
-								return false;
-
-							switch (consultationType) {
-							case 1:
-								return consultation.getInClinic() == 1;
-							case 2:
-								return consultation.getVideoOrOnline() == 2;
-							case 3:
-								return consultation.getServiceAndTreatments() == 3;
-							default:
-								return false;
-							}
-						}).collect(Collectors.toList());
+//				// Convert to DTOs and filter based on consultation type
+//				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
+//						.filter(dto -> {
+//							ConsultationTypeDTO consultation = dto.getConsultation();
+//							if (consultation == null)
+//								return false;
+//
+//							switch (consultationType) {
+//							case 1:
+//								return consultation.getInClinic() == 1;
+//							case 2:
+//								return consultation.getVideoOrOnline() == 2;
+//							case 3:
+//								return consultation.getServiceAndTreatments() == 3;
+//							default:
+//								return false;
+//							}
+//						}).collect(Collectors.toList());
 
 				// Map ClinicDTO to ClinicWithDoctorsDTO
 				ClinicWithDoctorsDTO clDTO = objectMapper.convertValue(clinicDTO, ClinicWithDoctorsDTO.class);
-				clDTO.setDoctors(doctorDTOs);
+//				clDTO.setDoctors(doctorDTOs);
 
 				return clDTO;
 			}).collect(Collectors.toList());
@@ -3111,28 +3111,28 @@ public class DoctorServiceImpl implements DoctorService {
 				// Fetch doctors by hospitalId
 				List<Doctors> doctorsDbData = doctorsRepository.findByHospitalId(clinicDTO.getHospitalId());
 
-				// Convert to DTOs and filter based on consultation type
-				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-						.filter(dto -> {
-							ConsultationTypeDTO consultation = dto.getConsultation();
-							if (consultation == null)
-								return false;
-
-							switch (consultationType) {
-							case 1:
-								return consultation.getInClinic() == 1;
-							case 2:
-								return consultation.getVideoOrOnline() == 2;
-							case 3:
-								return consultation.getServiceAndTreatments() == 3;
-							default:
-								return false;
-							}
-						}).collect(Collectors.toList());
+//				// Convert to DTOs and filter based on consultation type
+//				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
+//						.filter(dto -> {
+//							ConsultationTypeDTO consultation = dto.getConsultation();
+//							if (consultation == null)
+//								return false;
+//
+//							switch (consultationType) {
+//							case 1:
+//								return consultation.getInClinic() == 1;
+//							case 2:
+//								return consultation.getVideoOrOnline() == 2;
+//							case 3:
+//								return consultation.getServiceAndTreatments() == 3;
+//							default:
+//								return false;
+//							}
+//						}).collect(Collectors.toList());
 
 				// Map ClinicDTO to ClinicWithDoctorsDTO
 				ClinicWithDoctorsDTO clDTO = objectMapper.convertValue(clinicDTO, ClinicWithDoctorsDTO.class);
-				clDTO.setDoctors(doctorDTOs);
+//				clDTO.setDoctors(doctorDTOs);
 
 				return clDTO;
 			}).collect(Collectors.toList());
@@ -3427,32 +3427,32 @@ public class DoctorServiceImpl implements DoctorService {
 			for (String key : keyPoints) {
 				String lowerKey = key.toLowerCase();
 
-				if (doctor.getSubServices() != null) {
-					for (DoctorSubServiceDTO sub : doctor.getSubServices()) {
-						if (sub != null && sub.getSubServiceName() != null
-								&& sub.getSubServiceName().toLowerCase().contains(lowerKey)) {
-							score += 5; // weight for subService match
-						}
-					}
-				}
+//				if (doctor.getSubServices() != null) {
+//					for (DoctorSubServiceDTO sub : doctor.getSubServices()) {
+//						if (sub != null && sub.getSubServiceName() != null
+//								&& sub.getSubServiceName().toLowerCase().contains(lowerKey)) {
+//							score += 5; // weight for subService match
+//						}
+//					}
+//				}
 
-				if (doctor.getService() != null) {
-					for (DoctorServicesDTO service : doctor.getService()) {
-						if (service != null && service.getServiceName() != null
-								&& service.getServiceName().toLowerCase().contains(lowerKey)) {
-							score += 4; // weight for service match
-						}
-					}
-				}
-
-				if (doctor.getCategory() != null) {
-					for (DoctorCategoryDTO category : doctor.getCategory()) {
-						if (category != null && category.getCategoryName() != null
-								&& category.getCategoryName().toLowerCase().contains(lowerKey)) {
-							score += 3; // weight for category match
-						}
-					}
-				}
+//				if (doctor.getService() != null) {
+//					for (DoctorServicesDTO service : doctor.getService()) {
+//						if (service != null && service.getServiceName() != null
+//								&& service.getServiceName().toLowerCase().contains(lowerKey)) {
+//							score += 4; // weight for service match
+//						}
+//					}
+//				}
+//
+//				if (doctor.getCategory() != null) {
+//					for (DoctorCategoryDTO category : doctor.getCategory()) {
+//						if (category != null && category.getCategoryName() != null
+//								&& category.getCategoryName().toLowerCase().contains(lowerKey)) {
+//							score += 3; // weight for category match
+//						}
+//					}
+//				}
 
 				if (doctor.getSpecialization() != null && doctor.getSpecialization().toLowerCase().contains(lowerKey)) {
 					score += 6; // specialization match gets higher weight
@@ -3513,10 +3513,10 @@ public class DoctorServiceImpl implements DoctorService {
 				for (Doctors doctor : doctorEntities) {
 					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor);
 
-					// 🧠 Step 1: Filter based on consultation type (numeric)
-					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
-						continue;
-					}
+//					// 🧠 Step 1: Filter based on consultation type (numeric)
+//					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
+//						continue;
+//					}
 
 					// 🧠 Step 2: Calculate doctor score
 					int score = calculateDoctorScore(dto, keyPointsFromUser);
@@ -3590,10 +3590,10 @@ public class DoctorServiceImpl implements DoctorService {
 				for (Doctors doctor : doctorEntities) {
 					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor);
 
-					// ✅ Step 1: Filter by consultation type
-					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
-						continue;
-					}
+//					// ✅ Step 1: Filter by consultation type
+//					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
+//						continue;
+//					}
 
 					// ✅ Step 2: Score based on key points
 					int score = calculateDoctorScore(dto, keyPointsFromUser);
@@ -3735,4 +3735,7 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 	}
 
+	
+
+	
 }
