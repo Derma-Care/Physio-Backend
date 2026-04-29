@@ -149,4 +149,24 @@ public class PaymentController {
 
         return ResponseEntity.status(response.getStatus()).body(response);
     }
+    @GetMapping("/payment/getExerciseSessionsWithRecords/{clinicId}/{branchId}/{bookingId}/{patientId}/{therapistRecordId}/{exerciseId}")
+    public ResponseEntity<Response> getExerciseSessionsWithRecords(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String bookingId,
+            @PathVariable String patientId,
+            @PathVariable String therapistRecordId,
+            @PathVariable String exerciseId) {
+
+        Response response = service.getExerciseSessionsWithRecords(
+                clinicId,
+                branchId,
+                bookingId,
+                patientId,
+                therapistRecordId,
+                exerciseId
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }
