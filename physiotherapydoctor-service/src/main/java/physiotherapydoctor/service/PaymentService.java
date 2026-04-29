@@ -1,6 +1,7 @@
 package physiotherapydoctor.service;
 
 import physiotherapydoctor.dto.PaymentRequest;
+import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
 
 public interface PaymentService {
@@ -14,6 +15,9 @@ public interface PaymentService {
     void deleteByBookingId(String bookingId);
 
     void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId);
+
+	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
+			String therapistRecordId, String exerciseId);
 }
 
 

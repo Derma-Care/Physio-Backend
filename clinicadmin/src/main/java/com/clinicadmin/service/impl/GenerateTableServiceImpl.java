@@ -1,30 +1,29 @@
 package com.clinicadmin.service.impl;
 	
 	import java.time.LocalDate;
-	import java.util.ArrayList;
-	import java.util.List;
-	import java.util.Map;
-	
-	import org.springframework.stereotype.Service;
-	
-	import com.clinicadmin.dto.ExerciseResponseDTO;
-	import com.clinicadmin.dto.PhysiotherapyRecordDTO;
-	import com.clinicadmin.dto.ProgramResponseDTO;
-	import com.clinicadmin.dto.Response;
-	import com.clinicadmin.dto.SessionDTO;
-	import com.clinicadmin.dto.TherapyResponseDTO;
-	import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
-	import com.clinicadmin.service.GenerateTableService;
-	
-	import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.clinicadmin.dto.ExerciseResponseDTO;
+import com.clinicadmin.dto.PhysiotherapyRecordDTO;
+import com.clinicadmin.dto.ProgramResponseDTO;
+import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.SessionDTO;
+import com.clinicadmin.dto.TherapyResponseDTO;
+import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
+import com.clinicadmin.service.GenerateTableService;
+
+import lombok.RequiredArgsConstructor;
 	
 	@Service
 	@RequiredArgsConstructor
 	public class GenerateTableServiceImpl implements GenerateTableService {
 	
 	    private final PhysiotherapyFeignClient feignClient;
-	
-	    
 	    @Override
 	    public Response generateTable(PhysiotherapyRecordDTO request) {
 
@@ -65,9 +64,9 @@ package com.clinicadmin.service.impl;
 
 	            for (Map<String, Object> session : therapySessions) {
 
-	                // ==================================================
-	                // PROGRAMS
-	                // ==================================================
+	                // =========================================
+	                // PROGRAM
+	                // =========================================
 	                List<Map<String, Object>> programs =
 	                        (List<Map<String, Object>>) session.get("programs");
 
@@ -79,35 +78,178 @@ package com.clinicadmin.service.impl;
 	                                (List<Map<String, Object>>) program.get("therapyData");
 
 	                        if (therapyDataList != null && !therapyDataList.isEmpty()) {
-	                            result.add(buildProgramDTO(therapyDataList, startDate));
+
+	                            ProgramResponseDTO dto =
+	                                    buildProgramDTO(therapyDataList, startDate);
+
+	                            dto.setSourceType("PROGRAM");
+	                            dto.setProgramId(
+	                                    program.get("programId") != null
+	                                            ? program.get("programId").toString()
+	                                            : ""
+	                            );
+	                            dto.setProgramName(
+	                                    program.get("programName") != null
+	                                            ? program.get("programName").toString()
+	                                            : ""
+	                            );
+
+	                            result.add(dto);
 	                        }
 	                    }
 	                }
 
-	                // ==================================================
+	                // =========================================
 	                // PACKAGE
-	                // ==================================================
+	                // =========================================
 	                List<Map<String, Object>> packageData =
 	                        (List<Map<String, Object>>) session.get("packageData");
 
 	                if (packageData != null && !packageData.isEmpty()) {
-	                    result.add(buildProgramDTO(packageData, startDate));
+
+	                    ProgramResponseDTO dto =
+	                            buildProgramDTO(packageData, startDate);
+
+	                    dto.setSourceType("PACKAGE");
+	                    dto.setPackageId(
+	                            session.get("packageId") != null
+	                                    ? session.get("packageId").toString()
+	                                    : ""
+	                    );
+	                    dto.setPackageName(
+	                            session.get("packageName") != null
+	                                    ? session.get("packageName").toString()
+	                                    : ""
+	                    );
+
+	                    result.add(dto);
+
+	                } else if (session.get("packageId") != null
+	                        || session.get("packageName") != null) {
+
+	                    List<Map<String, Object>> fallbackData = null;
+
+	                    List<Map<String, Object>> therapyData =
+	                            (List<Map<String, Object>>) session.get("therapyData");
+
+	                    if (therapyData != null && !therapyData.isEmpty()) {
+	                        fallbackData = therapyData;
+
+	                    } else if (programs != null && !programs.isEmpty()) {
+
+	                        List<Map<String, Object>> pTherapy =
+	                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
+
+	                        if (pTherapy != null && !pTherapy.isEmpty()) {
+	                            fallbackData = pTherapy;
+	                        }
+	                    }
+
+	                    if (fallbackData != null && !fallbackData.isEmpty()) {
+
+	                        ProgramResponseDTO dto =
+	                                buildProgramDTO(fallbackData, startDate);
+
+	                        dto.setSourceType("PACKAGE");
+	                        dto.setPackageId(
+	                                session.get("packageId") != null
+	                                        ? session.get("packageId").toString()
+	                                        : ""
+	                        );
+	                        dto.setPackageName(
+	                                session.get("packageName") != null
+	                                        ? session.get("packageName").toString()
+	                                        : ""
+	                        );
+
+	                        result.add(dto);
+	                    }
 	                }
 
-	                // ==================================================
-	                // DIRECT THERAPY DATA
-	                // ==================================================
+	                // =========================================
+	                // THERAPY
+	                // =========================================
 	                List<Map<String, Object>> therapyData =
 	                        (List<Map<String, Object>>) session.get("therapyData");
 
 	                if (therapyData != null && !therapyData.isEmpty()) {
-	                    result.add(buildProgramDTO(therapyData, startDate));
+
+	                    ProgramResponseDTO dto =
+	                            buildProgramDTO(therapyData, startDate);
+
+	                    dto.setSourceType("THERAPY");
+	                    result.add(dto);
+	                }
+
+	                // =========================================
+	                // EXERCISE
+	                // =========================================
+	                List<Map<String, Object>> exercises =
+	                        (List<Map<String, Object>>) session.get("exercises");
+
+	                if (exercises != null && !exercises.isEmpty()) {
+
+	                    List<Map<String, Object>> singleTherapy = new ArrayList<>();
+	                    Map<String, Object> therapyMap = new HashMap<>();
+
+	                    String therapyId = "";
+	                    String therapyName = "";
+
+	                    if (therapyData != null && !therapyData.isEmpty()) {
+
+	                        therapyId = therapyData.get(0).get("therapyId") != null
+	                                ? therapyData.get(0).get("therapyId").toString()
+	                                : "";
+
+	                        therapyName = therapyData.get(0).get("therapyName") != null
+	                                ? therapyData.get(0).get("therapyName").toString()
+	                                : "";
+
+	                    } else if (packageData != null && !packageData.isEmpty()) {
+
+	                        therapyId = packageData.get(0).get("therapyId") != null
+	                                ? packageData.get(0).get("therapyId").toString()
+	                                : "";
+
+	                        therapyName = packageData.get(0).get("therapyName") != null
+	                                ? packageData.get(0).get("therapyName").toString()
+	                                : "";
+
+	                    } else if (programs != null && !programs.isEmpty()) {
+
+	                        List<Map<String, Object>> pTherapy =
+	                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
+
+	                        if (pTherapy != null && !pTherapy.isEmpty()) {
+
+	                            therapyId = pTherapy.get(0).get("therapyId") != null
+	                                    ? pTherapy.get(0).get("therapyId").toString()
+	                                    : "";
+
+	                            therapyName = pTherapy.get(0).get("therapyName") != null
+	                                    ? pTherapy.get(0).get("therapyName").toString()
+	                                    : "";
+	                        }
+	                    }
+
+	                    therapyMap.put("therapyId", therapyId);
+	                    therapyMap.put("therapyName", therapyName);
+	                    therapyMap.put("exercises", exercises);
+
+	                    singleTherapy.add(therapyMap);
+
+	                    ProgramResponseDTO dto =
+	                            buildProgramDTO(singleTherapy, startDate);
+
+	                    dto.setSourceType("EXERCISE");
+	                    result.add(dto);
 	                }
 	            }
 
 	            response.setSuccess(true);
 	            response.setData(result);
 	            response.setStatus(200);
+	            response.setMessage("Table generated successfully");
 
 	        } catch (Exception e) {
 
