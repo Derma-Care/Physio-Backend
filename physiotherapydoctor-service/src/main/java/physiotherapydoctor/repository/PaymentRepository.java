@@ -1,5 +1,6 @@
 package physiotherapydoctor.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -10,7 +11,7 @@ public interface PaymentRepository extends MongoRepository<PaymentRecord, String
 
     Optional<PaymentRecord> findByBookingId(String bookingId);
 
-	Optional<PaymentRecord> findByTherapistRecordId(String therapistRecordId);
+	List<PaymentRecord> findByTherapistRecordId(String therapistRecordId);
 
 	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(String clinicId,
 			String branchId, String bookingId, String patientId, String therapistRecordId);

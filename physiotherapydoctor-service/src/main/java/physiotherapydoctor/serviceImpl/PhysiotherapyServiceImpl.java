@@ -1958,6 +1958,3 @@ public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId
 }
 
 }
-
-
-

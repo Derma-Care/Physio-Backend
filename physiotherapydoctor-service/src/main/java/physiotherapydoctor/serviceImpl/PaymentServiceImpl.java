@@ -247,31 +247,42 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId) {
 
-        PaymentRecord record = repo.findByTherapistRecordId(therapistRecordId)
-                .orElseThrow(() -> new RuntimeException("Payment record not found"));
+        // ✅ Get all records for this therapist
+        List<PaymentRecord> records = repo.findByTherapistRecordId(therapistRecordId);
 
-        List<TherapyWithSessions> packageList = record.getTherapyWithSessions();
-
-        if (packageList == null || packageList.isEmpty()) {
-            throw new RuntimeException("No sessions found");
+        if (records == null || records.isEmpty()) {
+            throw new RuntimeException("No payment records found for therapistRecordId: " + therapistRecordId);
         }
 
+        PaymentRecord targetRecord = null;
         boolean sessionFound = false;
 
+        // ✅ Search session across all records
         outer:
-        for (TherapyWithSessions pkg : packageList) {
-            if (pkg.getPrograms() == null) continue;
-            for (Program program : pkg.getPrograms()) {
-                if (program.getTherapyData() == null) continue;
-                for (TherapyData therapy : program.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (TherapyExercise exercise : therapy.getExercises()) {
-                        if (exercise.getSessions() == null) continue;
-                        for (Session session : exercise.getSessions()) {
-                            if (sessionId.equals(session.getSessionId())) {
-                                session.setStatus("Completed");
-                                sessionFound = true;
-                                break outer;
+        for (PaymentRecord record : records) {
+
+            List<TherapyWithSessions> packageList = record.getTherapyWithSessions();
+            if (packageList == null || packageList.isEmpty()) continue;
+
+            for (TherapyWithSessions pkg : packageList) {
+                if (pkg.getPrograms() == null) continue;
+
+                for (Program program : pkg.getPrograms()) {
+                    if (program.getTherapyData() == null) continue;
+
+                    for (TherapyData therapy : program.getTherapyData()) {
+                        if (therapy.getExercises() == null) continue;
+
+                        for (TherapyExercise exercise : therapy.getExercises()) {
+                            if (exercise.getSessions() == null) continue;
+
+                            for (Session session : exercise.getSessions()) {
+                                if (sessionId.equals(session.getSessionId())) {
+                                    session.setStatus("Completed");
+                                    targetRecord = record;  // ✅ Found which record
+                                    sessionFound = true;
+                                    break outer;
+                                }
                             }
                         }
                     }
@@ -279,17 +290,18 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
 
-        if (!sessionFound) {
+        if (!sessionFound || targetRecord == null) {
             throw new RuntimeException("Session not found with ID: " + sessionId);
         }
 
-        record.setOverallStatus(calculateOverallStatus(record));
+        // ✅ Update only the record that contains the session
+        targetRecord.setOverallStatus(calculateOverallStatus(targetRecord));
 
-        repo.save(record);
+        repo.save(targetRecord);
 
-        updateBookingStatus(record);
+        updateBookingStatus(targetRecord);
     }
-
+    
     // ========================================================
     //                   NORMALIZE PAYLOAD
     // ========================================================
