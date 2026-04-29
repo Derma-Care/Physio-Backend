@@ -274,6 +274,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         e.setUnit(dto.getUnit());
         e.setActivityType(dto.getActivityType());
         e.setActivityDuration(dto.getActivityDuration());
+        e.setBodyPart(dto.getBodyPart());
         e.setDiscountAmount(dto.getDiscountAmount());
         e.setDiscountPercentage(dto.getDiscountPercentage());
 
@@ -333,6 +334,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         dto.setUnit(e.getUnit());
         dto.setActivityType(e.getActivityType());
         dto.setActivityDuration(e.getActivityDuration());
+        dto.setBodyPart(e.getBodyPart());
         dto.setTotalPrice(e.getTotalPrice());
         dto.setDiscountAmount(e.getDiscountAmount());
         dto.setDiscountPercentage(e.getDiscountPercentage());

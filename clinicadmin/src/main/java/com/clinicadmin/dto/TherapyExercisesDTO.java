@@ -40,6 +40,7 @@ public class TherapyExercisesDTO {
     private String metric;
     private String value;
     private String unit;
+    private String bodyPart;
 
     // ✅ Activity Fields
     private String activityType;

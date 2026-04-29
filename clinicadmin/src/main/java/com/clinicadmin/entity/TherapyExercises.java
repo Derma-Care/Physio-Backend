@@ -51,7 +51,7 @@ public class TherapyExercises {
     private String metric;
     private String value;
     private String unit;
-
+   private String bodyPart;
     // ✅ Activity Fields
     private String activityType;
     private String activityDuration;
