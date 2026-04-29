@@ -1905,20 +1905,6 @@ result.add(session);
                 return response;
             }
 
-            List<TherapistRecordDTO> visits = new ArrayList<>();
-
-            try {
-                ResponseStructure<List<TherapistRecordDTO>> feignRes =
-                        clinicAdminFeign.getByPatientIdAndBookingId(patientId, bookingId);
-
-                if (feignRes != null && feignRes.getData() != null) {    
-                    visits = feignRes.getData();
-                }
-
-            } catch (Exception e) {
-                visits = new ArrayList<>();
-            }
-
             ObjectMapper mapper = new ObjectMapper();
 
             mapper.setDefaultPropertyInclusion(
@@ -1942,23 +1928,6 @@ result.add(session);
                 map.put("physiotherapyDoctorData",
                         mapper.convertValue(record,
                                 new TypeReference<Map<String, Object>>() {}));
-
-                // Match by IDs only
-                List<Map<String, Object>> matchedTherapy = new ArrayList<>();
-
-                for (TherapistRecordDTO visit : visits) {
-
-                    if (patientId.equals(visit.getPatientId()) &&
-                        bookingId.equals(visit.getBookingId())) {
-
-                        matchedTherapy.add(
-                            mapper.convertValue(visit,
-                                new TypeReference<Map<String, Object>>() {})
-                        );
-                    }
-                }
-
-                map.put("therapyRecordData", matchedTherapy);
 
                 result.add(map);
             }
