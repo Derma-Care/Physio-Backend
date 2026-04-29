@@ -2917,7 +2917,7 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
                 );
     List<BookingResponse> res = toResponses(bookings);
 try {
-	 res = res.stream().map(n->{ List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate()).getBody();
+	 res = res.stream().map(n->{ n.setVisitType("follow-up"); List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate()).getBody();
 	//System.out.println(lst);
 	 n.setSession(lst);return n;}).toList();
 }catch(Exception e) {}
