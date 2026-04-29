@@ -30,7 +30,7 @@ public class PhysiotherapyRecord {
     private String clinicId;
     private String branchId;
 
-    private String overallStatus;
+//    private String overallStatus;
     private String createdAt;
     private String updatedAt;
 

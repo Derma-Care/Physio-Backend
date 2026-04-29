@@ -88,7 +88,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	    PhysiotherapyRecord entity = mapToEntity(dto);
 
 	    entity.setTherapistRecordId(dto.getTherapistRecordId());
-	    entity.setOverallStatus("Pending");
+//	    entity.setOverallStatus("Pending");
 
 	    LocalDateTime now = LocalDateTime.now();
 
@@ -499,9 +499,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 //	        existing.setProgressAnalytics(dto.getProgressAnalytics());
 //	    }
 
-		if (dto.getOverallStatus() != null) {
-			existing.setOverallStatus(dto.getOverallStatus());
-		}
+//		if (dto.getOverallStatus() != null) {
+//			existing.setOverallStatus(dto.getOverallStatus());
+//		}
 
 		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
 		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -564,7 +564,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		entity.setBookingId(dto.getBookingId());
 		entity.setClinicId(dto.getClinicId());
 		entity.setBranchId(dto.getBranchId());
-		entity.setOverallStatus(dto.getOverallStatus());
+//		entity.setOverallStatus(dto.getOverallStatus());
 
 		// =========================
 		// ✅ PATIENT INFO

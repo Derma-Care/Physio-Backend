@@ -11,7 +11,7 @@ public class PhysiotherapyRecordDTO {
     private String clinicId;
     private String branchId;
 
-    private String overallStatus;
+//    private String overallStatus;
     private String createdAt;
 
     private PatientInfo patientInfo;
