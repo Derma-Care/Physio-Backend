@@ -82,7 +82,7 @@ public class BookingServiceController {
 	    return bookingService.getReportsByPatientId(patientId);}
 	   
 	   @PostMapping("/bookService")
-	   public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws JsonProcessingException  {
+	   public ResponseEntity<Object> bookService(@RequestBody BookingResponse req)throws JsonProcessingException  {
 	   	Response response = bookingService.bookService(req);
 	   	if(response != null && response.getData() == null) {
 	   		 return ResponseEntity.status(response.getStatus()).body(response);

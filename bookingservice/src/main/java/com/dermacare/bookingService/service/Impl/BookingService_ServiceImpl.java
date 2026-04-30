@@ -109,7 +109,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	 
 	 @Override
-	 public ResponseEntity<?> addService(BookingRequset request) {
+	 public ResponseEntity<?> addService(BookingResponse request) {
 	     ResponseStructure<FollowupBookingDto> response = new ResponseStructure<>();
 	     ObjectMapper mapper = new ObjectMapper();
          mapper.registerModule(new JavaTimeModule());
@@ -2997,8 +2997,13 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 		}
 
 		// ✅ Date range (correct logic)
+<<<<<<< HEAD
 		LocalDate startDate = LocalDate.now();
 		LocalDate endDate = startDate.plusDays(days - 1);
+=======
+		LocalDate startDate = LocalDate.now().minusDays(1);
+		LocalDate endDate = startDate.plusDays(days + 1);
+>>>>>>> 6c687ecae6b7c55fc03c8e14212272a7da738bb4
 
 		// ✅ Fetch ALL bookings (no status filter)
 		List<Booking> bookings =
@@ -3008,6 +3013,7 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 						startDate.format(FORMATTER),
 						endDate.format(FORMATTER)
 				);
+<<<<<<< HEAD
 
 		// ✅ Convert to response DTO
 		List<BookingResponse> res = toResponses(bookings);
@@ -3060,6 +3066,60 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 		summary.put("startDate", startDate.toString());
 		summary.put("endDate", endDate.toString());
 
+=======
+		System.out.println(bookings);
+		// ✅ Convert to response DTO
+		List<BookingResponse> res = toResponses(bookings);
+		System.out.println(res);
+		// ✅ Enrich with session details
+		try {
+			res = res.stream().map(n -> {
+				n.setVisitType("follow-up");
+
+				List<Session> lst = physioDoctorFeign
+						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
+						.getBody();
+
+				n.setSession(lst != null ? lst : Collections.emptyList());
+				return n;
+			}).toList();
+//System.out.println(bookings);
+		} catch (Exception e) {
+			System.out.println("Error while fetching session details: " + e.getMessage());
+		}
+
+		// ✅ Total count
+		long totalCount = bookings.size();
+
+		// ✅ Status counts (case-insensitive + null-safe)
+		long pendingCount = bookings.stream()
+				.filter(b -> "PENDING".equalsIgnoreCase(
+						Optional.ofNullable(b.getFollowupStatus()).orElse("")
+				))
+				.count();
+
+		long confirmedCount = bookings.stream()
+				.filter(b -> "CONFIRMED".equalsIgnoreCase(
+						Optional.ofNullable(b.getFollowupStatus()).orElse("")
+				))
+				.count();
+
+		long inProgressCount = bookings.stream()
+				.filter(b -> "IN-PROGRESS".equalsIgnoreCase(
+						Optional.ofNullable(b.getFollowupStatus()).orElse("")
+				))
+				.count();
+
+		// ✅ Summary
+		Map<String, Object> summary = new HashMap<>();
+		summary.put("totalAppointments", totalCount);
+		summary.put("pending", pendingCount);
+		summary.put("confirmed", confirmedCount);
+		summary.put("inProgress", inProgressCount);
+		summary.put("startDate", startDate.toString());
+		summary.put("endDate", endDate.toString());
+
+>>>>>>> 6c687ecae6b7c55fc03c8e14212272a7da738bb4
 		return ResponseEntity.ok(
 				new Response(true, res, summary,
 						"Upcoming bookings fetched", 200, null, null)
@@ -3160,15 +3220,17 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
     try {
         LocalDate strt = LocalDate.parse(start);
+		String minusday = strt.minusDays(1).format(FORMATTER);
         LocalDate endDte = LocalDate.parse(end);
-        String endDate = endDte.plusDays(1).format(FORMATTER);
+		String plusday = endDte.plusDays(1).format(FORMATTER);
+		//String endDate = endDte.plusDays(1).format(FORMATTER);
 
         List<Booking> bookings =
                 repository.findByClinicIdAndBranchIdAndServiceDateBetween(
                         clinicId,
                         branchId,
-                        strt.format(FORMATTER),
-                        endDate
+						minusday,
+						plusday
                 );
         List<BookingResponse> res = toResponses(bookings);
         try {
@@ -3221,6 +3283,7 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
 			for (int i = 0; i < parts.length; i++) {
 				String part = parts[i];
+<<<<<<< HEAD
 
 				if (!part.isEmpty()) {
 					parts[i] = part.substring(0, 1).toUpperCase() +
@@ -3273,9 +3336,63 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 		}
 	}
 
+=======
+
+				if (!part.isEmpty()) {
+					parts[i] = part.substring(0, 1).toUpperCase() +
+							part.substring(1).toLowerCase();}}
+			String letter  =  String.join("-", parts);
+			Optional<Booking> booking = repository.findByBookingId(letter);
+			if(booking.isPresent()) {
+				if(booking.get().getFollwupBookings() != null || !booking.get().getFollwupBookings().isEmpty()) {
+					ObjectMapper mapper = new ObjectMapper();
+					mapper.registerModule(new JavaTimeModule());
+					mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+					BookingResponse res = null;
+					if(booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size()-1).getStatus().equalsIgnoreCase("in-progress")) {
+						res = mapper.convertValue(booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size()-1), BookingResponse.class);
+						List<Session> lst = new ArrayList<>();
+						try {
+							lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
+							res.setSession(lst);
+						}catch(Exception e) {}}
+					return ResponseEntity.ok(
+							new Response(
+									true,                      // success
+									res,null,            // data
+									"Booking fetched successfully", // message
+									200,null, null                      // status
+							));}else {
+					return ResponseEntity.status(HttpStatus.NOT_FOUND)
+							.body(new Response(
+									false,
+									null,null,
+									"follow up appoiintment not found",
+									404,null,null
+							));
+				}}else{
+				return ResponseEntity.status(HttpStatus.OK)
+						.body(new Response(
+								false,
+								null,null,
+								"Booking not found",
+								200,null,null
+						));
+			}} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(new Response(
+							false,
+							null,null,
+							e.getMessage(),
+							500,null,null
+					));
+		}
+	}
+>>>>>>> 6c687ecae6b7c55fc03c8e14212272a7da738bb4
 
 
-private Booking updateForFollowup(BookingRequset dto) { 
+
+private Booking updateForFollowup(BookingResponse dto) {
 try {
     Booking entity = repository.findByBookingId(dto.getBookingId())
             .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
@@ -3397,7 +3514,7 @@ try {
 
     // -------- STATUS --------
    if (dto.getStatus() != null) {entity.setStatus(dto.getStatus());}
-
+System.out.println(dto.getStatus());
     // -------- FILES --------
     if (dto.getAttachments() != null && !dto.getAttachments().isEmpty())
         entity.setAttachments(

@@ -35,7 +35,7 @@ public class BookingServiceController {
 
 
 	@PostMapping("/bookService")
-	public  ResponseEntity<?> bookService(@RequestBody BookingRequset req) {
+	public  ResponseEntity<?> bookService(@RequestBody BookingResponse req) {
 		return service.addService(req);}
 		
 

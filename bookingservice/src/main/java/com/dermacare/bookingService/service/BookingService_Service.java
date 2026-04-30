@@ -10,7 +10,7 @@ import com.dermacare.bookingService.util.Response;
 
 public interface BookingService_Service {
 
-	public ResponseEntity<?> addService(BookingRequset req);
+	public ResponseEntity<?> addService(BookingResponse req);
 	public BookingResponse deleteService(String id);
 	public BookingResponse getBookedService(String id);
 	public List<BookingResponse> getBookedServices(String mobileNumber);

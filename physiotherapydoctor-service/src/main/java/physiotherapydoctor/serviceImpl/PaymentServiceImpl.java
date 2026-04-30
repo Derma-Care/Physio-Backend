@@ -1,9 +1,11 @@
 package physiotherapydoctor.serviceImpl;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -36,1098 +38,1145 @@ import physiotherapydoctor.service.PaymentService;
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
-    private final PaymentRepository repo;
+	private final PaymentRepository repo;
 
-    @Autowired
-    private BookingFeign bookingFeign;
+	@Autowired
+	private BookingFeign bookingFeign;
 
+	@Autowired
+	private ClinicAdminFeign clinicAdminFeign;
 
+	// ========================================================
+	// CREATE
+	// ========================================================
+	@Override
+	public PaymentRecordResponse createPayment(PaymentRequest req) {
 
-    @Autowired
-    private ClinicAdminFeign clinicAdminFeign;
+		if (repo.findByBookingId(req.getBookingId()).isPresent()) {
+			throw new RuntimeException("Already exists, use update");
+		}
 
-    // ========================================================
-    //                      CREATE
-    // ========================================================
-    @Override
-    public PaymentRecordResponse createPayment(PaymentRequest req) {
+		if (req.getAmount() == null || req.getAmount() <= 0) {
+			throw new RuntimeException("Amount must be greater than 0");
+		}
 
-        if (repo.findByBookingId(req.getBookingId()).isPresent()) {
-            throw new RuntimeException("Already exists, use update");
-        }
+		if (req.getTherapyWithSessions() == null || req.getTherapyWithSessions().isEmpty()) {
+			throw new RuntimeException("therapyWithSessions is required");
+		}
 
-        if (req.getAmount() == null || req.getAmount() <= 0) {
-            throw new RuntimeException("Amount must be greater than 0");
-        }
+		// ✅ STEP 1: Normalize payload to full Package structure
+		List<TherapyWithSessions> normalized = normalizePayload(req);
+		req.setTherapyWithSessions(normalized);
 
-        if (req.getTherapyWithSessions() == null || req.getTherapyWithSessions().isEmpty()) {
-            throw new RuntimeException("therapyWithSessions is required");
-        }
+		PaymentRecord record = new PaymentRecord();
 
-        // ✅ STEP 1: Normalize payload to full Package structure
-        List<TherapyWithSessions> normalized = normalizePayload(req);
-        req.setTherapyWithSessions(normalized);
+		// ================= BASIC =================
+		record.setClinicId(req.getClinicId());
+		record.setBranchId(req.getBranchId());
+		record.setBookingId(req.getBookingId());
+		record.setPatientId(req.getPatientId());
+		record.setOverallStatus("Pending");
 
-        PaymentRecord record = new PaymentRecord();
+		record.setDoctorId(req.getDoctorId());
+		record.setDoctorName(req.getDoctorName());
 
-        // ================= BASIC =================
-        record.setClinicId(req.getClinicId());
-        record.setBranchId(req.getBranchId());
-        record.setBookingId(req.getBookingId());
-        record.setPatientId(req.getPatientId());
-        record.setOverallStatus("Pending");
+		record.setTherapistId(req.getTherapistId());
+		record.setTherapistName(req.getTherapistName());
+		record.setTherapistRecordId(req.getTherapistRecordId());
 
-        record.setDoctorId(req.getDoctorId());
-        record.setDoctorName(req.getDoctorName());
+		record.setServiceType(req.getServiceType());
 
-        record.setTherapistId(req.getTherapistId());
-        record.setTherapistName(req.getTherapistName());
-        record.setTherapistRecordId(req.getTherapistRecordId());
+		// ================= SESSION =================
+		record.setSessionStartDate(req.getSessionStartDate());
+		record.setTotalSessionCount(req.getTotalSessionCount());
 
-        record.setServiceType(req.getServiceType());
+		// ================= TOTAL =================
+		double total = calculateTotal(req.getTherapyWithSessions());
+		double discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : 0;
+		double finalAmount = total - discount;
 
-        // ================= SESSION =================
-        record.setSessionStartDate(req.getSessionStartDate());
-        record.setTotalSessionCount(req.getTotalSessionCount());
+		record.setTotalAmount(total);
+		record.setDiscountAmount(discount);
+		record.setFinalAmount(finalAmount);
 
-        // ================= TOTAL =================
-        double total = calculateTotal(req.getTherapyWithSessions());
-        double discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : 0;
-        double finalAmount = total - discount;
+		double amount = req.getAmount();
 
-        record.setTotalAmount(total);
-        record.setDiscountAmount(discount);
-        record.setFinalAmount(finalAmount);
+		// ================= VALIDATIONS =================
+		if (amount > finalAmount) {
+			throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
+		}
 
-        double amount = req.getAmount();
+		if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
+			throw new RuntimeException("Full payment must be exactly: " + finalAmount);
+		}
 
-        // ================= VALIDATIONS =================
-        if (amount > finalAmount) {
-            throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
-        }
+		// ================= PAYMENT =================
+		record.setTotalPaid(amount);
+		record.setBalanceAmount(finalAmount - amount);
+		record.setPaymentStatus(getStatus(record));
 
-        if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
-            throw new RuntimeException("Full payment must be exactly: " + finalAmount);
-        }
+		// ================= CREATE SESSIONS =================
+		boolean created = createSessions(req.getTherapyWithSessions(), req.getSessionStartDate());
+		record.setSessionTableCreatedStatus(created);
 
-        // ================= PAYMENT =================
-        record.setTotalPaid(amount);
-        record.setBalanceAmount(finalAmount - amount);
-        record.setPaymentStatus(getStatus(record));
+		// ✅ STEP 2: Set normalized data on record BEFORE distribute/status calls
+		record.setTherapyWithSessions(req.getTherapyWithSessions());
 
-        // ================= CREATE SESSIONS =================
-        boolean created = createSessions(req.getTherapyWithSessions(), req.getSessionStartDate());
-        record.setSessionTableCreatedStatus(created);
+		// ✅ STEP 3: Distribute payment across sessions
+		distributePaymentToSessions(record);
 
-        // ✅ STEP 2: Set normalized data on record BEFORE distribute/status calls
-        record.setTherapyWithSessions(req.getTherapyWithSessions());
+		// ================= HISTORY =================
+		record.setPaymentHistory(new ArrayList<>());
+		record.getPaymentHistory().add(buildHistory(req));
 
-        // ✅ STEP 3: Distribute payment across sessions
-        distributePaymentToSessions(record);
+		// ================= APPLY LEVEL =================
+		if (req.getPaymentTarget() != null) {
+			applyPaymentLevel(record, req);
+		}
 
-        // ================= HISTORY =================
-        record.setPaymentHistory(new ArrayList<>());
-        record.getPaymentHistory().add(buildHistory(req));
+		// ================= STATUS PROPAGATION =================
+		updateStatuses(record);
 
-        // ================= APPLY LEVEL =================
-        if (req.getPaymentTarget() != null) {
-            applyPaymentLevel(record, req);
-        }
+		// ✅ STEP 4: Save and map to clean response
+		return mapToResponse(repo.save(record));
+	}
 
-        // ================= STATUS PROPAGATION =================
-        updateStatuses(record);
+	// ========================================================
+	// UPDATE
+	// ========================================================
+	@Override
+	public PaymentRecordResponse updatePayment(PaymentRequest req) {
 
-        // ✅ STEP 4: Save and map to clean response
-        return mapToResponse(repo.save(record));
-    }
+		PaymentRecord record = repo.findByBookingId(req.getBookingId())
+				.orElseThrow(() -> new RuntimeException("Payment not found"));
 
-    // ========================================================
-    //                      UPDATE
-    // ========================================================
-    @Override
-    public PaymentRecordResponse updatePayment(PaymentRequest req) {
+		if (req.getTherapyWithSessions() != null) {
+			throw new RuntimeException("Do not send therapyWithSessions in update");
+		}
 
-        PaymentRecord record = repo.findByBookingId(req.getBookingId())
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+		if (req.getAmount() == null || req.getAmount() <= 0) {
+			throw new RuntimeException("Amount must be greater than 0");
+		}
 
-        if (req.getTherapyWithSessions() != null) {
-            throw new RuntimeException("Do not send therapyWithSessions in update");
-        }
+		if (req.getPaymentTarget() == null) {
+			throw new RuntimeException("paymentTarget is required");
+		}
 
-        if (req.getAmount() == null || req.getAmount() <= 0) {
-            throw new RuntimeException("Amount must be greater than 0");
-        }
+		double currentPaid = record.getTotalPaid();
+		double finalAmount = record.getFinalAmount();
+		double remaining = finalAmount - currentPaid;
 
-        if (req.getPaymentTarget() == null) {
-            throw new RuntimeException("paymentTarget is required");
-        }
+		// ================= FULL PAYMENT VALIDATION =================
+		if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
+			if (req.getAmount() != remaining) {
+				throw new RuntimeException("Full payment must be exactly remaining amount: " + remaining);
+			}
+		}
 
-        double currentPaid = record.getTotalPaid();
-        double finalAmount = record.getFinalAmount();
-        double remaining = finalAmount - currentPaid;
+		// ================= OVERPAYMENT PREVENTION =================
+		double newPaid = currentPaid + req.getAmount();
 
-        // ================= FULL PAYMENT VALIDATION =================
-        if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
-            if (req.getAmount() != remaining) {
-                throw new RuntimeException(
-                        "Full payment must be exactly remaining amount: " + remaining
-                );
-            }
-        }
+		if (newPaid > finalAmount) {
+			throw new RuntimeException("Payment exceeds final amount. Remaining payable: " + remaining);
+		}
 
-        // ================= OVERPAYMENT PREVENTION =================
-        double newPaid = currentPaid + req.getAmount();
+		// ================= UPDATE AMOUNT =================
+		record.setTotalPaid(newPaid);
+		record.setBalanceAmount(finalAmount - newPaid);
+		record.setPaymentStatus(getStatus(record));
 
-        if (newPaid > finalAmount) {
-            throw new RuntimeException(
-                    "Payment exceeds final amount. Remaining payable: " + remaining
-            );
-        }
+		// ================= DISTRIBUTE =================
+		distributePaymentToSessions(record);
 
-        // ================= UPDATE AMOUNT =================
-        record.setTotalPaid(newPaid);
-        record.setBalanceAmount(finalAmount - newPaid);
-        record.setPaymentStatus(getStatus(record));
+		// ================= APPLY PAYMENT LEVEL =================
+		applyPaymentLevel(record, req);
 
-        // ================= DISTRIBUTE =================
-        distributePaymentToSessions(record);
+		// ================= SESSION COMPLETION =================
+		int completed = countCompleted(record);
+		record.setNoOfSessionCompletedCount(completed);
+		record.setNoOfSessionCompletedStatus(completed >= record.getTotalSessionCount());
 
-        // ================= APPLY PAYMENT LEVEL =================
-        applyPaymentLevel(record, req);
+		// ================= HISTORY =================
+		record.getPaymentHistory().add(buildHistory(req));
 
-        // ================= SESSION COMPLETION =================
-        int completed = countCompleted(record);
-        record.setNoOfSessionCompletedCount(completed);
-        record.setNoOfSessionCompletedStatus(
-                completed >= record.getTotalSessionCount()
-        );
+		// ================= STATUS PROPAGATION =================
+		updateStatuses(record);
 
-        // ================= HISTORY =================
-        record.getPaymentHistory().add(buildHistory(req));
+		return mapToResponse(repo.save(record));
+	}
 
-        // ================= STATUS PROPAGATION =================
-        updateStatuses(record);
+	// ========================================================
+	// GET BY BOOKING ID
+	// ========================================================
+	@Override
+	public PaymentRecordResponse getByBookingId(String bookingId) {
 
-        return mapToResponse(repo.save(record));
-    }
+		PaymentRecord record = repo.findByBookingId(bookingId)
+				.orElseThrow(() -> new RuntimeException("Payment not found for bookingId: " + bookingId));
 
-    // ========================================================
-    //                   GET BY BOOKING ID
-    // ========================================================
-    @Override
-    public PaymentRecordResponse getByBookingId(String bookingId) {
+		int completed = countCompleted(record);
+		record.setNoOfSessionCompletedCount(completed);
+		record.setNoOfSessionCompletedStatus(completed >= record.getTotalSessionCount());
 
-        PaymentRecord record = repo.findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Payment not found for bookingId: " + bookingId));
+		return mapToResponse(record);
+	}
 
-        int completed = countCompleted(record);
-        record.setNoOfSessionCompletedCount(completed);
-        record.setNoOfSessionCompletedStatus(
-                completed >= record.getTotalSessionCount()
-        );
+	// ========================================================
+	// DELETE BY BOOKING ID
+	// ========================================================
+	@Override
+	public void deleteByBookingId(String bookingId) {
 
-        return mapToResponse(record);
-    }
+		PaymentRecord record = repo.findByBookingId(bookingId)
+				.orElseThrow(() -> new RuntimeException("Payment not found for bookingId: " + bookingId));
 
-    // ========================================================
-    //                   DELETE BY BOOKING ID
-    // ========================================================
-    @Override
-    public void deleteByBookingId(String bookingId) {
+		repo.delete(record);
+	}
 
-        PaymentRecord record = repo.findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Payment not found for bookingId: " + bookingId));
+	// ========================================================
+	// UPDATE SESSION STATUS FROM THERAPIST
+	// ========================================================
+	@Override
+	public void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId) {
 
-        repo.delete(record);
-    }
+		// ✅ Get all records for this therapist
+		List<PaymentRecord> records = repo.findByTherapistRecordId(therapistRecordId);
 
-    // ========================================================
-    //              UPDATE SESSION STATUS FROM THERAPIST
-    // ========================================================
-    @Override
-    public void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId) {
+		if (records == null || records.isEmpty()) {
+			throw new RuntimeException("No payment records found for therapistRecordId: " + therapistRecordId);
+		}
 
-        // ✅ Get all records for this therapist
-        List<PaymentRecord> records = repo.findByTherapistRecordId(therapistRecordId);
+		PaymentRecord targetRecord = null;
+		boolean sessionFound = false;
 
-        if (records == null || records.isEmpty()) {
-            throw new RuntimeException("No payment records found for therapistRecordId: " + therapistRecordId);
-        }
+		// ✅ Search session across all records
+		outer: for (PaymentRecord record : records) {
 
-        PaymentRecord targetRecord = null;
-        boolean sessionFound = false;
+			List<TherapyWithSessions> packageList = record.getTherapyWithSessions();
+			if (packageList == null || packageList.isEmpty())
+				continue;
 
-        // ✅ Search session across all records
-        outer:
-        for (PaymentRecord record : records) {
+			for (TherapyWithSessions pkg : packageList) {
+				if (pkg.getPrograms() == null)
+					continue;
 
-            List<TherapyWithSessions> packageList = record.getTherapyWithSessions();
-            if (packageList == null || packageList.isEmpty()) continue;
+				for (Program program : pkg.getPrograms()) {
+					if (program.getTherapyData() == null)
+						continue;
 
-            for (TherapyWithSessions pkg : packageList) {
-                if (pkg.getPrograms() == null) continue;
+					for (TherapyData therapy : program.getTherapyData()) {
+						if (therapy.getExercises() == null)
+							continue;
 
-                for (Program program : pkg.getPrograms()) {
-                    if (program.getTherapyData() == null) continue;
+						for (TherapyExercise exercise : therapy.getExercises()) {
+							if (exercise.getSessions() == null)
+								continue;
 
-                    for (TherapyData therapy : program.getTherapyData()) {
-                        if (therapy.getExercises() == null) continue;
+							for (Session session : exercise.getSessions()) {
+								if (sessionId.equals(session.getSessionId())) {
+									session.setStatus("Completed");
+									targetRecord = record; // ✅ Found which record
+									sessionFound = true;
+									break outer;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
-                        for (TherapyExercise exercise : therapy.getExercises()) {
-                            if (exercise.getSessions() == null) continue;
+		if (!sessionFound || targetRecord == null) {
+			throw new RuntimeException("Session not found with ID: " + sessionId);
+		}
 
-                            for (Session session : exercise.getSessions()) {
-                                if (sessionId.equals(session.getSessionId())) {
-                                    session.setStatus("Completed");
-                                    targetRecord = record;  // ✅ Found which record
-                                    sessionFound = true;
-                                    break outer;
-                                }
-                            }
-                        }
+		// ✅ Update only the record that contains the session
+		targetRecord.setOverallStatus(calculateOverallStatus(targetRecord));
+
+		repo.save(targetRecord);
+
+		updateBookingStatus(targetRecord);
+	}
+
+	// ========================================================
+	// NORMALIZE PAYLOAD
+	// ========================================================
+	private List<TherapyWithSessions> normalizePayload(PaymentRequest req) {
+
+		String serviceType = req.getServiceType() != null ? req.getServiceType().toLowerCase() : "package";
+
+		List<TherapyWithSessions> incoming = req.getTherapyWithSessions();
+
+		if (incoming == null || incoming.isEmpty()) {
+			throw new RuntimeException("therapyWithSessions is required");
+		}
+
+		switch (serviceType) {
+
+		case "package":
+			return incoming;
+
+		case "program": {
+			TherapyWithSessions dummyPackage = new TherapyWithSessions();
+			dummyPackage.setPackageId("PKG_AUTO");
+			dummyPackage.setPackageName("Auto Package");
+
+			List<Program> programs = new ArrayList<>();
+			for (TherapyWithSessions item : incoming) {
+				if (item.getProgramId() == null)
+					continue;
+				Program prog = new Program();
+				prog.setProgramId(item.getProgramId());
+				prog.setProgramName(item.getProgramName());
+				prog.setTherapyData(item.getTherapyData());
+				programs.add(prog);
+			}
+
+			if (programs.isEmpty()) {
+				throw new RuntimeException("No valid program data found");
+			}
+
+			dummyPackage.setPrograms(programs);
+			return List.of(dummyPackage);
+		}
+
+		case "therapy": {
+			TherapyWithSessions dummyPackage = new TherapyWithSessions();
+			dummyPackage.setPackageId("PKG_AUTO");
+			dummyPackage.setPackageName("Auto Package");
+
+			Program dummyProgram = new Program();
+			dummyProgram.setProgramId("PROG_AUTO");
+			dummyProgram.setProgramName("Auto Program");
+
+			List<TherapyData> therapyList = new ArrayList<>();
+			for (TherapyWithSessions item : incoming) {
+				if (item.getTherapyId() == null)
+					continue;
+				TherapyData therapy = new TherapyData();
+				therapy.setTherapyId(item.getTherapyId());
+				therapy.setTherapyName(item.getTherapyName());
+				therapy.setExercises(item.getExercises());
+				therapyList.add(therapy);
+			}
+
+			if (therapyList.isEmpty()) {
+				throw new RuntimeException("No valid therapy data found");
+			}
+
+			dummyProgram.setTherapyData(therapyList);
+			dummyPackage.setPrograms(List.of(dummyProgram));
+			return List.of(dummyPackage);
+		}
+
+		case "exercise": {
+			TherapyWithSessions dummyPackage = new TherapyWithSessions();
+			dummyPackage.setPackageId("PKG_AUTO");
+			dummyPackage.setPackageName("Auto Package");
+
+			Program dummyProgram = new Program();
+			dummyProgram.setProgramId("PROG_AUTO");
+			dummyProgram.setProgramName("Auto Program");
+
+			TherapyData dummyTherapy = new TherapyData();
+			dummyTherapy.setTherapyId("THER_AUTO");
+			dummyTherapy.setTherapyName("Auto Therapy");
+
+			List<TherapyExercise> allExercises = new ArrayList<>();
+			for (TherapyWithSessions item : incoming) {
+				if (item.getExercises() != null) {
+					allExercises.addAll(item.getExercises());
+				}
+			}
+
+			if (allExercises.isEmpty()) {
+				throw new RuntimeException("No valid exercise data found");
+			}
+
+			dummyTherapy.setExercises(allExercises);
+			dummyProgram.setTherapyData(List.of(dummyTherapy));
+			dummyPackage.setPrograms(List.of(dummyProgram));
+			return List.of(dummyPackage);
+		}
+
+		default:
+			throw new RuntimeException("Invalid serviceType: " + serviceType);
+		}
+	}
+
+	// ========================================================
+	// APPLY PAYMENT LEVEL
+	// ========================================================
+	private void applyPaymentLevel(PaymentRecord record, PaymentRequest req) {
+
+		if (req.getPaymentLevel() == null || req.getPaymentTarget() == null)
+			return;
+
+		String level = req.getPaymentLevel().toUpperCase();
+		String status = getStatus(record);
+
+		switch (level) {
+		case "PACKAGE":
+			updatePackageStatus(record, req.getPaymentTarget().getPackageIds(), status);
+			break;
+		case "PROGRAM":
+			updateProgramStatus(record, req.getPaymentTarget().getProgramIds(), status);
+			break;
+		case "THERAPY":
+			updateTherapyStatus(record, req.getPaymentTarget().getTherapyIds(), status);
+			break;
+		case "EXERCISE":
+			updateExerciseStatus(record, req.getPaymentTarget().getExerciseIds(), status);
+			break;
+		case "SESSION":
+			paySessions(record, req.getPaymentTarget().getSessionIds());
+			break;
+		}
+	}
+
+	// ========================================================
+	// DISTRIBUTE PAYMENT TO SESSIONS
+	// ========================================================
+	private void distributePaymentToSessions(PaymentRecord record) {
+
+		if (record.getTherapyWithSessions() == null)
+			return;
+
+		double remaining = record.getTotalPaid();
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+				for (var therapy : prog.getTherapyData()) {
+					if (therapy.getExercises() == null)
+						continue;
+					for (var ex : therapy.getExercises()) {
+						if (ex.getSessions() == null)
+							continue;
+						double price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+						for (var s : ex.getSessions()) {
+							if (remaining >= price) {
+								// ✅ Full session price available — mark Paid
+								s.setPaymentStatus("Paid");
+								remaining -= price;
+							} else {
+								// ✅ Not enough — mark Unpaid (no Partial at session level)
+								s.setPaymentStatus("Unpaid");
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// ========================================================
+	// PACKAGE STATUS UPDATE
+	// ========================================================
+	private void updatePackageStatus(PaymentRecord record, List<String> ids, String status) {
+
+		if (ids == null)
+			return;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (ids.contains(pkg.getPackageId())) {
+				pkg.setPaymentStatus(status);
+				for (var prog : pkg.getPrograms()) {
+					prog.setPaymentStatus(status);
+					for (var therapy : prog.getTherapyData()) {
+						therapy.setPaymentStatus(status);
+						for (var ex : therapy.getExercises()) {
+							ex.setPaymentStatus(status);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// ========================================================
+	// PROGRAM STATUS UPDATE
+	// ========================================================
+	private void updateProgramStatus(PaymentRecord record, List<String> ids, String status) {
+
+		if (ids == null)
+			return;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (ids.contains(prog.getProgramId())) {
+					prog.setPaymentStatus(status);
+					for (var therapy : prog.getTherapyData()) {
+						therapy.setPaymentStatus(status);
+						for (var ex : therapy.getExercises()) {
+							ex.setPaymentStatus(status);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// ========================================================
+	// THERAPY STATUS UPDATE
+	// ========================================================
+	private void updateTherapyStatus(PaymentRecord record, List<String> ids, String status) {
+
+		if (ids == null)
+			return;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+				for (var therapy : prog.getTherapyData()) {
+					if (ids.contains(therapy.getTherapyId())) {
+						therapy.setPaymentStatus(status);
+						for (var ex : therapy.getExercises()) {
+							ex.setPaymentStatus(status);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// ========================================================
+	// EXERCISE STATUS UPDATE
+	// ========================================================
+	private void updateExerciseStatus(PaymentRecord record, List<String> ids, String status) {
+
+		if (ids == null)
+			return;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+				for (var therapy : prog.getTherapyData()) {
+					if (therapy.getExercises() == null)
+						continue;
+					for (var ex : therapy.getExercises()) {
+						if (ids.contains(ex.getExerciseId())) {
+							ex.setPaymentStatus(status);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// ========================================================
+	// SESSION PAY
+	// ========================================================
+	private void paySessions(PaymentRecord record, List<String> ids) {
+
+		if (ids == null)
+			return;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+				for (var therapy : prog.getTherapyData()) {
+					if (therapy.getExercises() == null)
+						continue;
+					for (var ex : therapy.getExercises()) {
+						if (ex.getSessions() == null)
+							continue;
+						for (var s : ex.getSessions()) {
+							if (ids.contains(s.getSessionId())) {
+								s.setPaymentStatus("Paid");
+							}
+						}
+						boolean allPaid = ex.getSessions().stream()
+								.allMatch(x -> "Paid".equalsIgnoreCase(x.getPaymentStatus()));
+						ex.setPaymentStatus(allPaid ? "Paid" : "Paid");
+					}
+				}
+			}
+		}
+	}
+
+	// ========================================================
+	// STATUS PROPAGATION
+	// ========================================================
+private void updateStatuses(PaymentRecord record) {
+
+    if (record.getTherapyWithSessions() == null) return;
+
+    for (var pkg : record.getTherapyWithSessions()) {
+        if (pkg.getPrograms() == null) continue;
+        for (var prog : pkg.getPrograms()) {
+            if (prog.getTherapyData() == null) continue;
+            for (var therapy : prog.getTherapyData()) {
+                if (therapy.getExercises() == null) continue;
+                for (var ex : therapy.getExercises()) {
+
+                    if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
+                        ex.setPaymentStatus("Unpaid");
+                        continue;
                     }
-                }
-            }
-        }
 
-        if (!sessionFound || targetRecord == null) {
-            throw new RuntimeException("Session not found with ID: " + sessionId);
-        }
+                    boolean allPaid = ex.getSessions().stream()
+                            .allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
 
-        // ✅ Update only the record that contains the session
-        targetRecord.setOverallStatus(calculateOverallStatus(targetRecord));
-
-        repo.save(targetRecord);
-
-        updateBookingStatus(targetRecord);
-    }
-    
-    // ========================================================
-    //                   NORMALIZE PAYLOAD
-    // ========================================================
-    private List<TherapyWithSessions> normalizePayload(PaymentRequest req) {
-
-        String serviceType = req.getServiceType() != null
-                ? req.getServiceType().toLowerCase()
-                : "package";
-
-        List<TherapyWithSessions> incoming = req.getTherapyWithSessions();
-
-        if (incoming == null || incoming.isEmpty()) {
-            throw new RuntimeException("therapyWithSessions is required");
-        }
-
-        switch (serviceType) {
-
-            case "package":
-                return incoming;
-
-            case "program": {
-                TherapyWithSessions dummyPackage = new TherapyWithSessions();
-                dummyPackage.setPackageId("PKG_AUTO");
-                dummyPackage.setPackageName("Auto Package");
-
-                List<Program> programs = new ArrayList<>();
-                for (TherapyWithSessions item : incoming) {
-                    if (item.getProgramId() == null) continue;
-                    Program prog = new Program();
-                    prog.setProgramId(item.getProgramId());
-                    prog.setProgramName(item.getProgramName());
-                    prog.setTherapyData(item.getTherapyData());
-                    programs.add(prog);
+                    // ✅ Only Paid or Unpaid — no Partial
+                    ex.setPaymentStatus(allPaid ? "Paid" : "Unpaid");
                 }
 
-                if (programs.isEmpty()) {
-                    throw new RuntimeException("No valid program data found");
-                }
-
-                dummyPackage.setPrograms(programs);
-                return List.of(dummyPackage);
+                // ✅ Propagate to therapy — only Paid or Unpaid
+                boolean allTherapyPaid = therapy.getExercises().stream()
+                        .allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
+                therapy.setPaymentStatus(allTherapyPaid ? "Paid" : "Unpaid");
             }
 
-            case "therapy": {
-                TherapyWithSessions dummyPackage = new TherapyWithSessions();
-                dummyPackage.setPackageId("PKG_AUTO");
-                dummyPackage.setPackageName("Auto Package");
-
-                Program dummyProgram = new Program();
-                dummyProgram.setProgramId("PROG_AUTO");
-                dummyProgram.setProgramName("Auto Program");
-
-                List<TherapyData> therapyList = new ArrayList<>();
-                for (TherapyWithSessions item : incoming) {
-                    if (item.getTherapyId() == null) continue;
-                    TherapyData therapy = new TherapyData();
-                    therapy.setTherapyId(item.getTherapyId());
-                    therapy.setTherapyName(item.getTherapyName());
-                    therapy.setExercises(item.getExercises());
-                    therapyList.add(therapy);
-                }
-
-                if (therapyList.isEmpty()) {
-                    throw new RuntimeException("No valid therapy data found");
-                }
-
-                dummyProgram.setTherapyData(therapyList);
-                dummyPackage.setPrograms(List.of(dummyProgram));
-                return List.of(dummyPackage);
-            }
-
-            case "exercise": {
-                TherapyWithSessions dummyPackage = new TherapyWithSessions();
-                dummyPackage.setPackageId("PKG_AUTO");
-                dummyPackage.setPackageName("Auto Package");
-
-                Program dummyProgram = new Program();
-                dummyProgram.setProgramId("PROG_AUTO");
-                dummyProgram.setProgramName("Auto Program");
-
-                TherapyData dummyTherapy = new TherapyData();
-                dummyTherapy.setTherapyId("THER_AUTO");
-                dummyTherapy.setTherapyName("Auto Therapy");
-
-                List<TherapyExercise> allExercises = new ArrayList<>();
-                for (TherapyWithSessions item : incoming) {
-                    if (item.getExercises() != null) {
-                        allExercises.addAll(item.getExercises());
-                    }
-                }
-
-                if (allExercises.isEmpty()) {
-                    throw new RuntimeException("No valid exercise data found");
-                }
-
-                dummyTherapy.setExercises(allExercises);
-                dummyProgram.setTherapyData(List.of(dummyTherapy));
-                dummyPackage.setPrograms(List.of(dummyProgram));
-                return List.of(dummyPackage);
-            }
-
-            default:
-                throw new RuntimeException("Invalid serviceType: " + serviceType);
-        }
-    }
-
-    // ========================================================
-    //                   APPLY PAYMENT LEVEL
-    // ========================================================
-    private void applyPaymentLevel(PaymentRecord record, PaymentRequest req) {
-
-        if (req.getPaymentLevel() == null || req.getPaymentTarget() == null) return;
-
-        String level = req.getPaymentLevel().toUpperCase();
-        String status = getStatus(record);
-
-        switch (level) {
-            case "PACKAGE":
-                updatePackageStatus(record, req.getPaymentTarget().getPackageIds(), status);
-                break;
-            case "PROGRAM":
-                updateProgramStatus(record, req.getPaymentTarget().getProgramIds(), status);
-                break;
-            case "THERAPY":
-                updateTherapyStatus(record, req.getPaymentTarget().getTherapyIds(), status);
-                break;
-            case "EXERCISE":
-                updateExerciseStatus(record, req.getPaymentTarget().getExerciseIds(), status);
-                break;
-            case "SESSION":
-                paySessions(record, req.getPaymentTarget().getSessionIds());
-                break;
-        }
-    }
-
-    // ========================================================
-    //               DISTRIBUTE PAYMENT TO SESSIONS
-    // ========================================================
-    private void distributePaymentToSessions(PaymentRecord record) {
-
-        if (record.getTherapyWithSessions() == null) return;
-
-        double remaining = record.getTotalPaid();
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (var ex : therapy.getExercises()) {
-                        if (ex.getSessions() == null) continue;
-                        double price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
-                        for (var s : ex.getSessions()) {
-                            if (remaining <= 0) {
-                                s.setPaymentStatus("Unpaid");
-                            } else if (remaining >= price) {
-                                s.setPaymentStatus("Paid");
-                                remaining -= price;
-                            } else {
-                                s.setPaymentStatus("Partial");
-                                remaining = 0;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================
-    //                  PACKAGE STATUS UPDATE
-    // ========================================================
-    private void updatePackageStatus(PaymentRecord record, List<String> ids, String status) {
-
-        if (ids == null) return;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (ids.contains(pkg.getPackageId())) {
-                pkg.setPaymentStatus(status);
-                for (var prog : pkg.getPrograms()) {
-                    prog.setPaymentStatus(status);
-                    for (var therapy : prog.getTherapyData()) {
-                        therapy.setPaymentStatus(status);
-                        for (var ex : therapy.getExercises()) {
-                            ex.setPaymentStatus(status);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================
-    //                  PROGRAM STATUS UPDATE
-    // ========================================================
-    private void updateProgramStatus(PaymentRecord record, List<String> ids, String status) {
-
-        if (ids == null) return;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (ids.contains(prog.getProgramId())) {
-                    prog.setPaymentStatus(status);
-                    for (var therapy : prog.getTherapyData()) {
-                        therapy.setPaymentStatus(status);
-                        for (var ex : therapy.getExercises()) {
-                            ex.setPaymentStatus(status);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================
-    //                  THERAPY STATUS UPDATE
-    // ========================================================
-    private void updateTherapyStatus(PaymentRecord record, List<String> ids, String status) {
-
-        if (ids == null) return;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (ids.contains(therapy.getTherapyId())) {
-                        therapy.setPaymentStatus(status);
-                        for (var ex : therapy.getExercises()) {
-                            ex.setPaymentStatus(status);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================
-    //                  EXERCISE STATUS UPDATE
-    // ========================================================
-    private void updateExerciseStatus(PaymentRecord record, List<String> ids, String status) {
-
-        if (ids == null) return;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (var ex : therapy.getExercises()) {
-                        if (ids.contains(ex.getExerciseId())) {
-                            ex.setPaymentStatus(status);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================
-    //                  SESSION PAY
-    // ========================================================
-    private void paySessions(PaymentRecord record, List<String> ids) {
-
-        if (ids == null) return;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (var ex : therapy.getExercises()) {
-                        if (ex.getSessions() == null) continue;
-                        for (var s : ex.getSessions()) {
-                            if (ids.contains(s.getSessionId())) {
-                                s.setPaymentStatus("Paid");
-                            }
-                        }
-                        boolean allPaid = ex.getSessions().stream()
-                                .allMatch(x -> "Paid".equalsIgnoreCase(x.getPaymentStatus()));
-                        ex.setPaymentStatus(allPaid ? "Paid" : "Partial");
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================
-    //                  STATUS PROPAGATION
-    // ========================================================
-    private void updateStatuses(PaymentRecord record) {
-
-        if (record.getTherapyWithSessions() == null) return;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (var ex : therapy.getExercises()) {
-                        if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
-                            ex.setPaymentStatus("Unpaid");
-                            continue;
-                        }
-                        boolean allPaid = ex.getSessions().stream()
-                                .allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
-                        boolean anyPaid = ex.getSessions().stream()
-                                .anyMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
-
-                        if (allPaid) ex.setPaymentStatus("Paid");
-                        else if (anyPaid) ex.setPaymentStatus("Partial");
-                        else ex.setPaymentStatus("Unpaid");
-                    }
-
-                    // ✅ Propagate to therapy
-                    boolean allTherapyPaid = therapy.getExercises().stream()
-                            .allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
-                    boolean anyTherapyPaid = therapy.getExercises().stream()
-                            .anyMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
-
-                    if (allTherapyPaid) therapy.setPaymentStatus("Paid");
-                    else if (anyTherapyPaid) therapy.setPaymentStatus("Partial");
-                    else therapy.setPaymentStatus("Unpaid");
-                }
-
-                // ✅ Propagate to program
-                boolean allProgPaid = prog.getTherapyData().stream()
-                        .allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
-                boolean anyProgPaid = prog.getTherapyData().stream()
-                        .anyMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
-
-                if (allProgPaid) prog.setPaymentStatus("Paid");
-                else if (anyProgPaid) prog.setPaymentStatus("Partial");
-                else prog.setPaymentStatus("Unpaid");
-            }
-
-            // ✅ Propagate to package
-            boolean allPkgPaid = pkg.getPrograms().stream()
-                    .allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
-            boolean anyPkgPaid = pkg.getPrograms().stream()
-                    .anyMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
-
-            if (allPkgPaid) pkg.setPaymentStatus("Paid");
-            else if (anyPkgPaid) pkg.setPaymentStatus("Partial");
-            else pkg.setPaymentStatus("Unpaid");
-        }
-    }
-
-    // ========================================================
-    //                  CALCULATE OVERALL STATUS
-    // ========================================================
-    private String calculateOverallStatus(PaymentRecord record) {
-
-        if (record.getTherapyWithSessions() == null) return "Pending";
-
-        boolean allCompleted = true;
-        boolean anyCompleted = false;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (var ex : therapy.getExercises()) {
-                        if (ex.getSessions() == null) continue;
-                        for (var s : ex.getSessions()) {
-                            if ("Completed".equalsIgnoreCase(s.getStatus())) {
-                                anyCompleted = true;
-                            } else {
-                                allCompleted = false;
-                            }
-                        }
-                    }
-                }
-            }
+            // ✅ Propagate to program — only Paid or Unpaid
+            boolean allProgPaid = prog.getTherapyData().stream()
+                    .allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
+            prog.setPaymentStatus(allProgPaid ? "Paid" : "Unpaid");
         }
 
-        if (allCompleted && anyCompleted) return "Completed";
-        if (anyCompleted) return "Active";
-        return "Pending";
-    }
-
-    // ========================================================
-    //                  UPDATE BOOKING STATUS
-    // ========================================================
-    private void updateBookingStatus(PaymentRecord record) {
-
-        if (record.getBookingId() == null || record.getBookingId().trim().isEmpty()) return;
-
-        try {
-            BookingResponse request = new BookingResponse();
-            request.setBookingId(record.getBookingId().trim());
-
-            if ("Completed".equalsIgnoreCase(record.getOverallStatus())) {
-                request.setStatus("completed");
-            } else if ("Active".equalsIgnoreCase(record.getOverallStatus())) {
-                request.setStatus("in-progress");
-            } else {
-                request.setStatus("pending");
-            }
-
-            clinicAdminFeign.updateAppointment(request);
-
-            System.out.println("Booking status updated => "
-                    + request.getBookingId() + " | " + request.getStatus());
-
-        } catch (Exception e) {
-            System.out.println("Booking status update failed");
-            e.printStackTrace();
-        }
-    }
-
-    // ========================================================
-    //                  MAP TO RESPONSE
-    // ========================================================
-    private PaymentRecordResponse mapToResponse(PaymentRecord record) {
-
-        PaymentRecordResponse res = new PaymentRecordResponse();
-
-        res.setId(record.getId());
-        res.setClinicId(record.getClinicId());
-        res.setBranchId(record.getBranchId());
-        res.setBookingId(record.getBookingId());
-        res.setPatientId(record.getPatientId());
-        res.setDoctorId(record.getDoctorId());
-        res.setDoctorName(record.getDoctorName());
-        res.setTherapistId(record.getTherapistId());
-        res.setTherapistName(record.getTherapistName());
-        res.setTherapistRecordId(record.getTherapistRecordId());
-        res.setServiceType(record.getServiceType());
-        res.setOverallStatus(record.getOverallStatus());
-        res.setTotalAmount(record.getTotalAmount());
-        res.setDiscountAmount(record.getDiscountAmount());
-        res.setFinalAmount(record.getFinalAmount());
-        res.setTotalPaid(record.getTotalPaid());
-        res.setBalanceAmount(record.getBalanceAmount());
-        res.setPaymentStatus(record.getPaymentStatus());
-        res.setSessionStartDate(record.getSessionStartDate());
-        res.setTotalSessionCount(record.getTotalSessionCount());
-        res.setNoOfSessionCompletedCount(record.getNoOfSessionCompletedCount());
-        res.setNoOfSessionCompletedStatus(record.isNoOfSessionCompletedStatus());
-        res.setSessionTableCreatedStatus(record.isSessionTableCreatedStatus());
-        res.setPaymentHistory(record.getPaymentHistory());
-
-        String serviceType = record.getServiceType() != null
-                ? record.getServiceType().toLowerCase()
-                : "package";
-
-        switch (serviceType) {
-            case "package":
-                res.setTherapyWithSessions(mapPackages(record));
-                break;
-            case "program":
-                res.setTherapyWithSessions(mapPrograms(record));
-                break;
-            case "therapy":
-                res.setTherapyWithSessions(mapTherapies(record));
-                break;
-            case "exercise":
-                res.setTherapyWithSessions(mapExercises(record));
-                break;
-            default:
-                res.setTherapyWithSessions(record.getTherapyWithSessions());
-        }
-
-        return res;
-    }
-
-    // ========================================================
-    //                  PACKAGE MAPPER
-    // ========================================================
-    private List<PackageResponse> mapPackages(PaymentRecord record) {
-
-        List<PackageResponse> result = new ArrayList<>();
-        if (record.getTherapyWithSessions() == null) return result;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            PackageResponse p = new PackageResponse();
-            p.setPackageId(pkg.getPackageId());
-            p.setPackageName(pkg.getPackageName());
-            p.setTotalPackagePrice(pkg.getTotalPackagePrice());
-            p.setPaymentStatus(pkg.getPaymentStatus());
-            p.setPrograms(mapProgramList(pkg.getPrograms()));
-            result.add(p);
-        }
-        return result;
-    }
-
-    // ========================================================
-    //                  PROGRAM MAPPER
-    // ========================================================
-    private List<ProgramResponse> mapPrograms(PaymentRecord record) {
-
-        if (record.getTherapyWithSessions() == null
-                || record.getTherapyWithSessions().isEmpty()) return new ArrayList<>();
-
-        var programs = record.getTherapyWithSessions().get(0).getPrograms();
-        return mapProgramList(programs);
-    }
-
-    // ========================================================
-    //                  THERAPY MAPPER
-    // ========================================================
-    private List<TherapyResponse> mapTherapies(PaymentRecord record) {
-
-        if (record.getTherapyWithSessions() == null
-                || record.getTherapyWithSessions().isEmpty()) return new ArrayList<>();
-
-        var programs = record.getTherapyWithSessions().get(0).getPrograms();
-        if (programs == null || programs.isEmpty()) return new ArrayList<>();
-
-        var therapies = programs.get(0).getTherapyData();
-        return mapTherapyList(therapies);
-    }
-
-    // ========================================================
-    //                  EXERCISE MAPPER
-    // ========================================================
-    private List<ExerciseResponse> mapExercises(PaymentRecord record) {
-
-        if (record.getTherapyWithSessions() == null
-                || record.getTherapyWithSessions().isEmpty()) return new ArrayList<>();
-
-        var programs = record.getTherapyWithSessions().get(0).getPrograms();
-        if (programs == null || programs.isEmpty()) return new ArrayList<>();
-
-        var therapies = programs.get(0).getTherapyData();
-        if (therapies == null || therapies.isEmpty()) return new ArrayList<>();
-
-        var exercises = therapies.get(0).getExercises();
-        return mapExerciseList(exercises);
-    }
-
-    // ========================================================
-    //                  SHARED LIST MAPPERS
-    // ========================================================
-    private List<ProgramResponse> mapProgramList(List<Program> programs) {
-
-        List<ProgramResponse> result = new ArrayList<>();
-        if (programs == null) return result;
-
-        for (var prog : programs) {
-            ProgramResponse p = new ProgramResponse();
-            p.setProgramId(prog.getProgramId());
-            p.setProgramName(prog.getProgramName());
-            p.setTotalProgramPrice(prog.getTotalProgramPrice());
-            p.setPaymentStatus(prog.getPaymentStatus());
-            p.setTherapyData(mapTherapyList(prog.getTherapyData()));
-            result.add(p);
-        }
-        return result;
-    }
-
-    private List<TherapyResponse> mapTherapyList(List<TherapyData> therapies) {
-
-        List<TherapyResponse> result = new ArrayList<>();
-        if (therapies == null) return result;
-
-        for (var t : therapies) {
-            TherapyResponse tr = new TherapyResponse();
-            tr.setTherapyId(t.getTherapyId());
-            tr.setTherapyName(t.getTherapyName());
-            tr.setTotalTherapyPrice(t.getTotalTherapyPrice());
-            tr.setPaymentStatus(t.getPaymentStatus());
-            tr.setExercises(mapExerciseList(t.getExercises()));
-            result.add(tr);
-        }
-        return result;
-    }
-
-    private List<ExerciseResponse> mapExerciseList(List<TherapyExercise> exercises) {
-
-        List<ExerciseResponse> result = new ArrayList<>();
-        if (exercises == null) return result;
-
-        for (var ex : exercises) {
-            ExerciseResponse er = new ExerciseResponse();
-            er.setExerciseId(ex.getExerciseId());
-            er.setExerciseName(ex.getExerciseName());
-            er.setPricePerSession(ex.getPricePerSession());
-            er.setNoOfSessions(ex.getNoOfSessions());
-            er.setTotalExercisePrice(ex.getTotalExercisePrice());
-            er.setPaymentStatus(ex.getPaymentStatus());
-            er.setRepetitions(ex.getRepetitions());
-            er.setFrequency(ex.getFrequency());
-            er.setSets(ex.getSets());
-            er.setYoutubeUrl(ex.getYoutubeUrl());
-            er.setNotes(ex.getNotes());
-            er.setSessions(ex.getSessions());
-            result.add(er);
-        }
-        return result;
-    }
-
-    // ========================================================
-    //                      UTILS
-    // ========================================================
-    private String getStatus(PaymentRecord r) {
-        if (r.getTotalPaid() <= 0) return "Unpaid";
-        if (r.getTotalPaid() < r.getFinalAmount()) return "Partial";
-        if (Double.compare(r.getTotalPaid(), r.getFinalAmount()) == 0) return "Paid";
-        return "Overpaid";
-    }
-
-    private PaymentHistory buildHistory(PaymentRequest req) {
-        return new PaymentHistory(
-                req.getAmount(),
-                req.getPaymentMode(),
-                req.getPaymentType(),
-                req.getPaymentDate(),
-                req.getPaymentLevel(),
-                req.getDiscountAmount(),
-                req.getDiscountIssuedBy()
-        );
-    }
-
-    private double calculateTotal(List<TherapyWithSessions> data) {
-
-        double total = 0;
-
-        for (var pkg : data) {
-            double pkgTotal = 0;
-            for (var prog : pkg.getPrograms()) {
-                double progTotal = 0;
-                for (var therapy : prog.getTherapyData()) {
-                    double therapyTotal = 0;
-                    for (var ex : therapy.getExercises()) {
-                        double exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
-                        ex.setTotalExercisePrice(exTotal);
-                        therapyTotal += exTotal;
-                    }
-                    therapy.setTotalTherapyPrice(therapyTotal);
-                    progTotal += therapyTotal;
-                }
-                prog.setTotalProgramPrice(progTotal);
-                pkgTotal += progTotal;
-            }
-            pkg.setTotalPackagePrice(pkgTotal);
-            total += pkgTotal;
-        }
-
-        return total;
-    }
-
-    private boolean createSessions(List<TherapyWithSessions> data, String startDate) {
-
-        boolean created = false;
-
-        for (var pkg : data) {
-            for (var prog : pkg.getPrograms()) {
-                for (var therapy : prog.getTherapyData()) {
-                    for (var ex : therapy.getExercises()) {
-                        List<Session> sessions = new ArrayList<>();
-                        for (int i = 1; i <= ex.getNoOfSessions(); i++) {
-                            sessions.add(new Session(
-                                    ex.getExerciseId() + "_" + i,
-                                    i,
-                                    startDate,
-                                    "Pending",
-                                    "Unpaid"
-                            ));
-                        }
-                        if (!sessions.isEmpty()) created = true;
-                        ex.setSessions(sessions);
-                    }
-                }
-            }
-        }
-
-        return created;
-    }
-
-    private int countCompleted(PaymentRecord record) {
-
-        int count = 0;
-
-        if (record.getTherapyWithSessions() == null) return count;
-
-        for (var pkg : record.getTherapyWithSessions()) {
-            if (pkg.getPrograms() == null) continue;
-            for (var prog : pkg.getPrograms()) {
-                if (prog.getTherapyData() == null) continue;
-                for (var therapy : prog.getTherapyData()) {
-                    if (therapy.getExercises() == null) continue;
-                    for (var ex : therapy.getExercises()) {
-                        if (ex.getSessions() == null) continue;
-                        for (var s : ex.getSessions()) {
-                            if ("Completed".equalsIgnoreCase(s.getStatus())) {
-                                count++;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return count;
-    }
-    @Override
-    public Response getExerciseSessionsWithRecords(
-            String clinicId,
-            String branchId,
-            String bookingId,
-            String patientId,
-            String therapistRecordId,
-            String exerciseId) {
-
-        Response response = new Response();
-
-        try {
-
-            PaymentRecord record = repo
-                    .findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(
-                            clinicId, branchId, bookingId, patientId, therapistRecordId)
-                    .orElseThrow(() -> new RuntimeException("Payment record not found"));
-
-            for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
-                if (pkg.getPrograms() == null) continue;
-
-                for (Program program : pkg.getPrograms()) {
-                    if (program.getTherapyData() == null) continue;
-
-                    for (TherapyData therapy : program.getTherapyData()) {
-                        if (therapy.getExercises() == null) continue;
-
-                        for (TherapyExercise exercise : therapy.getExercises()) {
-
-                            if (!exerciseId.equals(exercise.getExerciseId())) {
-                                continue;
-                            }
-
-                            List<Object> sessionList = new ArrayList<>();
-
-                            for (Session session : exercise.getSessions()) {
-
-                                Map<String, Object> map = new LinkedHashMap<>();
-
-                                // ✅ First session details
-                                map.put("sessionId", session.getSessionId());
-                                map.put("sessionNo", session.getSessionNo());
-                                map.put("date", session.getDate());
-                                map.put("paymentStatus", session.getPaymentStatus());
-
-                                try {
-
-                                    ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr =
-                                            clinicAdminFeign.getRecordBySession(
-                                                    clinicId,
-                                                    branchId,
-                                                    bookingId,
-                                                    patientId,
-                                                    session.getSessionId()
-                                            );
-
-                                    if (tr != null
-                                            && tr.getBody() != null
-                                            && tr.getBody().getData() != null) {
-
-                                        map.put("status", "Completed");
-
-                                        // ✅ Later therapist record
-                                        map.put("therapistRecord",
-                                                tr.getBody().getData());
-
-                                    } else {
-                                        map.put("status", session.getStatus());
-                                        map.put("therapistRecord", null);
-                                    }
-
-                                } catch (Exception e) {
-                                    map.put("status", session.getStatus());
-                                    map.put("therapistRecord", null);
-                                }
-
-                                sessionList.add(map);
-                            }
-
-                            Map<String, Object> finalData = new LinkedHashMap<>();
-                            finalData.put("exerciseId", exercise.getExerciseId());
-                            finalData.put("exerciseName", exercise.getExerciseName());
-                            finalData.put("sessions", sessionList);
-
-                            response.setSuccess(true);
-                            response.setStatus(200);
-                            response.setMessage("Sessions fetched successfully");
-                            response.setData(finalData);
-                            return response;
-                        }
-                    }
-                }
-            }
-
-            response.setSuccess(false);
-            response.setStatus(404);
-            response.setMessage("Exercise not found");
-
-        } catch (Exception e) {
-            response.setSuccess(false);
-            response.setStatus(500);
-            response.setMessage(e.getMessage());
-        }
-
-        return response;
+        // ✅ Propagate to package — only Paid or Unpaid
+        boolean allPkgPaid = pkg.getPrograms().stream()
+                .allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
+        pkg.setPaymentStatus(allPkgPaid ? "Paid" : "Unpaid");
     }
 }
+	// ========================================================
+	// CALCULATE OVERALL STATUS
+	// ========================================================
+	private String calculateOverallStatus(PaymentRecord record) {
+
+		if (record.getTherapyWithSessions() == null)
+			return "Pending";
+
+		boolean allCompleted = true;
+		boolean anyCompleted = false;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+				for (var therapy : prog.getTherapyData()) {
+					if (therapy.getExercises() == null)
+						continue;
+					for (var ex : therapy.getExercises()) {
+						if (ex.getSessions() == null)
+							continue;
+						for (var s : ex.getSessions()) {
+							if ("Completed".equalsIgnoreCase(s.getStatus())) {
+								anyCompleted = true;
+							} else {
+								allCompleted = false;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (allCompleted && anyCompleted)
+			return "Completed";
+		if (anyCompleted)
+			return "Active";
+		return "Pending";
+	}
+
+	// ========================================================
+	// UPDATE BOOKING STATUS
+	// ========================================================
+	private void updateBookingStatus(PaymentRecord record) {
+
+		if (record.getBookingId() == null || record.getBookingId().trim().isEmpty())
+			return;
+
+		try {
+			BookingResponse request = new BookingResponse();
+			request.setBookingId(record.getBookingId().trim());
+
+			if ("Completed".equalsIgnoreCase(record.getOverallStatus())) {
+				request.setStatus("completed");
+			} else if ("Active".equalsIgnoreCase(record.getOverallStatus())) {
+				request.setStatus("in-progress");
+			} else {
+				request.setStatus("pending");
+			}
+
+			clinicAdminFeign.updateAppointment(request);
+
+			System.out.println("Booking status updated => " + request.getBookingId() + " | " + request.getStatus());
+
+		} catch (Exception e) {
+			System.out.println("Booking status update failed");
+			e.printStackTrace();
+		}
+	}
+
+	// ========================================================
+	// MAP TO RESPONSE
+	// ========================================================
+	private PaymentRecordResponse mapToResponse(PaymentRecord record) {
+
+		PaymentRecordResponse res = new PaymentRecordResponse();
+
+		res.setId(record.getId());
+		res.setClinicId(record.getClinicId());
+		res.setBranchId(record.getBranchId());
+		res.setBookingId(record.getBookingId());
+		res.setPatientId(record.getPatientId());
+		res.setDoctorId(record.getDoctorId());
+		res.setDoctorName(record.getDoctorName());
+		res.setTherapistId(record.getTherapistId());
+		res.setTherapistName(record.getTherapistName());
+		res.setTherapistRecordId(record.getTherapistRecordId());
+		res.setServiceType(record.getServiceType());
+		res.setOverallStatus(record.getOverallStatus());
+		res.setTotalAmount(record.getTotalAmount());
+		res.setDiscountAmount(record.getDiscountAmount());
+		res.setFinalAmount(record.getFinalAmount());
+		res.setTotalPaid(record.getTotalPaid());
+		res.setBalanceAmount(record.getBalanceAmount());
+		res.setPaymentStatus(record.getPaymentStatus());
+		res.setSessionStartDate(record.getSessionStartDate());
+		res.setTotalSessionCount(record.getTotalSessionCount());
+		res.setNoOfSessionCompletedCount(record.getNoOfSessionCompletedCount());
+		res.setNoOfSessionCompletedStatus(record.isNoOfSessionCompletedStatus());
+		res.setSessionTableCreatedStatus(record.isSessionTableCreatedStatus());
+		res.setPaymentHistory(record.getPaymentHistory());
+
+		String serviceType = record.getServiceType() != null ? record.getServiceType().toLowerCase() : "package";
+
+		switch (serviceType) {
+		case "package":
+			res.setTherapyWithSessions(mapPackages(record));
+			break;
+		case "program":
+			res.setTherapyWithSessions(mapPrograms(record));
+			break;
+		case "therapy":
+			res.setTherapyWithSessions(mapTherapies(record));
+			break;
+		case "exercise":
+			res.setTherapyWithSessions(mapExercises(record));
+			break;
+		default:
+			res.setTherapyWithSessions(record.getTherapyWithSessions());
+		}
+
+		return res;
+	}
+
+	// ========================================================
+	// PACKAGE MAPPER
+	// ========================================================
+	private List<PackageResponse> mapPackages(PaymentRecord record) {
+
+		List<PackageResponse> result = new ArrayList<>();
+		if (record.getTherapyWithSessions() == null)
+			return result;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			PackageResponse p = new PackageResponse();
+			p.setPackageId(pkg.getPackageId());
+			p.setPackageName(pkg.getPackageName());
+			p.setTotalPackagePrice(pkg.getTotalPackagePrice());
+			p.setPaymentStatus(pkg.getPaymentStatus());
+			p.setPrograms(mapProgramList(pkg.getPrograms()));
+			result.add(p);
+		}
+		return result;
+	}
+
+	// ========================================================
+	// PROGRAM MAPPER
+	// ========================================================
+	private List<ProgramResponse> mapPrograms(PaymentRecord record) {
+
+		if (record.getTherapyWithSessions() == null || record.getTherapyWithSessions().isEmpty())
+			return new ArrayList<>();
+
+		var programs = record.getTherapyWithSessions().get(0).getPrograms();
+		return mapProgramList(programs);
+	}
+
+	// ========================================================
+	// THERAPY MAPPER
+	// ========================================================
+	private List<TherapyResponse> mapTherapies(PaymentRecord record) {
+
+		if (record.getTherapyWithSessions() == null || record.getTherapyWithSessions().isEmpty())
+			return new ArrayList<>();
+
+		var programs = record.getTherapyWithSessions().get(0).getPrograms();
+		if (programs == null || programs.isEmpty())
+			return new ArrayList<>();
+
+		var therapies = programs.get(0).getTherapyData();
+		return mapTherapyList(therapies);
+	}
+
+	// ========================================================
+	// EXERCISE MAPPER
+	// ========================================================
+	private List<ExerciseResponse> mapExercises(PaymentRecord record) {
+
+		if (record.getTherapyWithSessions() == null || record.getTherapyWithSessions().isEmpty())
+			return new ArrayList<>();
+
+		var programs = record.getTherapyWithSessions().get(0).getPrograms();
+		if (programs == null || programs.isEmpty())
+			return new ArrayList<>();
+
+		var therapies = programs.get(0).getTherapyData();
+		if (therapies == null || therapies.isEmpty())
+			return new ArrayList<>();
+
+		var exercises = therapies.get(0).getExercises();
+		return mapExerciseList(exercises);
+	}
+
+	// ========================================================
+	// SHARED LIST MAPPERS
+	// ========================================================
+	private List<ProgramResponse> mapProgramList(List<Program> programs) {
+
+		List<ProgramResponse> result = new ArrayList<>();
+		if (programs == null)
+			return result;
+
+		for (var prog : programs) {
+			ProgramResponse p = new ProgramResponse();
+			p.setProgramId(prog.getProgramId());
+			p.setProgramName(prog.getProgramName());
+			p.setTotalProgramPrice(prog.getTotalProgramPrice());
+			p.setPaymentStatus(prog.getPaymentStatus());
+			p.setTherapyData(mapTherapyList(prog.getTherapyData()));
+			result.add(p);
+		}
+		return result;
+	}
+
+	private List<TherapyResponse> mapTherapyList(List<TherapyData> therapies) {
+
+		List<TherapyResponse> result = new ArrayList<>();
+		if (therapies == null)
+			return result;
+
+		for (var t : therapies) {
+			TherapyResponse tr = new TherapyResponse();
+			tr.setTherapyId(t.getTherapyId());
+			tr.setTherapyName(t.getTherapyName());
+			tr.setTotalTherapyPrice(t.getTotalTherapyPrice());
+			tr.setPaymentStatus(t.getPaymentStatus());
+			tr.setExercises(mapExerciseList(t.getExercises()));
+			result.add(tr);
+		}
+		return result;
+	}
+
+	private List<ExerciseResponse> mapExerciseList(List<TherapyExercise> exercises) {
+
+		List<ExerciseResponse> result = new ArrayList<>();
+		if (exercises == null)
+			return result;
+
+		for (var ex : exercises) {
+			ExerciseResponse er = new ExerciseResponse();
+			er.setExerciseId(ex.getExerciseId());
+			er.setExerciseName(ex.getExerciseName());
+			er.setPricePerSession(ex.getPricePerSession());
+			er.setNoOfSessions(ex.getNoOfSessions());
+			er.setTotalExercisePrice(ex.getTotalExercisePrice());
+			er.setPaymentStatus(ex.getPaymentStatus());
+			er.setRepetitions(ex.getRepetitions());
+			er.setFrequency(ex.getFrequency());
+			er.setSets(ex.getSets());
+			er.setYoutubeUrl(ex.getYoutubeUrl());
+			er.setNotes(ex.getNotes());
+			er.setSessions(ex.getSessions());
+			result.add(er);
+		}
+		return result;
+	}
+
+	// ========================================================
+	// UTILS
+	// ========================================================
+	private String getStatus(PaymentRecord r) {
+		if (r.getTotalPaid() <= 0)
+			return "Unpaid";
+		if (r.getTotalPaid() < r.getFinalAmount())
+			return "Partial";
+		if (Double.compare(r.getTotalPaid(), r.getFinalAmount()) == 0)
+			return "Paid";
+		return "Overpaid";
+	}
+
+	private PaymentHistory buildHistory(PaymentRequest req) {
+		return new PaymentHistory(req.getAmount(), req.getPaymentMode(), req.getPaymentType(), req.getPaymentDate(),
+				req.getPaymentLevel(), req.getDiscountAmount(), req.getDiscountIssuedBy());
+	}
+
+	private double calculateTotal(List<TherapyWithSessions> data) {
+
+		double total = 0;
+
+		for (var pkg : data) {
+			double pkgTotal = 0;
+			for (var prog : pkg.getPrograms()) {
+				double progTotal = 0;
+				for (var therapy : prog.getTherapyData()) {
+					double therapyTotal = 0;
+					for (var ex : therapy.getExercises()) {
+						double exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
+						ex.setTotalExercisePrice(exTotal);
+						therapyTotal += exTotal;
+					}
+					therapy.setTotalTherapyPrice(therapyTotal);
+					progTotal += therapyTotal;
+				}
+				prog.setTotalProgramPrice(progTotal);
+				pkgTotal += progTotal;
+			}
+			pkg.setTotalPackagePrice(pkgTotal);
+			total += pkgTotal;
+		}
+
+		return total;
+	}
 
 
 
+	private boolean createSessions(List<TherapyWithSessions> data, String startDate) {
 
+	    boolean created = false;
 
+	    for (var pkg : data) {
+	        for (var prog : pkg.getPrograms()) {
+	            for (var therapy : prog.getTherapyData()) {
+	                for (var ex : therapy.getExercises()) {
 
+	                    List<Session> sessions = new ArrayList<>();
 
+	                    int timesPerDay = parseTimesPerDay(ex.getFrequency());
+	                    LocalDate currentDate = LocalDate.parse(startDate);
+	                    int sessionCount = 0;
 
+	                    for (int i = 1; i <= ex.getNoOfSessions(); i++) {
 
+	                        // ✅ Unique sessionId = exerciseId + "_" + sessionNo + "_" + UUID short
+	                        String uniqueSessionId = ex.getExerciseId()
+	                                + "_" + i
+	                                + "_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
+	                        sessions.add(new Session(
+	                                uniqueSessionId,
+	                                i,
+	                                currentDate.toString(),
+	                                "Pending",
+	                                "Unpaid"
+	                        ));
 
+	                        sessionCount++;
 
+	                        if (sessionCount % timesPerDay == 0) {
+	                            currentDate = currentDate.plusDays(1);
+	                        }
+	                    }
 
+	                    if (!sessions.isEmpty()) created = true;
+	                    ex.setSessions(sessions);
+	                }
+	            }
+	        }
+	    }
 
+	    return created;
+	}
+	// ========================================================
+//  PARSE FREQUENCY → TIMES PER DAY
+//========================================================
+	private int parseTimesPerDay(String frequency) {
 
+		if (frequency == null || frequency.trim().isEmpty()) {
+			return 1; // default 1 session per day
+		}
+
+// Handles: "2 times/day", "3 times/day", "1 time/day", "Once a day", etc.
+		String lower = frequency.toLowerCase().trim();
+
+		try {
+// ✅ Match pattern like "2 times/day" or "3 times/day"
+			if (lower.contains("times/day") || lower.contains("time/day")) {
+				String[] parts = lower.split(" ");
+				return Integer.parseInt(parts[0]);
+			}
+
+// ✅ Match "once a day"
+			if (lower.contains("once")) {
+				return 1;
+			}
+
+// ✅ Match "twice a day"
+			if (lower.contains("twice")) {
+				return 2;
+			}
+
+// ✅ Match "thrice a day"
+			if (lower.contains("thrice")) {
+				return 3;
+			}
+
+		} catch (Exception e) {
+// fallback
+		}
+
+		return 1; // default
+	}
+
+	private int countCompleted(PaymentRecord record) {
+
+		int count = 0;
+
+		if (record.getTherapyWithSessions() == null)
+			return count;
+
+		for (var pkg : record.getTherapyWithSessions()) {
+			if (pkg.getPrograms() == null)
+				continue;
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+				for (var therapy : prog.getTherapyData()) {
+					if (therapy.getExercises() == null)
+						continue;
+					for (var ex : therapy.getExercises()) {
+						if (ex.getSessions() == null)
+							continue;
+						for (var s : ex.getSessions()) {
+							if ("Completed".equalsIgnoreCase(s.getStatus())) {
+								count++;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return count;
+	}
+
+	@Override
+	public Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
+			String therapistRecordId, String exerciseId) {
+
+		Response response = new Response();
+
+		try {
+
+			PaymentRecord record = repo
+					.findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(clinicId, branchId,
+							bookingId, patientId, therapistRecordId)
+					.orElseThrow(() -> new RuntimeException("Payment record not found"));
+
+			for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
+				if (pkg.getPrograms() == null)
+					continue;
+
+				for (Program program : pkg.getPrograms()) {
+					if (program.getTherapyData() == null)
+						continue;
+
+					for (TherapyData therapy : program.getTherapyData()) {
+						if (therapy.getExercises() == null)
+							continue;
+
+						for (TherapyExercise exercise : therapy.getExercises()) {
+
+							if (!exerciseId.equals(exercise.getExerciseId())) {
+								continue;
+							}
+
+							List<Object> sessionList = new ArrayList<>();
+
+							for (Session session : exercise.getSessions()) {
+
+								Map<String, Object> map = new LinkedHashMap<>();
+
+								// ✅ First session details
+								map.put("sessionId", session.getSessionId());
+								map.put("sessionNo", session.getSessionNo());
+								map.put("date", session.getDate());
+								map.put("paymentStatus", session.getPaymentStatus());
+
+								try {
+
+									ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
+											.getRecordBySession(clinicId, branchId, bookingId, patientId,
+													session.getSessionId());
+
+									if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
+
+										map.put("status", "Completed");
+
+										// ✅ Later therapist record
+										map.put("therapistRecord", tr.getBody().getData());
+
+									} else {
+										map.put("status", session.getStatus());
+										map.put("therapistRecord", null);
+									}
+
+								} catch (Exception e) {
+									map.put("status", session.getStatus());
+									map.put("therapistRecord", null);
+								}
+
+								sessionList.add(map);
+							}
+
+							Map<String, Object> finalData = new LinkedHashMap<>();
+							finalData.put("exerciseId", exercise.getExerciseId());
+							finalData.put("exerciseName", exercise.getExerciseName());
+							finalData.put("sessions", sessionList);
+
+							response.setSuccess(true);
+							response.setStatus(200);
+							response.setMessage("Sessions fetched successfully");
+							response.setData(finalData);
+							return response;
+						}
+					}
+				}
+			}
+
+			response.setSuccess(false);
+			response.setStatus(404);
+			response.setMessage("Exercise not found");
+
+		} catch (Exception e) {
+			response.setSuccess(false);
+			response.setStatus(500);
+			response.setMessage(e.getMessage());
+		}
+
+		return response;
+	}
+}
 
 //package physiotherapydoctor.serviceImpl;
 //
