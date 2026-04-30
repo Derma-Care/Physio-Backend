@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/adminservice/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/apigateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/bookingservice/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/category-services/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/clinicadmin/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/customerservice/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/doctor-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eureka-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/notification-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/pharmacy-management/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/physiotherapydoctor-service/src/main/java" charset="UTF-8" />
+  </component>
+</project>
