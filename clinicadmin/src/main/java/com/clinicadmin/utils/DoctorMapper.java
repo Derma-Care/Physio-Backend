@@ -37,9 +37,9 @@ public class DoctorMapper {
 		doctor.setDoctorLicence(dto.getDoctorLicence());
 		doctor.setDoctorMobileNumber(dto.getDoctorMobileNumber());
 		doctor.setDoctorName(dto.getDoctorName());
-		doctor.setCategory(dto.getCategory());
-		doctor.setService(dto.getService());
-		doctor.setSubServices(dto.getSubServices());
+//		doctor.setCategory(dto.getCategory());
+//		doctor.setService(dto.getService());
+//		doctor.setSubServices(dto.getSubServices());
 		doctor.setSpecialization(dto.getSpecialization());
 		doctor.setGender(dto.getGender());
 		doctor.setExperience(dto.getExperience());
@@ -68,13 +68,13 @@ public class DoctorMapper {
 		if (dto.getDoctorFees() != null) {
 			doctor.setDoctorFees(mapDoctorFeeDTOtoEntity(dto.getDoctorFees()));
 		}
-		if (dto.getConsultation() != null) {
-			ConsultationType consultation = new ConsultationType();
-			consultation.setServiceAndTreatments(dto.getConsultation().getServiceAndTreatments());
-			consultation.setInClinic(dto.getConsultation().getInClinic());
-			consultation.setVideoOrOnline(dto.getConsultation().getVideoOrOnline());
-			doctor.setConsultation(consultation);
-		}
+//		if (dto.getConsultation() != null) {
+//			ConsultationType consultation = new ConsultationType();
+//			consultation.setServiceAndTreatments(dto.getConsultation().getServiceAndTreatments());
+//			consultation.setInClinic(dto.getConsultation().getInClinic());
+//			consultation.setVideoOrOnline(dto.getConsultation().getVideoOrOnline());
+//			doctor.setConsultation(consultation);
+//		}
 
 		return doctor;
 	}
@@ -104,9 +104,9 @@ public class DoctorMapper {
 		dto.setDoctorMobileNumber(doctor.getDoctorMobileNumber());
 		dto.setDoctorName(doctor.getDoctorName());
 		dto.setDoctorEmail(doctor.getDoctorEmail());
-		dto.setCategory(doctor.getCategory());
-		dto.setService(doctor.getService());
-		dto.setSubServices(doctor.getSubServices());
+//		dto.setCategory(doctor.getCategory());
+//		dto.setService(doctor.getService());
+//		dto.setSubServices(doctor.getSubServices());
 		dto.setSpecialization(doctor.getSpecialization());
 		dto.setGender(doctor.getGender());
 		dto.setExperience(doctor.getExperience());
@@ -136,13 +136,13 @@ public class DoctorMapper {
 		if (doctor.getDoctorFees() != null) {
 			dto.setDoctorFees(mapDoctorFeeEntityToDTO(doctor.getDoctorFees()));
 		}
-		if (doctor.getConsultation() != null) {
-			ConsultationTypeDTO consultationDTO = new ConsultationTypeDTO();
-			consultationDTO.setServiceAndTreatments(doctor.getConsultation().getServiceAndTreatments());
-			consultationDTO.setInClinic(doctor.getConsultation().getInClinic());
-			consultationDTO.setVideoOrOnline(doctor.getConsultation().getVideoOrOnline());
-			dto.setConsultation(consultationDTO);
-		}
+//		if (doctor.getConsultation() != null) {
+//			ConsultationTypeDTO consultationDTO = new ConsultationTypeDTO();
+//			consultationDTO.setServiceAndTreatments(doctor.getConsultation().getServiceAndTreatments());
+//			consultationDTO.setInClinic(doctor.getConsultation().getInClinic());
+//			consultationDTO.setVideoOrOnline(doctor.getConsultation().getVideoOrOnline());
+//			dto.setConsultation(consultationDTO);
+//		}
 
 		return dto;
 	}

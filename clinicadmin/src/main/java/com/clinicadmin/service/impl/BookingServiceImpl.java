@@ -151,7 +151,7 @@ public class BookingServiceImpl implements BookingService {
 
 	// BOOKING MANAGEMENT
 	@Override
-	public Response bookService(BookingRequset req) throws JsonProcessingException {
+	public Response bookService(BookingResponse req) throws JsonProcessingException {
 		Response response = new Response();
 		try {
 			ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);

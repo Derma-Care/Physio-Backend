@@ -17,16 +17,16 @@ public interface DoctorsRepository extends MongoRepository<Doctors, ObjectId> {
 
     List<Doctors> findByHospitalId(String hospitalId);
 
-    @Query("{ 'subServices.subServiceId': ?0 }")
-    List<Doctors> findBySubServiceById(String subServiceId);
+//    @Query("{ 'subServices.subServiceId': ?0 }")
+//    List<Doctors> findBySubServiceById(String subServiceId);
 
-    List<Doctors> findByHospitalIdAndSubServicesSubServiceId(String hospitalId, String subServiceId);
+//    List<Doctors> findByHospitalIdAndSubServicesSubServiceId(String hospitalId, String subServiceId);
 
     Optional<Doctors> findByHospitalIdAndDoctorId(String clinicId, String doctorId);
 
-    @Query("{ 'hospitalId': ?0, 'branches.branchId': ?1, 'subServices.subServiceId': ?2 }")
-    List<Doctors> findByHospitalIdAndBranchesBranchIdAndSubServicesSubServiceId(
-            String hospitalId, String branchId, String subServiceId);
+//    @Query("{ 'hospitalId': ?0, 'branches.branchId': ?1, 'subServices.subServiceId': ?2 }")
+//    List<Doctors> findByHospitalIdAndBranchesBranchIdAndSubServicesSubServiceId(
+//            String hospitalId, String branchId, String subServiceId);
 
     // -------------------- STRICT BRANCH METHOD --------------------
     // Fetch only doctors whose branchId exactly matches

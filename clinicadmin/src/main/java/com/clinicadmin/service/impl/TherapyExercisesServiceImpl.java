@@ -108,7 +108,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         if (dto.getNotes() != null)
             entity.setNotes(dto.getNotes());
 
-        // ✅ NEW FIELDS
+        // Price fields
         if (dto.getPricePerSession() != 0)
             entity.setPricePerSession(dto.getPricePerSession());
 
@@ -118,29 +118,58 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         if (dto.getOtherTax() != 0)
             entity.setOtherTax(dto.getOtherTax());
 
+        if (dto.getDiscountPercentage() != 0)
+            entity.setDiscountPercentage(dto.getDiscountPercentage());
+
         if (dto.getSets() != 0)
             entity.setSets(dto.getSets());
 
         if (dto.getRepetitions() != 0)
             entity.setRepetitions(dto.getRepetitions());
 
-        // ✅ DISCOUNT (add this if not already)
-        if (dto.getDiscountPercentage() != 0)
-            entity.setDiscountPercentage(dto.getDiscountPercentage());
+        // ✅ New Fields
+        if (dto.getTechnique() != null)
+            entity.setTechnique(dto.getTechnique());
+
+        if (dto.getMachine() != null)
+            entity.setMachine(dto.getMachine());
+
+        if (dto.getIntensity() != null)
+            entity.setIntensity(dto.getIntensity());
+
+        if (dto.getAssistanceLevel() != null)
+            entity.setAssistanceLevel(dto.getAssistanceLevel());
+
+        if (dto.getType() != null)
+            entity.setType(dto.getType());
+
+        if (dto.getArea() != null)
+            entity.setArea(dto.getArea());
+
+        if (dto.getMetric() != null)
+            entity.setMetric(dto.getMetric());
+
+        if (dto.getValue() != null)
+            entity.setValue(dto.getValue());
+
+        if (dto.getUnit() != null)
+            entity.setUnit(dto.getUnit());
+
+        if (dto.getActivityType() != null)
+            entity.setActivityType(dto.getActivityType());
+
+        if (dto.getActivityDuration() != null)
+            entity.setActivityDuration(dto.getActivityDuration());
 
         // ================= CALCULATION =================
-
         double base = entity.getPricePerSession();
 
-        // ✅ Discount first
         double discountAmount = base * entity.getDiscountPercentage() / 100;
         double discountedPrice = base - discountAmount;
 
-        // ✅ Taxes after discount
         double gstAmount = discountedPrice * entity.getGst() / 100;
         double otherTaxAmount = discountedPrice * entity.getOtherTax() / 100;
 
-        // ✅ Final total
         double finalTotal = discountedPrice + gstAmount + otherTaxAmount;
 
         entity.setDiscountAmount(discountAmount);
@@ -234,6 +263,18 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         e.setOtherTax(dto.getOtherTax());
         e.setSets(dto.getSets());
         e.setRepetitions(dto.getRepetitions());
+        e.setTechnique(dto.getTechnique());
+        e.setMachine(dto.getMachine());
+        e.setIntensity(dto.getIntensity());
+        e.setAssistanceLevel(dto.getAssistanceLevel());
+        e.setType(dto.getType());
+        e.setArea(dto.getArea());
+        e.setMetric(dto.getMetric());
+        e.setValue(dto.getValue());
+        e.setUnit(dto.getUnit());
+        e.setActivityType(dto.getActivityType());
+        e.setActivityDuration(dto.getActivityDuration());
+        e.setBodyPart(dto.getBodyPart());
         e.setDiscountAmount(dto.getDiscountAmount());
         e.setDiscountPercentage(dto.getDiscountPercentage());
 
@@ -255,6 +296,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
      e.setDiscountPercentage(dto.getDiscountPercentage());
      e.setDiscountAmount(discountAmount);
      e.setTotalPrice((int) finalTotal);
+     
      return e;
      
     }
@@ -281,6 +323,18 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         dto.setOtherTax(e.getOtherTax());
         dto.setSets(e.getSets());
         dto.setRepetitions(e.getRepetitions());
+        dto.setTechnique(e.getTechnique());
+        dto.setMachine(e.getMachine());
+        dto.setIntensity(e.getIntensity());
+        dto.setAssistanceLevel(e.getAssistanceLevel());
+        dto.setType(e.getType());
+        dto.setArea(e.getArea());
+        dto.setMetric(e.getMetric());
+        dto.setValue(e.getValue());
+        dto.setUnit(e.getUnit());
+        dto.setActivityType(e.getActivityType());
+        dto.setActivityDuration(e.getActivityDuration());
+        dto.setBodyPart(e.getBodyPart());
         dto.setTotalPrice(e.getTotalPrice());
         dto.setDiscountAmount(e.getDiscountAmount());
         dto.setDiscountPercentage(e.getDiscountPercentage());

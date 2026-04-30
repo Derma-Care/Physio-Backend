@@ -37,9 +37,9 @@ public class Doctors {
 	private String doctorLicence;
 	private String doctorMobileNumber;
 	private String doctorName;
-	private List<DoctorCategoryDTO> category;
-	private List<DoctorServicesDTO> service;
-	private List<DoctorSubServiceDTO> subServices;
+//	private List<DoctorCategoryDTO> category;
+//	private List<DoctorServicesDTO> service;
+//	private List<DoctorSubServiceDTO> subServices;
 	private String specialization;
 	private String gender;
 	private String experience;
@@ -58,7 +58,7 @@ public class Doctors {
 	private boolean associatedWithIADVC;
 	private String associationsOrMemberships;
 	private List<DoctorBranches> branches;
-	private ConsultationType Consultation;
+//	private ConsultationType Consultation;
 	private Map<String, List<String>> permissions;
     private String createdBy;
     

@@ -40,7 +40,7 @@ public interface DoctorService {
 
 	public Response deleteDoctorById(String doctorId);
 
-	public Response getDoctorsBySubserviceId(String hospitalId, String subServiceId);
+//	public Response getDoctorsBySubserviceId(String hospitalId, String subServiceId);
 
 //	public Response getDoctorSlots(String hospitalId, String branchId, String doctorId) ;
 
@@ -48,9 +48,9 @@ public interface DoctorService {
 
 	public boolean updateSlot(String doctorId, String branchId,String date, String time);
 
-	public Response getHospitalAndDoctorsUsingSubserviceId(String subServiceId);
+//	public Response getHospitalAndDoctorsUsingSubserviceId(String subServiceId);
 
-	public Response getAllDoctorsBySubserviceId(String subServiceId);
+//	public Response getAllDoctorsBySubserviceId(String subServiceId);
 
 	public boolean makingFalseDoctorSlot(String doctorId,String branchId, String date, String time);
 
@@ -58,7 +58,7 @@ public interface DoctorService {
 
 	public Response getRecommendedClinicsAndDoctors();
 
-	public Response getBestDoctorBySubService(String subServiceId);
+//	public Response getBestDoctorBySubService(String subServiceId);
 
 	public Response getRecommendedClinicsAndDoctors(List<String> keyPointsFromUser);
 
@@ -68,7 +68,7 @@ public interface DoctorService {
 
 	public Response loginUsingRoles(DoctorLoginDTO dto);
 
-	Response getDoctorsByHospitalIdAndBranchIdSubserviceId(String hospitalId, String branchId, String subServiceId);
+//	Response getDoctorsByHospitalIdAndBranchIdSubserviceId(String hospitalId, String branchId, String subServiceId);
 
 	Response saveDoctorSlot(String hospitalId, String doctorId, DoctorSlotDTO dto);
 
