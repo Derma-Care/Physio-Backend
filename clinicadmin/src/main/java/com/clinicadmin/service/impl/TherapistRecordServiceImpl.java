@@ -2,10 +2,18 @@ package com.clinicadmin.service.impl;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
@@ -170,11 +178,30 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         record.setRepetationDone(dto.getRepetationDone());
         record.setSetsDone(dto.getSetsDone());
         record.setServiceType(dto.getServiceType());
-        
+
+
+        record.setLatitude(dto.getLatitude());
+        record.setLongitude(dto.getLongitude());
+
+        // ✔ 1. If frontend sends location → use it
+        if (dto.getLocation() != null && !dto.getLocation().isEmpty()) {
+
+            record.setLocation(dto.getLocation());
+
+        } 
+        // ✔ 2. Else generate automatically
+        else if (dto.getLatitude() != null && dto.getLongitude() != null) {
+
+            String city = getCityFromLatLong(
+                    dto.getLatitude(),
+                    dto.getLongitude()
+            );
+
+            record.setLocation(city);
+        }
 
         return record;
     }
-
     private TherapistRecordDTO mapToDTO(TherapistRecord record) {
 
         TherapistRecordDTO dto = new TherapistRecordDTO();
@@ -213,6 +240,9 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setRepetationDone(record.getRepetationDone());
         dto.setSetsDone(record.getSetsDone());
         dto.setServiceType(record.getServiceType());
+        dto.setLatitude(record.getLatitude());
+        dto.setLongitude(record.getLongitude());
+        dto.setLocation(record.getLocation());
         
         
         
@@ -311,5 +341,51 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                 HttpStatus.OK,
                 200
         );
+    }
+    private String getCityFromLatLong(String lat, String lon) {
+
+        try {
+
+            String url = "https://nominatim.openstreetmap.org/reverse?lat="
+                    + lat + "&lon=" + lon + "&format=json";
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "clinic-admin-app");
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) return "Unknown";
+
+            Map<String, Object> address = (Map<String, Object>) body.get("address");
+            if (address == null) return "Unknown";
+
+            // 🔥 Extract exact fields
+            String road = (String) address.getOrDefault("road", "");
+            String area = (String) address.getOrDefault("suburb",
+                            address.getOrDefault("neighbourhood", ""));
+            String city = (String) address.getOrDefault("city",
+                            address.getOrDefault("town",
+                            address.getOrDefault("village", "")));
+            String state = (String) address.getOrDefault("state", "");
+            String country = (String) address.getOrDefault("country", "");
+
+            // 🔥 Build clean format (no nulls, no extra commas)
+            return Stream.of(road, area, city, state, country)
+                    .filter(s -> s != null && !s.isBlank())
+                    .collect(Collectors.joining(", "));
+
+        } catch (Exception e) {
+            return "Unknown";
+        }
     }
 }

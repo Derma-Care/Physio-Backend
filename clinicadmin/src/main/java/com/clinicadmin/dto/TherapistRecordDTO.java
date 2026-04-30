@@ -18,14 +18,14 @@ public class TherapistRecordDTO {
     private String therapistId;
 
     private String patientName;
-    private String therapy;
+//    private String therapy;
 
-    private String date;
+//    private String date;
     private String completedDate;
     private String completedTime;
 
     private String duration;
-    private String exercises;
+//    private String exercises;
 
     private String painBefore;
     private String painAfter;
@@ -46,5 +46,12 @@ public class TherapistRecordDTO {
     private String setsDone;
     private String repetationDone;
     private String serviceType;
+	private String latitude;
+	private String longitude;
+	private String location;
+		
+	
+		
+	
     
 }
