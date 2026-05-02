@@ -13,6 +13,7 @@ public interface TherapistAttendenceService {
 
 	Response getMonthlyReport(String therapistId, String month);
 
+	public Response deleteSession(String therapistId, String date, String sessionId);
 //	String getCityFromLatLong(String latitude, String longitude);
 
 //    // ✅ DAILY GET
