@@ -108,14 +108,20 @@ public class BranchServiceImpl implements BranchService {
             Branch branch = convertDtoToEntity(dto, branchId);
             branch.setRole("ADMIN");
             branch.setPermissions(PermissionsUtil.getAdminPermissions());
-
-            // 👉 If you don’t want verification
             branch.setStatus("ACTIVE");
-            
-            // 🔥 IMPORTANT FIX → ensure email always present
-            if (branch.getEmail() == null || branch.getEmail().isBlank()) {
-                branch.setEmail(clinic.getEmailAddress());
+
+            // ✅ Ensure email is always present
+            String emailToUse = branch.getEmail();
+
+            if (emailToUse == null || emailToUse.isBlank()) {
+                emailToUse = clinic.getEmailAddress();
             }
+
+            if (emailToUse == null || emailToUse.isBlank()) {
+                throw new RuntimeException("No email found for branch or clinic");
+            }
+
+            branch.setEmail(emailToUse);
 
             Branch savedBranch = branchRepository.save(branch);
 
@@ -133,18 +139,17 @@ public class BranchServiceImpl implements BranchService {
 
             branchCredentialsRepository.save(credentials);
 
-            // ----------------  Send Email ----------------
+            // ---------------- Send Email ----------------
             if (savedBranch.getEmail() != null && !savedBranch.getEmail().isBlank()) {
 
-             
-
-                //  IMPORTANT FIX → include credentials in message
                 Map<String, String> mailData = new HashMap<>();
                 mailData.put("subject", "Branch Login Credentials");
 
                 mailData.put("message",
-                        "Your branch has been created successfully.\n\n" +
-                        "Please use the below credentials to login."
+                        "Welcome to CCMS KINETIX!\n\n" +
+                        "Your account has been created successfully.\n" +
+                        "Please use the below credentials to login.\n\n" +
+                        "Branch ID: " + branchId
                 );
 
                 mailData.put("username", branchId);

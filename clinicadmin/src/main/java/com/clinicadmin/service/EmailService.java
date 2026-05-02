@@ -1,6 +1,5 @@
 package com.clinicadmin.service;
 
-
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -40,7 +39,7 @@ public class EmailService {
                 return;
             }
 
-            String subject = data.getOrDefault("subject", "CCMS Notification");
+            String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
 
             String emoji = "";
             if (subject.contains("Verified")) emoji = "🎉";
@@ -80,6 +79,13 @@ public class EmailService {
         String bodyMessage = data.getOrDefault("message", "");
         String username = data.get("username");
         String password = data.get("password");
+        
+     // ✅ ADD THIS BLOCK (safe welcome addition)
+        if (bodyMessage != null && !bodyMessage.toLowerCase().contains("welcome to ccms kinetix")) {
+            bodyMessage =
+                    "Welcome to CCMS Kinetix!\n\n" +
+                    bodyMessage;
+        }
 
         return """
             <html>
@@ -90,7 +96,7 @@ public class EmailService {
                 
                 <!-- Header -->
                 <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-                    <h2 style="color:#ffffff; margin:0;">CCMS Notification</h2>
+                    <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
                 </div>
 
                 <!-- Body -->
@@ -105,6 +111,11 @@ public class EmailService {
                     %s
 
                     %s
+
+                    <p style="margin-top:20px;">
+                        Regards,<br>
+                        CCMS Team
+                    </p>
 
                 </div>
 

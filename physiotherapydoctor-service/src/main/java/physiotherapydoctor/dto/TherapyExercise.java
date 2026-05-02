@@ -16,6 +16,10 @@ public class TherapyExercise {
 
 	private Double pricePerSession; //
 	private Integer noOfSessions;
+	private double discountPercentage;
+	private double discountAmount;
+	private double gst;
+	private double otherTax;
 	private Double totalExercisePrice;
 
 	private String paymentStatus;
