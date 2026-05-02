@@ -14,8 +14,14 @@ import lombok.NoArgsConstructor;
 public class DailyReportResponse {
 
     private String date;
-    private String loginTime;
-    private String logoutTime;
+
+  
+    private TimeLocationDTO login;
+    private TimeLocationDTO logout;
+
     private String logTime;
+    private String status;
+
     private List<SessionData> sessions;
+
 }

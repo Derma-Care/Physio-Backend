@@ -19,9 +19,11 @@ import com.clinicadmin.dto.DailyReportResponse;
 import com.clinicadmin.dto.MonthlyTherapistResponse;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.SessionData;
+import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Session;
 import com.clinicadmin.entity.TherapistAttendance;
 import com.clinicadmin.entity.TherapistRecord;
+import com.clinicadmin.entity.TimeLocation;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.service.TherapistAttendenceService;
@@ -34,7 +36,60 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
     private final TherapistAttendanceRepository attendanceRepo;
     private final TherapistRecordRepository recordRepo;
+    
+    
+    
+    @Override
+    public Response addManualSession(String therapistId, Map<String, String> body) {
 
+        Response response = new Response();
+
+        try {
+
+            String date = body.get("completedDate");
+
+            TherapistAttendance attendance =
+                    attendanceRepo.findByTherapistIdAndDate(therapistId, date);
+
+            if (attendance == null) {
+                attendance = new TherapistAttendance();
+                attendance.setTherapistId(therapistId);
+                attendance.setDate(date);
+            }
+
+            List<Session> sessionList =
+                    attendance.getSessions() != null
+                    ? new ArrayList<>(attendance.getSessions())
+                    : new ArrayList<>();
+
+            // ✅ create manual session
+            Session s = new Session();
+            s.setSessionId("MANUAL_" + System.currentTimeMillis());
+            s.setActivity(body.get("activity"));
+            s.setDuration(body.get("duration"));
+            s.setLocation(body.getOrDefault("location", null));
+
+            sessionList.add(s);
+
+            // ✅ IMPORTANT LINE (YOU MAY BE MISSING THIS)
+            attendance.setSessions(sessionList);
+
+            // ✅ SAVE
+            attendanceRepo.save(attendance);
+
+            response.setSuccess(true);
+            response.setMessage("Manual session added successfully");
+            response.setData(s);
+            response.setStatus(200);
+
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+            response.setStatus(500);
+        }
+
+        return response;
+    }
     @Override
     public Response getDailyReport(String therapistId, String date) {
 
@@ -50,7 +105,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
             List<SessionData> sessions = new ArrayList<>();
 
-            // 🔹 ORIGINAL AUTO LOGIC (UNCHANGED)
+            // 🔹 AUTO sessions
             for (TherapistRecord r : records) {
                 SessionData s = new SessionData();
                 s.setSessionId(r.getSessionId());
@@ -60,16 +115,15 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 sessions.add(s);
             }
 
-            // 🔹 NEW: ADD MANUAL SESSIONS
+            // 🔹 MANUAL sessions
             if (attendance != null && attendance.getSessions() != null) {
 
                 for (Session s : attendance.getSessions()) {
 
-                    // Only manual sessions
                     if (s.getSessionId() != null && s.getSessionId().startsWith("MANUAL")) {
 
                         SessionData sd = new SessionData();
-                        sd.setSessionId(null); // ❌ hide manual sessionId
+                        sd.setSessionId(s.getSessionId());
                         sd.setActivity(s.getActivity());
                         sd.setDuration(s.getDuration());
                         sd.setLocation(s.getLocation());
@@ -79,25 +133,50 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 }
             }
 
+            // 🔹 login/logout/logTime
             String loginTime = null;
             String logoutTime = null;
             String logTime = null;
+            String loginLocation = null;
+            String logoutLocation = null;
 
             if (attendance != null) {
-                loginTime = attendance.getLoginTime();
-                logoutTime = attendance.getLogoutTime();
+
+                if (attendance.getLogin() != null) {
+                    loginTime = attendance.getLogin().getTime();
+                    loginLocation = attendance.getLogin().getLocation();
+                }
+
+                if (attendance.getLogout() != null) {
+                    logoutTime = attendance.getLogout().getTime();
+                    logoutLocation = attendance.getLogout().getLocation();
+                }
 
                 if (loginTime != null && logoutTime != null) {
                     logTime = calculateLogTime(loginTime, logoutTime);
                 }
             }
 
+            // =========================================================
+            // ✅ NEW OBJECT STRUCTURE
+            // =========================================================
+
+            TimeLocationDTO loginObj = new TimeLocationDTO();
+            loginObj.setTime(loginTime);
+            loginObj.setLocation(loginLocation);
+
+            TimeLocationDTO logoutObj = new TimeLocationDTO();
+            logoutObj.setTime(logoutTime);
+            logoutObj.setLocation(logoutLocation);
+
+            // 🔹 response
             DailyReportResponse data = new DailyReportResponse();
             data.setDate(date);
-            data.setLoginTime(loginTime);
-            data.setLogoutTime(logoutTime);
+            data.setLogin(loginObj);       // ✅ changed
+            data.setLogout(logoutObj);     // ✅ changed
             data.setLogTime(logTime);
             data.setSessions(sessions);
+            data.setStatus(attendance != null ? attendance.getStatus() : null);
 
             response.setSuccess(true);
             response.setMessage("Daily report fetched successfully");
@@ -131,22 +210,75 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 attendance.setDate(date);
             }
 
-            // 🔹 dynamic update
+            // =========================================================
+            // 🔹 LOGIN / LOGOUT (OBJECT STRUCTURE)
+            // =========================================================
+
+            // 🔹 login update
             if (body.containsKey("loginTime")) {
-                attendance.setLoginTime(body.get("loginTime"));
+
+                TimeLocation login = attendance.getLogin() != null
+                        ? attendance.getLogin()
+                        : new TimeLocation();
+
+                login.setTime(body.get("loginTime"));
+
+                if (body.containsKey("loginLocation")) {
+                    login.setLocation(body.get("loginLocation"));
+                }
+
+                attendance.setLogin(login);
+                attendance.setStatus("LOGIN");
             }
 
+         // 🔹 login update
+            if (body.containsKey("loginTime")) {
+
+                TimeLocation login = attendance.getLogin() != null
+                        ? attendance.getLogin()
+                        : new TimeLocation();
+
+                login.setTime(body.get("loginTime"));
+
+                if (body.containsKey("loginLocation")) {
+                    login.setLocation(body.get("loginLocation"));
+                }
+
+                attendance.setLogin(login);
+
+                // ✅ UPDATED STATUS
+                attendance.setStatus("LOGGED_IN");
+            }
+
+            // 🔹 logout update
             if (body.containsKey("logoutTime")) {
-                attendance.setLogoutTime(body.get("logoutTime"));
+
+                TimeLocation logout = attendance.getLogout() != null
+                        ? attendance.getLogout()
+                        : new TimeLocation();
+
+                logout.setTime(body.get("logoutTime"));
+
+                if (body.containsKey("logoutLocation")) {
+                    logout.setLocation(body.get("logoutLocation"));
+                }
+
+                attendance.setLogout(logout);
+
+                // ✅ UPDATED STATUS
+                attendance.setStatus("LOGGED_OUT");
             }
 
+            // =========================================================
             // 🔹 calculate logTime
-            if (attendance.getLoginTime() != null && attendance.getLogoutTime() != null) {
+            // =========================================================
+            if (attendance.getLogin() != null && attendance.getLogout() != null &&
+                attendance.getLogin().getTime() != null &&
+                attendance.getLogout().getTime() != null) {
 
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-
-                LocalTime in = LocalTime.parse(attendance.getLoginTime(), formatter);
-                LocalTime out = LocalTime.parse(attendance.getLogoutTime(), formatter);
+            	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("H:mm");
+                LocalTime in = LocalTime.parse(attendance.getLogin().getTime(), formatter);
+                LocalTime out = LocalTime.parse(attendance.getLogout().getTime(), formatter);
 
                 if (!out.isAfter(in)) {
                     throw new RuntimeException("Logout time must be after login time");
@@ -157,7 +289,9 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 attendance.setLogTime(d.toHours() + "h " + (d.toMinutes() % 60) + "m");
             }
 
-            // 🔹 update records (same-date)
+            // =========================================================
+            // 🔹 update therapist records (AUTO ONLY)
+            // =========================================================
             List<TherapistRecord> records =
                     recordRepo.findByTherapistIdAndCompletedDate(therapistId, date);
 
@@ -166,126 +300,71 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                         therapistId, date.substring(0, 7));
             }
 
-            // 🔹 MANUAL CHECK
-            boolean isManual =
-                    body.containsKey("location") &&
-                    body.get("location") != null &&
-                    !body.get("location").trim().isEmpty();
-
             for (TherapistRecord record : records) {
 
-                if (!isManual) {
+                if (body.containsKey("activity")) {
+                    record.setServiceType(body.get("activity"));
+                }
 
-                    if (body.containsKey("activity")) {
-                        record.setServiceType(body.get("activity"));
-                    }
+                if (body.containsKey("duration")) {
+                    record.setDuration(body.get("duration"));
+                }
 
-                    if (body.containsKey("duration")) {
-                        record.setDuration(body.get("duration"));
-                    }
+                if (body.containsKey("latitude")) {
+                    record.setLatitude(body.get("latitude"));
+                }
 
-                    if (body.containsKey("latitude")) {
-                        record.setLatitude(body.get("latitude"));
-                    }
-
-                    if (body.containsKey("longitude")) {
-                        record.setLongitude(body.get("longitude"));
-                    }
-
-                    // ❌ REMOVED LOCATION UPDATE FOR AUTO MODE
-                    // (Original logic preserved, only this part removed)
+                if (body.containsKey("longitude")) {
+                    record.setLongitude(body.get("longitude"));
                 }
             }
 
             recordRepo.saveAll(records);
 
             // =========================================================
-            // ✅ KEEP OLD SESSIONS + ADD NEW ONES
+            // ✅ SYNC AUTO SESSIONS + KEEP MANUAL
             // =========================================================
 
-            List<Session> sessionList =
+            List<Session> existingSessions =
                     attendance.getSessions() != null
                     ? new ArrayList<>(attendance.getSessions())
                     : new ArrayList<>();
 
-            // 🔹 ADD AUTO ONLY FIRST TIME
-            if (sessionList.isEmpty()) {
+            List<Session> manualSessions = new ArrayList<>();
 
-                for (TherapistRecord r : records) {
-
-                    Session s = new Session();
-                    s.setSessionId(r.getSessionId());
-                    s.setActivity(r.getServiceType());
-                    s.setDuration(r.getDuration());
-                    s.setLocation(r.getLocation());
-
-                    sessionList.add(s);
+            for (Session s : existingSessions) {
+                if (s.getSessionId() != null && s.getSessionId().startsWith("MANUAL")) {
+                    manualSessions.add(s);
                 }
             }
 
-            int totalMinutes = 0;
+            List<Session> finalSessions = new ArrayList<>(manualSessions);
 
-            // 🔹 calculate existing
-            for (Session s : sessionList) {
-                if (s.getDuration() != null) {
-                    totalMinutes += convertToMinutes(s.getDuration());
-                }
-            }
-
-            // 🔹 ADD MANUAL (NO LIMIT)
-            if (isManual) {
+            for (TherapistRecord r : records) {
 
                 Session s = new Session();
-                s.setSessionId("MANUAL_" + System.currentTimeMillis());
-                s.setActivity(body.get("activity"));
-                s.setDuration(body.get("duration"));
-                s.setLocation(body.get("location"));
+                s.setSessionId(r.getSessionId());
+                s.setActivity(r.getServiceType());
+                s.setDuration(r.getDuration());
+                s.setLocation(r.getLocation());
 
-                sessionList.add(s);
-
-                totalMinutes += convertToMinutes(s.getDuration());
+                finalSessions.add(s);
             }
 
-            // 🔹 save sessions
-            attendance.setSessions(sessionList);
+            attendance.setSessions(finalSessions);
 
-            // 🔹 working hours
-            int workH = totalMinutes / 60;
-            int workM = totalMinutes % 60;
-            attendance.setWorkingHours(workH + "h " + workM + "m");
-
-            // 🔹 idle time
-            if (attendance.getLogTime() != null) {
-
-                int logMinutes = convertToMinutes(attendance.getLogTime());
-                int idle = logMinutes - totalMinutes;
-
-                attendance.setIdleTime((idle / 60) + "h " + (idle % 60) + "m");
-            }
-
-            // 🔹 FINAL SAVE
+            // =========================================================
+            // 🔹 save attendance
+            // =========================================================
             attendanceRepo.save(attendance);
 
+            // =========================================================
             // 🔹 response
+            // =========================================================
             Map<String, Object> data = new HashMap<>();
             data.put("therapistId", therapistId);
             data.put("date", date);
             data.put("updatedFields", new HashMap<>(body));
-            
-            Session manualSession = null; // ✅ declare outside
-
-            if (isManual) {
-
-                manualSession = new Session(); // assign here
-                manualSession.setSessionId("MANUAL_" + System.currentTimeMillis());
-                manualSession.setActivity(body.get("activity"));
-                manualSession.setDuration(body.get("duration"));
-                manualSession.setLocation(body.get("location"));
-
-                sessionList.add(manualSession);
-
-                totalMinutes += convertToMinutes(manualSession.getDuration());
-            }
 
             response.setSuccess(true);
             response.setMessage("Attendance updated successfully");
@@ -315,45 +394,34 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 MonthlyTherapistResponse res = new MonthlyTherapistResponse();
 
                 res.setDate(a.getDate());
-                res.setInTime(a.getLoginTime());
-                res.setOutTime(a.getLogoutTime());
-                res.setLogTime(a.getLogTime());
+                res.setInTime(
+                        a.getLogin() != null ? a.getLogin().getTime() : null
+                );
 
-                // 🔹 1. Get sessions for that date (ORIGINAL LOGIC)
-                List<TherapistRecord> sessions =
-                        recordRepo.findByTherapistIdAndCompletedDate(therapistId, a.getDate());
+                res.setOutTime(
+                        a.getLogout() != null ? a.getLogout().getTime() : null
+                );
+                res.setLogTime(a.getLogTime());
 
                 int totalMinutes = 0;
 
-                // 🔹 ORIGINAL: AUTO sessions
-                for (TherapistRecord r : sessions) {
-                    if (r.getDuration() != null) {
-                        totalMinutes += convertToMinutes(r.getDuration());
-                    }
-                }
-
-                // 🔹 NEW: ADD MANUAL SESSIONS (WITHOUT CHANGING ORIGINAL)
+                // ✅ ONLY use attendance.sessions
                 if (a.getSessions() != null && !a.getSessions().isEmpty()) {
 
                     for (Session s : a.getSessions()) {
 
-                        // Only count manual sessions
-                        if (s.getSessionId() != null && s.getSessionId().startsWith("MANUAL")) {
-
-                            if (s.getDuration() != null) {
-                                totalMinutes += convertToMinutes(s.getDuration());
-                            }
+                        if (s.getDuration() != null) {
+                            totalMinutes += convertToMinutes(s.getDuration());
                         }
                     }
                 }
 
-                // 🔹 2. Working Hours
+                // 🔹 Working Hours
                 int workH = totalMinutes / 60;
                 int workM = totalMinutes % 60;
-                String working = workH + "h " + workM + "m";
-                res.setWorkingHours(working);
+                res.setWorkingHours(workH + "h " + workM + "m");
 
-                // 🔹 3. Idle Time = logTime - working
+                // 🔹 Idle Time
                 if (a.getLogTime() != null) {
 
                     int logMinutes = convertToMinutes(a.getLogTime());
@@ -385,28 +453,43 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
     private int convertToMinutes(String time) {
 
-        time = time.toLowerCase();
+        if (time == null || time.trim().isEmpty()) return 0;
 
-        int hours = 0;
-        int minutes = 0;
+        time = time.toLowerCase().trim();
 
-        if (time.contains("h")) {
-            String[] parts = time.split("h");
-            hours = Integer.parseInt(parts[0].trim());
+        int totalMinutes = 0;
 
-            if (parts.length > 1 && parts[1].contains("m")) {
-                minutes = Integer.parseInt(parts[1].replace("m", "").trim());
-            }
-        } else if (time.contains("minute")) {
-            minutes = Integer.parseInt(time.replaceAll("[^0-9]", ""));
+        // 🔹 extract hours
+        java.util.regex.Matcher hourMatcher =
+                java.util.regex.Pattern.compile("(\\d+)\\s*(h|hr|hrs|hour|hours)")
+                        .matcher(time);
+
+        while (hourMatcher.find()) {
+            int hours = Integer.parseInt(hourMatcher.group(1));
+            totalMinutes += hours * 60;
         }
 
-        return (hours * 60) + minutes;
+        // 🔹 extract minutes
+        java.util.regex.Matcher minuteMatcher =
+                java.util.regex.Pattern.compile("(\\d+)\\s*(m|min|mins|minute|minutes)")
+                        .matcher(time);
+
+        while (minuteMatcher.find()) {
+            int minutes = Integer.parseInt(minuteMatcher.group(1));
+            totalMinutes += minutes;
+        }
+
+        // 🔹 fallback: if only number (like "30")
+        if (totalMinutes == 0 && time.matches("\\d+")) {
+            totalMinutes = Integer.parseInt(time);
+        }
+
+        return totalMinutes;
     }
 
 	private String calculateLogTime(String loginTime, String logoutTime) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("H:mm"); 
 
         LocalTime in = LocalTime.parse(loginTime, formatter);
         LocalTime out = LocalTime.parse(logoutTime, formatter);

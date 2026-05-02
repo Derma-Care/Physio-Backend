@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,6 +61,17 @@ public class TherapistAttendenceController {
         Response response = service.deleteSession(therapistId, date, sessionId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
+     @PostMapping("/attendance/manual-session/{therapistId}")
+    public ResponseEntity<Response> addManualSession(
+            @PathVariable String therapistId,
+            @RequestBody Map<String, String> body) {
+
+        Response response = service.addManualSession(therapistId, body);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+   
+    
+    
 //    @GetMapping("/getLocation/{latitude}/{longitude}")
 //    public ResponseEntity<Response> getLocation(
 //            @PathVariable String latitude,

@@ -1,9 +1,14 @@
 package com.clinicadmin.entity;
 
 import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import lombok.*;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Document(collection = "therapist_attendance")
 @Data
@@ -21,13 +26,22 @@ public class TherapistAttendance {
 
     private String date;        
 
-    private String loginTime;   
-    private String logoutTime;  
-
+    private TimeLocation login;
+    private TimeLocation logout;
+    
     private String logTime;     
     private String workingHours;
     private String idleTime;
 
     // ✅ ADD THIS
     private List<Session> sessions;
+
+private String status;
+private String loginLocation;
+private  String logoutLocation;
+
+	
+
+
+	
 }

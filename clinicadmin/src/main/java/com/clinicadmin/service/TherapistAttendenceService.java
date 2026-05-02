@@ -16,6 +16,8 @@ public interface TherapistAttendenceService {
 	public Response deleteSession(String therapistId, String date, String sessionId);
 //	String getCityFromLatLong(String latitude, String longitude);
 
+	Response addManualSession(String therapistId, Map<String, String> body);
+
 //    // ✅ DAILY GET
 //    public Response  getDailyReport(String therapistId, String date);
 //
