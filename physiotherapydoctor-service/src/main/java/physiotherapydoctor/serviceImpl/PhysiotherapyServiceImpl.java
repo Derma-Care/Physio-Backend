@@ -1628,6 +1628,21 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
 
         ex.setPricePerSession(te.getPricePerSession() != null ? te.getPricePerSession().intValue() : 0);
 
+        // ✅ New fields mapping
+        ex.setTechnique(te.getTechnique());
+        ex.setMachine(te.getMachine());
+        ex.setIntensity(te.getIntensity());
+        ex.setAssistanceLevel(te.getAssistanceLevel());
+        ex.setType(te.getType());
+        ex.setArea(te.getArea());
+        ex.setMetric(te.getMetric());
+        ex.setValue(te.getValue());
+        ex.setUnit(te.getUnit());
+        ex.setBodyPart(te.getBodyPart());
+
+        // ✅ Activity fields
+        ex.setActivityType(te.getActivityType());
+        ex.setActivityDuration(te.getActivityDuration());
         return ex;
     }).toList();
 }

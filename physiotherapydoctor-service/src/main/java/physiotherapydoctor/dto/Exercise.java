@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Exercise {
-	
+
 	private String exerciseId;
 	private String exerciseName;
 	private Double totalSessionCost;
@@ -22,5 +22,19 @@ public class Exercise {
 	private String frequancy;
 	private String notes;
 	private String videoUrl;
+	// ........New fields......
+	private String technique;
+	private String machine;
+	private String intensity;
+	private String assistanceLevel;
+	private String type;
+	private String area;
+	private String metric;
+	private String value;
+	private String unit;
+	private String bodyPart;
+	// ✅ Activity Fields
+	private String activityType;
+	private String activityDuration;
 
 }
