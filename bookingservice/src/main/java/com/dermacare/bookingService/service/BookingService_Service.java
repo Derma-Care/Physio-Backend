@@ -36,7 +36,7 @@ public interface BookingService_Service {
 	public ResponseEntity<?> getRelationsByCustomerId(String customerId);
 	public List<BookingResponse> bookingByCustomerId(String customerId);
 	public List<BookingResponse> bookingByPatientId(String patientId);
-	public BookingInfoByInput bookingByInput(String input,String clinicId);
+	//public BookingInfoByInput bookingByInput(String input,String clinicId);
 	public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId);
 	public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId,String clinicId);
 	public BookingResponse checkBookingByDateAndTime(String date,String time,String doctorId);

@@ -1,5 +1,6 @@
 package com.dermacare.bookingService.feign;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
@@ -45,7 +46,7 @@ public interface ClinicAdminFeign {
 	    
 	    
 	    @GetMapping("/clinic-admin/customer/name/{name}/{clinicId}")
-	    public CustomerOnbordingDTO getCustomerByNameAndClinicId(@PathVariable String name,@PathVariable String clinicId);
+	    public  List<CustomerOnbordingDTO> getCustomerByNameAndClinicId(@PathVariable String name,@PathVariable String clinicId);
 	    	
 	    
 

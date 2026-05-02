@@ -1,8 +1,10 @@
 package com.clinicadmin.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,9 +15,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.clinicadmin.dto.BookingInfoByInput;
 import com.clinicadmin.dto.CustomerLoginDTO;
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.service.CustomerOnboardingService;
 import jakarta.validation.Valid;
@@ -90,11 +95,6 @@ public class CustomerOnboardingController {
         return response;
     }
     
-    @GetMapping("/customer/name/{name}/{clinicId}")
-    public CustomerOnbordingDTO getCustomerByNameAndClinicId(@PathVariable String name,@PathVariable String clinicId) {
-    	CustomerOnbordingDTO response = customerOnboardingService.getCustomerByNameAndClinicId(name,clinicId);
-        return response;
-    }
     
     @GetMapping("/customer/patientId/{patientId}/{clinicId}")
     public ResponseEntity<Response> getCustomerByPatientId(@PathVariable String patientId,@PathVariable String clinicId) {
@@ -139,4 +139,18 @@ public class CustomerOnboardingController {
  			 @PathVariable String token ){
  	   return customerOnboardingService.getCustomerByToken(token);
   }
+
+    @GetMapping("/bookings/byInput/{input}/{clinicId}")	
+			public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId){
+    	List<BookingInfoByInput> response = customerOnboardingService.bookingByInput(input,clinicId);
+				if (response == null) {
+					return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+							"No booking yet" + input, HttpStatus.OK, HttpStatus.OK.value()),
+							HttpStatus.OK);}
+				return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+						"Booking fetched sucessfully on clinicId" + input, HttpStatus.OK, HttpStatus.OK.value()),
+						HttpStatus.OK);}
+		
+			
+    
 }

@@ -1,7 +1,9 @@
 package com.clinicadmin.service;
 
+import java.util.List;
 import java.util.Map;
 
+import com.clinicadmin.dto.BookingInfoByInput;
 import com.clinicadmin.dto.CustomerLoginDTO;
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.dto.Response;
@@ -32,8 +34,9 @@ public interface CustomerOnboardingService {
 	public Response getCustomerByMobiileNumber(String mobilenumber);
 	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name);	
 	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId);
-	public CustomerOnbordingDTO getCustomerByNameAndClinicId(String name,String clinicId);	
-		
+	//public  List<CustomerOnbordingDTO> getCustomerByNameAndClinicId(String name,String clinicId);	
+	public List<BookingInfoByInput> bookingByInput(String input,String clinicId);
+			
 			
 //
 //	Response resetPassword(ChangeDoctorPasswordDTO dto);

@@ -57,11 +57,7 @@ public class BookingServiceController {
 		
 	}
 	
-	@GetMapping("/bookings/byInput/{input}/{clinicId}")
-	   public ResponseEntity<?> getInprogressBookingsByInput(
-				 @PathVariable String input, @PathVariable String clinicId){
-		   return bookingService.retrieveAppointnmentsByInput(input,clinicId);
-	 }
+	
 	
 	   @GetMapping("/bookings/byPatientId/{patientId}")
 	   public ResponseEntity<?> getInprogressBookingsByPatientId(

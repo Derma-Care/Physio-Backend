@@ -22,7 +22,7 @@ public interface BookingService {
 	
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse bookingResponse);
  
-	public ResponseEntity<?> retrieveAppointnmentsByInput(String input, String clinicId);
+	//public ResponseEntity<?> retrieveAppointnmentsByInput(String input, String clinicId);
 
 	ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId);
 

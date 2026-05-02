@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.entity.CustomerOnbording;
 
 public interface CustomerOnboardingRepository extends MongoRepository<CustomerOnbording, String> {
@@ -17,15 +18,16 @@ public interface CustomerOnboardingRepository extends MongoRepository<CustomerOn
 
 	List<CustomerOnbording> findByBranchId(String branchId);
 	
-	CustomerOnbording findByPatientIdAndBranchId(String patientId,String clinicId);
+	CustomerOnbording findByPatientIdAndHospitalId(String patientId,String clinicId);
 	CustomerOnbording findByMobileNumberAndHospitalId(String mobilenumber,String hospitalId);
 	
-	CustomerOnbording findByFullNameIgnoreCaseAndHospitalId(String fullName,String hospitalId);
+	List<CustomerOnbordingDTO> findByFullNameIgnoreCaseAndHospitalId(String fullName,String hospitalId);
 	
 	List<CustomerOnbording> findByHospitalIdAndBranchId(String hospitalId, String branchId);
 
 	CustomerOnbording findByDeviceId(String token);
 	
 	Optional<CustomerOnbording>	findByMobileNumberAndFullName(String mobileNumber,String name);
+	List<CustomerOnbordingDTO> findByFullNameContainingIgnoreCaseAndHospitalId(String trim, String clinicId);
 	
 }

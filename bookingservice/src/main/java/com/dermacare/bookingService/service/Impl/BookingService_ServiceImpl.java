@@ -910,53 +910,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        return responseList;
 	    }
 		
-	@Override
-	public BookingInfoByInput bookingByInput(String input,String clinicId) {
-		   BookingInfoByInput bkng = new BookingInfoByInput();
-	       try {
-	        	if(isValidMobileNumber(input)) {	        	
-	        	CustomerOnbordingDTO b = clinicAdminFeign.getCustomerByMobileNumberAndClinicId(input,clinicId);
-	   		    bkng.setAge(b.getAge());
-		        bkng.setClinicId(b.getHospitalId());
-		        bkng.setCustomerId(b.getCustomerId());
-		        bkng.setGender(b.getGender());
-		        bkng.setMobileNumber(b.getMobileNumber());
-		        bkng.setName(b.getFullName());
-		        bkng.setPatientAddress(b.getAddress());
-		        bkng.setPatientId(b.getPatientId());
-		        bkng.setPatientMobileNumber(b.getMobileNumber());
-		        bkng.setRelation(null);		       
-	            }else if(input.contains("_")){
-	        	 Response res = clinicAdminFeign.getCustomerByPatientId(input,clinicId).getBody();			   
-			      CustomerOnbordingDTO b = new ObjectMapper().convertValue(res.getData(), CustomerOnbordingDTO.class);		    	     
-	        	    bkng.setAge(b.getAge());
-			        bkng.setClinicId(b.getHospitalId());
-			        bkng.setCustomerId(b.getCustomerId());
-			        bkng.setGender(b.getGender());
-			        bkng.setMobileNumber(b.getMobileNumber());
-			        bkng.setName(b.getFullName());
-			        bkng.setPatientAddress(b.getAddress());
-			        bkng.setPatientId(b.getPatientId());
-			        bkng.setPatientMobileNumber(b.getMobileNumber());
-			        bkng.setRelation(null);		       
-		        }else{		       
-		        CustomerOnbordingDTO b = clinicAdminFeign.getCustomerByNameAndClinicId(input,clinicId);		        	
-		        bkng.setAge(b.getAge());
-		        bkng.setClinicId(b.getHospitalId());
-		        bkng.setCustomerId(b.getCustomerId());
-		        bkng.setGender(b.getGender());
-		        bkng.setMobileNumber(b.getMobileNumber());
-		        bkng.setName(b.getFullName());
-		        bkng.setPatientAddress(b.getAddress());
-		        bkng.setPatientId(b.getPatientId());
-		        bkng.setPatientMobileNumber(b.getMobileNumber());
-		        bkng.setRelation(null);} 
-	       }catch (Exception e) {
-	        //System.err.println("Error fetching bookings: " + e.getMessage());
-	        System.out.println(e.getMessage());; // safe fallback
-	    }
-	    return bkng;
-	}
 
 	private boolean isValidMobileNumber(String input) {
 	    if (input == null) {

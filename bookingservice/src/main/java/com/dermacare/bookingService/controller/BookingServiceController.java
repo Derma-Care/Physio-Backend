@@ -324,19 +324,7 @@ public class BookingServiceController {
 		{
 			return service.getRelationsByCustomerId(customerId);
 		}
-	
-			
-		@GetMapping("/appointments/byInput/{input}/{clinicId}")	
-		public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId){
-			BookingInfoByInput response = service.bookingByInput(input,clinicId);
-			if (response == null) {
-				return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-						"No booking yet" + input, HttpStatus.OK, HttpStatus.OK.value()),
-						HttpStatus.OK);}
-			return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-					"Booking fetched sucessfully on clinicId" + input, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);}
-	
+
 		
 		@PostMapping("/appointments/serviceDate/serviceTime/DoctorId")
 		public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp)
