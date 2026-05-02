@@ -24,5 +24,6 @@ Optional<TherapistRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndSe
 		String branchId, String bookingId, String patientId, String sessionId);
 List<TherapistRecord> findByTherapistIdAndCompletedDate(String therapistId, String date);
 List<TherapistRecord> findByTherapistIdAndCompletedDateStartingWith(String therapistId, String month);
+void deleteBySessionId(String sessionId);
 	
 }

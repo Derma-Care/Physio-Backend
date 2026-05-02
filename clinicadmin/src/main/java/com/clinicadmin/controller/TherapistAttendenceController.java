@@ -1,9 +1,9 @@
 package com.clinicadmin.controller;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -48,6 +48,16 @@ public class TherapistAttendenceController {
             @PathVariable String month) {
 
         Response response = service.getMonthlyReport(therapistId, month);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+    
+    @DeleteMapping("/deleteSession/{therapistId}/{date}/{sessionId}")
+    public ResponseEntity<Response> deleteSession(
+            @PathVariable String therapistId,
+            @PathVariable String date,
+            @PathVariable String sessionId) {
+
+        Response response = service.deleteSession(therapistId, date, sessionId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 //    @GetMapping("/getLocation/{latitude}/{longitude}")
