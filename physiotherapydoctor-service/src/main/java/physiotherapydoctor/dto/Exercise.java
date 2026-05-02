@@ -17,6 +17,9 @@ public class Exercise {
 	private Double totalSessionCost;
 	private Integer pricePerSession;
 	private Integer noOfSessions;
+	private double discountAmount;
+	private double gst;
+	private double otherTax;
 	private Integer sets;
 	private Integer repetitions;
 	private String frequancy;

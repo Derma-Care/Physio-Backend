@@ -1639,6 +1639,9 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
         ex.setValue(te.getValue());
         ex.setUnit(te.getUnit());
         ex.setBodyPart(te.getBodyPart());
+        ex.setDiscountAmount(te.getDiscountAmount());
+        ex.setGst(te.getGst());
+        ex.setOtherTax(te.getOtherTax());
 
         // ✅ Activity fields
         ex.setActivityType(te.getActivityType());
