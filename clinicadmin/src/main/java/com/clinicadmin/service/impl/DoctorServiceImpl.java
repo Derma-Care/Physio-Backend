@@ -302,7 +302,7 @@ public class DoctorServiceImpl implements DoctorService {
 						    Map<String, String> mailData = new HashMap<>();
 						    mailData.put("subject", "Doctor Onboarding Successful");
 						    mailData.put("message",
-						            "Welcome to CCMS!\n\n" +
+						            "Welcome to CCMS Kinetix!\n\n" +
 						            "Your account has been created successfully.\n" +
 						            "Please use the below credentials to login.\n\n" +
 						            "Doctor ID: " + savedDoctor.getDoctorId()
