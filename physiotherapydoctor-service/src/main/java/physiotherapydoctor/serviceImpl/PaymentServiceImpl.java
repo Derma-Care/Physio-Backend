@@ -806,11 +806,19 @@ private void updateStatuses(PaymentRecord record) {
 	// ========================================================
 	private List<ProgramResponse> mapPrograms(PaymentRecord record) {
 
-		if (record.getTherapyWithSessions() == null || record.getTherapyWithSessions().isEmpty())
-			return new ArrayList<>();
+	    List<ProgramResponse> result = new ArrayList<>();
 
-		var programs = record.getTherapyWithSessions().get(0).getPrograms();
-		return mapProgramList(programs);
+	    if (record.getTherapyWithSessions() == null)
+	        return result;
+
+	    for (var pkg : record.getTherapyWithSessions()) {
+
+	        if (pkg.getPrograms() != null) {
+	            result.addAll(mapProgramList(pkg.getPrograms()));
+	        }
+	    }
+
+	    return result;
 	}
 
 	// ========================================================
@@ -818,15 +826,24 @@ private void updateStatuses(PaymentRecord record) {
 	// ========================================================
 	private List<TherapyResponse> mapTherapies(PaymentRecord record) {
 
-		if (record.getTherapyWithSessions() == null || record.getTherapyWithSessions().isEmpty())
-			return new ArrayList<>();
+	    List<TherapyResponse> result = new ArrayList<>();
 
-		var programs = record.getTherapyWithSessions().get(0).getPrograms();
-		if (programs == null || programs.isEmpty())
-			return new ArrayList<>();
+	    if (record.getTherapyWithSessions() == null)
+	        return result;
 
-		var therapies = programs.get(0).getTherapyData();
-		return mapTherapyList(therapies);
+	    for (var pkg : record.getTherapyWithSessions()) {
+
+	        if (pkg.getPrograms() == null) continue;
+
+	        for (var prog : pkg.getPrograms()) {
+
+	            if (prog.getTherapyData() != null) {
+	                result.addAll(mapTherapyList(prog.getTherapyData()));
+	            }
+	        }
+	    }
+
+	    return result;
 	}
 
 	// ========================================================
@@ -834,19 +851,29 @@ private void updateStatuses(PaymentRecord record) {
 	// ========================================================
 	private List<ExerciseResponse> mapExercises(PaymentRecord record) {
 
-		if (record.getTherapyWithSessions() == null || record.getTherapyWithSessions().isEmpty())
-			return new ArrayList<>();
+	    List<ExerciseResponse> result = new ArrayList<>();
 
-		var programs = record.getTherapyWithSessions().get(0).getPrograms();
-		if (programs == null || programs.isEmpty())
-			return new ArrayList<>();
+	    if (record.getTherapyWithSessions() == null)
+	        return result;
 
-		var therapies = programs.get(0).getTherapyData();
-		if (therapies == null || therapies.isEmpty())
-			return new ArrayList<>();
+	    for (var pkg : record.getTherapyWithSessions()) {
 
-		var exercises = therapies.get(0).getExercises();
-		return mapExerciseList(exercises);
+	        if (pkg.getPrograms() == null) continue;
+
+	        for (var prog : pkg.getPrograms()) {
+
+	            if (prog.getTherapyData() == null) continue;
+
+	            for (var therapy : prog.getTherapyData()) {
+
+	                if (therapy.getExercises() != null) {
+	                    result.addAll(mapExerciseList(therapy.getExercises()));
+	                }
+	            }
+	        }
+	    }
+
+	    return result;
 	}
 
 	// ========================================================
