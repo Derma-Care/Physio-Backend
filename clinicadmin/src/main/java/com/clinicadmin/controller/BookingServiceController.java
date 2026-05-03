@@ -1,6 +1,7 @@
 package com.clinicadmin.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Response;
@@ -184,5 +184,13 @@ public class BookingServiceController {
 
 	        return bookingService.getUpcomingBookings(clinicId, branchId, option);
 	    }
+	    
+	    
+	    @GetMapping("/getBookedServiceById/{id}")
+		public ResponseEntity<?> getBookedService(@PathVariable String id) {
+			return bookingService.getBookedServiceById(id);
+		
+		}
+
 	   
 }

@@ -1653,7 +1653,7 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
 private double calculateExerciseCost(Exercise ex) {
 
     int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
-    int price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+    int price = ex.getTotalSessionCost() != null ? ex.getTotalSessionCost().intValue() : 0;
 
     return sessions * price;
 }

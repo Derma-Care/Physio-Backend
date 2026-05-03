@@ -53,5 +53,7 @@ public interface BookingService {
 	public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 			String bookingId);
 	public ResponseEntity<?> getReportsByPatientId(String patientId);
+	public ResponseEntity<?> getBookedServiceById(String bookingId);
+
 
 }

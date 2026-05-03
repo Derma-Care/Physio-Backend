@@ -300,6 +300,20 @@ public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 
 
 @Override
+public ResponseEntity<?> getBookedServiceById(String bookingId) {
+	Response response = new Response();
+    try {
+        return bookingFeign.getBookedService(bookingId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage(e.getMessage());
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+
+@Override
 public ResponseEntity<?> getBookingById(String bookingId){
 	Response response = new Response();
     try {
