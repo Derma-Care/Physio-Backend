@@ -1425,7 +1425,7 @@ exerciseDTO.setExerciseName(exercise.getExerciseName());
 exerciseDTO.setSets(exercise.getSets());
 exerciseDTO.setRepetitions(exercise.getRepetitions());
 exerciseDTO.setNotes(exercise.getNotes());
-exerciseDTO.setVideoUrl(exercise.getYoutubeUrl());
+exerciseDTO.setYoutubeUrl(exercise.getYoutubeUrl());
 
 // Parse frequency → frequancy field
 String frequencyVal = null;
@@ -1436,7 +1436,7 @@ if (exercise.getFrequency() != null && !exercise.getFrequency().isBlank()) {
       frequencyVal = null;
   }
 }
-exerciseDTO.setFrequancy(frequencyVal);
+exerciseDTO.setFrequency(frequencyVal);
 
 // Parse noOfSessions from session field
 Integer noOfSessions = null;
@@ -1764,20 +1764,38 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
     return source.stream().map(te -> {
         Exercise ex = new Exercise();
 
+        // ✅ Basic Info
         ex.setExerciseId(te.getExerciseId());
         ex.setExerciseName(te.getExerciseName());
+
+        // ✅ Session & Frequency
+        ex.setNoOfSessions(te.getNoOfSessions());
+        ex.setFrequency(te.getFrequency()); // FIX spelling (was frequancy)
+
         ex.setSets(te.getSets());
         ex.setRepetitions(te.getRepetitions());
+
+        // ✅ Media & Notes
+        ex.setYoutubeUrl(te.getYoutubeUrl());
         ex.setNotes(te.getNotes());
-        ex.setVideoUrl(te.getYoutubeUrl());
 
-        // Convert session & frequency safely
-        ex.setNoOfSessions(te.getNoOfSessions());
-        ex.setFrequancy(te.getFrequency());
+        // ✅ Pricing
+        ex.setPricePerSession(te.getPricePerSession() != null 
+                ? te.getPricePerSession().intValue()
+                : 0);
 
-        ex.setPricePerSession(te.getPricePerSession() != null ? te.getPricePerSession().intValue() : 0);
+        ex.setDiscountPercentage(te.getDiscountPercentage());
+        ex.setDiscountAmount(te.getDiscountAmount());
+        ex.setGst(te.getGst());
+        ex.setOtherTax(te.getOtherTax());
 
-        // ✅ New fields mapping
+        ex.setTotalExercisePrice(te.getTotalExercisePrice());
+        ex.setTotalPrice(te.getTotalPrice());
+
+        // ✅ Payment
+        ex.setPaymentStatus(te.getPaymentStatus());
+
+        // ✅ New Fields
         ex.setTechnique(te.getTechnique());
         ex.setMachine(te.getMachine());
         ex.setIntensity(te.getIntensity());
@@ -1788,13 +1806,14 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
         ex.setValue(te.getValue());
         ex.setUnit(te.getUnit());
         ex.setBodyPart(te.getBodyPart());
-        ex.setDiscountAmount(te.getDiscountAmount());
-        ex.setGst(te.getGst());
-        ex.setOtherTax(te.getOtherTax());
 
-        // ✅ Activity fields
+        // ✅ Activity Fields
         ex.setActivityType(te.getActivityType());
         ex.setActivityDuration(te.getActivityDuration());
+
+        // ✅ Sessions Mapping (IMPORTANT)
+      //  ex.setSessions(mapSessions(te.getSessions()));
+
         return ex;
     }).toList();
 }
@@ -1802,7 +1821,7 @@ private List<Exercise> mapExercises(List<TherapyExercise> source) {
 private double calculateExerciseCost(Exercise ex) {
 
     int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
-    int price = ex.getTotalSessionCost() != null ? ex.getTotalSessionCost().intValue() : 0;
+    int price = ex.getTotalPrice() != 0.0 ?(int)ex.getTotalPrice() : 0;
 
     return sessions * price;
 }

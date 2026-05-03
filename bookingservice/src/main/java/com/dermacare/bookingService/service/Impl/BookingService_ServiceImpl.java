@@ -3205,7 +3205,7 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 			String letter  =  String.join("-", parts);
 			Optional<Booking> booking = repository.findByBookingId(letter);
 			if(booking.isPresent()) {
-				if(booking.get().getFollwupBookings() != null || !booking.get().getFollwupBookings().isEmpty()) {
+				if(!booking.get().getFollwupBookings().isEmpty()) {
 					ObjectMapper mapper = new ObjectMapper();
 					mapper.registerModule(new JavaTimeModule());
 					mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

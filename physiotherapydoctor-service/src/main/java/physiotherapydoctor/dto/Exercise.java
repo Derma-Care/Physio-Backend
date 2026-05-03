@@ -23,9 +23,12 @@ public class Exercise {
 	private double totalPrice;
 	private Integer sets;
 	private Integer repetitions;
-	private String frequancy;
+	private String frequency;
 	private String notes;
-	private String videoUrl;
+	private String youtubeUrl;
+	private double discountPercentage;
+	private Double totalExercisePrice;
+	private String paymentStatus;
 	// ........New fields......
 	private String technique;
 	private String machine;
