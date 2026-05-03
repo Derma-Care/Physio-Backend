@@ -571,27 +571,25 @@ public class TherapistServiceImpl implements TherapistService {
         return sb.toString();
     }
     @Override
-    public Response getPaidSessions(String clinicId,String branchId,String bookingId,String therapistRecordId) {
+    public Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId) {
 
         Response response = new Response();
 
         try {
 
-            Response paymentResponse =
-                    physiotherapyFeignClient.getPayment(bookingId);
+            Response paymentResponse = physiotherapyFeignClient.getPayment(bookingId);
 
-            Map<String, Object> data =
-                    (Map<String, Object>) paymentResponse.getData();
+            Map<String, Object> data = (Map<String, Object>) paymentResponse.getData();
 
             if (data == null) {
                 throw new RuntimeException("Payment data not found");
             }
 
-            // Validate fields
-            if (!clinicId.equals(String.valueOf(data.get("clinicId")))
-                    || !branchId.equals(String.valueOf(data.get("branchId")))
-                    || !bookingId.equals(String.valueOf(data.get("bookingId")))
-                    || !therapistRecordId.equals(String.valueOf(data.get("therapistRecordId")))) {
+            // ✅ Safer validation
+            if (!clinicId.equals(String.valueOf(data.getOrDefault("clinicId", ""))) ||
+                !branchId.equals(String.valueOf(data.getOrDefault("branchId", ""))) ||
+                !bookingId.equals(String.valueOf(data.getOrDefault("bookingId", ""))) ||
+                !therapistRecordId.equals(String.valueOf(data.getOrDefault("therapistRecordId", "")))) {
 
                 throw new RuntimeException("Record mismatch");
             }
@@ -627,23 +625,26 @@ public class TherapistServiceImpl implements TherapistService {
                                 List<Map<String, Object>> sessions =
                                         (List<Map<String, Object>>) exercise.get("sessions");
 
-                                if (sessions == null) {
-                                    exercise.put("sessions", List.of());
+                                if (sessions == null || sessions.isEmpty()) {
+                                    exercise.put("sessions", List.of());        // keep structure
+                                    exercise.put("paidSessions", List.of());    // extra field
                                     continue;
                                 }
 
                                 List<Map<String, Object>> paidSessions =
                                         sessions.stream()
-                                                .filter(session ->
-                                                        "Paid".equalsIgnoreCase(
-                                                                String.valueOf(
-                                                                        session.get("paymentStatus")
-                                                                )
-                                                        )
-                                                )
+                                                .filter(session -> {
+                                                    Object status = session.get("paymentStatus");
+                                                    return status != null &&
+                                                           "Paid".equalsIgnoreCase(status.toString());
+                                                })
                                                 .toList();
 
-                                exercise.put("sessions", paidSessions);
+                                // ✅ KEEP original sessions
+                                exercise.put("sessions", sessions);
+
+                                // ✅ ADD filtered sessions separately
+                                exercise.put("paidSessions", paidSessions);
                             }
                         }
                     }
