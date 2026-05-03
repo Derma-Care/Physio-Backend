@@ -917,27 +917,60 @@ private void updateStatuses(PaymentRecord record) {
 
 	private List<ExerciseResponse> mapExerciseList(List<TherapyExercise> exercises) {
 
-		List<ExerciseResponse> result = new ArrayList<>();
-		if (exercises == null)
-			return result;
+	    List<ExerciseResponse> result = new ArrayList<>();
+	    if (exercises == null) return result;
 
-		for (var ex : exercises) {
-			ExerciseResponse er = new ExerciseResponse();
-			er.setExerciseId(ex.getExerciseId());
-			er.setExerciseName(ex.getExerciseName());
-			er.setPricePerSession(ex.getPricePerSession());
-			er.setNoOfSessions(ex.getNoOfSessions());
-			er.setTotalExercisePrice(ex.getTotalExercisePrice());
-			er.setPaymentStatus(ex.getPaymentStatus());
-			er.setRepetitions(ex.getRepetitions());
-			er.setFrequency(ex.getFrequency());
-			er.setSets(ex.getSets());
-			er.setYoutubeUrl(ex.getYoutubeUrl());
-			er.setNotes(ex.getNotes());
-			er.setSessions(ex.getSessions());
-			result.add(er);
-		}
-		return result;
+	    for (TherapyExercise ex : exercises) {
+
+	        ExerciseResponse er = new ExerciseResponse();
+
+	        // ✅ Basic Info
+	        er.setExerciseId(ex.getExerciseId());
+	        er.setExerciseName(ex.getExerciseName());
+
+	        // ✅ Pricing
+	        er.setPricePerSession(ex.getPricePerSession());
+	        er.setNoOfSessions(ex.getNoOfSessions());
+	        er.setDiscountPercentage(ex.getDiscountPercentage());
+	        er.setDiscountAmount(ex.getDiscountAmount());
+	        er.setGst(ex.getGst());
+	        er.setOtherTax(ex.getOtherTax());
+	        er.setTotalExercisePrice(ex.getTotalExercisePrice());
+	        er.setTotalPrice(ex.getTotalPrice());
+
+	        // ✅ Payment
+	        er.setPaymentStatus(ex.getPaymentStatus());
+
+	        // ✅ Exercise Details
+	        er.setRepetitions(ex.getRepetitions());
+	        er.setFrequency(ex.getFrequency());
+	        er.setSets(ex.getSets());
+	        er.setYoutubeUrl(ex.getYoutubeUrl());
+	        er.setNotes(ex.getNotes());
+
+	        // ✅ New Fields
+	        er.setTechnique(ex.getTechnique());
+	        er.setMachine(ex.getMachine());
+	        er.setIntensity(ex.getIntensity());
+	        er.setAssistanceLevel(ex.getAssistanceLevel());
+	        er.setType(ex.getType());
+	        er.setArea(ex.getArea());
+	        er.setMetric(ex.getMetric());
+	        er.setValue(ex.getValue());
+	        er.setUnit(ex.getUnit());
+	        er.setBodyPart(ex.getBodyPart());
+
+	        // ✅ Activity Fields
+	        er.setActivityType(ex.getActivityType());
+	        er.setActivityDuration(ex.getActivityDuration());
+
+	        // ✅ Sessions (direct mapping or map separately if different DTO)
+	        er.setSessions(ex.getSessions());
+
+	        result.add(er);
+	    }
+
+	    return result;
 	}
 
 	// ========================================================
