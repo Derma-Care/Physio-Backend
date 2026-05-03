@@ -21,9 +21,8 @@ public class TherapyExercise {
 	private double gst;
 	private double otherTax;
 	private Double totalExercisePrice;
-
+	private double totalPrice;
 	private String paymentStatus;
-
 	private Integer repetitions;
 	private String frequency;
 	private Integer sets;

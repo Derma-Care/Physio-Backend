@@ -158,20 +158,20 @@ public class PaymentServiceImpl implements PaymentService {
 			throw new RuntimeException("Amount must be greater than 0");
 		}
 
-		if (req.getPaymentTarget() == null) {
-			throw new RuntimeException("paymentTarget is required");
-		}
+//		if (req.getPaymentTarget() == null) {
+//			throw new RuntimeException("paymentTarget is required");
+//		}
 
 		double currentPaid = record.getTotalPaid();
 		double finalAmount = record.getFinalAmount();
 		double remaining = finalAmount - currentPaid;
 
 		// ================= FULL PAYMENT VALIDATION =================
-		if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
-			if (req.getAmount() != remaining) {
-				throw new RuntimeException("Full payment must be exactly remaining amount: " + remaining);
-			}
-		}
+//		if ("FULL".equalsIgnoreCase(req.getPaymentType())) {
+//			if (req.getAmount() != remaining) {
+//				throw new RuntimeException("Full payment must be exactly remaining amount: " + remaining);
+//			}
+//		}
 
 		// ================= OVERPAYMENT PREVENTION =================
 		double newPaid = currentPaid + req.getAmount();

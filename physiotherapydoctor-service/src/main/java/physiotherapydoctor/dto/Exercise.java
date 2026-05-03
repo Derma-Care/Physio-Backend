@@ -20,6 +20,7 @@ public class Exercise {
 	private double discountAmount;
 	private double gst;
 	private double otherTax;
+	private double totalPrice;
 	private Integer sets;
 	private Integer repetitions;
 	private String frequancy;
