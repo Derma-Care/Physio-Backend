@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.PaymentHistory;
@@ -102,13 +104,13 @@ public class PaymentServiceImpl implements PaymentService {
 		double amount = req.getAmount();
 
 		// ================= VALIDATIONS =================
-		if (amount > finalAmount) {
-			throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
-		}
-
-		if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
-			throw new RuntimeException("Full payment must be exactly: " + finalAmount);
-		}
+//		if (amount > finalAmount) {
+//			throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
+//		}
+//
+//		if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
+//			throw new RuntimeException("Full payment must be exactly: " + finalAmount);
+//		}
 
 		// ================= PAYMENT =================
 		record.setTotalPaid(amount);
@@ -1141,102 +1143,108 @@ private void updateStatuses(PaymentRecord record) {
 	}
 
 	@Override
-	public Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
-			String therapistRecordId, String exerciseId) {
+	public Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId,
+	        String patientId, String therapistRecordId) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		try {
+	    try {
 
-			PaymentRecord record = repo
-					.findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(clinicId, branchId,
-							bookingId, patientId, therapistRecordId)
-					.orElseThrow(() -> new RuntimeException("Payment record not found"));
+	        PaymentRecord record = repo
+	                .findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(
+	                        clinicId, branchId, bookingId, patientId, therapistRecordId)
+	                .orElseThrow(() -> new RuntimeException("Payment record not found"));
 
-			for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
-				if (pkg.getPrograms() == null)
-					continue;
+	        List<Object> exerciseList = new ArrayList<>();
 
-				for (Program program : pkg.getPrograms()) {
-					if (program.getTherapyData() == null)
-						continue;
+	        // ✅ ObjectMapper for safe conversion
+	        ObjectMapper mapper = new ObjectMapper();
 
-					for (TherapyData therapy : program.getTherapyData()) {
-						if (therapy.getExercises() == null)
-							continue;
+	        for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
+	            if (pkg.getPrograms() == null)
+	                continue;
 
-						for (TherapyExercise exercise : therapy.getExercises()) {
+	            for (Program program : pkg.getPrograms()) {
+	                if (program.getTherapyData() == null)
+	                    continue;
 
-							if (!exerciseId.equals(exercise.getExerciseId())) {
-								continue;
-							}
+	                for (TherapyData therapy : program.getTherapyData()) {
+	                    if (therapy.getExercises() == null)
+	                        continue;
 
-							List<Object> sessionList = new ArrayList<>();
+	                    for (TherapyExercise exercise : therapy.getExercises()) {
 
-							for (Session session : exercise.getSessions()) {
+	                        List<Object> sessionList = new ArrayList<>();
 
-								Map<String, Object> map = new LinkedHashMap<>();
+	                        for (Session session : exercise.getSessions()) {
 
-								// ✅ First session details
-								map.put("sessionId", session.getSessionId());
-								map.put("sessionNo", session.getSessionNo());
-								map.put("date", session.getDate());
-								map.put("paymentStatus", session.getPaymentStatus());
+	                            Map<String, Object> map = new LinkedHashMap<>();
 
-								try {
+	                            map.put("sessionId", session.getSessionId());
+	                            map.put("sessionNo", session.getSessionNo());
+	                            map.put("date", session.getDate());
+	                            map.put("paymentStatus", session.getPaymentStatus());
 
-									ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
-											.getRecordBySession(clinicId, branchId, bookingId, patientId,
-													session.getSessionId());
+	                            try {
 
-									if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
+	                                // ✅ KEEP original Feign type
+	                                ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr =
+	                                        clinicAdminFeign.getRecordBySession(
+	                                                clinicId, branchId, bookingId, patientId,
+	                                                session.getSessionId());
 
-										map.put("status", "Completed");
+	                                if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
 
-										// ✅ Later therapist record
-										map.put("therapistRecord", tr.getBody().getData());
+	                                    // 🔥 FIX: force proper conversion (handles LinkedHashMap issue)
+	                                    TherapistRecordDTO dto = mapper.convertValue(
+	                                            tr.getBody().getData(),
+	                                            TherapistRecordDTO.class
+	                                    );
 
-									} else {
-										map.put("status", session.getStatus());
-										map.put("therapistRecord", null);
-									}
+	                                    map.put("status", "Completed");
+	                                    map.put("therapistRecord", dto);
 
-								} catch (Exception e) {
-									map.put("status", session.getStatus());
-									map.put("therapistRecord", null);
-								}
+	                                } else {
+	                                    map.put("status", session.getStatus());
+	                                    map.put("therapistRecord", null);
+	                                }
 
-								sessionList.add(map);
-							}
+	                            } catch (Exception e) {
+	                                map.put("status", session.getStatus());
+	                                map.put("therapistRecord", null);
+	                            }
 
-							Map<String, Object> finalData = new LinkedHashMap<>();
-							finalData.put("exerciseId", exercise.getExerciseId());
-							finalData.put("exerciseName", exercise.getExerciseName());
-							finalData.put("sessions", sessionList);
+	                            sessionList.add(map);
+	                        }
 
-							response.setSuccess(true);
-							response.setStatus(200);
-							response.setMessage("Sessions fetched successfully");
-							response.setData(finalData);
-							return response;
-						}
-					}
-				}
-			}
+	                        Map<String, Object> exerciseData = new LinkedHashMap<>();
+	                        exerciseData.put("exerciseId", exercise.getExerciseId());
+	                        exerciseData.put("exerciseName", exercise.getExerciseName());
+	                        exerciseData.put("sessions", sessionList);
 
-			response.setSuccess(false);
-			response.setStatus(404);
-			response.setMessage("Exercise not found");
+	                        exerciseList.add(exerciseData);
+	                    }
+	                }
+	            }
+	        }
 
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setStatus(500);
-			response.setMessage(e.getMessage());
-		}
+	        response.setSuccess(true);
+	        response.setStatus(200);
+	        response.setMessage("All exercises fetched successfully");
+	        response.setData(exerciseList);
 
-		return response;
+	    } catch (Exception e) {
+	        response.setSuccess(false);
+	        response.setStatus(500);
+	        response.setMessage(e.getMessage());
+	    }
+
+	    return response;
 	}
 }
+
+	
+
 
 //package physiotherapydoctor.serviceImpl;
 //

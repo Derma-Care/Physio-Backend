@@ -16,8 +16,16 @@ public interface PaymentService {
 
     void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId);
 
+//	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
+//			String therapistRecordId, String exerciseId);
+
 	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
-			String therapistRecordId, String exerciseId);
+			String therapistRecordId);
+
+//	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
+//			String therapistRecordId, String exerciseId);
+
+
 }
 
 

@@ -21,14 +21,14 @@ public class TherapistRecordDTO {
     private String therapistId;
 
     private String patientName;
-    private String therapy;
+//    private String therapy;
 
-    private String date;
+//    private String date;
     private String completedDate;
     private String completedTime;
 
     private String duration;
-    private String exercises;
+//    private String exercises;
 
     private String painBefore;
     private String painAfter;
@@ -40,13 +40,21 @@ public class TherapistRecordDTO {
     private String status;
     private String mode;
     private String nextPlan;
-   private String exerciseId;
+
     private String beforeImage;
     private String afterImage;
     private String beforeVideo;
     private String afterVideo;
     private String voiceRecord;
-    private int repetationDone;
-    private int setsDone;
+    private String setsDone;
+    private String repetationDone;
+    private String serviceType;
+	private String latitude;
+	private String longitude;
+	private String location;
+		
+	
+		
+	
     
 }
