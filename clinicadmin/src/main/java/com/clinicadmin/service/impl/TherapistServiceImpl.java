@@ -571,7 +571,7 @@ public class TherapistServiceImpl implements TherapistService {
         return sb.toString();
     }
     @Override
-    public Response getPaidSessions(String clinicId,String branchId,String bookingId,String therapistRecordId) {
+    public Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId) {
 
         Response response = new Response();
 
@@ -601,53 +601,79 @@ public class TherapistServiceImpl implements TherapistService {
 
             if (therapyWithSessions != null) {
 
-                for (Map<String, Object> pkg : therapyWithSessions) {
+                therapyWithSessions.removeIf(pkg -> {
 
                     List<Map<String, Object>> programs =
                             (List<Map<String, Object>>) pkg.get("programs");
 
-                    if (programs == null) continue;
+                    if (programs == null) return true;
 
-                    for (Map<String, Object> program : programs) {
+                    programs.removeIf(program -> {
 
                         List<Map<String, Object>> therapyData =
                                 (List<Map<String, Object>>) program.get("therapyData");
 
-                        if (therapyData == null) continue;
+                        if (therapyData == null) return true;
 
-                        for (Map<String, Object> therapy : therapyData) {
+                        therapyData.removeIf(therapy -> {
 
                             List<Map<String, Object>> exercises =
                                     (List<Map<String, Object>>) therapy.get("exercises");
 
-                            if (exercises == null) continue;
+                            if (exercises == null) return true;
 
-                            for (Map<String, Object> exercise : exercises) {
+                            exercises.removeIf(exercise -> {
 
                                 List<Map<String, Object>> sessions =
                                         (List<Map<String, Object>>) exercise.get("sessions");
 
-                                if (sessions == null) {
-                                    exercise.put("sessions", List.of());
-                                    continue;
-                                }
+                                if (sessions == null) return true;
 
                                 List<Map<String, Object>> paidSessions =
                                         sessions.stream()
                                                 .filter(session ->
                                                         "Paid".equalsIgnoreCase(
-                                                                String.valueOf(
-                                                                        session.get("paymentStatus")
-                                                                )
+                                                                String.valueOf(session.get("paymentStatus"))
                                                         )
                                                 )
                                                 .toList();
 
+                                if (paidSessions.isEmpty()) {
+                                    return true;
+                                }
+
+                                // ✅ keep only paid sessions
                                 exercise.put("sessions", paidSessions);
-                            }
-                        }
-                    }
-                }
+
+                                // ✅ UPDATE exercise status
+                                exercise.put("paymentStatus", "Paid");
+
+                                return false;
+                            });
+
+                            if (exercises.isEmpty()) return true;
+
+                            // ✅ UPDATE therapy status
+                            therapy.put("paymentStatus", "Paid");
+
+                            return false;
+                        });
+
+                        if (therapyData.isEmpty()) return true;
+
+                        // ✅ UPDATE program status
+                        program.put("paymentStatus", "Paid");
+
+                        return false;
+                    });
+
+                    if (programs.isEmpty()) return true;
+
+                    // ✅ UPDATE package status
+                    pkg.put("paymentStatus", "Paid");
+
+                    return false;
+                });
             }
 
             response.setSuccess(true);
