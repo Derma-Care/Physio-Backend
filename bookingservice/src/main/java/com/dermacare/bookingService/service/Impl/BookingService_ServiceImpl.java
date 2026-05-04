@@ -2897,13 +2897,14 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 		// ✅ Enrich with session details (Feign call)
 		try {
 			res = res.stream().map(n -> {
-				n.setVisitType("follow-up");
-
-				List<Session> lst = physioDoctorFeign
+						List<Session> lst = physioDoctorFeign
 						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 						.getBody();
-
-				n.setSession(lst != null ? lst : Collections.emptyList());
+                if(lst != null ) {
+				n.setSession(lst);
+				n.setVisitType("session");
+				}else {
+				n.setSession(null);}
 				return n;
 			}).toList();
 
@@ -2989,14 +2990,15 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 		System.out.println(res);
 		// ✅ Enrich with session details
 		try {
-			res = res.stream().map(n -> {
-				n.setVisitType("follow-up");
-
+			res = res.stream().map(n -> {			
 				List<Session> lst = physioDoctorFeign
 						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
-						.getBody();
-
-				n.setSession(lst != null ? lst : Collections.emptyList());
+						.getBody();				
+                if(lst != null ) {
+				n.setSession(lst);
+				n.setVisitType("session");
+				}else {
+				n.setSession(null);}				
 				return n;
 			}).toList();
 //System.out.println(bookings);
@@ -3069,13 +3071,14 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 			// ✅ Enrich with session details
 			try {
 				res = res.stream().map(n -> {
-					n.setVisitType("follow-up");
-
-					List<Session> lst = physioDoctorFeign
+							List<Session> lst = physioDoctorFeign
 							.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 							.getBody();
-
-					n.setSession(lst != null ? lst : Collections.emptyList());
+							 if(lst != null ) {
+									n.setSession(lst);
+									n.setVisitType("session");
+									}else {
+									n.setSession(null);}				
 					return n;
 				}).toList();
 
@@ -3149,14 +3152,14 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
                 );
         List<BookingResponse> res = toResponses(bookings);
         try {
-        	 res = res.stream().map(n->{n.setVisitType("follow-up"); List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate()).getBody();
-        	n.setSession(lst);return n;}).toList();
+        	 res = res.stream().map(n->{List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate()).getBody();
+        	 if(lst != null ) {
+ 				n.setSession(lst);
+ 				n.setVisitType("session");
+ 				}else {
+ 				n.setSession(null);
+ 				}return n;}).toList();
         }catch(Exception e) {}
-        // ✅ Filter valid statuses
-        bookings = bookings.stream()
-                .filter(b -> VALID_WEEK_STATUS.contains(b.getFollowupStatus()))
-                .toList();
-
         // ✅ Total count
         long totalCount = bookings.size();
 
