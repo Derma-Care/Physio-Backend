@@ -2647,6 +2647,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			            }} catch (Exception e) {
 			            // fallback safety
 			            	entity.setIsFollowupStatus(false);}
+			            
+			            if(dto.getConsultationFee() == 0.0 && dto.getIsFollowupStatus() ) {
+			            	entity.setStatus("confirmed");}
+			            else if(dto.getConsultationFee() == 0.0 && !dto.getIsFollowupStatus()) {
+			            	entity.setStatus("pending");
+			            }else {
+			            if(dto.getConsultationFee() == 0.0 && dto.getPaymentType().equalsIgnoreCase("foc") || dto.getPaymentType().equalsIgnoreCase("paid")) {
+			            	entity.setStatus("confirmed");
+			            	}
+			            }
 			          
 			                 updated = repository.save(entity);
 
@@ -3497,6 +3507,15 @@ System.out.println(dto.getStatus());
        }catch(Exception e) {
     	   System.out.println(e.getMessage());
        }
+       
+       if(dto.getConsultationFee() == 0.0 && dto.getIsFollowupStatus() ) {
+       	entity.setStatus("confirmed");}
+       else if(dto.getConsultationFee() == 0.0 && !dto.getIsFollowupStatus()) {
+       	entity.setStatus("pending");
+       }else {
+       if(dto.getConsultationFee() == 0.0 && dto.getPaymentType() != null) {
+       	entity.setStatus("confirmed");
+       	}}
           Booking updated = repository.save(entity);
 
     return updated;
