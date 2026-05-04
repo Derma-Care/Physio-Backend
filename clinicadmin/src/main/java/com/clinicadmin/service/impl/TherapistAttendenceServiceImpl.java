@@ -450,7 +450,6 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
         return response;
     }
-
     private int convertToMinutes(String time) {
 
         if (time == null || time.trim().isEmpty()) return 0;
@@ -605,6 +604,60 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
 	        response.setSuccess(true);
 	        response.setMessage("Session deleted successfully");
+	        response.setData(data);
+	        response.setStatus(200);
+
+	    } catch (Exception e) {
+	        response.setSuccess(false);
+	        response.setMessage(e.getMessage());
+	        response.setStatus(500);
+	    }
+
+	    return response;
+	}
+	
+	@Override
+	public Response getReportByClinicBranch(
+	        String clinicId,
+	        String branchId,
+	        String therapistId,
+	        String date) {
+
+	    Response response = new Response();
+
+	    try {
+
+	        // 🔹 Fetch attendance
+	        TherapistAttendance attendance =
+	                attendanceRepo.findByTherapistIdAndDate(therapistId, date);
+
+	        List<SessionData> sessions = new ArrayList<>();
+
+	        // 🔹 Get ALL sessions
+	        if (attendance != null && attendance.getSessions() != null) {
+
+	            for (Session s : attendance.getSessions()) {
+
+	                SessionData sd = new SessionData();
+	                sd.setSessionId(s.getSessionId());
+	                sd.setActivity(s.getActivity());
+	                sd.setDuration(s.getDuration());
+	                sd.setLocation(s.getLocation());
+
+	                sessions.add(sd);
+	            }
+	        }
+
+	        // 🔹 Response
+	        Map<String, Object> data = new HashMap<>();
+	        data.put("clinicId", clinicId);
+	        data.put("branchId", branchId);
+	        data.put("therapistId", therapistId);
+	        data.put("date", date);
+	        data.put("sessions", sessions);
+
+	        response.setSuccess(true);
+	        response.setMessage("Filtered report fetched successfully");
 	        response.setData(data);
 	        response.setStatus(200);
 

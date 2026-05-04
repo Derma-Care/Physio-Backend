@@ -18,6 +18,8 @@ public interface TherapistAttendenceService {
 
 	Response addManualSession(String therapistId, Map<String, String> body);
 
+	Response getReportByClinicBranch(String clinicId, String branchId, String therapistId, String date);
+
 //    // ✅ DAILY GET
 //    public Response  getDailyReport(String therapistId, String date);
 //

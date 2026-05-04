@@ -10,4 +10,6 @@ extends MongoRepository<TherapistAttendance, String> {
 TherapistAttendance findByTherapistIdAndDate(String therapistId, String date);
 
 List<TherapistAttendance> findByTherapistIdAndDateStartingWith(String therapistId, String month);
+
+
 }

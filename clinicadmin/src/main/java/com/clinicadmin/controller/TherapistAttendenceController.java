@@ -101,4 +101,18 @@ public class TherapistAttendenceController {
 //
 //        return ResponseEntity.status(response.getStatus()).body(response);
 //    }
+     
+  // ✅ DAILY GET BY CLINIC + BRANCH + THERAPIST + DATE
+     @GetMapping("/getDailyReportFormonthly/{clinicId}/{branchId}/{therapistId}/{date}")
+     public ResponseEntity<Response> getDailyByClinic(
+             @PathVariable String clinicId,
+             @PathVariable String branchId,
+             @PathVariable String therapistId,
+             @PathVariable String date) {
+
+         Response response = service.getReportByClinicBranch(
+                 clinicId, branchId, therapistId, date);
+
+         return ResponseEntity.status(response.getStatus()).body(response);
+     }
 }

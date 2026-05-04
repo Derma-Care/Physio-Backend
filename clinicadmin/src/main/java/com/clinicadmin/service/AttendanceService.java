@@ -1,0 +1,23 @@
+package com.clinicadmin.service;
+
+import com.clinicadmin.dto.AttendanceDTO;
+import com.clinicadmin.dto.Response;
+
+public interface AttendanceService {
+
+    Response save(AttendanceDTO dto);
+
+//    Response update(AttendanceDTO dto);
+
+    Response getDaily(String userId, String date);
+
+//    Response getMonthly(String userId, String startDate, String endDate);
+
+
+
+	Response getMonthlyReport(String userId, String month);
+
+	Response updateActivity(AttendanceDTO dto);
+
+//	Response getByClinicBranch(String clinicId, String branchId, String date);
+}
