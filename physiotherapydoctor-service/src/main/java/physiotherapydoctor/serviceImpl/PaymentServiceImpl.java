@@ -102,13 +102,13 @@ public class PaymentServiceImpl implements PaymentService {
 		double amount = req.getAmount();
 
 		// ================= VALIDATIONS =================
-		if (amount > finalAmount) {
-			throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
-		}
-
-		if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
-			throw new RuntimeException("Full payment must be exactly: " + finalAmount);
-		}
+//		if (amount > finalAmount) {
+//			throw new RuntimeException("Amount exceeds final payable amount: " + finalAmount);
+//		}
+//
+//		if ("FULL".equalsIgnoreCase(req.getPaymentType()) && amount != finalAmount) {
+//			throw new RuntimeException("Full payment must be exactly: " + finalAmount);
+//		}
 
 		// ================= PAYMENT =================
 		record.setTotalPaid(amount);
