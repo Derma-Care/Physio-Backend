@@ -331,6 +331,8 @@ import lombok.RequiredArgsConstructor;
 	                    }
 
 	                    frequency = frequency.toLowerCase().replace(" ", "");
+	                    
+	                    
 
 	                    exDTO.setFrequency(frequency);
 
@@ -341,6 +343,14 @@ import lombok.RequiredArgsConstructor;
 	                                    : 1;
 
 	                    exDTO.setNoOfSessions(totalSessions);
+	                    
+	                    exDTO.setNoOfSessions(totalSessions);
+
+	                 exDTO.setPricePerSession(
+	                         ex.get("pricePerSession") != null
+	                                 ? Double.parseDouble(ex.get("pricePerSession").toString())
+	                                 : 0.0
+	                 );
 
 	                    List<SessionDTO> sessions = new ArrayList<>();
 
