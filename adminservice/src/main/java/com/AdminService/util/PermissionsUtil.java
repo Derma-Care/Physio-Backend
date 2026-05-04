@@ -32,7 +32,7 @@ public final class PermissionsUtil {
         adminPermissions.put("Help", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Customer Management", List.of("create", "read", "update", "delete"));
         adminPermissions.put("ConsentForms", List.of("create", "read", "update", "delete"));
-        adminPermissions.put("Exercise Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Activity Library", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Program Management", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Package Management", List.of("create", "read", "update", "delete"));
        
