@@ -12,6 +12,7 @@ public class ExerciseResponseDTO {
     private int sets;
     private int repetitions;
     private int noOfSessions;
+    private Double pricePerSession;  
 
     private List<SessionDTO> sessions;
 		
