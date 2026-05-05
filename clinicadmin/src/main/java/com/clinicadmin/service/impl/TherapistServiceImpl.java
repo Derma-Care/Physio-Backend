@@ -639,19 +639,23 @@ public class TherapistServiceImpl implements TherapistService {
 
                                 if (sessions == null) continue;
 
-                                // ✅ STRICT FILTER (handles null + spaces)
+                                // ✅ FIXED FILTER (strict + safe)
                                 List<Map<String, Object>> paidSessions =
                                         sessions.stream()
                                                 .filter(session -> {
                                                     Object statusObj = session.get("paymentStatus");
+
+                                                    // null safety
                                                     if (statusObj == null) return false;
 
+                                                    // trim + case-insensitive match
                                                     String status = statusObj.toString().trim();
+
                                                     return "Paid".equalsIgnoreCase(status);
                                                 })
                                                 .toList();
 
-                                // ✅ KEEP ONLY if paid sessions exist
+                                // ✅ KEEP ONLY exercises with paid sessions
                                 if (!paidSessions.isEmpty()) {
                                     exercise.put("sessions", paidSessions);
                                     filteredExercises.add(exercise);
