@@ -351,7 +351,11 @@ import lombok.RequiredArgsConstructor;
 	                                 ? Double.parseDouble(ex.get("pricePerSession").toString())
 	                                 : 0.0
 	                 );
-
+	                 exDTO.setTotalPricePerSession(
+	                         ex.get("totalPrice") != null
+	                                 ? Double.parseDouble(ex.get("totalPrice").toString())
+	                                 : 0.0
+	                 );
 	                    List<SessionDTO> sessions = new ArrayList<>();
 
 	                    List<Map<String, Object>> existingSessions =

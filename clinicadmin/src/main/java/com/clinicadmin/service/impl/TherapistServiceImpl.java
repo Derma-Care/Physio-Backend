@@ -3,6 +3,7 @@ package com.clinicadmin.service.impl;
 
 import java.security.SecureRandom;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -571,7 +572,7 @@ public class TherapistServiceImpl implements TherapistService {
         return sb.toString();
     }
     @Override
-    public Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId) {
+    public Response getPaidSessions(String clinicId,String branchId,String bookingId,String therapistRecordId) {
 
         Response response = new Response();
 
@@ -601,80 +602,55 @@ public class TherapistServiceImpl implements TherapistService {
 
             if (therapyWithSessions != null) {
 
-                therapyWithSessions.removeIf(pkg -> {
+                for (Map<String, Object> pkg : therapyWithSessions) {
 
                     List<Map<String, Object>> programs =
                             (List<Map<String, Object>>) pkg.get("programs");
 
-                    if (programs == null) return true;
+                    if (programs == null) continue;
 
-                    programs.removeIf(program -> {
+                    for (Map<String, Object> program : programs) {
 
                         List<Map<String, Object>> therapyData =
                                 (List<Map<String, Object>>) program.get("therapyData");
 
-                        if (therapyData == null) return true;
+                        if (therapyData == null) continue;
 
-                        therapyData.removeIf(therapy -> {
+                        for (Map<String, Object> therapy : therapyData) {
 
                             List<Map<String, Object>> exercises =
                                     (List<Map<String, Object>>) therapy.get("exercises");
 
-                            if (exercises == null) return true;
+                            if (exercises == null) continue;
 
-                            exercises.removeIf(exercise -> {
+                            for (Map<String, Object> exercise : exercises) {
 
                                 List<Map<String, Object>> sessions =
                                         (List<Map<String, Object>>) exercise.get("sessions");
 
-                                if (sessions == null) return true;
+                                if (sessions == null) {
+                                    exercise.put("sessions", List.of());
+                                    continue;
+                                }
 
                                 List<Map<String, Object>> paidSessions =
                                         sessions.stream()
                                                 .filter(session ->
                                                         "Paid".equalsIgnoreCase(
-                                                                String.valueOf(session.get("paymentStatus"))
+                                                                String.valueOf(
+                                                                        session.get("paymentStatus")
+                                                                )
                                                         )
                                                 )
                                                 .toList();
 
-                                if (paidSessions.isEmpty()) {
-                                    return true;
-                                }
-
-                                // ✅ keep only paid sessions
                                 exercise.put("sessions", paidSessions);
-
-                                // ✅ UPDATE exercise status
-                                exercise.put("paymentStatus", "Paid");
-
-                                return false;
-                            });
-
-                            if (exercises.isEmpty()) return true;
-
-                            // ✅ UPDATE therapy status
-                            therapy.put("paymentStatus", "Paid");
-
-                            return false;
-                        });
-
-                        if (therapyData.isEmpty()) return true;
-
-                        // ✅ UPDATE program status
-                        program.put("paymentStatus", "Paid");
-
-                        return false;
-                    });
-
-                    if (programs.isEmpty()) return true;
-
-                    // ✅ UPDATE package status
-                    pkg.put("paymentStatus", "Paid");
-
-                    return false;
-                });
+                            }
+                        }
+                    }
+                }
             }
+            removeNullFields(data);
 
             response.setSuccess(true);
             response.setData(data);
@@ -690,5 +666,28 @@ public class TherapistServiceImpl implements TherapistService {
         }
 
         return response;
+    }
+    private void removeNullFields(Object obj) {
+
+        if (obj instanceof Map<?, ?> map) {
+
+            Iterator<? extends Map.Entry<?, ?>> iterator = map.entrySet().iterator();
+
+            while (iterator.hasNext()) {
+                Map.Entry<?, ?> entry = iterator.next();
+
+                if (entry.getValue() == null) {
+                    iterator.remove(); // ❌ remove null field
+                } else {
+                    removeNullFields(entry.getValue()); // 🔁 recursive
+                }
+            }
+
+        } else if (obj instanceof List<?> list) {
+
+            for (Object item : list) {
+                removeNullFields(item);
+            }
+        }
     }
 }
