@@ -2,6 +2,7 @@ package com.clinicadmin.service.impl;
 
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -572,7 +573,7 @@ public class TherapistServiceImpl implements TherapistService {
         return sb.toString();
     }
     @Override
-    public Response getPaidSessions(String clinicId,String branchId,String bookingId,String therapistRecordId) {
+    public Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId) {
 
         Response response = new Response();
 
@@ -588,7 +589,7 @@ public class TherapistServiceImpl implements TherapistService {
                 throw new RuntimeException("Payment data not found");
             }
 
-            // Validate fields
+            // ✅ Validate fields
             if (!clinicId.equals(String.valueOf(data.get("clinicId")))
                     || !branchId.equals(String.valueOf(data.get("branchId")))
                     || !bookingId.equals(String.valueOf(data.get("bookingId")))
@@ -602,12 +603,16 @@ public class TherapistServiceImpl implements TherapistService {
 
             if (therapyWithSessions != null) {
 
+                List<Map<String, Object>> filteredPackages = new ArrayList<>();
+
                 for (Map<String, Object> pkg : therapyWithSessions) {
 
                     List<Map<String, Object>> programs =
                             (List<Map<String, Object>>) pkg.get("programs");
 
                     if (programs == null) continue;
+
+                    List<Map<String, Object>> filteredPrograms = new ArrayList<>();
 
                     for (Map<String, Object> program : programs) {
 
@@ -616,6 +621,8 @@ public class TherapistServiceImpl implements TherapistService {
 
                         if (therapyData == null) continue;
 
+                        List<Map<String, Object>> filteredTherapies = new ArrayList<>();
+
                         for (Map<String, Object> therapy : therapyData) {
 
                             List<Map<String, Object>> exercises =
@@ -623,33 +630,59 @@ public class TherapistServiceImpl implements TherapistService {
 
                             if (exercises == null) continue;
 
+                            List<Map<String, Object>> filteredExercises = new ArrayList<>();
+
                             for (Map<String, Object> exercise : exercises) {
 
                                 List<Map<String, Object>> sessions =
                                         (List<Map<String, Object>>) exercise.get("sessions");
 
-                                if (sessions == null) {
-                                    exercise.put("sessions", List.of());
-                                    continue;
-                                }
+                                if (sessions == null) continue;
 
+                                // ✅ STRICT FILTER (handles null + spaces)
                                 List<Map<String, Object>> paidSessions =
                                         sessions.stream()
-                                                .filter(session ->
-                                                        "Paid".equalsIgnoreCase(
-                                                                String.valueOf(
-                                                                        session.get("paymentStatus")
-                                                                )
-                                                        )
-                                                )
+                                                .filter(session -> {
+                                                    Object statusObj = session.get("paymentStatus");
+                                                    if (statusObj == null) return false;
+
+                                                    String status = statusObj.toString().trim();
+                                                    return "Paid".equalsIgnoreCase(status);
+                                                })
                                                 .toList();
 
-                                exercise.put("sessions", paidSessions);
+                                // ✅ KEEP ONLY if paid sessions exist
+                                if (!paidSessions.isEmpty()) {
+                                    exercise.put("sessions", paidSessions);
+                                    filteredExercises.add(exercise);
+                                }
+                            }
+
+                            // ✅ KEEP therapy only if it has exercises
+                            if (!filteredExercises.isEmpty()) {
+                                therapy.put("exercises", filteredExercises);
+                                filteredTherapies.add(therapy);
                             }
                         }
+
+                        // ✅ KEEP program only if it has therapies
+                        if (!filteredTherapies.isEmpty()) {
+                            program.put("therapyData", filteredTherapies);
+                            filteredPrograms.add(program);
+                        }
+                    }
+
+                    // ✅ KEEP package only if it has programs
+                    if (!filteredPrograms.isEmpty()) {
+                        pkg.put("programs", filteredPrograms);
+                        filteredPackages.add(pkg);
                     }
                 }
+
+                // 🔥 Replace original data
+                data.put("therapyWithSessions", filteredPackages);
             }
+
             removeNullFields(data);
 
             response.setSuccess(true);
