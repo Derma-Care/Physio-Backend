@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -573,7 +574,10 @@ public class TherapistServiceImpl implements TherapistService {
         return sb.toString();
     }
     @Override
-    public Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId) {
+    public Response getPaidSessions(String clinicId,
+                                    String branchId,
+                                    String bookingId,
+                                    String therapistRecordId) {
 
         Response response = new Response();
 
@@ -607,8 +611,28 @@ public class TherapistServiceImpl implements TherapistService {
 
                 for (Map<String, Object> pkg : therapyWithSessions) {
 
-                    List<Map<String, Object>> programs =
-                            (List<Map<String, Object>>) pkg.get("programs");
+                    List<Map<String, Object>> programs;
+
+                    // ✅ PACKAGE TYPE
+                    if (pkg.containsKey("programs")) {
+
+                        programs =
+                                (List<Map<String, Object>>) pkg.get("programs");
+
+                    }
+
+                    // ✅ PROGRAM TYPE
+                    else if (pkg.containsKey("programId")) {
+
+                        programs = new ArrayList<>();
+                        programs.add(pkg);
+
+                    }
+
+                    // ✅ INVALID
+                    else {
+                        continue;
+                    }
 
                     if (programs == null) continue;
 
@@ -639,47 +663,88 @@ public class TherapistServiceImpl implements TherapistService {
 
                                 if (sessions == null) continue;
 
-                                // ✅ FIXED FILTER (strict + safe)
                                 List<Map<String, Object>> paidSessions =
                                         sessions.stream()
                                                 .filter(session -> {
-                                                    Object statusObj = session.get("paymentStatus");
 
-                                                    // null safety
-                                                    if (statusObj == null) return false;
+                                                    Object statusObj =
+                                                            session.get("paymentStatus");
 
-                                                    // trim + case-insensitive match
-                                                    String status = statusObj.toString().trim();
+                                                    if (statusObj == null)
+                                                        return false;
 
-                                                    return "Paid".equalsIgnoreCase(status);
+                                                    String status =
+                                                            statusObj.toString().trim();
+
+                                                    return "Paid"
+                                                            .equalsIgnoreCase(status);
+
                                                 })
-                                                .toList();
+                                                .collect(Collectors.toList());
 
-                                // ✅ KEEP ONLY exercises with paid sessions
                                 if (!paidSessions.isEmpty()) {
-                                    exercise.put("sessions", paidSessions);
-                                    filteredExercises.add(exercise);
+
+                                    Map<String, Object> updatedExercise =
+                                            new HashMap<>(exercise);
+
+                                    updatedExercise.put(
+                                            "sessions",
+                                            new ArrayList<>(paidSessions)
+                                    );
+
+                                    filteredExercises.add(updatedExercise);
                                 }
                             }
 
-                            // ✅ KEEP therapy only if it has exercises
                             if (!filteredExercises.isEmpty()) {
-                                therapy.put("exercises", filteredExercises);
-                                filteredTherapies.add(therapy);
+
+                                Map<String, Object> updatedTherapy =
+                                        new HashMap<>(therapy);
+
+                                updatedTherapy.put(
+                                        "exercises",
+                                        new ArrayList<>(filteredExercises)
+                                );
+
+                                filteredTherapies.add(updatedTherapy);
                             }
                         }
 
-                        // ✅ KEEP program only if it has therapies
                         if (!filteredTherapies.isEmpty()) {
-                            program.put("therapyData", filteredTherapies);
-                            filteredPrograms.add(program);
+
+                            Map<String, Object> updatedProgram =
+                                    new HashMap<>(program);
+
+                            updatedProgram.put(
+                                    "therapyData",
+                                    new ArrayList<>(filteredTherapies)
+                            );
+
+                            filteredPrograms.add(updatedProgram);
                         }
                     }
 
-                    // ✅ KEEP package only if it has programs
                     if (!filteredPrograms.isEmpty()) {
-                        pkg.put("programs", filteredPrograms);
-                        filteredPackages.add(pkg);
+
+                        // ✅ PACKAGE RESPONSE
+                        if (pkg.containsKey("programs")) {
+
+                            Map<String, Object> updatedPackage =
+                                    new HashMap<>(pkg);
+
+                            updatedPackage.put(
+                                    "programs",
+                                    new ArrayList<>(filteredPrograms)
+                            );
+
+                            filteredPackages.add(updatedPackage);
+                        }
+
+                        // ✅ PROGRAM RESPONSE
+                        else {
+
+                            filteredPackages.addAll(filteredPrograms);
+                        }
                     }
                 }
 
