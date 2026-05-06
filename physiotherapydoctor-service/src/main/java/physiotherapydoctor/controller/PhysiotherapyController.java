@@ -1,5 +1,7 @@
 package physiotherapydoctor.controller;
 
+
+
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -12,7 +14,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
+import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
+import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.Session;
@@ -176,4 +182,29 @@ public class PhysiotherapyController {
 	             .status(response.getStatus())
 	             .body(response);
 	 }
+	 
+//-----------------------------------------Doctor Apis-------------------------------------------	 
+	 
+	    @PutMapping("/update-PhysioDoctorpassword/{username}")
+	    public Response updatePassword(@PathVariable String username,
+	            @RequestBody ChangeDoctorPasswordDTO updatePasswordDTO) {       
+	    	Response response = service.changePassword(username, updatePasswordDTO);
+	        return response;
+	   }
+	    
+	    @PostMapping("/PhysioDoctorlogin")
+	    public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
+			Response res = service.login(dto);
+			 if(res!=null) {
+				 return ResponseEntity.status(res.getStatus()).body(res);
+			 }
+			return null;}
+	    
+	    @PutMapping("/update-PhysioDoctorAvailability/{doctorId}")
+	    
+	    public Response updateDoctorAvailability(@PathVariable String doctorId,@RequestBody  DoctorAvailabilityStatusDTO availabilityDTO) {
+	    	 
+	    	return service.updateDoctorAvailability(doctorId, availabilityDTO);
+	    	
+	    }
 }

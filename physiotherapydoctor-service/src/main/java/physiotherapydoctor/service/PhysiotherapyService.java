@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 
+import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
+import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
+import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.Session;
@@ -52,6 +55,12 @@ public interface PhysiotherapyService {
 	Response getVisitHistory(String patientId, String bookingId);
 
 	Response getPatientHistory(String patientId);
+
+	Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO);
+
+	Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO);
+
+	Response login(DoctorLoginDTO loginDTO);
 
 
 
