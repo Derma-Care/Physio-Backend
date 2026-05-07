@@ -35,6 +35,9 @@ public final class PermissionsUtil {
         adminPermissions.put("Activity Library", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Program Management", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Package Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Patient Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Patient FeedBack", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Equipment Management", List.of("create", "read", "update", "delete"));
        
         adminPermissions.put("Vendor Management", List.of("create", "read", "update", "delete"));
 //        adminPermissions.put("Pharmacy Management", List.of("create", "read", "update", "delete"));

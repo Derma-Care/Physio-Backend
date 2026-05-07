@@ -1,12 +1,18 @@
 package com.clinicadmin.entity;
 
-
 import java.util.List;
+
+import org.springframework.data.annotation.Id;
+
+import com.clinicadmin.dto.ServiceInfo;
 
 import lombok.Data;
 
 @Data
 public class FeedbackDetails {
+
+    @Id
+    private String id;
 
     // ================= PATIENT =================
     private String patientId;
@@ -25,9 +31,13 @@ public class FeedbackDetails {
     private String therapistName;
     private String therapistRecordId;
 
+    // ================= STAFF =================
+    private String staffId;
+    private String staffName;
+
     // ================= SERVICE =================
     private String serviceType;
-    private List<String> serviceNames;
+    private List<ServiceInfo> service;
 
     // ================= SESSION =================
     private int totalNoOfSessions;
@@ -36,4 +46,8 @@ public class FeedbackDetails {
     // ================= STATUS =================
     private boolean isHalfSessionsCompleted;
     private boolean isFullSessionsCompleted;
+
+    // ================= FEEDBACK =================
+    private String whatWentWell;
+    private String improvements;
 }

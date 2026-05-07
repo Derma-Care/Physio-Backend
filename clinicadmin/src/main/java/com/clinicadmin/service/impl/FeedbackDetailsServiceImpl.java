@@ -1,16 +1,19 @@
 package com.clinicadmin.service.impl;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.clinicadmin.dto.FeedbackDetailsDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.ServiceInfo;
 import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
+import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.service.FeedbackDetailsServcie;
 
 @Service
@@ -19,6 +22,52 @@ public class FeedbackDetailsServiceImpl
 
     @Autowired
     private PhysiotherapyFeignClient physiotherapyDoctorFeign;
+    
+    @Autowired
+    private FeedbackDetailsRepository repository;
+    
+    
+    @Override
+    public Response createFeedback(FeedbackDetails feedbackDetails) {
+
+        Response response = new Response();
+
+        try {
+
+            // ================= ID GENERATION =================
+
+            String feedbackId =
+                    "FDBK-" +
+                    java.time.LocalDateTime.now()
+                            .format(
+                                    java.time.format.DateTimeFormatter
+                                            .ofPattern(
+                                                    "ddMM-HHmmss"));
+
+            feedbackDetails.setId(feedbackId);
+
+            // ================= SAVE =================
+
+            FeedbackDetails saved =
+                    repository.save(feedbackDetails);
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Feedback created successfully");
+
+            response.setData(saved);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
+    }
 
     @Override
     public Response getFeedbackDetails(
@@ -51,14 +100,14 @@ public class FeedbackDetailsServiceImpl
                 return response;
             }
 
-            List<FeedbackDetails> result =
+            List<FeedbackDetailsDTO> result =
                     new ArrayList<>();
 
             for (Map<String, Object> payment
                     : payments) {
 
-                FeedbackDetails data =
-                        new FeedbackDetails();
+                FeedbackDetailsDTO data =
+                        new FeedbackDetailsDTO();
 
                 // ================= BASIC =================
 
@@ -110,7 +159,7 @@ public class FeedbackDetailsServiceImpl
                 int totalSessions = 0;
                 int completedSessions = 0;
 
-                List<String> serviceNames =
+                List<ServiceInfo> service =
                         new ArrayList<>();
 
                 List<Map<String, Object>>
@@ -179,7 +228,7 @@ public class FeedbackDetailsServiceImpl
                                             (String) exercise.get(
                                                     "exerciseName");
 
-                                    // ================= SERVICE NAMES =================
+                                    // ================= SERVICE =================
 
                                     if ("package"
                                             .equalsIgnoreCase(
@@ -187,8 +236,18 @@ public class FeedbackDetailsServiceImpl
 
                                             && packageName != null) {
 
-                                        serviceNames.add(
+                                        ServiceInfo info =
+                                                new ServiceInfo();
+
+                                        info.setServiceId(
+                                                String.valueOf(
+                                                        pkg.get(
+                                                                "packageId")));
+
+                                        info.setServiceName(
                                                 packageName);
+
+                                        service.add(info);
                                     }
 
                                     if ("program"
@@ -197,8 +256,18 @@ public class FeedbackDetailsServiceImpl
 
                                             && programName != null) {
 
-                                        serviceNames.add(
+                                        ServiceInfo info =
+                                                new ServiceInfo();
+
+                                        info.setServiceId(
+                                                String.valueOf(
+                                                        program.get(
+                                                                "programId")));
+
+                                        info.setServiceName(
                                                 programName);
+
+                                        service.add(info);
                                     }
 
                                     if ("therapy"
@@ -207,8 +276,18 @@ public class FeedbackDetailsServiceImpl
 
                                             && therapyName != null) {
 
-                                        serviceNames.add(
+                                        ServiceInfo info =
+                                                new ServiceInfo();
+
+                                        info.setServiceId(
+                                                String.valueOf(
+                                                        therapy.get(
+                                                                "therapyId")));
+
+                                        info.setServiceName(
                                                 therapyName);
+
+                                        service.add(info);
                                     }
 
                                     if ("exercise"
@@ -217,8 +296,18 @@ public class FeedbackDetailsServiceImpl
 
                                             && exerciseName != null) {
 
-                                        serviceNames.add(
+                                        ServiceInfo info =
+                                                new ServiceInfo();
+
+                                        info.setServiceId(
+                                                String.valueOf(
+                                                        exercise.get(
+                                                                "exerciseId")));
+
+                                        info.setServiceName(
                                                 exerciseName);
+
+                                        service.add(info);
                                     }
 
                                     // ================= SESSIONS =================
@@ -259,12 +348,18 @@ public class FeedbackDetailsServiceImpl
 
                 // ================= REMOVE DUPLICATES =================
 
-                serviceNames =
-                        serviceNames.stream()
-                                .distinct()
-                                .toList();
+                service =
+                        service.stream()
+                                .collect(
+                                        Collectors.collectingAndThen(
+                                                Collectors.toMap(
+                                                        ServiceInfo::getServiceId,
+                                                        s -> s,
+                                                        (a, b) -> a),
+                                                m -> new ArrayList<>(
+                                                        m.values())));
 
-                data.setServiceNames(serviceNames);
+                data.setService(service);
 
                 // ================= FINAL COUNTS =================
 
