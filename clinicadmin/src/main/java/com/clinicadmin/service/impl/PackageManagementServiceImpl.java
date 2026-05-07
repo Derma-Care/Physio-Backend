@@ -284,21 +284,54 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         return dto;
     }
 
-    // ================= BUSINESS LOGIC =================
-
     private double applyDiscountLogic(String startDate, String endDate, double discount) {
 
-        LocalDate start = parseDate(startDate);
-        LocalDate end = parseDate(endDate);
         LocalDate today = LocalDate.now();
 
-        if (today.isBefore(start) || today.isAfter(end)) {
+        // ✅ No dates -> no discount
+        if ((startDate == null || startDate.trim().isEmpty()) &&
+            (endDate == null || endDate.trim().isEmpty())) {
+
             return 0.0;
         }
 
-        return discount;
-    }
+        // ✅ Only start date given -> apply discount from start date
+        if (startDate != null && !startDate.trim().isEmpty() &&
+            (endDate == null || endDate.trim().isEmpty())) {
 
+            LocalDate start = parseDate(startDate);
+
+            if (!today.isBefore(start)) {
+                return discount;
+            }
+
+            return 0.0;
+        }
+
+        // ✅ Only end date given -> no discount
+        if ((startDate == null || startDate.trim().isEmpty()) &&
+            endDate != null && !endDate.trim().isEmpty()) {
+
+            return 0.0;
+        }
+
+        // ✅ Both dates given
+        LocalDate start = parseDate(startDate);
+        LocalDate end = parseDate(endDate);
+
+        // ✅ Invalid range
+        if (end.isBefore(start)) {
+            return 0.0;
+        }
+
+        // ✅ Apply discount only within date range
+        if (!today.isBefore(start) && !today.isAfter(end)) {
+            return discount;
+        }
+
+        // ✅ Offer expired automatically
+        return 0.0;
+    }
     private LocalDate parseDate(String dateStr) {
 
         String[] formats = {
