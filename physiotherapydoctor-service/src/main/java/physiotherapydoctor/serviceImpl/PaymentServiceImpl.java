@@ -1021,8 +1021,6 @@ private void updateStatuses(PaymentRecord record) {
 		return total;
 	}
 
-
-
 	private boolean createSessions(List<TherapyWithSessions> data, String startDate) {
 
 	    boolean created = false;
@@ -1035,29 +1033,32 @@ private void updateStatuses(PaymentRecord record) {
 	                    List<Session> sessions = new ArrayList<>();
 
 	                    int timesPerDay = parseTimesPerDay(ex.getFrequency());
+	                    int numberOfDays = ex.getNoOfSessions(); // ✅ noOfSessions = number of DAYS
+
 	                    LocalDate currentDate = LocalDate.parse(startDate);
-	                    int sessionCount = 0;
+	                    int sessionNo = 1;
 
-	                    for (int i = 1; i <= ex.getNoOfSessions(); i++) {
+	                    for (int day = 1; day <= numberOfDays; day++) {
 
-	                        // ✅ Unique sessionId = exerciseId + "_" + sessionNo + "_" + UUID short
-	                        String uniqueSessionId = ex.getExerciseId()
-	                                + "_" + i
-	                                + "_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+	                        for (int time = 1; time <= timesPerDay; time++) {
 
-	                        sessions.add(new Session(
-	                                uniqueSessionId,
-	                                i,
-	                                currentDate.toString(),
-	                                "Pending",
-	                                "Unpaid"
-	                        ));
+	                            String uniqueSessionId = ex.getExerciseId()
+	                                    + "_" + sessionNo
+	                                    + "_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-	                        sessionCount++;
+	                            sessions.add(new Session(
+	                                    uniqueSessionId,
+	                                    sessionNo,
+	                                    currentDate.toString(),
+	                                    "Pending",
+	                                    "Unpaid"
+	                            ));
 
-	                        if (sessionCount % timesPerDay == 0) {
-	                            currentDate = currentDate.plusDays(1);
+	                            sessionNo++;
 	                        }
+
+	                        // ✅ Move to next day after all sessions of current day
+	                        currentDate = currentDate.plusDays(1);
 	                    }
 
 	                    if (!sessions.isEmpty()) created = true;
@@ -1069,6 +1070,56 @@ private void updateStatuses(PaymentRecord record) {
 
 	    return created;
 	}
+
+//	private boolean createSessions(List<TherapyWithSessions> data, String startDate) {
+//
+//	    boolean created = false;
+//
+//	    for (var pkg : data) {
+//	        for (var prog : pkg.getPrograms()) {
+//	            for (var therapy : prog.getTherapyData()) {
+//	                for (var ex : therapy.getExercises()) {
+//
+//	                    List<Session> sessions = new ArrayList<>();
+//
+//	                    int timesPerDay = parseTimesPerDay(ex.getFrequency());
+//	                    LocalDate currentDate = LocalDate.parse(startDate);
+//	                    int sessionCount = 0;
+//
+//	                    for (int i = 1; i <= ex.getNoOfSessions(); i++) {
+//
+//	                        // ✅ Unique sessionId = exerciseId + "_" + sessionNo + "_" + UUID short
+//	                        String uniqueSessionId = ex.getExerciseId()
+//	                                + "_" + i
+//	                                + "_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+//
+//	                        sessions.add(new Session(
+//	                                uniqueSessionId,
+//	                                i,
+//	                                currentDate.toString(),
+//	                                "Pending",
+//	                                "Unpaid"
+//	                        ));
+//
+//	                        sessionCount++;
+//
+//	                        if (sessionCount % timesPerDay == 0) {
+//	                            currentDate = currentDate.plusDays(1);
+//	                        }
+//	                    }
+//
+//	                    if (!sessions.isEmpty()) created = true;
+//	                    ex.setSessions(sessions);
+//	                }
+//	            }
+//	        }
+//	    }
+//
+//	    return created;
+//	}
+//	
+//	
+//	
 	// ========================================================
 //  PARSE FREQUENCY → TIMES PER DAY
 //========================================================

@@ -534,6 +534,21 @@ import physiotherapydoctor.service.PhysiotherapyService;
 			if (dto.getFollowUp() != null) {
 				existing.setFollowUp(dto.getFollowUp());
 			}
+			if (dto.getRedFlags() != null) {
+			    existing.setRedFlags(dto.getRedFlags());
+			}
+
+			if (dto.getRadiationNeuro() != null) {
+			    existing.setRadiationNeuro(dto.getRadiationNeuro());
+			}
+
+			if (dto.getPsychosocial() != null) {
+			    existing.setPsychosocial(dto.getPsychosocial());
+			}
+
+			if (dto.getSpecialSymptoms() != null) {
+			    existing.setSpecialSymptoms(dto.getSpecialSymptoms());
+			}
 	
 	//	    if (dto.getProgressAnalytics() != null) {
 	//	        existing.setProgressAnalytics(dto.getProgressAnalytics());
@@ -667,6 +682,21 @@ import physiotherapydoctor.service.PhysiotherapyService;
 			// =========================
 			if (dto.getFollowUp() != null) {
 				entity.setFollowUp(dto.getFollowUp());
+			}
+			if (dto.getRedFlags() != null) {
+			    entity.setRedFlags(dto.getRedFlags());
+			}
+
+			if (dto.getRadiationNeuro() != null) {
+			    entity.setRadiationNeuro(dto.getRadiationNeuro());
+			}
+
+			if (dto.getPsychosocial() != null) {
+			    entity.setPsychosocial(dto.getPsychosocial());
+			}
+
+			if (dto.getSpecialSymptoms() != null) {
+			    entity.setSpecialSymptoms(dto.getSpecialSymptoms());
 			}
 			entity.setPrescriptionPdf(dto.getPrescriptionPdf());
 			return entity;

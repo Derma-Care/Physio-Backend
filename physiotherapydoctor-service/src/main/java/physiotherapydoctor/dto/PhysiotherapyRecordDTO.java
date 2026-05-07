@@ -27,4 +27,8 @@ public class PhysiotherapyRecordDTO {
     private ExercisePlan exercisePlan;
     private FollowUp followUp;
     private String prescriptionPdf;
+    private RedFlags redFlags;
+    private RadiationNeuro radiationNeuro;
+    private Psychosocial psychosocial;
+    private SpecialSymptoms specialSymptoms;
 }
