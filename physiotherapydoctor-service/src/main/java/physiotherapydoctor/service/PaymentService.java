@@ -1,8 +1,11 @@
 package physiotherapydoctor.service;
 
+import java.util.List;
+
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
+import physiotherapydoctor.entity.PaymentRecord;
 
 public interface PaymentService {
 
@@ -21,6 +24,9 @@ public interface PaymentService {
 
 	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
 			String therapistRecordId);
+
+	List<PaymentRecordResponse> findByClinicIdAndBranchId(String clinicId, String branchId);
+
 
 //	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
 //			String therapistRecordId, String exerciseId);

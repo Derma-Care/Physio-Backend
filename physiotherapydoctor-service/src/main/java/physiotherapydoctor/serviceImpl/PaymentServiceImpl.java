@@ -1241,6 +1241,26 @@ private void updateStatuses(PaymentRecord record) {
 
 	    return response;
 	}
+	@Override
+	public List<PaymentRecordResponse> findByClinicIdAndBranchId(
+	        String clinicId,
+	        String branchId) {
+
+	    List<PaymentRecord> records =
+	            repo.findByClinicIdAndBranchId(
+	                    clinicId,
+	                    branchId);
+
+	    if (records == null || records.isEmpty()) {
+
+	        throw new RuntimeException(
+	                "No payment records found");
+	    }
+
+	    return records.stream()
+	            .map(this::mapToResponse)
+	            .toList();
+	}
 }
 
 	

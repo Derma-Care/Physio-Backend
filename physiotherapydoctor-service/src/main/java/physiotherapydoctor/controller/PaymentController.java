@@ -1,5 +1,7 @@
 package physiotherapydoctor.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
+import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.service.PaymentService;
 
 @RestController
@@ -173,5 +176,36 @@ public class PaymentController {
 
             return ResponseEntity.status(response.getStatus()).body(response);
         }
+    }
+    @GetMapping("/getPayments/{clinicId}/{branchId}")
+    public ResponseEntity<Response> getPayments(
+            @PathVariable String clinicId,
+            @PathVariable String branchId) {
+
+        Response response = new Response();
+
+        try {
+
+            List<PaymentRecordResponse> records =
+                    service.findByClinicIdAndBranchId(
+                            clinicId,
+                            branchId);
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage("Payments fetched successfully");
+            response.setData(records);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(400);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
     }
 }
