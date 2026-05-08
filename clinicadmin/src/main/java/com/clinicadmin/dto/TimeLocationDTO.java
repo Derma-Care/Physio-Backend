@@ -9,5 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TimeLocationDTO {
     private String time;
+    private String latitude;
+    private String longtitude;
     private String location;
+	
+		
+
 }

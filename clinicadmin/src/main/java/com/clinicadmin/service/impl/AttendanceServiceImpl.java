@@ -2,10 +2,17 @@ package com.clinicadmin.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.clinicadmin.dto.ActivityDTO;
 import com.clinicadmin.dto.AttendanceDTO;
@@ -77,7 +84,26 @@ public class AttendanceServiceImpl implements AttendanceService {
                     act.setActivityId("ACT_" + System.nanoTime());
                     act.setActivity(a.getActivity());
                     act.setDuration(a.getDuration());
-                    act.setLocation(a.getLocation());
+                    // 🔥 SAVE LATITUDE & LONGTITUDE
+                    act.setLatitude(a.getLatitude());
+                    act.setLongtitude(a.getLongtitude());
+                    // 🔥 AUTO LOCATION FROM LAT LONG
+                    if (a.getLatitude() != null
+                            && !a.getLatitude().isBlank()
+                            && a.getLongtitude() != null
+                            && !a.getLongtitude().isBlank()) {
+
+                        String location = getCityFromLatLong(
+                                a.getLatitude(),
+                                a.getLongtitude()
+                        );
+
+                        act.setLocation(location);
+
+                    } else {
+
+                        act.setLocation(a.getLocation());
+                    }
 
                     entity.getActivities().add(act);
                 }
@@ -128,30 +154,88 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
             boolean updated = false;
 
-            // ✅ LOGIN UPDATE (FLAT FIELDS)
-            if (dto.getLoginTime() != null || dto.getLoginLocation() != null) {
+         // ✅ LOGIN UPDATE
+            if (dto.getLoginTime() != null
+                    || dto.getLoginLocation() != null
+                    || dto.getLoginLatitude() != null
+                    || dto.getLoginLongtitude() != null) {
 
-                if (entity.getLogin() == null) entity.setLogin(new TimeLocation());
+                if (entity.getLogin() == null) {
+                    entity.setLogin(new TimeLocation());
+                }
 
-                if (dto.getLoginTime() != null)
+                if (dto.getLoginTime() != null) {
                     entity.getLogin().setTime(dto.getLoginTime());
+                }
 
-                if (dto.getLoginLocation() != null)
+                // 🔥 SAVE LATITUDE
+                if (dto.getLoginLatitude() != null) {
+                    entity.getLogin().setLatitude(dto.getLoginLatitude());
+                }
+
+                // 🔥 SAVE LONGTITUDE
+                if (dto.getLoginLongtitude() != null) {
+                    entity.getLogin().setLongtitude(dto.getLoginLongtitude());
+                }
+
+                // 🔥 AUTO LOCATION FROM LAT LONG
+                if (dto.getLoginLatitude() != null
+                        && dto.getLoginLongtitude() != null) {
+
+                    String location = getCityFromLatLong(
+                            dto.getLoginLatitude(),
+                            dto.getLoginLongtitude()
+                    );
+
+                    entity.getLogin().setLocation(location);
+
+                } else if (dto.getLoginLocation() != null) {
+
                     entity.getLogin().setLocation(dto.getLoginLocation());
+                }
 
                 entity.setStatus("LOGGED_IN");
                 updated = true;
             }
+         // ✅ LOGOUT UPDATE
+            if (dto.getLogoutTime() != null
+                    || dto.getLogoutLocation() != null
+                    || dto.getLogoutLatitude() != null
+                    || dto.getLogoutLongtitude() != null) {
 
-            if (dto.getLogoutTime() != null || dto.getLogoutLocation() != null) {
+                if (entity.getLogout() == null) {
+                    entity.setLogout(new TimeLocation());
+                }
 
-                if (entity.getLogout() == null) entity.setLogout(new TimeLocation());
-
-                if (dto.getLogoutTime() != null)
+                if (dto.getLogoutTime() != null) {
                     entity.getLogout().setTime(dto.getLogoutTime());
+                }
 
-                if (dto.getLogoutLocation() != null)
+                // 🔥 SAVE LATITUDE
+                if (dto.getLogoutLatitude() != null) {
+                    entity.getLogout().setLatitude(dto.getLogoutLatitude());
+                }
+
+                // 🔥 SAVE LONGTITUDE
+                if (dto.getLogoutLongtitude() != null) {
+                    entity.getLogout().setLongtitude(dto.getLogoutLongtitude());
+                }
+
+                // 🔥 AUTO LOCATION FROM LAT LONG
+                if (dto.getLogoutLatitude() != null
+                        && dto.getLogoutLongtitude() != null) {
+
+                    String location = getCityFromLatLong(
+                            dto.getLogoutLatitude(),
+                            dto.getLogoutLongtitude()
+                    );
+
+                    entity.getLogout().setLocation(location);
+
+                } else if (dto.getLogoutLocation() != null) {
+
                     entity.getLogout().setLocation(dto.getLogoutLocation());
+                }
 
                 entity.setStatus("LOGGED_OUT");
                 updated = true;
@@ -306,30 +390,101 @@ public class AttendanceServiceImpl implements AttendanceService {
             dto.setLogTime(entity.getLogTime());
             dto.setStatus(entity.getStatus());
 
+            // 🔹 LOGIN
             if (entity.getLogin() != null) {
+
                 TimeLocationDTO login = new TimeLocationDTO();
+
                 login.setTime(entity.getLogin().getTime());
-                login.setLocation(entity.getLogin().getLocation());
+
+                // 🔥 LAT LONG
+                login.setLatitude(entity.getLogin().getLatitude());
+                login.setLongtitude(entity.getLogin().getLongtitude());
+
+                // 🔥 AUTO LOCATION FROM LAT LONG
+                if (entity.getLogin().getLatitude() != null
+                        && entity.getLogin().getLongtitude() != null) {
+
+                    login.setLocation(
+                            getCityFromLatLong(
+                                    entity.getLogin().getLatitude(),
+                                    entity.getLogin().getLongtitude()
+                            )
+                    );
+
+                } else {
+
+                    login.setLocation(entity.getLogin().getLocation());
+                }
+
                 dto.setLogin(login);
             }
 
+            // 🔹 LOGOUT
             if (entity.getLogout() != null) {
+
                 TimeLocationDTO logout = new TimeLocationDTO();
+
                 logout.setTime(entity.getLogout().getTime());
-                logout.setLocation(entity.getLogout().getLocation());
+
+                // 🔥 LAT LONG
+                logout.setLatitude(entity.getLogout().getLatitude());
+                logout.setLongtitude(entity.getLogout().getLongtitude());
+
+                // 🔥 AUTO LOCATION FROM LAT LONG
+                if (entity.getLogout().getLatitude() != null
+                        && entity.getLogout().getLongtitude() != null) {
+
+                    logout.setLocation(
+                            getCityFromLatLong(
+                                    entity.getLogout().getLatitude(),
+                                    entity.getLogout().getLongtitude()
+                            )
+                    );
+
+                } else {
+
+                    logout.setLocation(entity.getLogout().getLocation());
+                }
+
                 dto.setLogout(logout);
             }
 
+            // 🔹 ACTIVITIES
             if (entity.getActivities() != null) {
+
                 List<ActivityDTO> activities = entity.getActivities()
                         .stream()
                         .map(a -> {
+
                             ActivityDTO ad = new ActivityDTO();
-                            ad.setActivityId(a.getActivityId()); 
+
+                            ad.setActivityId(a.getActivityId());
                             ad.setActivity(a.getActivity());
                             ad.setDuration(a.getDuration());
-                            ad.setLocation(a.getLocation());
+
+                            // 🔥 LAT LONG
+                            ad.setLatitude(a.getLatitude());
+                           ad.setLongtitude(a.getLongtitude());
+
+                            // 🔥 AUTO LOCATION FROM LAT LONG
+                            if (a.getLatitude() != null
+                                    && a.getLongtitude() != null) {
+
+                                ad.setLocation(
+                                        getCityFromLatLong(
+                                                a.getLatitude(),
+                                                a.getLongtitude()
+                                        )
+                                );
+
+                            } else {
+
+                                ad.setLocation(a.getLocation());
+                            }
+
                             return ad;
+
                         }).collect(Collectors.toList());
 
                 dto.setActivities(activities);
@@ -338,12 +493,13 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setSuccess(true);
             response.setMessage("Daily report fetched successfully");
             response.setData(dto);
-            response.setStatus(200); // ✅ FIX
+            response.setStatus(200);
 
         } catch (Exception e) {
+
             response.setSuccess(false);
             response.setMessage(e.getMessage());
-            response.setStatus(404); // ✅ FIX
+            response.setStatus(404);
         }
 
         return response;
@@ -418,21 +574,69 @@ public class AttendanceServiceImpl implements AttendanceService {
         entity.setBranchId(dto.getBranchId());
         entity.setDate(dto.getDate());
 
+        // 🔹 LOGIN
         if (dto.getLogin() != null) {
+
             TimeLocation login = new TimeLocation();
+
             login.setTime(dto.getLogin().getTime());
-            login.setLocation(dto.getLogin().getLocation());
+
+            // 🔥 SAVE LAT LONG
+            login.setLatitude(dto.getLogin().getLatitude());
+            login.setLongtitude(dto.getLogin().getLongtitude());
+
+            // 🔥 AUTO LOCATION FROM LAT LONG
+            if (dto.getLogin().getLatitude() != null
+                    && !dto.getLogin().getLatitude().isBlank()
+                    && dto.getLogin().getLongtitude() != null
+                    && !dto.getLogin().getLongtitude().isBlank()) {
+
+                login.setLocation(
+                        getCityFromLatLong(
+                                dto.getLogin().getLatitude(),
+                                dto.getLogin().getLongtitude()
+                        )
+                );
+
+            } else {
+
+                login.setLocation(dto.getLogin().getLocation());
+            }
+
             entity.setLogin(login);
         }
 
+        // 🔹 LOGOUT
         if (dto.getLogout() != null) {
+
             TimeLocation logout = new TimeLocation();
+
             logout.setTime(dto.getLogout().getTime());
-            logout.setLocation(dto.getLogout().getLocation());
+
+            // 🔥 SAVE LAT LONG
+            logout.setLatitude(dto.getLogout().getLatitude());
+            logout.setLongtitude(dto.getLogout().getLongtitude());
+
+            // 🔥 AUTO LOCATION FROM LAT LONG
+            if (dto.getLogout().getLatitude() != null
+                    && !dto.getLogout().getLatitude().isBlank()
+                    && dto.getLogout().getLongtitude() != null
+                    && !dto.getLogout().getLongtitude().isBlank()) {
+
+                logout.setLocation(
+                        getCityFromLatLong(
+                                dto.getLogout().getLatitude(),
+                                dto.getLogout().getLongtitude()
+                        )
+                );
+
+            } else {
+
+                logout.setLocation(dto.getLogout().getLocation());
+            }
+
             entity.setLogout(logout);
         }
-
-      
     }
     private AttendanceDTO mapEntityToDto(Attendance entity) {
 
@@ -446,21 +650,63 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         // 🔹 LOGIN
         if (entity.getLogin() != null) {
+
             TimeLocationDTO login = new TimeLocationDTO();
+
             login.setTime(entity.getLogin().getTime());
-            login.setLocation(entity.getLogin().getLocation());
+
+            // 🔥 AUTO CONVERT LOGIN LOCATION
+            if (entity.getLogin().getLatitude() != null
+                    && entity.getLogin().getLongtitude() != null) {
+
+                login.setLatitude(entity.getLogin().getLatitude());
+                login.setLongtitude(entity.getLogin().getLongtitude());
+
+                login.setLocation(
+                        getCityFromLatLong(
+                                entity.getLogin().getLatitude(),
+                                entity.getLogin().getLongtitude()
+                        )
+                );
+
+            } else {
+
+                login.setLocation(entity.getLogin().getLocation());
+            }
+
             dto.setLogin(login);
         }
 
         // 🔹 LOGOUT
         if (entity.getLogout() != null) {
+
             TimeLocationDTO logout = new TimeLocationDTO();
+
             logout.setTime(entity.getLogout().getTime());
-            logout.setLocation(entity.getLogout().getLocation());
+
+            // 🔥 AUTO CONVERT LOGOUT LOCATION
+            if (entity.getLogout().getLatitude() != null
+                    && entity.getLogout().getLongtitude() != null) {
+
+                logout.setLatitude(entity.getLogout().getLatitude());
+                logout.setLongtitude(entity.getLogout().getLongtitude());
+
+                logout.setLocation(
+                        getCityFromLatLong(
+                                entity.getLogout().getLatitude(),
+                                entity.getLogout().getLongtitude()
+                        )
+                );
+
+            } else {
+
+                logout.setLocation(entity.getLogout().getLocation());
+            }
+
             dto.setLogout(logout);
         }
 
-        
+        // 🔹 ACTIVITIES
         if (entity.getActivities() != null && !entity.getActivities().isEmpty()) {
 
             List<ActivityDTO> activities = entity.getActivities().stream().map(a -> {
@@ -470,7 +716,26 @@ public class AttendanceServiceImpl implements AttendanceService {
                 act.setActivityId(a.getActivityId());
                 act.setActivity(a.getActivity());
                 act.setDuration(a.getDuration());
-                act.setLocation(a.getLocation());
+
+                // 🔥 LAT LONG
+                act.setLatitude(a.getLatitude());
+                act.setLongtitude(a.getLongtitude());
+
+                // 🔥 AUTO CONVERT LOCATION
+                if (a.getLatitude() != null
+                        && a.getLongtitude() != null) {
+
+                    act.setLocation(
+                            getCityFromLatLong(
+                                    a.getLatitude(),
+                                    a.getLongtitude()
+                            )
+                    );
+
+                } else {
+
+                    act.setLocation(a.getLocation());
+                }
 
                 return act;
 
@@ -531,5 +796,50 @@ public class AttendanceServiceImpl implements AttendanceService {
         return (total / 60) + "h " + (total % 60) + "m";
     }
 
-   
+    private String getCityFromLatLong(String lat, String lon) {
+
+        try {
+
+            String url = "https://nominatim.openstreetmap.org/reverse?lat="
+                    + lat + "&lon=" + lon + "&format=json";
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "clinic-admin-app");
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) return "Unknown";
+
+            Map<String, Object> address = (Map<String, Object>) body.get("address");
+            if (address == null) return "Unknown";
+
+            // 🔥 Extract exact fields
+            String road = (String) address.getOrDefault("road", "");
+            String area = (String) address.getOrDefault("suburb",
+                            address.getOrDefault("neighbourhood", ""));
+            String city = (String) address.getOrDefault("city",
+                            address.getOrDefault("town",
+                            address.getOrDefault("village", "")));
+            String state = (String) address.getOrDefault("state", "");
+            String country = (String) address.getOrDefault("country", "");
+
+            // 🔥 Build clean format (no nulls, no extra commas)
+            return Stream.of(road, area, city, state, country)
+                    .filter(s -> s != null && !s.isBlank())
+                    .collect(Collectors.joining(", "));
+
+        } catch (Exception e) {
+            return "Unknown";
+        }
+    }
 }

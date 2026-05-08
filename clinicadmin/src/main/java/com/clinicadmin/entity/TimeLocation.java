@@ -6,6 +6,8 @@ import lombok.Data;
 public class TimeLocation {
 
     private String time;
+    private String latitude;
+    private String longtitude;
     private String location;
 
 }

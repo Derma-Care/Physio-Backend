@@ -23,5 +23,12 @@ public class AttendanceDTO {
     private String logoutTime;
     private String loginLocation;
     private String logoutLocation;
+    private String loginLatitude;
+    private String loginLongtitude;
+
+    private String logoutLatitude;
+    private String logoutLongtitude;
+	
+
 
 }
