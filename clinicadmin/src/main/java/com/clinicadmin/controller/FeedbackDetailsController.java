@@ -94,6 +94,21 @@ public class FeedbackDetailsController {
                 .status(response.getStatus())
                 .body(response);
     }
+    
+    @GetMapping("/getAllByUsingClinicIdAndBranchId/{clinicId}/{branchId}")
+    public ResponseEntity<Response> getAllFeedbacksByClinicIdAndBranchId(
+            @PathVariable String clinicId,
+            @PathVariable String branchId) {
+
+        Response response = service
+                .getAllFeedbacksByClinicIdAndBranchId(
+                        clinicId,
+                        branchId);
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
+    }
     @GetMapping("/getFeedbackDetails/{clinicId}/{branchId}")
     public ResponseEntity<Response> getFeedbackDetails(
             @PathVariable String clinicId,

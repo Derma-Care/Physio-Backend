@@ -12,7 +12,8 @@ public class PatientFeedbackDTO {
     private String id;
 
     private String patientId;
-
+    private String clinicId;
+    private String branchId;
     private String patientName;
 
     private String patientPhone;
@@ -26,4 +27,8 @@ public class PatientFeedbackDTO {
     private ReceptionistFeedbackDTO receptionistFeedback;
 
     private TherapistFeedbackDTO therapistFeedback;
+    
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }

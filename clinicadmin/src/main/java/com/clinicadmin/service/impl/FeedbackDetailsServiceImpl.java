@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.FeedbackDetailsDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ServiceInfo;
+import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
+import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.service.FeedbackDetailsServcie;
 
@@ -25,6 +27,9 @@ public class FeedbackDetailsServiceImpl
     
     @Autowired
     private FeedbackDetailsRepository repository;
+    
+    @Autowired
+    private CustomerOnboardingRepository customerOnboardingRepository;
     
     
     @Override
@@ -52,7 +57,14 @@ public class FeedbackDetailsServiceImpl
                                                     "ddMM-HHmmss"));
 
             entity.setId(feedbackId);
+            // ================= DATE & TIME =================
 
+            String currentDateTime =
+                    java.time.LocalDateTime.now()
+                            .toString();
+
+            entity.setCreatedAt(currentDateTime);
+            entity.setUpdatedAt(currentDateTime);
             // ================= SAVE =================
 
             FeedbackDetails saved =
@@ -249,6 +261,12 @@ public class FeedbackDetailsServiceImpl
                 existing.setImprovements(
                         feedbackDetailsDTO.getImprovements());
             }
+         // ================= UPDATE DATE & TIME =================
+
+            existing.setUpdatedAt(
+                    java.time.LocalDateTime.now()
+                            .toString());
+
 
             // ================= SAVE =================
 
@@ -349,19 +367,33 @@ public class FeedbackDetailsServiceImpl
                         new FeedbackDetailsDTO();
 
                 // ================= BASIC =================
-
-                data.setPatientId(
+                String patientId =
                         String.valueOf(
-                                payment.get("patientId")));
+                                payment.get("patientId"));
 
-                data.setPatientName(
-                        String.valueOf(
-                                payment.get("patientName")));
+                data.setPatientId(patientId);
 
-                data.setMobileNumber(
-                        String.valueOf(
-                                payment.get("mobileNumber")));
+                CustomerOnbording customer =
+                        customerOnboardingRepository
+                                .findByPatientIdAndHospitalIdAndBranchId(
+                                        patientId,
+                                        clinicId,
+                                        branchId)
+                                .orElse(null);
 
+                if (customer != null) {
+
+                    data.setPatientName(
+                            customer.getFullName());
+
+                    data.setMobileNumber(
+                            customer.getMobileNumber());
+
+                } else {
+
+                    data.setPatientName(null);
+                    data.setMobileNumber(null);
+                }
                 data.setBookingId(
                         String.valueOf(
                                 payment.get("bookingId")));
@@ -835,6 +867,9 @@ public class FeedbackDetailsServiceImpl
 
         entity.setImprovements(
                 dto.getImprovements());
+        
+        entity.setCreatedAt(dto.getCreatedAt());
+        entity.setUpdatedAt(dto.getUpdatedAt());
 
         return entity;
     }
@@ -884,7 +919,47 @@ public class FeedbackDetailsServiceImpl
 
         dto.setImprovements(
                 entity.getImprovements());
+        // ================= AUDIT =================
+
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
 
         return dto;
+    }
+
+
+    @Override
+    public Response getAllFeedbacksByClinicIdAndBranchId(
+            String clinicId,
+            String branchId) {
+
+        Response response = new Response();
+
+        try {
+
+            List<FeedbackDetailsDTO> feedbackList =
+                    repository.findByClinicIdAndBranchId(
+                                    clinicId,
+                                    branchId)
+                            .stream()
+                            .map(this::mapToDTO)
+                            .toList();
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Feedbacks fetched successfully");
+
+            response.setData(feedbackList);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(404);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
     }
 }

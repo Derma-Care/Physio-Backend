@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.entity.CustomerOnbording;
+import com.clinicadmin.entity.FeedbackDetails;
 
 public interface CustomerOnboardingRepository extends MongoRepository<CustomerOnbording, String> {
 	Optional<CustomerOnbording> findByCustomerId(String customerId); // ✅ works because field exists
@@ -29,5 +30,11 @@ public interface CustomerOnboardingRepository extends MongoRepository<CustomerOn
 	
 	Optional<CustomerOnbording>	findByMobileNumberAndFullName(String mobileNumber,String name);
 	List<CustomerOnbordingDTO> findByFullNameContainingIgnoreCaseAndHospitalId(String trim, String clinicId);
+	
+	 Optional<CustomerOnbording>
+	    findByPatientIdAndHospitalIdAndBranchId(
+	            String patientId,
+	            String hospitalId,
+	            String branchId);
 	
 }

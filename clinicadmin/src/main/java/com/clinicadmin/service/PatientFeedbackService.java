@@ -1,6 +1,8 @@
 package com.clinicadmin.service;
 
 
+import java.util.List;
+
 import com.clinicadmin.dto.PatientFeedbackDTO;
 import com.clinicadmin.dto.Response;
 
@@ -16,4 +18,11 @@ public interface PatientFeedbackService {
                             PatientFeedbackDTO dto);
 
     Response deleteFeedback(String id);
+
+	Response getByClinicIdAndBranchId(String clinicId, String branchId);
+
+
+
+    
+ 
 }

@@ -17,7 +17,8 @@ public class PatientFeedback {
 
     @Id
     private String id;
-
+    private String clinicId;
+    private String branchId;
     private String patientId;
 
     private String patientName;
@@ -33,5 +34,9 @@ public class PatientFeedback {
     private ReceptionistFeedback receptionistFeedback;
 
     private TherapistFeedback therapistFeedback;
+    
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 
 }

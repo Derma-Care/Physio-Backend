@@ -1,16 +1,26 @@
 package com.clinicadmin.service.impl;
 
-import com.clinicadmin.dto.*;
-import com.clinicadmin.entity.*;
-import com.clinicadmin.repository.PatientFeedbackRepository;
-import com.clinicadmin.service.PatientFeedbackService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.clinicadmin.dto.DoctorFeedbackDTO;
+import com.clinicadmin.dto.HospitalFeedbackDTO;
+import com.clinicadmin.dto.PatientFeedbackDTO;
+import com.clinicadmin.dto.ReceptionistFeedbackDTO;
+import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.TherapistFeedbackDTO;
+import com.clinicadmin.entity.DoctorFeedback;
+import com.clinicadmin.entity.HospitalFeedback;
+import com.clinicadmin.entity.PatientFeedback;
+import com.clinicadmin.entity.ReceptionistFeedback;
+import com.clinicadmin.entity.TherapistFeedback;
+import com.clinicadmin.repository.PatientFeedbackRepository;
+import com.clinicadmin.service.PatientFeedbackService;
 
 @Service
 public class PatientFeedbackServiceImpl implements PatientFeedbackService {
@@ -24,7 +34,8 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     public Response createFeedback(PatientFeedbackDTO dto) {
 
         PatientFeedback feedback = mapToEntity(dto);
-
+        feedback.setCreatedAt(LocalDateTime.now());
+        feedback.setUpdatedAt(LocalDateTime.now());
         PatientFeedback saved = repository.save(feedback);
 
         Response response = new Response();
@@ -74,7 +85,28 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
         return response;
     }
+    
+    @Override
+    public Response getByClinicIdAndBranchId(String clinicId,
+                                             String branchId) {
 
+        List<PatientFeedback> feedbackList = repository
+                .findByClinicIdAndBranchId(clinicId, branchId);
+
+        List<PatientFeedbackDTO> list = feedbackList
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+
+        Response response = new Response();
+
+        response.setSuccess(true);
+        response.setMessage("Feedbacks fetched successfully");
+        response.setStatus(HttpStatus.OK.value());
+        response.setData(list);
+
+        return response;
+    }
     // ================= UPDATE =================
 
     @Override
@@ -140,6 +172,9 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
         );
 
         existing.setReceptionistFeedback(receptionistFeedback);
+        
+        existing.setUpdatedAt(LocalDateTime.now());
+
 
         // ================= THERAPIST FEEDBACK =================
 
@@ -205,11 +240,15 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
         PatientFeedbackDTO dto = new PatientFeedbackDTO();
 
         dto.setId(feedback.getId());
+        dto.setClinicId(feedback.getClinicId());
+        dto.setBranchId(feedback.getBranchId());
         dto.setPatientId(feedback.getPatientId());
         dto.setPatientName(feedback.getPatientName());
         dto.setPatientPhone(feedback.getPatientPhone());
         dto.setDate(feedback.getDate());
-
+        dto.setCreatedAt(feedback.getCreatedAt());
+        dto.setUpdatedAt(feedback.getUpdatedAt());
+        
         dto.setHospitalFeedback(
                 mapHospitalToDTO(feedback.getHospitalFeedback())
         );
@@ -240,10 +279,14 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
         PatientFeedback feedback = new PatientFeedback();
 
         feedback.setId(dto.getId());
+        feedback.setClinicId(dto.getClinicId());
+        feedback.setBranchId(dto.getBranchId());
         feedback.setPatientId(dto.getPatientId());
         feedback.setPatientName(dto.getPatientName());
         feedback.setPatientPhone(dto.getPatientPhone());
         feedback.setDate(dto.getDate());
+        feedback.setCreatedAt(dto.getCreatedAt());
+        feedback.setUpdatedAt(dto.getUpdatedAt());
 
         feedback.setHospitalFeedback(
                 mapHospitalToEntity(dto.getHospitalFeedback())
@@ -273,6 +316,8 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
         feedback.setPatientName(dto.getPatientName());
         feedback.setPatientPhone(dto.getPatientPhone());
         feedback.setDate(dto.getDate());
+        feedback.setCreatedAt(dto.getCreatedAt());
+        feedback.setUpdatedAt(dto.getUpdatedAt());
 
         feedback.setHospitalFeedback(
                 mapHospitalToEntity(dto.getHospitalFeedback())

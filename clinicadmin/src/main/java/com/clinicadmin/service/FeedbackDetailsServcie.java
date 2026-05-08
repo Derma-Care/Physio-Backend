@@ -13,6 +13,9 @@ public interface FeedbackDetailsServcie {
 	Response getFeedbackById(String id);
 
 	Response updateFeedback(String id,FeedbackDetailsDTO feedbackDetailsDTO);
+	
+	Response getAllFeedbacksByClinicIdAndBranchId(String clinicId, String branchId);
+
 
 	Response deleteFeedback(String id);
 

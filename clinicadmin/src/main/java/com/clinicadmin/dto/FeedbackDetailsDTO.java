@@ -51,4 +51,11 @@ public class FeedbackDetailsDTO {
     private String whatWentWell;
     private String improvements;
     private String rating;
+    // ================= AUDIT =================
+
+
+    private String createdAt;
+
+  
+    private String updatedAt;
 }
