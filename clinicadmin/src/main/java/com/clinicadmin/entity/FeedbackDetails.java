@@ -13,6 +13,9 @@ public class FeedbackDetails {
 
     @Id
     private String id;
+    
+    private String clinicId;
+    private String branchId;
 
     // ================= PATIENT =================
     private String patientId;
@@ -50,4 +53,5 @@ public class FeedbackDetails {
     // ================= FEEDBACK =================
     private String whatWentWell;
     private String improvements;
+    private String rating;
 }

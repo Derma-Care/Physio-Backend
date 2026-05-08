@@ -28,11 +28,18 @@ public class FeedbackDetailsServiceImpl
     
     
     @Override
-    public Response createFeedback(FeedbackDetails feedbackDetails) {
+    public Response createFeedback(
+            FeedbackDetailsDTO feedbackDetailsDTO) {
 
         Response response = new Response();
 
         try {
+
+            // ================= MAP TO ENTITY =================
+
+            FeedbackDetails entity =
+                    mapToEntity(
+                            feedbackDetailsDTO);
 
             // ================= ID GENERATION =================
 
@@ -44,19 +51,22 @@ public class FeedbackDetailsServiceImpl
                                             .ofPattern(
                                                     "ddMM-HHmmss"));
 
-            feedbackDetails.setId(feedbackId);
+            entity.setId(feedbackId);
 
             // ================= SAVE =================
 
             FeedbackDetails saved =
-                    repository.save(feedbackDetails);
+                    repository.save(entity);
+
+            // ================= RESPONSE =================
 
             response.setSuccess(true);
             response.setStatus(200);
             response.setMessage(
                     "Feedback created successfully");
 
-            response.setData(saved);
+            response.setData(
+                    mapToDTO(saved));
 
         } catch (Exception e) {
 
@@ -68,7 +78,236 @@ public class FeedbackDetailsServiceImpl
 
         return response;
     }
+    
+    
+    @Override
+    public Response getAllFeedbacks() {
 
+        Response response = new Response();
+
+        try {
+
+            List<FeedbackDetailsDTO> result =
+                    repository.findAll()
+                            .stream()
+                            .map(this::mapToDTO)
+                            .toList();
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "All feedbacks fetched successfully");
+
+            response.setData(result);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
+    }
+    
+    @Override
+    public Response getFeedbackById(String id) {
+
+        Response response = new Response();
+
+        try {
+
+            FeedbackDetails feedback =
+                    repository.findById(id)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Feedback not found"));
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Feedback fetched successfully");
+
+            response.setData(
+                    mapToDTO(feedback));
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(404);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
+    }
+    
+    @Override
+    public Response updateFeedback(
+            String id,
+            FeedbackDetailsDTO feedbackDetailsDTO) {
+
+        Response response = new Response();
+
+        try {
+
+            FeedbackDetails existing =
+                    repository.findById(id)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Feedback not found"));
+
+
+            if (feedbackDetailsDTO.getPatientId() != null) {
+                existing.setPatientId(
+                        feedbackDetailsDTO.getPatientId());
+            }
+
+            if (feedbackDetailsDTO.getPatientName() != null) {
+                existing.setPatientName(
+                        feedbackDetailsDTO.getPatientName());
+            }
+
+            if (feedbackDetailsDTO.getMobileNumber() != null) {
+                existing.setMobileNumber(
+                        feedbackDetailsDTO.getMobileNumber());
+            }
+
+            if (feedbackDetailsDTO.getBookingId() != null) {
+                existing.setBookingId(
+                        feedbackDetailsDTO.getBookingId());
+            }
+
+            if (feedbackDetailsDTO.getDoctorId() != null) {
+                existing.setDoctorId(
+                        feedbackDetailsDTO.getDoctorId());
+            }
+
+            if (feedbackDetailsDTO.getDoctorName() != null) {
+                existing.setDoctorName(
+                        feedbackDetailsDTO.getDoctorName());
+            }
+
+            if (feedbackDetailsDTO.getTherapistId() != null) {
+                existing.setTherapistId(
+                        feedbackDetailsDTO.getTherapistId());
+            }
+
+            if (feedbackDetailsDTO.getTherapistName() != null) {
+                existing.setTherapistName(
+                        feedbackDetailsDTO.getTherapistName());
+            }
+
+            if (feedbackDetailsDTO.getTherapistRecordId() != null) {
+                existing.setTherapistRecordId(
+                        feedbackDetailsDTO.getTherapistRecordId());
+            }
+
+            if (feedbackDetailsDTO.getStaffId() != null) {
+                existing.setStaffId(
+                        feedbackDetailsDTO.getStaffId());
+            }
+
+            if (feedbackDetailsDTO.getStaffName() != null) {
+                existing.setStaffName(
+                        feedbackDetailsDTO.getStaffName());
+            }
+
+            if (feedbackDetailsDTO.getServiceType() != null) {
+                existing.setServiceType(
+                        feedbackDetailsDTO.getServiceType());
+            }
+
+            if (feedbackDetailsDTO.getService() != null) {
+                existing.setService(
+                        feedbackDetailsDTO.getService());
+            }
+
+            if (feedbackDetailsDTO.getTotalNoOfSessions() > 0) {
+                existing.setTotalNoOfSessions(
+                        feedbackDetailsDTO.getTotalNoOfSessions());
+            }
+
+            if (feedbackDetailsDTO.getNoOfSessionsCompleted() >= 0) {
+                existing.setNoOfSessionsCompleted(
+                        feedbackDetailsDTO.getNoOfSessionsCompleted());
+            }
+
+            existing.setHalfSessionsCompleted(
+                    feedbackDetailsDTO.isHalfSessionsCompleted());
+
+            existing.setFullSessionsCompleted(
+                    feedbackDetailsDTO.isFullSessionsCompleted());
+
+            if (feedbackDetailsDTO.getWhatWentWell() != null) {
+                existing.setWhatWentWell(
+                        feedbackDetailsDTO.getWhatWentWell());
+            }
+
+            if (feedbackDetailsDTO.getImprovements() != null) {
+                existing.setImprovements(
+                        feedbackDetailsDTO.getImprovements());
+            }
+
+            // ================= SAVE =================
+
+            FeedbackDetails updated =
+                    repository.save(existing);
+
+            // ================= RESPONSE =================
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Feedback updated successfully");
+
+            response.setData(
+                    mapToDTO(updated));
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
+    }
+    
+    @Override
+    public Response deleteFeedback(String id) {
+
+        Response response = new Response();
+
+        try {
+
+            FeedbackDetails feedback =
+                    repository.findById(id)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Feedback not found"));
+
+            repository.delete(feedback);
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Feedback deleted successfully");
+
+            response.setData(null);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
+    }
     @Override
     public Response getFeedbackDetails(
             String clinicId,
@@ -178,14 +417,81 @@ public class FeedbackDetailsServiceImpl
                                 (String) pkg.get(
                                         "packageName");
 
+                        // ================= PACKAGE SERVICE =================
+
+                        if ("package"
+                                .equalsIgnoreCase(
+                                        serviceType)
+
+                                && packageName != null) {
+
+                            ServiceInfo info =
+                                    new ServiceInfo();
+
+                            info.setServiceId(
+                                    String.valueOf(
+                                            pkg.get(
+                                                    "packageId")));
+
+                            info.setServiceName(
+                                    packageName);
+
+                            service.add(info);
+                        }
+
                         List<Map<String, Object>>
-                                programs =
+                        programs =
 
-                                (List<Map<String, Object>>)
-                                        pkg.get("programs");
+                        (List<Map<String, Object>>)
+                                pkg.get("programs");
 
-                        if (programs == null)
-                            continue;
+                // ================= PROGRAM FALLBACK =================
+
+                if ((programs == null
+                        || programs.isEmpty())
+
+                        && "program"
+                                .equalsIgnoreCase(
+                                        serviceType)) {
+
+                    String programId =
+                            String.valueOf(
+                                    pkg.get(
+                                            "programId"));
+
+                    String programName =
+                            String.valueOf(
+                                    pkg.get(
+                                            "programName"));
+
+                    if (programId != null
+                            && !"null"
+                                    .equalsIgnoreCase(
+                                            programId)
+
+                            && programName != null
+                            && !"null"
+                                    .equalsIgnoreCase(
+                                            programName)) {
+
+                        ServiceInfo info =
+                                new ServiceInfo();
+
+                        info.setServiceId(
+                                programId);
+
+                        info.setServiceName(
+                                programName);
+
+                        service.add(info);
+                    }
+                }
+
+                // if (programs == null)
+//                     continue;
+
+                if (programs == null)
+                    continue;
 
                         for (Map<String, Object> program
                                 : programs) {
@@ -194,12 +500,74 @@ public class FeedbackDetailsServiceImpl
                                     (String) program.get(
                                             "programName");
 
+                            // ================= PROGRAM SERVICE =================
+
+                            if ("program"
+                                    .equalsIgnoreCase(
+                                            serviceType)
+
+                                    && programName != null) {
+
+                                ServiceInfo info =
+                                        new ServiceInfo();
+
+                                info.setServiceId(
+                                        String.valueOf(
+                                                program.get(
+                                                        "programId")));
+
+                                info.setServiceName(
+                                        programName);
+
+                                service.add(info);
+                            }
+
                             List<Map<String, Object>>
                                     therapyData =
 
                                     (List<Map<String, Object>>)
                                             program.get(
                                                     "therapyData");
+
+                            if ((therapyData == null
+                                    || therapyData.isEmpty())
+
+                                    && "therapy"
+                                            .equalsIgnoreCase(
+                                                    serviceType)) {
+
+                                String therapyId =
+                                        String.valueOf(
+                                                program.get(
+                                                        "therapyId"));
+
+                                String therapyName =
+                                        String.valueOf(
+                                                program.get(
+                                                        "therapyName"));
+
+                                if (therapyId != null
+                                        && !"null"
+                                                .equalsIgnoreCase(
+                                                        therapyId)
+
+                                        && therapyName != null
+                                        && !"null"
+                                                .equalsIgnoreCase(
+                                                        therapyName)) {
+
+                                    ServiceInfo info =
+                                            new ServiceInfo();
+
+                                    info.setServiceId(
+                                            therapyId);
+
+                                    info.setServiceName(
+                                            therapyName);
+
+                                    service.add(info);
+                                }
+                            }
 
                             if (therapyData == null)
                                 continue;
@@ -211,12 +579,74 @@ public class FeedbackDetailsServiceImpl
                                         (String) therapy.get(
                                                 "therapyName");
 
+                                // ================= THERAPY SERVICE =================
+
+                                if ("therapy"
+                                        .equalsIgnoreCase(
+                                                serviceType)
+
+                                        && therapyName != null) {
+
+                                    ServiceInfo info =
+                                            new ServiceInfo();
+
+                                    info.setServiceId(
+                                            String.valueOf(
+                                                    therapy.get(
+                                                            "therapyId")));
+
+                                    info.setServiceName(
+                                            therapyName);
+
+                                    service.add(info);
+                                }
+
                                 List<Map<String, Object>>
                                         exercises =
 
                                         (List<Map<String, Object>>)
                                                 therapy.get(
                                                         "exercises");
+
+                                if ((exercises == null
+                                        || exercises.isEmpty())
+
+                                        && "exercise"
+                                                .equalsIgnoreCase(
+                                                        serviceType)) {
+
+                                    String exerciseId =
+                                            String.valueOf(
+                                                    therapy.get(
+                                                            "exerciseId"));
+
+                                    String exerciseName =
+                                            String.valueOf(
+                                                    therapy.get(
+                                                            "exerciseName"));
+
+                                    if (exerciseId != null
+                                            && !"null"
+                                                    .equalsIgnoreCase(
+                                                            exerciseId)
+
+                                            && exerciseName != null
+                                            && !"null"
+                                                    .equalsIgnoreCase(
+                                                            exerciseName)) {
+
+                                        ServiceInfo info =
+                                                new ServiceInfo();
+
+                                        info.setServiceId(
+                                                exerciseId);
+
+                                        info.setServiceName(
+                                                exerciseName);
+
+                                        service.add(info);
+                                    }
+                                }
 
                                 if (exercises == null)
                                     continue;
@@ -228,67 +658,7 @@ public class FeedbackDetailsServiceImpl
                                             (String) exercise.get(
                                                     "exerciseName");
 
-                                    // ================= SERVICE =================
-
-                                    if ("package"
-                                            .equalsIgnoreCase(
-                                                    serviceType)
-
-                                            && packageName != null) {
-
-                                        ServiceInfo info =
-                                                new ServiceInfo();
-
-                                        info.setServiceId(
-                                                String.valueOf(
-                                                        pkg.get(
-                                                                "packageId")));
-
-                                        info.setServiceName(
-                                                packageName);
-
-                                        service.add(info);
-                                    }
-
-                                    if ("program"
-                                            .equalsIgnoreCase(
-                                                    serviceType)
-
-                                            && programName != null) {
-
-                                        ServiceInfo info =
-                                                new ServiceInfo();
-
-                                        info.setServiceId(
-                                                String.valueOf(
-                                                        program.get(
-                                                                "programId")));
-
-                                        info.setServiceName(
-                                                programName);
-
-                                        service.add(info);
-                                    }
-
-                                    if ("therapy"
-                                            .equalsIgnoreCase(
-                                                    serviceType)
-
-                                            && therapyName != null) {
-
-                                        ServiceInfo info =
-                                                new ServiceInfo();
-
-                                        info.setServiceId(
-                                                String.valueOf(
-                                                        therapy.get(
-                                                                "therapyId")));
-
-                                        info.setServiceName(
-                                                therapyName);
-
-                                        service.add(info);
-                                    }
+                                    // ================= EXERCISE SERVICE =================
 
                                     if ("exercise"
                                             .equalsIgnoreCase(
@@ -417,5 +787,104 @@ public class FeedbackDetailsServiceImpl
         }
 
         return response;
+    }
+    private FeedbackDetails mapToEntity(
+            FeedbackDetailsDTO dto) {
+
+        FeedbackDetails entity =
+                new FeedbackDetails();
+
+        entity.setId(dto.getId());
+        entity.setClinicId(dto.getClinicId());
+        entity.setBranchId(dto.getBranchId());
+        
+        entity.setPatientId(dto.getPatientId());
+        entity.setPatientName(dto.getPatientName());
+        entity.setMobileNumber(dto.getMobileNumber());
+
+        entity.setBookingId(dto.getBookingId());
+
+        entity.setDoctorId(dto.getDoctorId());
+        entity.setDoctorName(dto.getDoctorName());
+
+        entity.setTherapistId(dto.getTherapistId());
+        entity.setTherapistName(dto.getTherapistName());
+        entity.setTherapistRecordId(
+                dto.getTherapistRecordId());
+
+        entity.setStaffId(dto.getStaffId());
+        entity.setStaffName(dto.getStaffName());
+        entity.setRating(dto.getRating());
+        entity.setServiceType(dto.getServiceType());
+        entity.setService(dto.getService());
+
+        entity.setTotalNoOfSessions(
+                dto.getTotalNoOfSessions());
+
+        entity.setNoOfSessionsCompleted(
+                dto.getNoOfSessionsCompleted());
+
+        entity.setHalfSessionsCompleted(
+                dto.isHalfSessionsCompleted());
+
+        entity.setFullSessionsCompleted(
+                dto.isFullSessionsCompleted());
+
+        entity.setWhatWentWell(
+                dto.getWhatWentWell());
+
+        entity.setImprovements(
+                dto.getImprovements());
+
+        return entity;
+    }
+    private FeedbackDetailsDTO mapToDTO(
+            FeedbackDetails entity) {
+
+        FeedbackDetailsDTO dto =
+                new FeedbackDetailsDTO();
+
+        dto.setId(entity.getId());
+        dto.setClinicId(entity.getClinicId());
+        dto.setBranchId(entity.getBranchId());
+        dto.setPatientId(entity.getPatientId());
+        dto.setPatientName(entity.getPatientName());
+        dto.setMobileNumber(entity.getMobileNumber());
+
+        dto.setBookingId(entity.getBookingId());
+        dto.setRating(entity.getRating());
+        dto.setDoctorId(entity.getDoctorId());
+        dto.setDoctorName(entity.getDoctorName());
+
+        dto.setTherapistId(entity.getTherapistId());
+        dto.setTherapistName(entity.getTherapistName());
+        dto.setTherapistRecordId(
+                entity.getTherapistRecordId());
+
+        dto.setStaffId(entity.getStaffId());
+        dto.setStaffName(entity.getStaffName());
+
+        dto.setServiceType(entity.getServiceType());
+        dto.setService(entity.getService());
+
+        dto.setTotalNoOfSessions(
+                entity.getTotalNoOfSessions());
+
+        dto.setNoOfSessionsCompleted(
+                entity.getNoOfSessionsCompleted());
+
+        dto.setHalfSessionsCompleted(
+                entity.isHalfSessionsCompleted());
+
+        dto.setFullSessionsCompleted(
+                entity.isFullSessionsCompleted());
+
+        dto.setWhatWentWell(
+                entity.getWhatWentWell());
+
+        dto.setImprovements(
+                entity.getImprovements());
+
+        return dto;
     }
 }
