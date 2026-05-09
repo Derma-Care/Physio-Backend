@@ -36,9 +36,9 @@ import com.dermaCare.customerService.dto.CustomerRatingDomain;
 import com.dermaCare.customerService.dto.DoctorSaveDetailsDTO;
 import com.dermaCare.customerService.dto.DoctorsDTO;
 import com.dermaCare.customerService.dto.FavouriteDoctorsDTO;
+import com.dermaCare.customerService.dto.FirstVisitHistoryRequest;
 import com.dermaCare.customerService.dto.LoginDTO;
 import com.dermaCare.customerService.dto.NotificationToCustomer;
-import com.dermaCare.customerService.dto.QuestionsDTO;
 import com.dermaCare.customerService.dto.ReportsAndDoctorSaveDetailsDto;
 import com.dermaCare.customerService.dto.ReportsDtoList;
 import com.dermaCare.customerService.dto.ServicesDto;
@@ -46,6 +46,8 @@ import com.dermaCare.customerService.dto.SubServicesDetailsDto;
 import com.dermaCare.customerService.dto.SubServicesDto;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
 import com.dermaCare.customerService.dto.TheraphyAnswersDTO;
+import com.dermaCare.customerService.dto.TherapistRecordRequest;
+import com.dermaCare.customerService.dto.VisitHistoryRequest;
 import com.dermaCare.customerService.entity.ConsultationEntity;
 import com.dermaCare.customerService.entity.Customer;
 import com.dermaCare.customerService.entity.CustomerRating;
@@ -58,6 +60,7 @@ import com.dermaCare.customerService.feignClient.CategoryServicesFeign;
 import com.dermaCare.customerService.feignClient.ClinicAdminFeign;
 import com.dermaCare.customerService.feignClient.DoctorServiceFeign;
 import com.dermaCare.customerService.feignClient.NotificationFeign;
+import com.dermaCare.customerService.feignClient.PhysioFeign;
 import com.dermaCare.customerService.repository.ConsultationRep;
 import com.dermaCare.customerService.repository.CustomerFavouriteDoctors;
 import com.dermaCare.customerService.repository.CustomerRatingRepository;
@@ -92,8 +95,6 @@ public class CustomerServiceImpl implements CustomerService {
     @Autowired
     private BookingFeign bookingFeign;
     
-    @Autowired
-    private PhysiotherapyRepo physiotherapyRepo;
     private GetByKey getByKey;
     
     @Autowired
@@ -116,6 +117,9 @@ public class CustomerServiceImpl implements CustomerService {
     
     @Autowired
     private DoctorServiceFeign doctorServiceFeign;
+    
+    @Autowired
+    private PhysioFeign physioFeign;
     
     
     private static final Logger log = LoggerFactory.getLogger(CustomerServiceImpl.class);
@@ -902,10 +906,10 @@ public Response updateCustomerBasicDetails( CustomerDTO customerDTO ,String mobi
 
 	        	        String key = entry.getKey(); // e.g., "back"
 	        	        List<TheraphyAnswersDTO> answersList = entry.getValue();
-
-	        	        // 🔍 Fetch DB data based on key
-	        	        QuestionsByPartEntity entity = getByKey.getByKey(key);
-
+	        	        QuestionsByPartEntity entity = null;
+	        	        try {
+	        	        entity = getByKey.getByKey(key);
+	        	        }catch(Exception e) {}
 	        	        if (entity == null || entity.getQuestionsByPart() == null) {
 	        	            continue;
 	        	        }
@@ -971,6 +975,9 @@ public Response updateCustomerBasicDetails( CustomerDTO customerDTO ,String mobi
 
 	    return response;
 	}
+	
+	
+	
 
 	  	   
 	public Response deleteBookedService(String id) {
@@ -2533,6 +2540,106 @@ public CustomerDTO getCustomerByToken(String token) {
     }
 }
 
+@Override
+public ResponseEntity<Response> getTherapistSessionDetails(TherapistRecordRequest request) {
+    Response response = new Response();
+    try {
+    	return clinicAdminFeign.getTherapistSessionDetails(request);  
+    } catch (FeignException e) {      
+        response.setStatus(e.status());
+        response.setMessage(ExtractFeignMessage.clearMessage(e));
+        response.setSuccess(false);
+    } return ResponseEntity.status(response.getStatus()).body(response);}
+
+@Override
+public ResponseEntity<Response> getVisitHistoryByDoctor(VisitHistoryRequest request) {
+    Response response = new Response();
+    try {
+    	return physioFeign.getVisitHistoryByDoctor(request);  
+    } catch (FeignException e) {      
+        response.setStatus(e.status());
+        response.setMessage(ExtractFeignMessage.clearMessage(e));
+        response.setSuccess(false);
+    } return ResponseEntity.status(response.getStatus()).body(response);}
+
+@Override
+public ResponseEntity<Response> getFirstVisitHistory(FirstVisitHistoryRequest request) {
+    Response response = new Response();
+    try {
+    	return physioFeign.getFirstVisitHistory(request);  
+    } catch (FeignException e) {      
+        response.setStatus(e.status());
+        response.setMessage(ExtractFeignMessage.clearMessage(e));
+        response.setSuccess(false);
+    } return ResponseEntity.status(response.getStatus()).body(response);}
+
+
+@Override
+public ResponseEntity<?> bookPhysioAppointment(BookingRequset req) {   	
+        Response response = new Response();
+        try {
+        	 if(req.getTheraphyAnswers()!= null) {
+     	        
+    	        	if (req.getTheraphyAnswers() != null && !req.getTheraphyAnswers().isEmpty()) {
+
+    	        	    Map<String, List<TheraphyAnswersDTO>> map = req.getTheraphyAnswers();
+
+    	        	    for (Map.Entry<String, List<TheraphyAnswersDTO>> entry : map.entrySet()) {
+
+    	        	        String key = entry.getKey(); // e.g., "back"
+    	        	        List<TheraphyAnswersDTO> answersList = entry.getValue();
+
+    	        	        // 🔍 Fetch DB data based on key
+    	        	        QuestionsByPartEntity entity = null;
+    	        	        try {
+    		        	        entity = getByKey.getByKey(key);
+    		        	        }catch(Exception e) {}
+    	        	        if (entity == null || entity.getQuestionsByPart() == null) {
+    	        	            continue;
+    	        	        }	        	       
+    	        	        List<QuestionsEntity> questionsList = entity.getQuestionsByPart().get(key);
+
+    	        	        if (questionsList == null || questionsList.isEmpty()  ) {
+    	        	            continue;
+    	        	        }
+
+    	        	        // 🔁 Match questionId and set question
+    	        	        for (TheraphyAnswersDTO dto : answersList) {
+
+    	        	            for (QuestionsEntity q : questionsList) {
+
+    	        	                if (q.getQuestionId() == dto.getQuestionId()) {
+    	        	                    dto.setQuestion(q.getQuestion());
+    	        	                    break; // stop once matched
+    	        	                }
+    	        	            }
+    	        	        }
+    	        	    }
+    	        	} if(req!= null) {
+    	        		 clinicAdminFeign.updateDoctorSlotWhileBooking(         
+    	        				 req.getDoctorId(),
+    	    	                    req.getBranchId(),
+    	    	                    req.getServiceDate(),
+    	    	                    req.getServicetime()
+    	    	            );} 
+    	        return bookingFeign.bookPhysioAppointment(req);
+    	        }else {
+    	        	 if(req!= null) {
+    	        		 clinicAdminFeign.updateDoctorSlotWhileBooking(         
+    	        				 req.getDoctorId(),
+    	    	                    req.getBranchId(),
+    	    	                    req.getServiceDate(),
+    	    	                    req.getServicetime()
+    	    	            );} 
+        	    return bookingFeign.bookPhysioAppointment(req);}        	       	
+    } catch (FeignException e) {      
+        response.setStatus(e.status());
+        response.setMessage(ExtractFeignMessage.clearMessage(e));
+        response.setSuccess(false);
+    } return ResponseEntity.status(response.getStatus()).body(response);}
+
+
+
 public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
         String customerMobileNumber) {
 
@@ -2552,5 +2659,6 @@ public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCusto
         return ResponseEntity.status(e.status()).body(res);
     }
 }
+
 
 }

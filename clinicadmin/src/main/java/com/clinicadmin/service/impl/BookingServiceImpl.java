@@ -357,12 +357,13 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	        	        List<TheraphyAnswersDTO> answersList = entry.getValue();
 
 	        	        // 🔍 Fetch DB data based on key
-	        	        QuestionsByPartEntity entity = customerServiceFeignClient.getByKey(key).getBody();
-
+	        	        QuestionsByPartEntity entity = null;
+	        	        try {
+	        	        entity = customerServiceFeignClient.getByKey(key).getBody();
+	        	        }catch(Exception e) {}
 	        	        if (entity == null || entity.getQuestionsByPart() == null) {
 	        	            continue;
-	        	        }
-
+	        	        }	        	       
 	        	        List<QuestionsEntity> questionsList = entity.getQuestionsByPart().get(key);
 
 	        	        if (questionsList == null || questionsList.isEmpty()  ) {
@@ -393,7 +394,7 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	                    req.getServiceDate(),
 	                    req.getServicetime()
 	            );}else {
-	            	response.setStatus(400);
+	            	response.setStatus(200);
 	       			response.setMessage("error occured");
 	       			response.setSuccess(false);
 	       			//response.setData(Collections.emptyList());

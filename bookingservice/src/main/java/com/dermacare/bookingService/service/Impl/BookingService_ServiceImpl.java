@@ -784,17 +784,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	
 		
 	public BookingResponse getBookedService(String bookingId) {
-		try {
-			String[] parts = bookingId.split("-");
-
-			for (int i = 0; i < parts.length; i++) {
-				String part = parts[i];
-
-				if (!part.isEmpty()) {
-					parts[i] = part.substring(0, 1).toUpperCase() +
-							part.substring(1).toLowerCase();}}
-			String letter  =  String.join("-", parts);		
-		Booking entity = repository.findByBookingId(letter).get();	
+		try {		
+		Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();	
+		System.out.println(entity);
 		if(entity != null) {
 			BookingResponse res = toResponse(entity);
 			List<Session> lst = new ArrayList<>();
@@ -806,11 +798,28 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		   }else{
 			return null;}
 		   }catch(Exception e) {
-			//System.out.println(e.getMessage());
+			System.out.println(e.getMessage());
 			return null;
 		}
 	}
 
+	
+	public void deleteBookedServiceReports(String bookingId,String index) {
+		try {
+		Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();	
+		if(entity != null && index.equalsIgnoreCase("null")) {
+			try {
+				entity.getReports().clear();
+				repository.save(entity);
+			}catch(Exception e) {}
+		}else{
+			if(entity != null && index != null) {
+				entity.getReports().remove(Integer.valueOf(index).intValue());
+				repository.save(entity);
+			}}}catch(Exception e) {}
+		}
+
+	
 	@Override
 	public BookingResponse deleteService(String id) {
 		Booking entity = repository.findByBookingId(id)
@@ -2343,7 +2352,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(BookingResponse dto) {
 				Booking updated = null;
 				try {
-			        Booking entity = repository.findByBookingId(dto.getBookingId())
+			        Booking entity = repository.findByBookingIdIgnoreCase(dto.getBookingId())
 			                .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
 
 			        // -------- BASIC --------
@@ -2890,61 +2899,103 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 						branchId,
 						today
 				);
+		List<String> followup = physioDoctorFeign.getTodayFollowUpBookingIds();
 
+		List<Booking> bkngs = repository.findByBookingIdIn(followup);
+		  List<Booking> modifiedBookings = null;
+		if (!bkngs.isEmpty()) {
+
+		      modifiedBookings = bkngs.stream().map(n -> {
+
+		        n.setStatus("follow-up");
+
+		        List<Status> statusList = n.getCurrentStatus();
+
+		        if (statusList == null || statusList.isEmpty()) {
+		            statusList = new ArrayList<>();
+		        }
+
+		        Status status = new Status();
+
+		        status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+		        status.setStatus("follow-up");
+
+		        statusList.add(status);
+
+		        n.setCurrentStatus(statusList);
+		        bookings.add(n);
+		        return n;
+
+		    }).toList();		  
+		    repository.saveAll(modifiedBookings);
+		}
 		// ✅ Convert to response DTO
-		List<BookingResponse> res = toResponses(bookings);
-
-		// ✅ Enrich with session details (Feign call)
+		List<BookingResponse> res = null;
+		List<BookingResponse> bookingres = null;
 		try {
-			res = res.stream().map(n -> {
+		if(!bookings.isEmpty()) {
+	    bookingres = toResponses(bookings);}
+	    if(modifiedBookings != null || !modifiedBookings.isEmpty()) {
+		res = toResponses(modifiedBookings);
+		bookingres.addAll(res);}}catch(Exception e) {}
+		//System.out.println(res.get(1));
+		// ✅ Enrich with session details (Feign call)
+		    try {
+		    if(bookingres != null) {
+			bookingres = bookingres.stream().map(n -> {
 						List<Session> lst = physioDoctorFeign
 						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 						.getBody();
+			 // System.out.println(n.getBookingId());
+			  // System.out.println(lst);
                 if(lst != null ) {
 				n.setSession(lst);
 				n.setVisitType("session");
 				}else {
 				n.setSession(null);}
 				return n;
-			}).toList();
+			}).toList();}
 
 		} catch (Exception e) {
 			// log error instead of silent ignore
 			System.out.println("Error while fetching session details: " + e.getMessage());
 		}
-
+		Map<String, Object> summary = null;
 		// ✅ Total count
+		if(bookingres != null) {
 		long totalCount = bookings.size();
 
 		// ✅ Status counts (case-insensitive + null safe)
-		long pendingCount = bookings.stream()
+		long pendingCount = bookingres.stream()
 				.filter(b -> "PENDING".equalsIgnoreCase(
 						Optional.ofNullable(b.getFollowupStatus()).orElse("")
 				))
 				.count();
 
-		long confirmedCount = bookings.stream()
+		long confirmedCount = bookingres.stream()
 				.filter(b -> "CONFIRMED".equalsIgnoreCase(
 						Optional.ofNullable(b.getFollowupStatus()).orElse("")
 				))
 				.count();
 
-		long inProgressCount = bookings.stream()
+		long inProgressCount = bookingres.stream()
 				.filter(b -> "IN-PROGRESS".equalsIgnoreCase(
 						Optional.ofNullable(b.getFollowupStatus()).orElse("")
 				))
 				.count();
 
 		// ✅ Summary response
-		Map<String, Object> summary = new HashMap<>();
+		summary = new HashMap<>();
 		summary.put("totalAppointments", totalCount);
 		summary.put("pending", pendingCount);
 		summary.put("confirmed", confirmedCount);
 		summary.put("inProgress", inProgressCount);
-
 		return ResponseEntity.ok(
-				new Response(true, res, summary, "Today bookings fetched", 200, null, null)
-		);
+				new Response(true, bookingres, summary, "Today bookings fetched", 200, null, null)
+		);}
+		else {
+			return ResponseEntity.ok(
+					new Response(true, bookingres, summary, "Today bookings not found", 200, null, null));}
 
 	} catch (Exception e) {
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -2953,6 +3004,7 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 						500, null, null));
 	}
 }
+
 // ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 @Override
 public ResponseEntity<Response> getUpcomingBookings(String clinicId,
@@ -2984,10 +3036,10 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 						startDate.format(FORMATTER),
 						endDate.format(FORMATTER)
 				);
-		System.out.println(bookings);
+		//System.out.println(bookings);
 		// ✅ Convert to response DTO
 		List<BookingResponse> res = toResponses(bookings);
-		System.out.println(res);
+		//System.out.println(res);
 		// ✅ Enrich with session details
 		try {
 			res = res.stream().map(n -> {			
@@ -3196,17 +3248,8 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
 
 	public ResponseEntity<Response> getBookingById(String bookingId) {
-		try {
-			String[] parts = bookingId.split("-");
-
-			for (int i = 0; i < parts.length; i++) {
-				String part = parts[i];
-
-				if (!part.isEmpty()) {
-					parts[i] = part.substring(0, 1).toUpperCase() +
-							part.substring(1).toLowerCase();}}
-			String letter  =  String.join("-", parts);
-			Optional<Booking> booking = repository.findByBookingId(letter);
+		try {			
+			Optional<Booking> booking = repository.findByBookingIdIgnoreCase(bookingId);
 			if(booking.isPresent()) {
 				if(!booking.get().getFollwupBookings().isEmpty()) {
 					ObjectMapper mapper = new ObjectMapper();
@@ -3257,7 +3300,7 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
 private Booking updateForFollowup(BookingResponse dto) {
 try {
-    Booking entity = repository.findByBookingId(dto.getBookingId())
+    Booking entity = repository.findByBookingIdIgnoreCase(dto.getBookingId())
             .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
 
     // -------- BASIC --------

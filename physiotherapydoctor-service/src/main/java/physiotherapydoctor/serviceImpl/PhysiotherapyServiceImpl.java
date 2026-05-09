@@ -1,24 +1,23 @@
-	package physiotherapydoctor.serviceImpl;
+package physiotherapydoctor.serviceImpl;
 	
-	import java.time.LocalDate;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
@@ -55,7 +54,7 @@ import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PhysiotherapyService;
-	
+
 	@Service
 	@RequiredArgsConstructor
 	public class PhysiotherapyServiceImpl implements PhysiotherapyService {
@@ -1792,74 +1791,7 @@ private ExerciseCalculations handleExercise(PhysiotherapyRecord record, TherapyS
     return dto;
 }
 
-private List<Exercise> mapExercises(List<TherapyExercise> source) {
 
-    if (source == null) return new ArrayList<>();
-
-    return source.stream().map(te -> {
-        Exercise ex = new Exercise();
-
-        // ✅ Basic Info
-        ex.setExerciseId(te.getExerciseId());
-        ex.setExerciseName(te.getExerciseName());
-
-        // ✅ Session & Frequency
-        ex.setNoOfSessions(te.getNoOfSessions());
-        ex.setFrequency(te.getFrequency()); // FIX spelling (was frequancy)
-
-        ex.setSets(te.getSets());
-        ex.setRepetitions(te.getRepetitions());
-
-        // ✅ Media & Notes
-        ex.setYoutubeUrl(te.getYoutubeUrl());
-        ex.setNotes(te.getNotes());
-
-        // ✅ Pricing
-        ex.setPricePerSession(te.getPricePerSession() != null 
-                ? te.getPricePerSession().intValue()
-                : 0);
-
-        ex.setDiscountPercentage(te.getDiscountPercentage());
-        ex.setDiscountAmount(te.getDiscountAmount());
-        ex.setGst(te.getGst());
-        ex.setOtherTax(te.getOtherTax());
-
-        ex.setTotalExercisePrice(te.getTotalExercisePrice());
-        ex.setTotalPrice(te.getTotalPrice());
-
-        // ✅ Payment
-        ex.setPaymentStatus(te.getPaymentStatus());
-
-        // ✅ New Fields
-        ex.setTechnique(te.getTechnique());
-        ex.setMachine(te.getMachine());
-        ex.setIntensity(te.getIntensity());
-        ex.setAssistanceLevel(te.getAssistanceLevel());
-        ex.setType(te.getType());
-        ex.setArea(te.getArea());
-        ex.setMetric(te.getMetric());
-        ex.setValue(te.getValue());
-        ex.setUnit(te.getUnit());
-        ex.setBodyPart(te.getBodyPart());
-
-        // ✅ Activity Fields
-        ex.setActivityType(te.getActivityType());
-        ex.setActivityDuration(te.getActivityDuration());
-
-        // ✅ Sessions Mapping (IMPORTANT)
-      //  ex.setSessions(mapSessions(te.getSessions()));
-
-        return ex;
-    }).toList();
-}
-
-private double calculateExerciseCost(Exercise ex) {
-
-    int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
-    int price = ex.getTotalPrice() != 0.0 ?(int)ex.getTotalPrice() : 0;
-
-    return sessions * price;
-}
 
 //private Integer parseInteger(String value) {
 //    try {
@@ -2037,6 +1969,7 @@ public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookin
         }
 
         PaymentRecord record = optional.get();
+        //System.out.println(record); 
         List<Session> matchedSessions = new ArrayList<>();
 
         if (record.getTherapyWithSessions() == null) {
@@ -2052,7 +1985,7 @@ public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookin
                 : ResponseEntity.ok(matchedSessions);
 
     } catch (Exception e) {
-        System.out.println(e.getMessage());
+        //System.out.println(e.getMessage());
         return ResponseEntity.status(500).body(null);
     }
 }
@@ -2169,6 +2102,155 @@ result.add(session);
             return response;
         }
     }
+    
+   
+    public Response getFirstVisitHistory(String doctorId,
+                                         String patientId,
+                                         String bookingId,
+                                         String clinicId,
+                                         String branchId) {
+
+        Response response = new Response();
+
+        try {
+
+            List<PhysiotherapyRecord> records =
+                    repository.findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdAndClinicIdAndBranchId(
+                            doctorId,
+                            patientId,
+                            bookingId,
+                            clinicId,
+                            branchId
+                    );
+
+            if (records == null || records.isEmpty()) {
+
+                response.setSuccess(true);
+                response.setData(null);
+                response.setMessage("No visit history found");
+                response.setStatus(200);
+
+                return response;
+            }
+
+            // Getting only 0th index record
+            PhysiotherapyRecord record = records.get(0);
+
+            ObjectMapper mapper = new ObjectMapper();
+
+            mapper.setDefaultPropertyInclusion(
+                    JsonInclude.Value.construct(
+                            JsonInclude.Include.NON_NULL,
+                            JsonInclude.Include.NON_NULL
+                    )
+            );
+
+            Map<String, Object> result = new LinkedHashMap<>();
+
+            result.put("visitNumber", "Visit 1");
+            result.put("visitDate", record.getCreatedAt());
+            result.put("visitTime", record.getCreatedTime());
+
+            result.put("physiotherapyDoctorData",
+                    mapper.convertValue(
+                            record,
+                            new TypeReference<Map<String, Object>>() {
+                            }));
+
+            response.setSuccess(true);
+            response.setData(result);
+            response.setMessage("First visit history fetched successfully");
+            response.setStatus(200);
+
+            return response;
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage("Something went wrong");
+            response.setStatus(500);
+
+            return response;
+        }
+    }
+    
+    
+   
+    public Response getVisitHistoryByDoctor(String doctorId,
+                                            String patientId,
+                                            String bookingId) {
+
+        Response response = new Response();
+
+        try {
+
+            List<PhysiotherapyRecord> records =
+                    repository
+                    .findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdOrderByCreatedAtAsc(
+                            doctorId,
+                            patientId,
+                            bookingId
+                    );
+
+            if (records == null || records.isEmpty()) {
+
+                response.setSuccess(true);
+                response.setData(null);
+                response.setMessage("No visit history found");
+                response.setStatus(200);
+
+                return response;
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+
+            mapper.setDefaultPropertyInclusion(
+                    JsonInclude.Value.construct(
+                            JsonInclude.Include.NON_NULL,
+                            JsonInclude.Include.NON_NULL
+                    )
+            );
+
+            List<Map<String, Object>> result = new ArrayList<>();
+
+            for (int i = 0; i < records.size(); i++) {
+
+                PhysiotherapyRecord record = records.get(i);
+
+                Map<String, Object> map = new LinkedHashMap<>();
+
+                map.put("visitNumber", "Visit " + (i + 1));
+                map.put("visitDate", record.getCreatedAt());
+                map.put("visitTime", record.getCreatedTime());
+
+                map.put("physiotherapyDoctorData",
+                        mapper.convertValue(
+                                record,
+                                new TypeReference<Map<String, Object>>() {
+                                }));
+
+                result.add(map);
+            }
+
+            response.setSuccess(true);
+            response.setData(result);
+            response.setMessage("Visit history fetched successfully");
+            response.setStatus(200);
+
+            return response;
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage("Something went wrong");
+            response.setStatus(500);
+
+            return response;
+        }
+    }
+    
 @Override
 public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId) {
     try {
@@ -2210,6 +2292,23 @@ private Response validateChangePasswordRequest(String username, ChangeDoctorPass
 
     return null; 
 }
+
+
+private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+public List<String> getTodayFollowUpBookingIds() {
+
+    String todayDate = LocalDate.now().format(FORMATTER);
+
+    List<PhysiotherapyRecord> records =
+            repository.findByFollowUpNextVisitDate(todayDate);
+    //System.out.println(records);
+if(!records.isEmpty()) {
+    return records.stream()
+            .map(PhysiotherapyRecord::getBookingId)
+            .collect(Collectors.toList());
+}else {
+	return Collections.emptyList();}}
 
 @Override
 public Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO) {
@@ -2271,7 +2370,79 @@ public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStat
 				
 	}
 }
+
+
+private List<Exercise> mapExercises(List<TherapyExercise> source) {
+
+    if (source == null) return new ArrayList<>();
+
+    return source.stream().map(te -> {
+        Exercise ex = new Exercise();
+
+        // ✅ Basic Info
+        ex.setExerciseId(te.getExerciseId());
+        ex.setExerciseName(te.getExerciseName());
+
+        // ✅ Session & Frequency
+        ex.setNoOfSessions(te.getNoOfSessions());
+        ex.setFrequency(te.getFrequency()); // FIX spelling (was frequancy)
+
+        ex.setSets(te.getSets());
+        ex.setRepetitions(te.getRepetitions());
+
+        // ✅ Media & Notes
+        ex.setYoutubeUrl(te.getYoutubeUrl());
+        ex.setNotes(te.getNotes());
+
+        // ✅ Pricing
+        ex.setPricePerSession(te.getPricePerSession() != null 
+                ? te.getPricePerSession().intValue()
+                : 0);
+
+        ex.setDiscountPercentage(te.getDiscountPercentage());
+        ex.setDiscountAmount(te.getDiscountAmount());
+        ex.setGst(te.getGst());
+        ex.setOtherTax(te.getOtherTax());
+
+        ex.setTotalExercisePrice(te.getTotalExercisePrice());
+        ex.setTotalPrice(te.getTotalPrice());
+
+        // ✅ Payment
+        ex.setPaymentStatus(te.getPaymentStatus());
+
+        // ✅ New Fields
+        ex.setTechnique(te.getTechnique());
+        ex.setMachine(te.getMachine());
+        ex.setIntensity(te.getIntensity());
+        ex.setAssistanceLevel(te.getAssistanceLevel());
+        ex.setType(te.getType());
+        ex.setArea(te.getArea());
+        ex.setMetric(te.getMetric());
+        ex.setValue(te.getValue());
+        ex.setUnit(te.getUnit());
+        ex.setBodyPart(te.getBodyPart());
+
+        // ✅ Activity Fields
+        ex.setActivityType(te.getActivityType());
+        ex.setActivityDuration(te.getActivityDuration());
+
+        // ✅ Sessions Mapping (IMPORTANT)
+      //  ex.setSessions(mapSessions(te.getSessions()));
+
+        return ex;
+    }).toList();
 }
+
+private double calculateExerciseCost(Exercise ex) {
+
+    int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
+    int price = ex.getTotalPrice() != 0.0 ?(int)ex.getTotalPrice() : 0;
+
+    return sessions * price;
+}
+
+}
+
 
 	
 	

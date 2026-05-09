@@ -86,6 +86,9 @@ public interface BookingFeign {
 	@GetMapping("/api/v1/appointments/Inprogress/patientId/{patientId}/{clinicId}")
 	public ResponseEntity<?> getInprogressAppointmentsByPatientId(@PathVariable String patientId,@PathVariable String clinicId );
 	
+	@PostMapping("/api/v1/bookPhysioAppointment")
+	public  ResponseEntity<?> bookPhysioAppointment(@RequestBody BookingRequset req);
+	
 	//FALLBACK METHODS
 	
 //		default ResponseEntity<?> bookingServiceFallBack(Exception e){		 

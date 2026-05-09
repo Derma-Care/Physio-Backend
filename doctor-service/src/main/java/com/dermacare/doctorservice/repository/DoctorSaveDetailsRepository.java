@@ -20,5 +20,6 @@ public interface DoctorSaveDetailsRepository extends MongoRepository<DoctorSaveD
 	        String patientId,
 	        String subServiceId
 	);
+	DoctorSaveDetails findByBookingIdIgnoreCase(String bookingId);
 	
 	}

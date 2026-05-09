@@ -1,8 +1,10 @@
 package com.clinicadmin.service.impl;
 
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -15,8 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
+import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
@@ -386,6 +390,63 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         } catch (Exception e) {
             return "Unknown";
+        }
+    }
+    
+   
+    public Response getTherapistSessionDetails(
+            TherapistRecordRequest request) {
+
+        Response response = new Response();
+
+        try {
+
+            Optional<TherapistRecord> optional =
+                    repository
+                    .findByClinicIdAndBranchIdAndPatientIdAndBookingIdAndTherapistIdAndTherapistRecordId(
+                            request.getClinicId(),
+                            request.getBranchId(),
+                            request.getPatientId(),
+                            request.getBookingId(),
+                            request.getTherapistId(),
+                            request.getTherapistRecordId()
+                    );
+
+            if (!optional.isPresent()) {
+
+                response.setSuccess(true);
+                response.setData(null);
+                response.setMessage("Record not found");
+                response.setStatus(200);
+
+                return response;
+            }
+
+            TherapistRecord record = optional.get();
+
+            Map<String, Object> map = new LinkedHashMap<>();
+
+            map.put("therapistNotes", record.getTherapistNotes());
+            map.put("sessionId", record.getSessionId());
+            map.put("setsDone", record.getSetsDone());
+            map.put("repetationDone", record.getRepetationDone());
+            map.put("serviceType", record.getServiceType());
+
+            response.setSuccess(true);
+            response.setData(map);
+            response.setMessage("Therapist session details fetched successfully");
+            response.setStatus(200);
+
+            return response;
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage("Something went wrong");
+            response.setStatus(500);
+
+            return response;
         }
     }
 }

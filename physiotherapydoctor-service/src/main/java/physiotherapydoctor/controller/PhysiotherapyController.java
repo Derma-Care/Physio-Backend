@@ -1,9 +1,6 @@
 package physiotherapydoctor.controller;
 
-
-
 import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,15 +10,16 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import physiotherapydoctor.dto.FirstVisitHistoryRequest;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.Session;
+import physiotherapydoctor.dto.VisitHistoryRequest;
 import physiotherapydoctor.service.PhysiotherapyService;
 
 @RestController
@@ -183,6 +181,43 @@ public class PhysiotherapyController {
 	             .body(response);
 	 }
 	 
+
+	  @GetMapping("/followups/today/booking-ids")
+	    public List<String> getTodayFollowUpBookingIds() {
+
+	        List<String> bookingIds = service.getTodayFollowUpBookingIds();
+
+	        return bookingIds;
+	    }
+	  
+	  @PostMapping("/visit-history")
+	    public ResponseEntity<Response> getVisitHistoryByDoctor(
+	            @RequestBody VisitHistoryRequest request) {
+
+	        Response response = service.getVisitHistoryByDoctor(
+	                request.getDoctorId(),
+	                request.getPatientId(),
+	                request.getBookingId()
+	        );
+
+	        return ResponseEntity.status(response.getStatus()).body(response);
+	    }
+
+
+	    @PostMapping("/first-visit-history")
+	    public ResponseEntity<Response> getFirstVisitHistory(
+	            @RequestBody FirstVisitHistoryRequest request) {
+
+	        Response response = service.getFirstVisitHistory(
+	                request.getDoctorId(),
+	                request.getPatientId(),
+	                request.getBookingId(),
+	                request.getClinicId(),
+	                request.getBranchId()
+	        );
+
+	        return ResponseEntity.status(response.getStatus()).body(response);}
+
 //-----------------------------------------Doctor Apis-------------------------------------------	 
 	 
 	    @PutMapping("/update-PhysioDoctorpassword/{username}")

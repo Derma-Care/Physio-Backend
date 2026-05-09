@@ -22,9 +22,12 @@ import com.dermaCare.customerService.dto.CustomerDTO;
 import com.dermaCare.customerService.dto.CustomerLoginDTO;
 import com.dermaCare.customerService.dto.CustomerRatingDomain;
 import com.dermaCare.customerService.dto.FavouriteDoctorsDTO;
+import com.dermaCare.customerService.dto.FirstVisitHistoryRequest;
 import com.dermaCare.customerService.dto.LoginDTO;
 import com.dermaCare.customerService.dto.NotificationToCustomer;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
+import com.dermaCare.customerService.dto.TherapistRecordRequest;
+import com.dermaCare.customerService.dto.VisitHistoryRequest;
 import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.service.CustomerService;
 import com.dermaCare.customerService.util.GetByKey;
@@ -604,5 +607,34 @@ public ResponseEntity<Response> getAverageRatingByDoctorId( @PathVariable String
            return ResponseEntity.notFound().build();
        }
    }
+   
+   @PostMapping("/getTherapistSessionDetails")
+   public ResponseEntity<?> getTherapistSessionDetails(@RequestBody TherapistRecordRequest dto){
+	   return customerService.getTherapistSessionDetails(dto);
+   }
+   
+   @PostMapping("/visit-history")
+   public ResponseEntity<Response> getVisitHistoryByDoctor(
+           @RequestBody VisitHistoryRequest request) {
+
+       return customerService.getVisitHistoryByDoctor(request);
+   }
+
+
+   @PostMapping("/first-visit-history")
+   public ResponseEntity<Response> getFirstVisitHistory(
+           @RequestBody FirstVisitHistoryRequest request) {
+
+       return customerService.getFirstVisitHistory(request);
+   }
+   
+   @PostMapping("/bookPhysioAppointment")
+   public ResponseEntity<?> bookPhysioAppointment(
+		   @RequestBody BookingRequset req) {
+
+       return customerService.bookPhysioAppointment(req);
+   }
+
+   
 
 }

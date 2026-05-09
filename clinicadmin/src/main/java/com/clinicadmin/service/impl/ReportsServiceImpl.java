@@ -90,6 +90,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             // ✅ Fetch booking details via Feign Client
             ResponseEntity<ResponseStructure<BookingResponse>> response = bookingFeign.getBookedService(bookingId);
+           //System.out.println(response);
             BookingResponse bookingData = response.getBody() != null ? response.getBody().getData() : null;
 
             if (bookingData != null) {
@@ -395,7 +396,12 @@ public class ReportsServiceImpl implements ReportsService {
                         .data(null)
                         .build();
             }
-
+            Optional<ReportsList> optional = reportsRepository.findById(reportId);
+            if(!optional.isEmpty()) {
+            	ReportsList reportsList = optional.get();
+            if(reportsList.getReportsList() != null||!reportsList.getReportsList().isEmpty()) {
+            Reports reports = reportsList.getReportsList().get(0);          
+            bookingFeign.deleteReport(reports.getBookingId(),"null");}}
             reportsRepository.deleteById(reportId);
             return Response.builder()
                     .success(true)
@@ -444,13 +450,9 @@ public class ReportsServiceImpl implements ReportsService {
                                 .message("Invalid file index: " + fileIndex)
                                 .status(HttpStatus.BAD_REQUEST.value())
                                 .data(null)
-                                .build();
-                    }
-
-              
+                                .build();}             
                     files.remove(fileIndex);
-
-               
+                   bookingFeign.deleteReport(bookingId,String.valueOf(fileIndex));               
                     if (files.isEmpty()) {
                         reportEntries.remove(i);
                         updated = true;

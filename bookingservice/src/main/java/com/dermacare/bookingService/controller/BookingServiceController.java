@@ -392,6 +392,10 @@ public class BookingServiceController {
 	        return service.getBookingById(bookingId);
 	    }
 	    
+	    @GetMapping("/deleteReport/{bookingId}/{index}")
+	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index) {
+	        service.deleteBookedServiceReports(bookingId,index);
+	    } 
 	    
 	    @GetMapping("/reports/patientId/{patientId}")
 	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId) {

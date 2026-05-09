@@ -948,8 +948,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     @Override
     public Response getDoctorDetailsByBookingId(String bookingId) {
-    	try {
-        DoctorSaveDetails optional = repository.findByBookingId(bookingId);
+    	try {   		
+        DoctorSaveDetails optional = repository.findByBookingIdIgnoreCase(bookingId);
         if(optional != null) {
         	ObjectMapper mapper = new ObjectMapper();
 	        mapper.registerModule(new JavaTimeModule());

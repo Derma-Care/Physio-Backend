@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
+import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.service.TherapistRecordService;
 
 import lombok.RequiredArgsConstructor;
@@ -73,6 +75,18 @@ public class TherapistRecordController {
         return ResponseEntity.ok(
             service.getBySession(clinicId, branchId, bookingId, patientId, sessionId)
         );
+    }
+    
+    @PostMapping("/therapist-session-details")
+    public ResponseEntity<Response> getTherapistSessionDetails(
+            @RequestBody TherapistRecordRequest request) {
+
+        Response response =
+                service.getTherapistSessionDetails(request);
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
     }
     
 }

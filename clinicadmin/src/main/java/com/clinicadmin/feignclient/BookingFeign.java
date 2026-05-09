@@ -147,7 +147,8 @@ public interface BookingFeign {
 		
 	  @GetMapping("/api/v1/reports/patientId/{patientId}")
 	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId);
-
-	      
-
+	 
+	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
+	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index);
+	   	  
 }
