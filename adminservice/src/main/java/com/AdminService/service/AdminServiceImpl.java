@@ -360,10 +360,108 @@ public class AdminServiceImpl implements AdminService {
 	}
 
 
-
 	private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
-		// TODO Auto-generated method stub
-		
+
+	    if (clinic.getHospitalLogo() != null &&
+	            !clinic.getHospitalLogo().isEmpty()) {
+
+	        savedClinic.setHospitalLogo(
+	                Base64.getDecoder().decode(clinic.getHospitalLogo()));
+	    }
+
+	    if (clinic.getContractorDocuments() != null &&
+	            !clinic.getContractorDocuments().isEmpty()) {
+
+	        savedClinic.setContractorDocuments(
+	                Base64.getDecoder().decode(clinic.getContractorDocuments()));
+	    }
+
+	    if (clinic.getHospitalDocuments() != null &&
+	            !clinic.getHospitalDocuments().isEmpty()) {
+
+	        savedClinic.setHospitalDocuments(
+	                Base64.getDecoder().decode(clinic.getHospitalDocuments()));
+	    }
+
+	    if (clinic.getClinicalEstablishmentCertificate() != null &&
+	            !clinic.getClinicalEstablishmentCertificate().isEmpty()) {
+
+	        savedClinic.setClinicalEstablishmentCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getClinicalEstablishmentCertificate()));
+	    }
+
+	    if (clinic.getBusinessRegistrationCertificate() != null &&
+	            !clinic.getBusinessRegistrationCertificate().isEmpty()) {
+
+	        savedClinic.setBusinessRegistrationCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getBusinessRegistrationCertificate()));
+	    }
+
+	    if (clinic.getDrugLicenseCertificate() != null &&
+	            !clinic.getDrugLicenseCertificate().isEmpty()) {
+
+	        savedClinic.setDrugLicenseCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getDrugLicenseCertificate()));
+	    }
+
+	    if (clinic.getDrugLicenseFormType() != null &&
+	            !clinic.getDrugLicenseFormType().isEmpty()) {
+
+	        savedClinic.setDrugLicenseFormType(
+	                Base64.getDecoder().decode(
+	                        clinic.getDrugLicenseFormType()));
+	    }
+
+	    if (clinic.getPharmacistCertificate() != null &&
+	            !clinic.getPharmacistCertificate().isEmpty()) {
+
+	        savedClinic.setPharmacistCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getPharmacistCertificate()));
+	    }
+
+	    if (clinic.getBiomedicalWasteManagementAuth() != null &&
+	            !clinic.getBiomedicalWasteManagementAuth().isEmpty()) {
+
+	        savedClinic.setBiomedicalWasteManagementAuth(
+	                Base64.getDecoder().decode(
+	                        clinic.getBiomedicalWasteManagementAuth()));
+	    }
+
+	    if (clinic.getTradeLicense() != null &&
+	            !clinic.getTradeLicense().isEmpty()) {
+
+	        savedClinic.setTradeLicense(
+	                Base64.getDecoder().decode(
+	                        clinic.getTradeLicense()));
+	    }
+
+	    if (clinic.getFireSafetyCertificate() != null &&
+	            !clinic.getFireSafetyCertificate().isEmpty()) {
+
+	        savedClinic.setFireSafetyCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getFireSafetyCertificate()));
+	    }
+
+	    if (clinic.getProfessionalIndemnityInsurance() != null &&
+	            !clinic.getProfessionalIndemnityInsurance().isEmpty()) {
+
+	        savedClinic.setProfessionalIndemnityInsurance(
+	                Base64.getDecoder().decode(
+	                        clinic.getProfessionalIndemnityInsurance()));
+	    }
+
+	    if (clinic.getGstRegistrationCertificate() != null &&
+	            !clinic.getGstRegistrationCertificate().isEmpty()) {
+
+	        savedClinic.setGstRegistrationCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getGstRegistrationCertificate()));
+	    }
 	}
 
 	@Override

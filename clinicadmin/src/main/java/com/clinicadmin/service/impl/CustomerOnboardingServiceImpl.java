@@ -605,6 +605,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		        bkng.setPatientAddress(b.getAddress());
 		        bkng.setPatientId(b.getPatientId());
 		        bkng.setPatientMobileNumber(b.getMobileNumber());
+		        bkng.setDob(b.getDateOfBirth());
 		        bkng.setRelation(null);	
 		        lst.add(bkng);}	       
 		    	if(b == null){
@@ -620,11 +621,12 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			        bkng.setPatientAddress(b.getAddress());
 			        bkng.setPatientId(b.getPatientId());
 			        bkng.setPatientMobileNumber(b.getMobileNumber());
+			        bkng.setDob(b.getDateOfBirth());
 			        bkng.setRelation(null);
 			        lst.add(bkng);}		       
 		        }if(b == null){	
 		        customerOnbordingDTO = onboardingRepository.findByFullNameContainingIgnoreCaseAndHospitalId(input,clinicId);
-		        System.out.println(customerOnbordingDTO);
+		        ///System.out.println(customerOnbordingDTO);
 		        for(CustomerOnbordingDTO dto : customerOnbordingDTO) {
 		        BookingInfoByInput bookingInfoByInput = new BookingInfoByInput();
 		        bookingInfoByInput.setAge(dto.getAge());
@@ -636,6 +638,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		        bookingInfoByInput.setPatientAddress(dto.getAddress());
 		        bookingInfoByInput.setPatientId(dto.getPatientId());
 		        bookingInfoByInput.setPatientMobileNumber(dto.getMobileNumber());
+		        bookingInfoByInput.setDob(dto.getDateOfBirth());
 		        bookingInfoByInput.setRelation(null);
 		        lst.add(bookingInfoByInput);}}
 	       }catch (Exception e) {

@@ -13,6 +13,7 @@ public class BookingInfoByInput {
 	private String relation;
 	private String patientMobileNumber;
 	private String mobileNumber;
+	private String dob;
 	private String patientId;
 	private Address patientAddress;
 	private String age;
