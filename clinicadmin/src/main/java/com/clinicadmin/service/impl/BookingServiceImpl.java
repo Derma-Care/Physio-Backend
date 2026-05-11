@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.BookingRequset;
@@ -36,6 +37,10 @@ public class BookingServiceImpl implements BookingService {
 	DoctorServiceImpl doctorServiceImpl;
 	@Autowired
 	private CustomerServiceFeignClient customerServiceFeignClient;
+	
+	// Add this field inside BookingServiceImpl class
+	@Autowired
+	private SimpMessagingTemplate messagingTemplate;
 
 	@Override
 	public Response deleteBookedService(String id) {
@@ -138,30 +143,40 @@ public class BookingServiceImpl implements BookingService {
 
 	}
 
-	// BOOKING MANAGEMENT
-	@Override
-	public Response bookService(BookingResponse req) throws JsonProcessingException {
-		Response response = new Response();
-		try {
-			ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);
-			BookingResponse bookingResponse = res.getBody().getData();
-			if (bookingResponse != null) {
-				response.setData(bookingResponse);
-				response.setMessage("follow up appointment found");
-				response.setSuccess(true);
-				response.setStatus(res.getBody().getStatusCode());
-			} else {				
-				response.setMessage("follow up appointment not found");
+		// BOOKING MANAGEMENT
+		@Override
+		public Response bookService(BookingResponse req) throws JsonProcessingException {
+			Response response = new Response();
+			try {
+				ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);
+				BookingResponse bookingResponse = res.getBody().getData();
+				if (bookingResponse != null) {
+					response.setData(bookingResponse);
+					response.setMessage("follow up appointment found");
+					response.setSuccess(true);
+					response.setStatus(res.getBody().getStatusCode());
+					
+					try {
+						messagingTemplate.convertAndSend(
+								"/topic/bookings",
+								response
+						);
+					} catch (Exception e) {
+						
+					}
+
+				} else {				
+					response.setMessage("follow up appointment not found");
+					response.setSuccess(false);
+					response.setStatus(res.getStatusCode().value());
+				}
+			} catch (FeignException e) {
+				response.setStatus(e.status());
+				response.setMessage(e.getMessage());
 				response.setSuccess(false);
-				response.setStatus(res.getStatusCode().value());
 			}
-		} catch (FeignException e) {
-			response.setStatus(e.status());
-			response.setMessage(e.getMessage());
-			response.setSuccess(false);
+			return response;
 		}
-		return response;
-	}
 	
 
 @Override
@@ -393,7 +408,19 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	                    req.getBranchId(),
 	                    req.getServiceDate(),
 	                    req.getServicetime()
-	            );}else {
+	            );
+    			try {
+    				System.out.println("WebSocket notification triggered: /topic/clinic-admin/bookings");
+
+        			messagingTemplate.convertAndSend(
+        					  "/topic/clinic-admin/bookings",
+        					res.getBody().getData()
+        			);
+        		} catch (Exception e) {
+        			// Do nothing.
+        			// WebSocket errors should not affect the normal API flow.
+        		}
+    			}else {
 	            	response.setStatus(200);
 	       			response.setMessage("error occured");
 	       			response.setSuccess(false);

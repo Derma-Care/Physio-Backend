@@ -23,6 +23,7 @@ import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
 import com.clinicadmin.entity.TimeLocation;
+import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AttendanceRepository;
 import com.clinicadmin.service.AttendanceService;
 
@@ -33,6 +34,8 @@ import lombok.RequiredArgsConstructor;
 public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository repo;
+    
+    private final AdminServiceClient adminServiceClient;
 
     @Override
     public Response save(AttendanceDTO dto) {
@@ -44,6 +47,20 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (dto.getUserId() == null || dto.getDate() == null) {
                 throw new RuntimeException("userId and date are required");
             }
+            if (dto.getLogin() != null
+                    && dto.getLogin().getLatitude() != null
+                    && !dto.getLogin().getLatitude().isBlank()
+                    && dto.getLogin().getLongtitude() != null
+                    && !dto.getLogin().getLongtitude().isBlank()) {
+
+                validateLoginDistance(
+                        dto.getClinicId(),
+                        dto.getBranchId(),
+                        dto.getLogin().getLatitude(),
+                        dto.getLogin().getLongtitude()
+                );
+            }
+
 
             Optional<Attendance> existingOpt =
                     repo.findByUserIdAndDate(dto.getUserId(), dto.getDate());
@@ -122,9 +139,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         } catch (Exception e) {
 
-            response.setSuccess(false);
+            response.setSuccess(true);
             response.setMessage(e.getMessage());
-            response.setStatus(400);
+            response.setStatus(200);
         }
 
         return response;
@@ -841,5 +858,132 @@ public class AttendanceServiceImpl implements AttendanceService {
         } catch (Exception e) {
             return "Unknown";
         }
+    }
+    private void validateLoginDistance(
+            String clinicId,
+            String branchId,
+            String userLatitude,
+            String userLongitude) {
+
+        try {
+            // 🔥 Get complete clinic details
+            ResponseEntity<Response> responseEntity =
+                    adminServiceClient.getClinicById(clinicId);
+
+            if (responseEntity == null
+                    || responseEntity.getBody() == null
+                    || responseEntity.getBody().getData() == null) {
+                throw new RuntimeException("Clinic location not found");
+            }
+
+            // 🔥 Convert clinic data to Map
+            Map<String, Object> clinic =
+                    (Map<String, Object>) responseEntity.getBody().getData();
+
+            // 🔥 Get branches array from clinic
+            List<Map<String, Object>> branches =
+                    (List<Map<String, Object>>) clinic.get("branches");
+
+            if (branches == null || branches.isEmpty()) {
+                throw new RuntimeException("No branches found for this clinic");
+            }
+
+            // 🔥 Find matching branch by branchId
+            Map<String, Object> branch = null;
+
+            for (Map<String, Object> b : branches) {
+                if (branchId.equals(String.valueOf(b.get("branchId")))) {
+                    branch = b;
+                    break;
+                }
+            }
+
+            if (branch == null) {
+                throw new RuntimeException(
+                        "Branch not found for clinicId: "
+                                + clinicId
+                                + " and branchId: "
+                                + branchId
+                );
+            }
+
+            // 🔥 Check latitude and longitude
+            if (branch.get("latitude") == null
+                    || branch.get("longitude") == null) {
+                throw new RuntimeException(
+                        "Branch latitude/longitude not configured"
+                );
+            }
+
+            // 🔥 Read branch coordinates
+            double branchLat =
+                    Double.parseDouble(
+                            branch.get("latitude").toString().trim()
+                    );
+            double branchLon =
+                    Double.parseDouble(
+                            branch.get("longitude").toString().trim()
+                    );
+
+            // 🔥 Read user coordinates
+            double userLat =
+                    Double.parseDouble(userLatitude.trim());
+            double userLon =
+                    Double.parseDouble(userLongitude.trim());
+
+            // 🔥 Quick equality check for identical coordinates
+            if (Math.abs(branchLat - userLat) < 0.000001
+                    && Math.abs(branchLon - userLon) < 0.000001) {
+                return;
+            }
+
+            // 🔥 Calculate distance in meters
+            double distance = calculateDistanceMeters(
+                    branchLat,
+                    branchLon,
+                    userLat,
+                    userLon
+            );
+
+            // 🔥 Allow login only within 20 meters
+            if (distance > 20) {
+                throw new RuntimeException(
+                        "Login denied. You must be within 20 meters of the branch. Current distance: "
+                                + Math.round(distance) + " meters."
+                );
+            }
+
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Unable to validate branch location: " + e.getMessage()
+            );
+        }
+    }
+    private double calculateDistanceMeters(
+            double lat1,
+            double lon1,
+            double lat2,
+            double lon2) {
+
+        final double EARTH_RADIUS = 6371000; // meters
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                        + Math.cos(Math.toRadians(lat1))
+                        * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(dLon / 2)
+                        * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(
+                Math.sqrt(a),
+                Math.sqrt(1 - a)
+        );
+
+        return EARTH_RADIUS * c;
     }
 }
