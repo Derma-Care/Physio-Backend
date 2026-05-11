@@ -245,7 +245,10 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         entity.setClinicId(dto.getClinicId());
         entity.setBranchId(dto.getBranchId());       
         entity.setProgramIds(dto.getProgramIds());
-
+        entity.setPackageAmount(dto.getPackageAmount());
+        entity.setDiscountAmount(dto.getDiscountAmount());
+        String finalAmount = String.valueOf(Integer.valueOf(dto.getPackageAmount()) - Integer.valueOf(dto.getDiscountAmount()));
+        entity.setFinalAmount(finalAmount);
         // ✅ Apply discount logic
         double finalDiscount = applyDiscountLogic(
                 dto.getStartOfferDate(),
@@ -270,8 +273,10 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         dto.setClinicId(entity.getClinicId());
         dto.setBranchId(entity.getBranchId());
         dto.setPackageName(entity.getPackageName());
+        dto.setDiscountAmount(entity.getDiscountAmount());
+        dto.setPackageAmount(entity.getPackageAmount());
+        dto.setFinalAmount(entity.getFinalAmount());
         dto.setProgramIds(entity.getProgramIds());
-
         dto.setNoOfPrograms(
         	    entity.getProgramIds() != null ? entity.getProgramIds().size() : 0
         	);
@@ -366,9 +371,21 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         if (dto.getProgramIds() != null) {
             entity.setProgramIds(dto.getProgramIds());
         }
+        
+        if (dto.getFinalAmount() != null) {
+            entity.setFinalAmount(dto.getFinalAmount());;
+        }
 
         if (dto.getStartOfferDate() != null) {
             entity.setStartOfferDate(dto.getStartOfferDate());
+        }
+        
+        if (dto.getDiscountAmount()!= null) {
+            entity.setDiscountAmount(dto.getDiscountAmount());
+        }
+        
+        if (dto.getPackageAmount() != null) {
+            entity.setPackageAmount(dto.getPackageAmount());
         }
 
         if (dto.getEndOfferDate() != null) {

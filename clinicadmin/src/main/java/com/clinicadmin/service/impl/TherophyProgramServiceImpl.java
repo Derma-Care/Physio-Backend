@@ -13,6 +13,7 @@ import com.clinicadmin.dto.TheraphyNamesDTO;
 import com.clinicadmin.dto.TheraphyProgramWithTheraphyNamesDto;
 import com.clinicadmin.dto.TherapyServiceDTO;
 import com.clinicadmin.dto.TherophyProgramsDTO;
+import com.clinicadmin.entity.TherapyExercises;
 import com.clinicadmin.entity.TherophyProgramEntity;
 import com.clinicadmin.repository.TherophyProgramRepository;
 import com.clinicadmin.service.TherophyProgramService;
@@ -165,52 +166,114 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
         }
     }
 
-    @Override
-    public ResponseEntity<Response> getByclinicAndBranchId(String cid,String bid) {
+    public ResponseEntity<Response> getByclinicAndBranchId(String cid, String bid) {
+
         try {
-            List<TherophyProgramEntity> entity = repository.findByClinicIdAndBranchId(cid, bid);
-              List<TheraphyProgramWithTheraphyNamesDto> theraphyProgramWithTheraphyNamesDto = new LinkedList<>();
-               if(entity != null) {
-            	  for(TherophyProgramEntity e : entity) {
-            	   TheraphyProgramWithTheraphyNamesDto theraphyDto = new TheraphyProgramWithTheraphyNamesDto();   
-            	   List<TheraphyNamesDTO> lst = new LinkedList<>();
-            	   for(String s:e.getTherophyIds()) {
-            		   TherapyServiceDTO thry = therapyServiceServiceImpl.getById(s);
-            		   if(thry != null) {
-            		   TheraphyNamesDTO dto = new TheraphyNamesDTO();
-            		   dto.setTheraphyId(s);
-            		   dto.setTheraphyName(thry.getTherapyName());
-            		   lst.add(dto);}
-            	   }theraphyDto.setBranchId(e.getBranchId());
-            	   theraphyDto.setClinicId(e.getClinicId());
-            	   theraphyDto.setId(e.getId());
-            	   theraphyDto.setProgramName(e.getProgramName());
-            	   theraphyDto.setTherophy(lst);
-            	   long count = lst.stream()
-                           .filter(Objects::nonNull)
-                           .count();
-            	   theraphyDto.setTheraphyCount(count);
-            	   theraphyProgramWithTheraphyNamesDto.add(theraphyDto);
-            	   }}
-            if(theraphyProgramWithTheraphyNamesDto != null || !theraphyProgramWithTheraphyNamesDto.isEmpty()) {
-            	 return ResponseEntity.ok(
-                         Response.builder()
-                                 .success(true)
-                                 .data(theraphyProgramWithTheraphyNamesDto)
-                                 .message("Program fetched successfully")
-                                 .status(200)
-                                 .build()
-                 );
+
+            List<TherophyProgramEntity> entity =
+                    repository.findByClinicIdAndBranchId(cid, bid);
+
+            List<TheraphyProgramWithTheraphyNamesDto> responseList =
+                    new LinkedList<>();
+
+            if (entity != null && !entity.isEmpty()) {
+
+                for (TherophyProgramEntity e : entity) {
+
+                    TheraphyProgramWithTheraphyNamesDto programDto =
+                            new TheraphyProgramWithTheraphyNamesDto();
+
+                    List<TheraphyNamesDTO> therapyList =
+                            new LinkedList<>();
+
+                    double totalProgramAmount = 0;
+
+                    if (e.getTherophyIds() != null &&
+                            !e.getTherophyIds().isEmpty()) {
+
+                        for (String therapyId : e.getTherophyIds()) {
+
+                            TherapyServiceDTO therapy =
+                                    therapyServiceServiceImpl.getById(therapyId);
+
+                            if (therapy != null) {
+
+                                double therapyTotalAmount = 0;
+
+                                // Calculate Therapy Total Price
+                                if (therapy.getExercises() != null &&
+                                        !therapy.getExercises().isEmpty()) {
+
+                                    for (TherapyExercises ex :
+                                            therapy.getExercises()) {
+
+                                        if (ex != null) {
+                                          try {                                        
+                                            double exerciseAmount =
+                                                    ex.getTotalPrice();
+
+                                            therapyTotalAmount += exerciseAmount;
+                                          }catch(Exception exception) {}
+                                        }}}
+                                // Add therapy total to program total
+                                totalProgramAmount += therapyTotalAmount;
+
+                                TheraphyNamesDTO dto =
+                                        new TheraphyNamesDTO();
+
+                                dto.setTheraphyId(therapyId);
+                                dto.setTheraphyName(
+                                        therapy.getTherapyName());
+
+                                dto.setTheraphyTotalAmount(
+                                        therapyTotalAmount);
+
+                                therapyList.add(dto);
+                            }
+                        }
+                    }
+
+                    // Set Program Details
+                    programDto.setId(e.getId());
+                    programDto.setProgramName(e.getProgramName());
+                    programDto.setClinicId(e.getClinicId());
+                    programDto.setBranchId(e.getBranchId());
+                    programDto.setTherophy(therapyList);
+                    programDto.setTotalProgramAmount(totalProgramAmount);
+
+                    long count = therapyList.stream()
+                            .filter(Objects::nonNull)
+                            .count();
+
+                    programDto.setTheraphyCount(count);
+
+                    responseList.add(programDto);
+                }
             }
+
+            if (responseList != null && !responseList.isEmpty()) {
+
+                return ResponseEntity.ok(
+                        Response.builder()
+                                .success(true)
+                                .data(responseList)
+                                .message("Program fetched successfully")
+                                .status(200)
+                                .build()
+                );
+            }
+
             return ResponseEntity.ok(
                     Response.builder()
-                    .success(false)
-                    .data(null)
-                    .message("Programs not found")
-                    .status(404)
-                    .build());
+                            .success(false)
+                            .data(null)
+                            .message("Programs not found")
+                            .status(404)
+                            .build()
+            );
 
         } catch (RuntimeException e) {
+
             return ResponseEntity.status(404).body(
                     Response.builder()
                             .success(false)
@@ -220,16 +283,18 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
-                            .message("Error fetching program: " + e.getMessage())
+                            .message("Error fetching program: "
+                                    + e.getMessage())
                             .status(500)
                             .build()
             );
         }
     }
-
+    
     @Override
     public ResponseEntity<Response> getAll() {
         try {

@@ -17,7 +17,9 @@ public class PackageManagementDTO {
     private String branchId;
 
     private String packageName;
-
+    private String discountAmount;
+    private String packageAmount;
+    private String finalAmount;
     private List<String> programIds;
 
     private double discountPercentage;

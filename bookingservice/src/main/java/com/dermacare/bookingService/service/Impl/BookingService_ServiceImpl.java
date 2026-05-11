@@ -182,6 +182,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		 Booking entity = null;
 		  try {
 		    entity = new ObjectMapper().convertValue(request, Booking.class);
+		    
 		    entity.setFollowupStatus("pending");
 		    String patientId = null;
 		    String customerId = null;
@@ -369,6 +370,47 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		 Response res = new Response();
 		 ResponseEntity<?> repnse = null;
 		 try {
+			 if (request.getFreeFollowUps() == null) {
+			        throw new RuntimeException("Free FollowUps is mandatory");
+			    }
+			 if (request.getClinicName() == null || request.getClinicName().isEmpty() ) {
+			        throw new RuntimeException("ClinicName is mandatory");
+			    }
+			 if (request.getBranchname() == null || request.getBranchname().isEmpty() ) {
+			        throw new RuntimeException("Branchname is mandatory");
+			    }	 
+			 if (request.getFreeFollowUps() == null) {
+			        throw new RuntimeException("Free FollowUps is mandatory");
+			    }
+
+
+			   if (request.getPatientMobileNumber() == null || request.getPatientMobileNumber().trim().isEmpty()) {
+			    	if(request.getMobileNumber() == null  || request.getMobileNumber().trim().isEmpty()) {
+			        throw new RuntimeException("patientmobilenumber or Mobile Number is mandatory");
+			    }}
+
+			    if (request.getConsultationExpiration() == null
+			            || request.getConsultationExpiration().trim().isEmpty()) {
+
+			        throw new RuntimeException("Consultation Expiration is mandatory");
+			    }
+		    
+
+			    if (request.getClinicId() == null || request.getClinicId().trim().isEmpty()) {
+			        throw new RuntimeException("Clinic Id is mandatory");
+			    }
+
+			    if (request.getBranchId() == null || request.getBranchId().trim().isEmpty()) {
+			        throw new RuntimeException("Branch Id is mandatory");
+			    }
+
+			    if (request.getDoctorId() == null || request.getDoctorId().trim().isEmpty()) {
+			        throw new RuntimeException("Doctor Id is mandatory");
+			    }
+
+			    if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
+			        throw new RuntimeException("Service Date is mandatory");
+			    }
 	     Booking entity = toEntity(request);
 	     //System.out.println(entity);
 	     Booking updatedBooking = repository.save(entity);
@@ -448,98 +490,71 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	
 	
 
-	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(String hospitalId, String doctorId) {
-	    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-	    List<BookingResponse> responseList = new ArrayList<>();
+public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(String clinicId,
+            String doctorId) {
 
-	    try {
-	        List<Booking> existingBookings = repository.findByClinicIdAndDoctorId(hospitalId, doctorId);
-	        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-	        LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Kolkata"));
-                //System.out.println(currentDate); 
-	        if (existingBookings != null && !existingBookings.isEmpty()) {
+ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+List<BookingResponse> responseList = new ArrayList<>();
 
-	            for (Booking b : existingBookings) {
-	                boolean added = false;
+try {
 
-	                // 🩺 Case A: First-time booking (no treatments)
-	                if (b.getTreatments() == null || b.getTreatments().getGeneratedData() == null) {
-	                    if (b.getServiceDate() != null) {
-	                        LocalDate bookingDate = LocalDate.parse(b.getServiceDate(), dateFormatter);
+// Fetch bookings based on clinicId and doctorId
+List<Booking> existingBookings =
+repository.findByClinicIdAndDoctorId(clinicId, doctorId);
 
-	                        if (bookingDate.equals(currentDate) &&
-	                                (b.getStatus().equalsIgnoreCase("Confirmed"))){
+DateTimeFormatter dateFormatter =
+DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	                            BookingResponse temp = toResponse(b);
-	                            temp.setServiceDate(b.getServiceDate());
-	                            temp.setServicetime(b.getServicetime());
-	                            temp.setStatus(b.getStatus());
-	                            temp.setSubServiceName(b.getSubServiceName());
-	                            responseList.add(temp);
-	                            added = true;
-	                        }
-	                    }
-	                }
+LocalDate currentDate =
+LocalDate.now(ZoneId.of("Asia/Kolkata"));
 
-	                // 💊 Case B: Has treatment sittings
-	                if (!added && b.getTreatments() != null && b.getTreatments().getGeneratedData() != null) {
-	                    for (Map.Entry<String, TreatmentDetailsDTO> entry : b.getTreatments().getGeneratedData().entrySet()) {
-	                        String treatmentName = entry.getKey();
-	                        TreatmentDetailsDTO t = entry.getValue();
+if (existingBookings != null && !existingBookings.isEmpty()) {
 
-	                        if (t.getDates() != null) {
-	                            for (DatesDTO d : t.getDates()) {
-	                                LocalDate sittingDate = LocalDate.parse(d.getDate(), dateFormatter);
+for (Booking b : existingBookings) {
 
-	                                if (sittingDate.equals(currentDate) &&
-	                                        (d.getStatus().equalsIgnoreCase("Confirmed"))) {
+if (b.getServiceDate() != null &&
+b.getStatus() != null) {
 
-	                                    BookingResponse temp = toResponse(b);
-	                                    temp.setSubServiceName(treatmentName);
-	                                    temp.setServiceDate(d.getDate());
-	                                    temp.setServicetime(b.getServicetime());
-	                                    temp.setStatus(d.getStatus());
+LocalDate bookingDate =
+LocalDate.parse(b.getServiceDate(), dateFormatter);
 
-	                                    // keep only this treatment info
-	                                    Map<String, TreatmentDetailsDTO> oneTreatment = new HashMap<>();
-	                                    oneTreatment.put(treatmentName, t);
-	                                    temp.getTreatments().setGeneratedData(oneTreatment);
+if (bookingDate.equals(currentDate)
+&& b.getStatus().equalsIgnoreCase("Confirmed")) {
 
-	                                    responseList.add(temp);
-	                                    break;
-	                                }
-	                            }
-	                        }
-	                    }
-	                }
-	            }
+BookingResponse temp = toResponse(b);
 
-	            if (!responseList.isEmpty()) {
-	                res.setStatusCode(200);
-	                res.setHttpStatus(HttpStatus.OK);
-	                res.setData(responseList);
-	                res.setMessage("Today's Appointments Found");
-	            } else {
-	                res.setStatusCode(200);
-	                res.setHttpStatus(HttpStatus.OK);
-	                res.setData(responseList);
-	                res.setMessage("No Appointments for Today");
-	            }
-	        } else {
-	            res.setStatusCode(200);
-	            res.setHttpStatus(HttpStatus.OK);
-	            res.setData(responseList);
-	            res.setMessage("Appointments Not Found");
-	        }
+responseList.add(temp);
+}
+}
+}
 
-	    } catch (Exception e) {
-	        res.setStatusCode(500);
-	        res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-	        res.setMessage("Error occurred: " + e.getMessage());
-	    }
+res.setStatusCode(200);
+res.setHttpStatus(HttpStatus.OK);
+res.setData(responseList);
 
-	    return ResponseEntity.status(res.getStatusCode()).body(res);
-	}
+if (!responseList.isEmpty()) {
+res.setMessage("Today's Appointments Found");
+} else {
+res.setMessage("No Appointments for Today");
+}
+
+} else {
+
+res.setStatusCode(200);
+res.setHttpStatus(HttpStatus.OK);
+res.setData(responseList);
+res.setMessage("Appointments Not Found");
+}
+
+} catch (Exception e) {
+
+res.setStatusCode(500);
+res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+res.setMessage("Error occurred : " + e.getMessage());
+}
+
+return ResponseEntity.status(res.getStatusCode()).body(res);
+}
 
 
 

@@ -402,7 +402,7 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
     	return res;
       } catch (FeignException e) {
     	    response.setStatus(e.status());
-			response.setMessage(e.getMessage());
+			response.setMessage(ExtractFeignMessage.clearMessage(e));
 			response.setSuccess(false);
 			//response.setData(Collections.emptyList());
         return ResponseEntity.status(response.getStatus()).body(response);}

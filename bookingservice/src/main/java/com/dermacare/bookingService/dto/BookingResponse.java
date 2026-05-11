@@ -20,6 +20,7 @@ public class BookingResponse {
 	private String bookingFor;
 	private String name;
 	private String relation;
+	private String dob;
 	private String patientMobileNumber;
 	private String patientId;
 	private String visitType;

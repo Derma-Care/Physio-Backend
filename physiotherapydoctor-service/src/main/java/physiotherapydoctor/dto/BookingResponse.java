@@ -22,6 +22,7 @@ public class BookingResponse {
 	private String name;
 	private String relation;
 	private String patientMobileNumber;
+	private String dob;
 	private String patientId;
 	private String visitType;
 	private Integer freeFollowUpsLeft;

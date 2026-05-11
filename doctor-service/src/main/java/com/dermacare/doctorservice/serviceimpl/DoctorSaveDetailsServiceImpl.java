@@ -353,8 +353,9 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             // ✅ Include the full treatment details
             bookingData.setTreatments(treatmentResponseDTO);
 
-            // ✅ Update the booking service
-            bookingFeignClient.updateAppointment(bookingData);
+            bookingData.setCurrentStatus(null);
+            bookingData.setListOfConsultationFee(null);
+            bookingFeignClient.updateAppointmentBasedOnBookingId(bookingData);
 
             // ----------------------- Step 12: Build Response -----------------------
             DoctorSaveDetailsDTO savedDto = convertToDto(savedVisit);

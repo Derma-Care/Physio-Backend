@@ -54,6 +54,7 @@ import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PhysiotherapyService;
+import physiotherapydoctor.util.ExtractFeignMessage;
 
 	@Service
 	@RequiredArgsConstructor
@@ -2251,15 +2252,18 @@ result.add(session);
         }
     }
     
-@Override
-public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId) {
-    try {
-        return bookingFeign.getTodayDoctorAppointmentsByDoctorId(clinicId, doctorId);
-    } catch (FeignException ex) {
-        return ResponseEntity.status(ex.status()).body(ex.contentUTF8());
-    }
- }
-
+    @Override
+    public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId) {
+    	Response res = new Response();
+        try {
+            return bookingFeign.getTodayDoctorAppointmentsByDoctorId(clinicId, doctorId);
+        } catch (FeignException ex) {
+        	res.setStatus(ex.status());
+        	res.setMessage(ExtractFeignMessage.clearMessage(ex));
+        	res.setSuccess(false);
+            return ResponseEntity.status(ex.status()).body(res);
+        }
+     }
 //---------------------------------------Doctor Login apis---------------------------------------
 private Response validateChangePasswordRequest(String username, ChangeDoctorPasswordDTO updateDTO) {
     if (username == null || username.isBlank()) {
