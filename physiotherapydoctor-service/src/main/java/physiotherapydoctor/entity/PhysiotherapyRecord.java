@@ -47,10 +47,7 @@ public class PhysiotherapyRecord {
     private Assessment assessment;
     private Diagnosis diagnosis;
     private TreatmentPlan treatmentPlan;
-    private RedFlags redFlags;
-    private RadiationNeuro radiationNeuro;
-    private Psychosocial psychosocial;
-    private SpecialSymptoms specialSymptoms;
+
     private List<TherapySession> therapySessions;
 
     private ExercisePlan exercisePlan;
