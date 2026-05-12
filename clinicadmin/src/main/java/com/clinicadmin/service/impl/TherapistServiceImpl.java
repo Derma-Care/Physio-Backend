@@ -3,6 +3,7 @@ package com.clinicadmin.service.impl;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -602,8 +603,41 @@ public class TherapistServiceImpl implements TherapistService {
                 throw new RuntimeException("Record mismatch");
             }
 
-            List<Map<String, Object>> therapyWithSessions =
-                    (List<Map<String, Object>>) data.get("therapyWithSessions");
+            // 🔥 UPDATED CODE START
+            String serviceType =
+                    String.valueOf(data.get("serviceType")).trim();
+
+            List<Map<String, Object>> therapyWithSessions = null;
+
+            // For therapy records, use therapyWithSessions
+            if ("THERAPY".equalsIgnoreCase(serviceType)) {
+                therapyWithSessions =
+                        (List<Map<String, Object>>) data.get("therapyWithSessions");
+            }
+
+            // For exercise records, use exerciseWithSessions
+            else if ("EXERCISE".equalsIgnoreCase(serviceType)) {
+                therapyWithSessions =
+                        (List<Map<String, Object>>) data.get("exerciseWithSessions");
+            }
+
+            // If selected list is null or empty, fallback to therapyWithSessions
+            if (therapyWithSessions == null || therapyWithSessions.isEmpty()) {
+                therapyWithSessions =
+                        (List<Map<String, Object>>) data.get("therapyWithSessions");
+            }
+
+            // If still null or empty, fallback to exerciseWithSessions
+            if (therapyWithSessions == null || therapyWithSessions.isEmpty()) {
+                therapyWithSessions =
+                        (List<Map<String, Object>>) data.get("exerciseWithSessions");
+            }
+
+            // Final safety check
+            if (therapyWithSessions == null) {
+                therapyWithSessions = new ArrayList<>();
+            }
+            // 🔥 UPDATED CODE END
 
             if (therapyWithSessions != null) {
 
@@ -628,7 +662,96 @@ public class TherapistServiceImpl implements TherapistService {
                         programs.add(pkg);
 
                     }
+                 // ✅ THERAPY TYPE
+                    else if (pkg.containsKey("therapyId")) {
 
+                        programs = new ArrayList<>();
+
+                        Map<String, Object> therapyWrapper = new HashMap<>();
+                        therapyWrapper.put(
+                                "therapyData",
+                                new ArrayList<>(Arrays.asList(pkg))
+                        );
+
+                        programs.add(therapyWrapper);
+
+                    }
+                 
+
+                 // ✅ EXERCISE TYPE
+                 else if (pkg.containsKey("exerciseId")) {
+
+                     programs = new ArrayList<>();
+
+                     // Create therapy wrapper dynamically from exercise data
+                     Map<String, Object> therapyWrapper = new HashMap<>();
+
+                     // Use exerciseId as therapyId
+                     therapyWrapper.put("exerciseId", pkg.get("exerciseId"));
+
+                     // Use exerciseName as therapyName
+                     therapyWrapper.put("exerciseName", pkg.get("exerciseName"));
+
+                     // Use totalPrice as totalTherapyPrice
+                     therapyWrapper.put("totalTherapyPrice", pkg.get("totalPrice"));
+
+                     // Use actual paymentStatus from exercise
+                     therapyWrapper.put("paymentStatus", pkg.get("paymentStatus"));
+
+                     // Add the original exercise as-is
+                     therapyWrapper.put(
+                             "exercises",
+                             new ArrayList<>(Arrays.asList(pkg))
+                     );
+
+                     // Wrap into program structure expected by existing logic
+                     Map<String, Object> programWrapper = new HashMap<>();
+                     programWrapper.put(
+                             "therapyData",
+                             new ArrayList<>(Arrays.asList(therapyWrapper))
+                     );
+
+                     programs.add(programWrapper);
+                 }// Replace only the EXERCISE TYPE block with this code.
+                 // This version does NOT hardcode "EXERCISE_WRAPPER" or "Exercise Wrapper".
+                 // It uses values from the actual exercise record.
+
+
+                 // ✅ EXERCISE TYPE
+                 else if (pkg.containsKey("exerciseId")) {
+
+                     programs = new ArrayList<>();
+
+                     // Create therapy wrapper dynamically from exercise data
+                     Map<String, Object> therapyWrapper = new HashMap<>();
+
+                     // Use exerciseId as therapyId
+                     therapyWrapper.put("exerciseId", pkg.get("exerciseId"));
+
+                     // Use exerciseName as therapyName
+                     therapyWrapper.put("exerciseName", pkg.get("exerciseName"));
+
+                     // Use totalPrice as totalTherapyPrice
+                     therapyWrapper.put("totalTherapyPrice", pkg.get("totalPrice"));
+
+                     // Use actual paymentStatus from exercise
+                     therapyWrapper.put("paymentStatus", pkg.get("paymentStatus"));
+
+                     // Add the original exercise as-is
+                     therapyWrapper.put(
+                             "exercises",
+                             new ArrayList<>(Arrays.asList(pkg))
+                     );
+
+                     // Wrap into program structure expected by existing logic
+                     Map<String, Object> programWrapper = new HashMap<>();
+                     programWrapper.put(
+                             "therapyData",
+                             new ArrayList<>(Arrays.asList(therapyWrapper))
+                     );
+
+                     programs.add(programWrapper);
+                 }
                     // ✅ INVALID
                     else {
                         continue;
