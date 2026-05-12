@@ -1,6 +1,9 @@
 package com.clinicadmin.dto;
 
 import java.util.List;
+
+import com.clinicadmin.entity.TherapyExercises;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,5 +20,6 @@ public class TheraphyProgramWithTheraphyNamesDto {
 	private String clinicId;
 	private String branchId;
 	private long theraphyCount;
+	
 
 }

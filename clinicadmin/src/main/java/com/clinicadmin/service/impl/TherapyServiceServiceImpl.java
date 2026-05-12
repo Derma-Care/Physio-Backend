@@ -199,13 +199,19 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     // ================== MAPPERS ==================
 
     private TherapyService mapToEntity(TherapyServiceDTO dto) {
+
         TherapyService therapy = new TherapyService();
+
         therapy.setId(dto.getId());
         therapy.setConsentType(dto.getConsentType());
         therapy.setExerciseIds(dto.getExerciseIds());
         therapy.setTherapyName(dto.getTherapyName());
         therapy.setClinicId(dto.getClinicId());
         therapy.setBranchId(dto.getBranchId());
+
+        // Missing Fields
+        therapy.setNoExerciseIdCount(dto.getNoExerciseIdCount());
+         therapy.setExercises(dto.getExercises());
 
         return therapy;
     }
@@ -218,6 +224,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         dto.setTherapyName(therapy.getTherapyName());
         dto.setClinicId(therapy.getClinicId());
         dto.setBranchId(therapy.getBranchId());
+        dto.setExercises(therapy.getExercises());
 
         // ✅ AUTO COUNT LOGIC
         if (therapy.getExerciseIds() != null) {
@@ -242,6 +249,9 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
         if (dto.getTherapyName() != null) {
             entity.setTherapyName(dto.getTherapyName());
+        }
+        if (dto.getExercises() != null || !dto.getExercises().isEmpty()) {
+            entity.setExercises(dto.getExercises());;
         }
     }
     @Override

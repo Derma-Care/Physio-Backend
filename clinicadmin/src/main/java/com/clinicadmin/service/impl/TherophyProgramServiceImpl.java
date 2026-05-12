@@ -195,6 +195,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
                             TherapyServiceDTO therapy =
                                     therapyServiceServiceImpl.getById(therapyId);
+                            System.out.println(therapy);
 
                             if (therapy != null) {
 
@@ -209,7 +210,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
                                         if (ex != null) {
                                           try {                                        
-                                            double exerciseAmount =
+                                            double exerciseAmount = (double)
                                                     ex.getTotalPrice();
 
                                             therapyTotalAmount += exerciseAmount;
