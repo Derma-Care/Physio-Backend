@@ -124,6 +124,9 @@ public class PaymentServiceImpl implements PaymentService {
 		// ✅ STEP 2: Set normalized data on record BEFORE distribute/status calls
 		record.setTherapyWithSessions(req.getTherapyWithSessions());
 
+		// ✅ AUTO-COUNT total sessions (remove manual req.getTotalSessionCount())
+		record.setTotalSessionCount(countTotalSessions(record));
+		
 		// ✅ STEP 3: Distribute payment across sessions
 		distributePaymentToSessions(record);
 
@@ -995,32 +998,61 @@ private void updateStatuses(PaymentRecord record) {
 
 	private double calculateTotal(List<TherapyWithSessions> data) {
 
-		double total = 0;
+	    double total = 0;
 
-		for (var pkg : data) {
-			double pkgTotal = 0;
-			for (var prog : pkg.getPrograms()) {
-				double progTotal = 0;
-				for (var therapy : prog.getTherapyData()) {
-					double therapyTotal = 0;
-					for (var ex : therapy.getExercises()) {
-						double exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
-						ex.setTotalExercisePrice(exTotal);
-						therapyTotal += exTotal;
-					}
-					therapy.setTotalTherapyPrice(therapyTotal);
-					progTotal += therapyTotal;
-				}
-				prog.setTotalProgramPrice(progTotal);
-				pkgTotal += progTotal;
-			}
-			pkg.setTotalPackagePrice(pkgTotal);
-			total += pkgTotal;
-		}
+	    for (var pkg : data) {
+	        double pkgTotal = 0;
+	        for (var prog : pkg.getPrograms()) {
+	            double progTotal = 0;
+	            for (var therapy : prog.getTherapyData()) {
+	                double therapyTotal = 0;
+	                for (var ex : therapy.getExercises()) {
 
-		return total;
+	                    // ✅ totalSessions = days × timesPerDay
+	                    int totalSessions = ex.getNoOfSessions()
+	                            * parseTimesPerDay(ex.getFrequency());
+
+	                    double exTotal = ex.getPricePerSession() * totalSessions;
+	                    ex.setTotalExercisePrice(exTotal);
+	                    therapyTotal += exTotal;
+	                }
+	                therapy.setTotalTherapyPrice(therapyTotal);
+	                progTotal += therapyTotal;
+	            }
+	            prog.setTotalProgramPrice(progTotal);
+	            pkgTotal += progTotal;
+	        }
+	        pkg.setTotalPackagePrice(pkgTotal);
+	        total += pkgTotal;
+	    }
+
+	    return total;
 	}
+	
+	private int countTotalSessions(PaymentRecord record) {
 
+	    int count = 0;
+
+	    if (record.getTherapyWithSessions() == null) return count;
+
+	    for (var pkg : record.getTherapyWithSessions()) {
+	        if (pkg.getPrograms() == null) continue;
+	        for (var prog : pkg.getPrograms()) {
+	            if (prog.getTherapyData() == null) continue;
+	            for (var therapy : prog.getTherapyData()) {
+	                if (therapy.getExercises() == null) continue;
+	                for (var ex : therapy.getExercises()) {
+	                    if (ex.getSessions() != null) {
+	                        count += ex.getSessions().size();
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    return count;
+	}
+	
 	private boolean createSessions(List<TherapyWithSessions> data, String startDate) {
 
 	    boolean created = false;
