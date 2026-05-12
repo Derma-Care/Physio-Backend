@@ -11,4 +11,6 @@ public interface FeedbackDetailsRepository
 
 	List<FeedbackDetails> findByClinicIdAndBranchId(String clinicId, String branchId);
 
+	List<FeedbackDetails> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
+
 }

@@ -11,5 +11,9 @@ TherapistAttendance findByTherapistIdAndDate(String therapistId, String date);
 
 List<TherapistAttendance> findByTherapistIdAndDateStartingWith(String therapistId, String month);
 
+List<TherapistAttendance> findByTherapistId(String therapistId);
+
+List<TherapistAttendance> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
+
 
 }

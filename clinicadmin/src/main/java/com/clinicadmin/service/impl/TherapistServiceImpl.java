@@ -23,10 +23,15 @@ import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistDTO;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Documents;
+import com.clinicadmin.entity.FeedbackDetails;
+import com.clinicadmin.entity.Session;
 import com.clinicadmin.entity.Therapist;
+import com.clinicadmin.entity.TherapistAttendance;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.clinicadmin.repository.FeedbackDetailsRepository;
+import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.repository.TherapistRepository;
 import com.clinicadmin.service.EmailService;
 import com.clinicadmin.service.TherapistService;
@@ -58,6 +63,12 @@ public class TherapistServiceImpl implements TherapistService {
 	
 	@Autowired
 	private PhysiotherapyFeignClient physiotherapyFeignClient;
+	
+	@Autowired
+	private  FeedbackDetailsRepository feedbackDetailsRepository;
+	
+	@Autowired
+	private TherapistAttendanceRepository therapistAttendanceRepository;
     @Override
 
     public Response therapistOnboarding(TherapistDTO dto) {
@@ -914,5 +925,412 @@ public class TherapistServiceImpl implements TherapistService {
                 removeNullFields(item);
             }
         }
+        
+        
+    }
+    @Override
+    public Response getTherapistPerformanceSummary(String clinicId,String branchId,String therapistId) {
+
+        Response response = new Response();
+
+        try {
+
+            // =========================================================
+            // 1. FETCH FEEDBACK RECORDS
+            // Used only for calculating average rating.
+            // =========================================================
+            List<FeedbackDetails> feedbackList =
+                    feedbackDetailsRepository
+                            .findByClinicIdAndBranchIdAndTherapistId(
+                                    clinicId,
+                                    branchId,
+                                    therapistId);
+         // =========================================================
+         // 2. TOTAL NUMBER OF SESSIONS COMPLETED
+         // Logic:
+         // - Fetch all payments for the clinic and branch.
+         // - Filter only the selected therapist.
+         // - Consider only valid service types:
+         //   PACKAGE / PROGRAM / THERAPY / EXERCISE.
+         // - For those records, recursively search for all "sessions"
+         //   arrays and count only sessions where status = "Completed".
+         // =========================================================
+         int totalSessionCompleted = 0;
+
+         Response paymentResponse =
+                 physiotherapyFeignClient.getPayments(
+                         clinicId,
+                         branchId);
+
+         List<Map<String, Object>> payments =
+                 (List<Map<String, Object>>) paymentResponse.getData();
+
+         if (payments != null) {
+
+             for (Map<String, Object> payment : payments) {
+
+                 // ---------------------------------------------------------
+                 // Filter by therapistId
+                 // ---------------------------------------------------------
+                 if (!therapistId.equals(
+                         String.valueOf(payment.get("therapistId")))) {
+                     continue;
+                 }
+
+                 // ---------------------------------------------------------
+                 // Consider only supported service types
+                 // ---------------------------------------------------------
+                 String serviceType =
+                         String.valueOf(payment.get("serviceType"));
+
+                 if (!"PACKAGE".equalsIgnoreCase(serviceType)
+                         && !"PROGRAM".equalsIgnoreCase(serviceType)
+                         && !"THERAPY".equalsIgnoreCase(serviceType)
+                         && !"EXERCISE".equalsIgnoreCase(serviceType)) {
+                     continue;
+                 }
+
+                 // ---------------------------------------------------------
+                 // Count all sessions with status = "Completed"
+                 // ---------------------------------------------------------
+                 totalSessionCompleted +=
+                         countCompletedSessions(payment);
+             }
+         }
+            // =========================================================
+            // 3. TOTAL AVERAGE RATING
+            // rating is stored as String in FeedbackDetails
+            // =========================================================
+            double totalAvgRating = feedbackList.stream()
+                    .filter(feedback ->
+                            feedback.getRating() != null
+                            && !feedback.getRating().trim().isEmpty())
+                    .mapToDouble(feedback -> {
+                        try {
+                            return Double.parseDouble(
+                                    feedback.getRating().trim());
+                        } catch (NumberFormatException e) {
+                            return 0.0;
+                        }
+                    })
+                    .average()
+                    .orElse(0.0);
+
+            // Round to 2 decimal places
+            totalAvgRating =
+                    Math.round(totalAvgRating * 100.0) / 100.0;
+
+         // =========================================================
+         // 4. TOTAL IDLE TIME
+            List<TherapistAttendance> attendanceList =
+                    therapistAttendanceRepository.findByTherapistId(therapistId);
+
+            long totalIdleMinutes = 0;
+
+            if (attendanceList != null) {
+
+                for (TherapistAttendance attendance : attendanceList) {
+
+                    long logMinutes =
+                            convertToMinutes(attendance.getLogTime());
+
+                    long workingMinutes = 0;
+
+                    if (attendance.getSessions() != null) {
+
+                        for (Session session : attendance.getSessions()) {
+
+                            String duration = session.getDuration();
+
+                            if (duration != null
+                                    && !duration.trim().isEmpty()) {
+
+                                workingMinutes +=
+                                        convertToMinutes(duration);
+                            }
+                        }
+                    }
+
+                    long idleMinutes =
+                            logMinutes - workingMinutes;
+
+                    if (idleMinutes < 0) {
+                        idleMinutes = 0;
+                    }
+
+                    totalIdleMinutes += idleMinutes;
+                }
+            }
+
+            String formattedIdleTime =
+                    formatDuration(totalIdleMinutes);
+            
+            // =========================================================
+            // 5. Traning hours DATA
+            // =========================================================
+            long totalTrainingMinutes = 0;
+
+            if (attendanceList != null) {
+
+                for (TherapistAttendance attendance : attendanceList) {
+
+                    if (attendance.getSessions() != null) {
+
+                        for (Session session : attendance.getSessions()) {
+
+                            String description = session.getDescription();
+                            String duration = session.getDuration();
+
+                            if (description != null
+                                    && "Training".equalsIgnoreCase(
+                                            description.trim())
+                                    && duration != null
+                                    && !duration.trim().isEmpty()) {
+
+                                totalTrainingMinutes +=
+                                        convertToMinutes(duration);
+                            }
+                        }
+                    }
+                }
+            }
+
+            String formattedTrainingHours =
+                    formatDuration(totalTrainingMinutes);
+            // =========================================================
+            // 6. RESPONSE DATA
+            // =========================================================
+            Map<String, Object> data = new HashMap<>();
+            data.put("clinicId", clinicId);
+            data.put("branchId", branchId);
+            data.put("therapistId", therapistId);
+            data.put("totalSessionCompleted", totalSessionCompleted);
+            data.put("totalIdleTime", formattedIdleTime);
+            data.put("totalAvgRating", totalAvgRating);
+            data.put("totalTrainingHours", formattedTrainingHours);
+
+            // =========================================================
+            // 6. SUCCESS RESPONSE
+            // =========================================================
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Therapist performance summary fetched successfully");
+            response.setData(data);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+        }
+
+        return response;
+    }
+
+    /**
+     * Converts minutes into:
+     * "2 years 3 months 5 days 4 hrs 30 mins"
+     */
+    private String formatDuration(long totalMinutes) {
+
+        if (totalMinutes <= 0) {
+            return "0 mins";
+        }
+
+        long minutesInYear  = 365L * 24 * 60;
+        long minutesInMonth = 30L  * 24 * 60;
+        long minutesInDay   = 24L  * 60;
+        long minutesInHour  = 60L;
+
+        long years = totalMinutes / minutesInYear;
+        totalMinutes %= minutesInYear;
+
+        long months = totalMinutes / minutesInMonth;
+        totalMinutes %= minutesInMonth;
+
+        long days = totalMinutes / minutesInDay;
+        totalMinutes %= minutesInDay;
+
+        long hours = totalMinutes / minutesInHour;
+        long minutes = totalMinutes % minutesInHour;
+
+        StringBuilder sb = new StringBuilder();
+
+        if (years > 0) {
+            sb.append(years).append(years == 1 ? " year " : " years ");
+        }
+
+        if (months > 0) {
+            sb.append(months).append(months == 1 ? " month " : " months ");
+        }
+
+        if (days > 0) {
+            sb.append(days).append(days == 1 ? " day " : " days ");
+        }
+
+        if (hours > 0) {
+            sb.append(hours).append(hours == 1 ? " hr " : " hrs ");
+        }
+
+        if (minutes > 0) {
+            sb.append(minutes).append(minutes == 1 ? " min" : " mins");
+        }
+
+        return sb.toString().trim();
+    }
+    /**
+     * Converts time strings into total minutes.
+     *
+     * Supported formats:
+     * - "5 min"
+     * - "45 mins"
+     * - "1 hr"
+     * - "2 hrs 30 mins"
+     * - "1 day 2 hrs"
+     * - "2 months 5 days"
+     * - "1 year 3 months"
+     * - "7h 0m"
+     * - "120"   (treated as minutes)
+     *
+     * Examples:
+     * - "5 min"              -> 5
+     * - "1 hr"               -> 60
+     * - "1 day"              -> 1440
+     * - "2 months"           -> 86400
+     * - "1 year"             -> 525600
+     * - "1 year 2 months 3 days 4 hrs 5 mins"
+     *                        -> total minutes
+     */
+    private long convertToMinutes(String time) {
+
+        if (time == null || time.trim().isEmpty()) {
+            return 0;
+        }
+
+        time = time.toLowerCase().trim();
+
+        long totalMinutes = 0;
+
+        // ---------------------------------------------------------
+        // Years
+        // ---------------------------------------------------------
+        java.util.regex.Matcher yearMatcher =
+                java.util.regex.Pattern
+                        .compile("(\\d+)\\s*(y|yr|yrs|year|years)")
+                        .matcher(time);
+
+        while (yearMatcher.find()) {
+            long years = Long.parseLong(yearMatcher.group(1));
+            totalMinutes += years * 365L * 24 * 60;
+        }
+
+        // ---------------------------------------------------------
+        // Months
+        // ---------------------------------------------------------
+        java.util.regex.Matcher monthMatcher =
+                java.util.regex.Pattern
+                        .compile("(\\d+)\\s*(mo|mon|mons|month|months)")
+                        .matcher(time);
+
+        while (monthMatcher.find()) {
+            long months = Long.parseLong(monthMatcher.group(1));
+            totalMinutes += months * 30L * 24 * 60;
+        }
+
+        // ---------------------------------------------------------
+        // Days
+        // ---------------------------------------------------------
+        java.util.regex.Matcher dayMatcher =
+                java.util.regex.Pattern
+                        .compile("(\\d+)\\s*(d|day|days)")
+                        .matcher(time);
+
+        while (dayMatcher.find()) {
+            long days = Long.parseLong(dayMatcher.group(1));
+            totalMinutes += days * 24L * 60;
+        }
+
+        // ---------------------------------------------------------
+        // Hours
+        // ---------------------------------------------------------
+        java.util.regex.Matcher hourMatcher =
+                java.util.regex.Pattern
+                        .compile("(\\d+)\\s*(h|hr|hrs|hour|hours)")
+                        .matcher(time);
+
+        while (hourMatcher.find()) {
+            long hours = Long.parseLong(hourMatcher.group(1));
+            totalMinutes += hours * 60;
+        }
+
+        // ---------------------------------------------------------
+        // Minutes
+        // ---------------------------------------------------------
+        java.util.regex.Matcher minuteMatcher =
+                java.util.regex.Pattern
+                        .compile("(\\d+)\\s*(m|min|mins|minute|minutes)")
+                        .matcher(time);
+
+        while (minuteMatcher.find()) {
+            long minutes = Long.parseLong(minuteMatcher.group(1));
+            totalMinutes += minutes;
+        }
+
+        // ---------------------------------------------------------
+        // If input contains only a number, treat it as minutes
+        // Example: "120"
+        // ---------------------------------------------------------
+        if (totalMinutes == 0 && time.matches("\\d+")) {
+            totalMinutes = Long.parseLong(time);
+        }
+
+        return totalMinutes;
+    }
+    /**
+     * Recursively searches the given object for all keys named "sessions"
+     * and counts how many session objects have status = "Completed".
+     */
+    private int countCompletedSessions(Object obj) {
+
+        int count = 0;
+
+        if (obj instanceof Map<?, ?> map) {
+
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+
+                // If the current key is "sessions", count completed sessions
+                if ("sessions".equals(entry.getKey())
+                        && entry.getValue() instanceof List<?> sessions) {
+
+                    for (Object sessionObj : sessions) {
+
+                        if (sessionObj instanceof Map<?, ?> sessionMap) {
+
+                            Object statusObj =
+                                    sessionMap.get("status");
+
+                            if (statusObj != null
+                                    && "Completed".equalsIgnoreCase(
+                                            statusObj.toString())) {
+                                count++;
+                            }
+                        }
+                    }
+                }
+
+                // Continue searching deeper
+                count += countCompletedSessions(entry.getValue());
+            }
+
+        } else if (obj instanceof List<?> list) {
+
+            for (Object item : list) {
+                count += countCompletedSessions(item);
+            }
+        }
+
+        return count;
     }
 }

@@ -67,6 +67,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             s.setSessionId("MANUAL_" + System.currentTimeMillis());
             s.setActivity(body.get("activity"));
             s.setDuration(body.get("duration"));
+            s.setDescription(body.get("description"));
             s.setLocation(body.getOrDefault("location", null));
 
             sessionList.add(s);

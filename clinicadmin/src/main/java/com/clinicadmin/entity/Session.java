@@ -14,5 +14,7 @@ public class Session {
     private String sessionId;
     private String activity;
     private String duration;
+    private String description;
     private String location;
+
 }
