@@ -130,16 +130,18 @@ public class TherapistController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
  // ================= GET THERAPIST PERFORMANCE SUMMARY =================
-    @GetMapping("/getTherapistPerformanceSummary/{clinicId}/{branchId}/{therapistId}")
+    @GetMapping("/getTherapistPerformanceSummary/{clinicId}/{branchId}/{therapistId}/{year}")
     public ResponseEntity<Response> getTherapistPerformanceSummary(
             @PathVariable String clinicId,
             @PathVariable String branchId,
-            @PathVariable String therapistId) {
+            @PathVariable String therapistId,
+            @PathVariable int year) {
 
         Response response = service.getTherapistPerformanceSummary(
                 clinicId,
                 branchId,
-                therapistId);
+                therapistId,
+                year);
 
         return ResponseEntity
                 .status(response.getStatus())

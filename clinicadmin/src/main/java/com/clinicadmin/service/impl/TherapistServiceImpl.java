@@ -2,6 +2,7 @@ package com.clinicadmin.service.impl;
 
 
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -929,7 +930,7 @@ public class TherapistServiceImpl implements TherapistService {
         
     }
     @Override
-    public Response getTherapistPerformanceSummary(String clinicId,String branchId,String therapistId) {
+    public Response getTherapistPerformanceSummary(String clinicId,String branchId,String therapistId,int year) {
 
         Response response = new Response();
 
@@ -938,65 +939,115 @@ public class TherapistServiceImpl implements TherapistService {
             // =========================================================
             // 1. FETCH FEEDBACK RECORDS
             // Used only for calculating average rating.
+            // Selected year records only.
             // =========================================================
             List<FeedbackDetails> feedbackList =
                     feedbackDetailsRepository
                             .findByClinicIdAndBranchIdAndTherapistId(
                                     clinicId,
                                     branchId,
-                                    therapistId);
-         // =========================================================
-         // 2. TOTAL NUMBER OF SESSIONS COMPLETED
-         // Logic:
-         // - Fetch all payments for the clinic and branch.
-         // - Filter only the selected therapist.
-         // - Consider only valid service types:
-         //   PACKAGE / PROGRAM / THERAPY / EXERCISE.
-         // - For those records, recursively search for all "sessions"
-         //   arrays and count only sessions where status = "Completed".
-         // =========================================================
-         int totalSessionCompleted = 0;
+                                    therapistId)
+                            .stream()
+                            .filter(feedback -> {
+                                try {
+                                    if (feedback.getCreatedAt() == null
+                                            || feedback.getCreatedAt()
+                                                       .trim()
+                                                       .isEmpty()) {
+                                        return false;
+                                    }
 
-         Response paymentResponse =
-                 physiotherapyFeignClient.getPayments(
-                         clinicId,
-                         branchId);
+                                    LocalDate feedbackDate =
+                                            LocalDate.parse(
+                                                    feedback.getCreatedAt()
+                                                            .substring(0, 10));
 
-         List<Map<String, Object>> payments =
-                 (List<Map<String, Object>>) paymentResponse.getData();
+                                    return feedbackDate.getYear() == year;
 
-         if (payments != null) {
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
 
-             for (Map<String, Object> payment : payments) {
+            // =========================================================
+            // 2. TOTAL NUMBER OF SESSIONS COMPLETED
+            // Logic:
+            // - Fetch all payments for the clinic and branch.
+            // - Filter only the selected therapist.
+            // - Consider only valid service types:
+            //   PACKAGE / PROGRAM / THERAPY / EXERCISE.
+            // - For those records, recursively search for all "sessions"
+            //   arrays and count only sessions where status = "Completed".
+            // =========================================================
+            int totalSessionCompleted = 0;
 
-                 // ---------------------------------------------------------
-                 // Filter by therapistId
-                 // ---------------------------------------------------------
-                 if (!therapistId.equals(
-                         String.valueOf(payment.get("therapistId")))) {
-                     continue;
-                 }
+            Response paymentResponse =
+                    physiotherapyFeignClient.getPayments(
+                            clinicId,
+                            branchId);
 
-                 // ---------------------------------------------------------
-                 // Consider only supported service types
-                 // ---------------------------------------------------------
-                 String serviceType =
-                         String.valueOf(payment.get("serviceType"));
+            List<Map<String, Object>> payments =
+                    (List<Map<String, Object>>) paymentResponse.getData();
 
-                 if (!"PACKAGE".equalsIgnoreCase(serviceType)
-                         && !"PROGRAM".equalsIgnoreCase(serviceType)
-                         && !"THERAPY".equalsIgnoreCase(serviceType)
-                         && !"EXERCISE".equalsIgnoreCase(serviceType)) {
-                     continue;
-                 }
+            if (payments != null) {
 
-                 // ---------------------------------------------------------
-                 // Count all sessions with status = "Completed"
-                 // ---------------------------------------------------------
-                 totalSessionCompleted +=
-                         countCompletedSessions(payment);
-             }
-         }
+                for (Map<String, Object> payment : payments) {
+
+                    // ---------------------------------------------------------
+                    // Filter by selected year
+                    // ---------------------------------------------------------
+                    Object paymentDateObj = payment.get("date");
+
+                    // If date is missing, skip this payment
+                    if (paymentDateObj == null) {
+                        continue;
+                    }
+
+                    try {
+                        LocalDate paymentDate =
+                                LocalDate.parse(
+                                        paymentDateObj.toString()
+                                                .substring(0, 10));
+
+                        // Skip if payment year does not match requested year
+                        if (paymentDate.getYear() != year) {
+                            continue;
+                        }
+
+                    } catch (Exception e) {
+                        // Invalid date format, skip this payment
+                        continue;
+                    }
+
+                    // ---------------------------------------------------------
+                    // Filter by therapistId
+                    // ---------------------------------------------------------
+                    if (!therapistId.equals(
+                            String.valueOf(payment.get("therapistId")))) {
+                        continue;
+                    }
+
+                    // ---------------------------------------------------------
+                    // Consider only supported service types
+                    // ---------------------------------------------------------
+                    String serviceType =
+                            String.valueOf(payment.get("serviceType"));
+
+                    if (!"PACKAGE".equalsIgnoreCase(serviceType)
+                            && !"PROGRAM".equalsIgnoreCase(serviceType)
+                            && !"THERAPY".equalsIgnoreCase(serviceType)
+                            && !"EXERCISE".equalsIgnoreCase(serviceType)) {
+                        continue;
+                    }
+
+                    // ---------------------------------------------------------
+                    // Count all sessions with status = "Completed"
+                    // ---------------------------------------------------------
+                    totalSessionCompleted +=
+                            countCompletedSessions(payment);
+                }
+            }
             // =========================================================
             // 3. TOTAL AVERAGE RATING
             // rating is stored as String in FeedbackDetails
@@ -1020,10 +1071,31 @@ public class TherapistServiceImpl implements TherapistService {
             totalAvgRating =
                     Math.round(totalAvgRating * 100.0) / 100.0;
 
-         // =========================================================
-         // 4. TOTAL IDLE TIME
+            // =========================================================
+            // 4. TOTAL IDLE TIME
+            // =========================================================
             List<TherapistAttendance> attendanceList =
-                    therapistAttendanceRepository.findByTherapistId(therapistId);
+                    therapistAttendanceRepository
+                            .findByTherapistId(therapistId)
+                            .stream()
+                            .filter(attendance -> {
+                                try {
+                                    if (attendance.getDate() == null) {
+                                        return false;
+                                    }
+
+                                    LocalDate attendanceDate =
+                                            LocalDate.parse(
+                                                    attendance.getDate()
+                                                            .toString()
+                                                            .substring(0, 10));
+
+                                    return attendanceDate.getYear() == year;
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
 
             long totalIdleMinutes = 0;
 
@@ -1064,9 +1136,9 @@ public class TherapistServiceImpl implements TherapistService {
 
             String formattedIdleTime =
                     formatDuration(totalIdleMinutes);
-            
+
             // =========================================================
-            // 5. Traning hours DATA
+            // 5. TRAINING HOURS DATA
             // =========================================================
             long totalTrainingMinutes = 0;
 
@@ -1097,6 +1169,7 @@ public class TherapistServiceImpl implements TherapistService {
 
             String formattedTrainingHours =
                     formatDuration(totalTrainingMinutes);
+
             // =========================================================
             // 6. RESPONSE DATA
             // =========================================================
@@ -1104,13 +1177,14 @@ public class TherapistServiceImpl implements TherapistService {
             data.put("clinicId", clinicId);
             data.put("branchId", branchId);
             data.put("therapistId", therapistId);
+            data.put("year", year);
             data.put("totalSessionCompleted", totalSessionCompleted);
             data.put("totalIdleTime", formattedIdleTime);
             data.put("totalAvgRating", totalAvgRating);
             data.put("totalTrainingHours", formattedTrainingHours);
 
             // =========================================================
-            // 6. SUCCESS RESPONSE
+            // 7. SUCCESS RESPONSE
             // =========================================================
             response.setSuccess(true);
             response.setStatus(200);
@@ -1128,7 +1202,6 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     }
-
     /**
      * Converts minutes into:
      * "2 years 3 months 5 days 4 hrs 30 mins"

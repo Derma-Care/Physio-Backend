@@ -34,5 +34,7 @@ public interface TherapistService {
 
 	Response getPaidSessions(String clinicId, String branchId, String bookingId, String therapistRecordId);
 
-	Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId);
+//	Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId);
+
+	Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year);
 }
