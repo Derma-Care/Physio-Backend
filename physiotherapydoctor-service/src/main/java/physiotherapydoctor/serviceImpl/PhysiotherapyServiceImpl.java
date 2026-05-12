@@ -2207,118 +2207,12 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					.build();
 		}
 
-<<<<<<< Updated upstream
+
     return null; 
 }
 
 
-private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-public List<String> getTodayFollowUpBookingIds() {
-
-    String todayDate = LocalDate.now().format(FORMATTER);
-
-    List<PhysiotherapyRecord> records =
-            repository.findByFollowUpNextVisitDate(todayDate);
-    //System.out.println(records);
-if(!records.isEmpty()) {
-    return records.stream()
-            .map(PhysiotherapyRecord::getBookingId)
-            .collect(Collectors.toList());
-}else {
-	return Collections.emptyList();}}
-
-@Override
-public Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO) {
-    Response validationResponse = validateChangePasswordRequest(username, updateDTO);
-    if (validationResponse != null) {
-        return validationResponse;
-    }
-
-    try {
-        
-        return clinicAdminFeign.changePassword(username, updateDTO);
-
-    } catch (Exception ex) {
-
-        return Response.builder().success(false).status(500).message("Failed to change password " ).build();
-    }
-}
-
-
-@Override
-public Response login(DoctorLoginDTO loginDTO) {
-    try {
-        // Call Clinic Admin Service
-        return clinicAdminFeign.login(loginDTO);
-
-    } catch (FeignException fe) {
-
-        // If downstream service returned a proper JSON response,
-        // deserialize and return it directly.
-        try {
-            String errorJson = fe.contentUTF8();
-
-            if (errorJson != null && !errorJson.trim().isEmpty()) {
-                return objectMapper.readValue(errorJson, Response.class);
-            }
-
-        } catch (Exception e) {
-            // Ignore parsing errors and handle with custom response below
-        }
-
-        // Build a clean user-friendly response
-        Response response = new Response();
-        response.setSuccess(false);
-        response.setData(null);
-        response.setStatus(fe.status());
-
-        switch (fe.status()) {
-            case 400:
-                response.setMessage("Invalid request.");
-                break;
-
-            case 401:
-                response.setMessage("Invalid username or password.");
-                break;
-
-            case 403:
-                response.setMessage("Access denied.");
-                break;
-
-            case 404:
-                response.setMessage("Doctor account not found.");
-                break;
-
-            case 500:
-                response.setMessage("Clinic Admin service encountered an internal error.");
-                break;
-
-            default:
-                response.setMessage("Unable to process login request. Please try again.");
-                break;
-        }
-
-        return response;
-
-    } catch (Exception e) {
-        Response response = new Response();
-        response.setSuccess(false);
-        response.setData(null);
-        response.setStatus(500);
-        response.setMessage("An unexpected error occurred while processing login.");
-        return response;
-    }
-}
-@Override
-public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO) {
-    if(doctorId==null || doctorId.isBlank()) {
-    	return Response.builder().success(false).status(400) .message("Doctor ID must not be empty").build();
-    }
-=======
-		return null;
-	}
->>>>>>> Stashed changes
 
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
