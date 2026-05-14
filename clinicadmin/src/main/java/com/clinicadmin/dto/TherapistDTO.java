@@ -39,7 +39,9 @@ public class TherapistDTO {
 
     private String role;
     private String physioType;
-
+	private String dateofJoining;
+	private String emergencyContact;
+    private String aadharID;
    
     private String userName;
     private String password;

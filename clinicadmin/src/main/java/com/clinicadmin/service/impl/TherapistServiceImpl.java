@@ -91,6 +91,7 @@ public class TherapistServiceImpl implements TherapistService {
 
             String contact = dto.getContactNumber().trim();
 
+            
             // -------------------- Duplicate check --------------------
             if (repository.existsByContactNumber(contact)) {
                 response.setSuccess(false);
@@ -370,6 +371,9 @@ public class TherapistServiceImpl implements TherapistService {
 
         if (dto.getRole() != null) existing.setRole(dto.getRole());
         if (dto.getPhysioType() != null) existing.setPhysioType(dto.getPhysioType());
+        if (dto.getAadharID() != null) existing.setAadharID(dto.getAadharID());
+        if (dto.getDateofJoining() != null) existing.setDateofJoining(dto.getDateofJoining());
+        if (dto.getEmergencyContact() != null) existing.setEmergencyContact(dto.getEmergencyContact());
 
         //  Save
         Therapist updated = repository.save(existing);
@@ -470,6 +474,9 @@ public class TherapistServiceImpl implements TherapistService {
         entity.setBio(dto.getBio());
         entity.setUserName(dto.getUserName());
         entity.setPassword(dto.getPassword());
+        entity.setAadharID(dto.getAadharID());
+        entity.setDateofJoining(dto.getDateofJoining());
+        entity.setEmergencyContact(dto.getEmergencyContact());
 
         // ================= BASE64 ENCODE =================
         if (dto.getDocuments() != null) {
@@ -531,6 +538,9 @@ public class TherapistServiceImpl implements TherapistService {
         dto.setBio(entity.getBio());
         dto.setUserName(entity.getUserName());
         dto.setPassword(entity.getPassword());
+        dto.setAadharID(entity.getAadharID());
+        dto.setDateofJoining(entity.getDateofJoining());
+        dto.setEmergencyContact(entity.getEmergencyContact());
 
         // ================= BASE64 DECODE =================
         if (entity.getDocuments() != null) {
@@ -724,10 +734,7 @@ public class TherapistServiceImpl implements TherapistService {
                      );
 
                      programs.add(programWrapper);
-                 }// Replace only the EXERCISE TYPE block with this code.
-                 // This version does NOT hardcode "EXERCISE_WRAPPER" or "Exercise Wrapper".
-                 // It uses values from the actual exercise record.
-
+                 }
 
                  // ✅ EXERCISE TYPE
                  else if (pkg.containsKey("exerciseId")) {

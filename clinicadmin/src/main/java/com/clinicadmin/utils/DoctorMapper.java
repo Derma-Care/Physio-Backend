@@ -52,6 +52,10 @@ public class DoctorMapper {
 		doctor.setHighlights(dto.getHighlights());
 		doctor.setDoctorAvailabilityStatus(dto.isDoctorAvailabilityStatus());
 		doctor.setRecommendation(dto.isRecommendation());
+		doctor.setAadharID(dto.getAadharID());
+		doctor.setDateofJoining(dto.getDateofJoining());
+		doctor.setDateofBirth(dto.getDateofBirth());
+		doctor.setEmergencyContact(dto.getEmergencyContact());
 		doctor.setCreatedBy(dto.getCreatedBy());
 		doctor.setCreatedBy(LocalDateTime.now(ZoneId.of("Asia/Kolkata")).toString());
 
@@ -119,6 +123,10 @@ public class DoctorMapper {
 		dto.setHighlights(doctor.getHighlights());
 		dto.setDoctorAvailabilityStatus(doctor.isDoctorAvailabilityStatus());
 		dto.setRecommendation(doctor.isRecommendation());
+		dto.setAadharID(doctor.getAadharID());
+		dto.setDateofBirth(doctor.getDateofBirth());
+		dto.setDateofJoining(doctor.getDateofJoining());
+		dto.setEmergencyContact(doctor.getEmergencyContact());
 
 
 		if (doctor.getDoctorSignature() != null && !doctor.getDoctorSignature().isBlank()) {

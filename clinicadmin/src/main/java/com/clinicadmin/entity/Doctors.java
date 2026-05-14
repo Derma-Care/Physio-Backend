@@ -60,6 +60,10 @@ public class Doctors {
 	private List<DoctorBranches> branches;
 //	private ConsultationType Consultation;
 	private Map<String, List<String>> permissions;
+	private String dateofJoining;
+	private String emergencyContact;
+    private String aadharID;
+    private String dateofBirth;
     private String createdBy;
     
     private String createdAt;
