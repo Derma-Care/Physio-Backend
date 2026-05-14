@@ -19,6 +19,8 @@ public class AttendanceDTO {
     private TimeLocationDTO logout;
 
     private List<ActivityDTO> activities;
+    private String description;
+
     private String loginTime;
     private String logoutTime;
     private String loginLocation;

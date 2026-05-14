@@ -15,4 +15,9 @@ public class DailyAttendanceResponseDTO {
     private String status;
 
     private List<ActivityDTO> activities;
+
+	private String  description;
+		
+		
+	
 }

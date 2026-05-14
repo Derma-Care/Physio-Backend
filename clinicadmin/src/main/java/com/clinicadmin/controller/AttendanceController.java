@@ -74,4 +74,21 @@ public class AttendanceController {
 //                .status(response.getStatus())
 //                .body(response);
 //    }
+    
+    @GetMapping("/getAllUsersDailyByClinicAndBranch/{clinicId}/{branchId}/{date}")
+    public ResponseEntity<Response> getDailyByClinicAndBranch(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String date) {
+
+        Response response = service.getDailyByClinicAndBranch(
+                clinicId,
+                branchId,
+                date
+        );
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
+    }
 }

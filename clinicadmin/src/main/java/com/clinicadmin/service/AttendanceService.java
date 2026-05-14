@@ -19,5 +19,7 @@ public interface AttendanceService {
 
 	Response updateActivity(AttendanceDTO dto);
 
+	Response getDailyByClinicAndBranch(String clinicId, String branchId, String date);
+
 //	Response getByClinicBranch(String clinicId, String branchId, String date);
 }

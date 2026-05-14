@@ -1004,7 +1004,7 @@ public class TherapistServiceImpl implements TherapistService {
                     // ---------------------------------------------------------
                     // Filter by selected year
                     // ---------------------------------------------------------
-                    Object paymentDateObj = payment.get("date");
+                    Object paymentDateObj = payment.get("sessionStartDate");
 
                     // If date is missing, skip this payment
                     if (paymentDateObj == null) {
@@ -1210,55 +1210,36 @@ public class TherapistServiceImpl implements TherapistService {
         return response;
     }
     /**
-     * Converts minutes into:
-     * "2 years 3 months 5 days 4 hrs 30 mins"
+     * Converts total minutes into hours only.
+     *
+     * Examples:
+     *  - 30 minutes   -> "0.5 hrs"
+     *  - 60 minutes   -> "1 hrs"
+     *  - 90 minutes   -> "1.5 hrs"
+     *  - 120 minutes  -> "2 hrs"
+     *  - 1500 minutes -> "25 hrs"
+     *
+     * This method does NOT return years, months, or days.
+     * Everything is converted into total hours only.
      */
     private String formatDuration(long totalMinutes) {
 
         if (totalMinutes <= 0) {
-            return "0 mins";
+            return "0 hrs";
         }
 
-        long minutesInYear  = 365L * 24 * 60;
-        long minutesInMonth = 30L  * 24 * 60;
-        long minutesInDay   = 24L  * 60;
-        long minutesInHour  = 60L;
+        // Convert minutes to hours
+        double totalHours = totalMinutes / 60.0;
 
-        long years = totalMinutes / minutesInYear;
-        totalMinutes %= minutesInYear;
+        // Round to 2 decimal places
+        totalHours = Math.round(totalHours * 100.0) / 100.0;
 
-        long months = totalMinutes / minutesInMonth;
-        totalMinutes %= minutesInMonth;
-
-        long days = totalMinutes / minutesInDay;
-        totalMinutes %= minutesInDay;
-
-        long hours = totalMinutes / minutesInHour;
-        long minutes = totalMinutes % minutesInHour;
-
-        StringBuilder sb = new StringBuilder();
-
-        if (years > 0) {
-            sb.append(years).append(years == 1 ? " year " : " years ");
+        // Remove trailing .0 for whole numbers
+        if (totalHours == (long) totalHours) {
+            return ((long) totalHours) + " hrs";
         }
 
-        if (months > 0) {
-            sb.append(months).append(months == 1 ? " month " : " months ");
-        }
-
-        if (days > 0) {
-            sb.append(days).append(days == 1 ? " day " : " days ");
-        }
-
-        if (hours > 0) {
-            sb.append(hours).append(hours == 1 ? " hr " : " hrs ");
-        }
-
-        if (minutes > 0) {
-            sb.append(minutes).append(minutes == 1 ? " min" : " mins");
-        }
-
-        return sb.toString().trim();
+        return totalHours + " hrs";
     }
     /**
      * Converts time strings into total minutes.

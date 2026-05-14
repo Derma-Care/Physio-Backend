@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -16,15 +17,18 @@ import org.springframework.web.client.RestTemplate;
 
 import com.clinicadmin.dto.ActivityDTO;
 import com.clinicadmin.dto.AttendanceDTO;
+import com.clinicadmin.dto.DailyAllUsersResponseDTO;
 import com.clinicadmin.dto.DailyAttendanceResponseDTO;
 import com.clinicadmin.dto.MonthlyAttendanceResponseDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
+import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.TimeLocation;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AttendanceRepository;
+import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.service.AttendanceService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +40,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AttendanceRepository repo;
     
     private final AdminServiceClient adminServiceClient;
+    
+ // Make sure this repository is injected in AttendanceServiceImpl
+
+    @Autowired
+    private DoctorLoginCredentialsRepository credentialsRepository;
 
     @Override
     public Response save(AttendanceDTO dto) {
@@ -85,6 +94,13 @@ public class AttendanceServiceImpl implements AttendanceService {
                 } else {
                     entity.setStatus(null);
                 }
+                
+            }
+            
+            if (dto.getDescription() != null
+                    && !dto.getDescription().isBlank()) {
+
+                entity.setDescription(dto.getDescription());
             }
 
             // 🔥 ACTIVITIES
@@ -170,6 +186,13 @@ public class AttendanceServiceImpl implements AttendanceService {
                 throw new RuntimeException("Attendance not found for update");
             }
             boolean updated = false;
+            
+            if (dto.getDescription() != null
+                    && !dto.getDescription().isBlank()) {
+
+                entity.setDescription(dto.getDescription());
+                updated = true;
+            }
 
          // ✅ LOGIN UPDATE
             if (dto.getLoginTime() != null
@@ -406,7 +429,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             dto.setDate(entity.getDate());
             dto.setLogTime(entity.getLogTime());
             dto.setStatus(entity.getStatus());
-
+            dto.setDescription(entity.getDescription());
             // 🔹 LOGIN
             if (entity.getLogin() != null) {
 
@@ -590,6 +613,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         entity.setClinicId(dto.getClinicId());
         entity.setBranchId(dto.getBranchId());
         entity.setDate(dto.getDate());
+        entity.setDescription(dto.getDescription());
 
         // 🔹 LOGIN
         if (dto.getLogin() != null) {
@@ -985,5 +1009,200 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
 
         return EARTH_RADIUS * c;
+    }
+ // ============================================================================
+ // 4. SERVICE IMPLEMENTATION - ADD THIS METHOD INSIDE AttendanceServiceImpl
+ // ============================================================================
+    @Override
+    public Response getDailyByClinicAndBranch(
+            String clinicId,
+            String branchId,
+            String date) {
+
+        Response response = new Response();
+
+        try {
+
+            // Get all attendance records for clinic + branch + date
+            List<Attendance> attendanceList =
+                    repo.findByClinicIdAndBranchIdAndDate(
+                            clinicId,
+                            branchId,
+                            date
+                    );
+
+            if (attendanceList == null || attendanceList.isEmpty()) {
+                throw new RuntimeException("No attendance data found");
+            }
+
+            List<DailyAllUsersResponseDTO> result = new ArrayList<>();
+
+            for (Attendance entity : attendanceList) {
+
+                DailyAllUsersResponseDTO dto =
+                        new DailyAllUsersResponseDTO();
+
+                // =========================================================
+                // BASIC ATTENDANCE DATA
+                // =========================================================
+                dto.setUserId(entity.getUserId());
+                dto.setClinicId(entity.getClinicId());
+                dto.setBranchId(entity.getBranchId());
+                dto.setDate(entity.getDate());
+                dto.setStatus(entity.getStatus());
+                dto.setLogTime(entity.getLogTime());
+                dto.setWorkingHours(entity.getWorkingHours());
+                dto.setIdleTime(entity.getIdleTime());
+                dto.setDescription(entity.getDescription());
+
+                // =========================================================
+                // GET NAME + ROLE FROM DoctorLoginCredentials USING staffId
+                // =========================================================
+                try {
+
+                    Optional<DoctorLoginCredentials> credentialsOpt =
+                            credentialsRepository.findByStaffId(
+                                    entity.getUserId()
+                            );
+
+                    if (credentialsOpt.isPresent()) {
+
+                        DoctorLoginCredentials credentials =
+                                credentialsOpt.get();
+
+                        // staffName -> name
+                        dto.setName(credentials.getStaffName());
+
+                        // role
+                        dto.setRole(credentials.getRole());
+
+                    } else {
+
+                        // Fallback if credentials not found
+                        dto.setName("");
+                        dto.setRole(entity.getRole());
+                    }
+
+                } catch (Exception e) {
+
+                    // Fallback if any exception occurs
+                    dto.setName("");
+                    dto.setRole(entity.getRole());
+                }
+
+                // =========================================================
+                // LOGIN
+                // =========================================================
+                if (entity.getLogin() != null) {
+
+                    TimeLocationDTO login = new TimeLocationDTO();
+                    login.setTime(entity.getLogin().getTime());
+                    login.setLatitude(entity.getLogin().getLatitude());
+                    login.setLongtitude(entity.getLogin().getLongtitude());
+
+                    if (entity.getLogin().getLatitude() != null
+                            && entity.getLogin().getLongtitude() != null) {
+
+                        login.setLocation(
+                                getCityFromLatLong(
+                                        entity.getLogin().getLatitude(),
+                                        entity.getLogin().getLongtitude()
+                                )
+                        );
+
+                    } else {
+
+                        login.setLocation(entity.getLogin().getLocation());
+                    }
+
+                    dto.setLogin(login);
+                }
+
+                // =========================================================
+                // LOGOUT
+                // =========================================================
+                if (entity.getLogout() != null) {
+
+                    TimeLocationDTO logout = new TimeLocationDTO();
+                    logout.setTime(entity.getLogout().getTime());
+                    logout.setLatitude(entity.getLogout().getLatitude());
+                    logout.setLongtitude(entity.getLogout().getLongtitude());
+
+                    if (entity.getLogout().getLatitude() != null
+                            && entity.getLogout().getLongtitude() != null) {
+
+                        logout.setLocation(
+                                getCityFromLatLong(
+                                        entity.getLogout().getLatitude(),
+                                        entity.getLogout().getLongtitude()
+                                )
+                        );
+
+                    } else {
+
+                        logout.setLocation(entity.getLogout().getLocation());
+                    }
+
+                    dto.setLogout(logout);
+                }
+
+                // =========================================================
+                // ACTIVITIES
+                // =========================================================
+                if (entity.getActivities() != null) {
+
+                    List<ActivityDTO> activities =
+                            entity.getActivities()
+                                    .stream()
+                                    .map(a -> {
+
+                                        ActivityDTO ad =
+                                                new ActivityDTO();
+
+                                        ad.setActivityId(a.getActivityId());
+                                        ad.setActivity(a.getActivity());
+                                        ad.setDuration(a.getDuration());
+                                        ad.setLatitude(a.getLatitude());
+                                        ad.setLongtitude(a.getLongtitude());
+
+                                        if (a.getLatitude() != null
+                                                && a.getLongtitude() != null) {
+
+                                            ad.setLocation(
+                                                    getCityFromLatLong(
+                                                            a.getLatitude(),
+                                                            a.getLongtitude()
+                                                    )
+                                            );
+
+                                        } else {
+
+                                            ad.setLocation(a.getLocation());
+                                        }
+
+                                        return ad;
+
+                                    })
+                                    .collect(Collectors.toList());
+
+                    dto.setActivities(activities);
+                }
+
+                result.add(dto);
+            }
+
+            response.setSuccess(true);
+            response.setMessage("Daily attendance fetched successfully");
+            response.setData(result);
+            response.setStatus(200);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+            response.setStatus(404);
+        }
+
+        return response;
     }
 }
