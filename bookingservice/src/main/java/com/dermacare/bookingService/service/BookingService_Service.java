@@ -1,6 +1,8 @@
 package com.dermacare.bookingService.service;
 
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import com.dermacare.bookingService.dto.BookingInfoByInput;
 import com.dermacare.bookingService.dto.BookingRequset;
@@ -47,7 +49,7 @@ public interface BookingService_Service {
 	        String startDate,
 	        String endDate);
 
-public List<BookingResponse> getTodayBookings(String cId,String bId);
+public List<Map<String,Object>> getTodayBookings(String cId,String bId);
 public ResponseEntity<?> physioAppointment(BookingRequset request);
 public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId);
 

@@ -2881,16 +2881,27 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 
 @Override
-public List<BookingResponse> getTodayBookings(String cId,String bId) {
+public List<Map<String,Object>> getTodayBookings(String cId,String bId) {
+	try {
+	List<Map<String,Object>> list = new ArrayList<>();
     String today = LocalDate.now()
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     List<Booking> b  = repository.findByClinicIdAndBranchIdAndServiceDate(cId,bId,today);
     if(b != null || !b.isEmpty()) {
     	List<BookingResponse> dto = toResponses(b);
-    	return dto;
+    	dto.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
+		    map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
+		    map.put("name", n.getName()); map.put("mobileNumber", n.getMobileNumber()); map.put("doctorId", n.getDoctorId());
+		    map.put("doctorName", n.getDoctorName()); map.put("paymentType", n.getPaymentType()); map.put("visitType", n.getVisitType());
+		    map.put("status", n.getStatus()); map.put("followupStatus", n.getFollowupStatus()); map.put("patientId", n.getPatientId());
+		    map.put("clinicId", n.getClinicId()); map.put("customerId", n.getCustomerId());  map.put("branchId", n.getBranchId());		  
+		    list.add(map);
+		    return n;
+		    }).toList();  
+    	return list;
     }else {
     	return Collections.emptyList();
-    }
+    }}catch(Exception e) {return Collections.emptyList();}
 }
 
 
@@ -2899,11 +2910,131 @@ private static final DateTimeFormatter FORMATTER =
 
 
 // ✅ API 1 → TODAY BOOKINGS
+//@Override
+//public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
+//
+//	try {
+//		String today = LocalDate.now().format(FORMATTER);
+//
+//		// ✅ Fetch ALL bookings (no status filter)
+//		List<Booking> bookings =
+//				repository.findByClinicIdAndBranchIdAndServiceDate(
+//						clinicId,
+//						branchId,
+//						today
+//				);
+//		List<String> followup = physioDoctorFeign.getTodayFollowUpBookingIds();
+//
+//		List<Booking> bkngs = repository.findByBookingIdIn(followup);
+//		  List<Booking> modifiedBookings = null;
+//		if (!bkngs.isEmpty()) {
+//
+//		      modifiedBookings = bkngs.stream().map(n -> {
+//
+//		        n.setStatus("follow-up");
+//
+//		        List<Status> statusList = n.getCurrentStatus();
+//
+//		        if (statusList == null || statusList.isEmpty()) {
+//		            statusList = new ArrayList<>();
+//		        }
+//
+//		        Status status = new Status();
+//
+//		        status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+//		        status.setStatus("follow-up");
+//
+//		        statusList.add(status);
+//
+//		        n.setCurrentStatus(statusList);
+//		        bookings.add(n);
+//		        return n;
+//
+//		    }).toList();		  
+//		    repository.saveAll(modifiedBookings);
+//		}
+//		// ✅ Convert to response DTO
+//		List<BookingResponse> res = null;
+//		List<BookingResponse> bookingres = null;
+//		try {
+//		if(!bookings.isEmpty()) {
+//	    bookingres = toResponses(bookings);}
+//	    if(modifiedBookings != null || !modifiedBookings.isEmpty()) {
+//		res = toResponses(modifiedBookings);
+//		bookingres.addAll(res);}}catch(Exception e) {}
+//		//System.out.println(res.get(1));
+//		// ✅ Enrich with session details (Feign call)
+//		    try {
+//		    if(bookingres != null) {
+//			bookingres = bookingres.stream().map(n -> {
+//						List<Session> lst = physioDoctorFeign
+//						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
+//						.getBody();
+//			 // System.out.println(n.getBookingId());
+//			  // System.out.println(lst);
+//                if(lst != null ) {
+//				n.setSession(lst);
+//				n.setVisitType("session");
+//				}else {
+//				n.setSession(null);}
+//				return n;
+//			}).toList();}
+//
+//		} catch (Exception e) {
+//			// log error instead of silent ignore
+//			System.out.println("Error while fetching session details: " + e.getMessage());
+//		}
+//		Map<String, Object> summary = null;
+//		// ✅ Total count
+//		if(bookingres != null) {
+//		long totalCount = bookings.size();
+//
+//		// ✅ Status counts (case-insensitive + null safe)
+//		long pendingCount = bookingres.stream()
+//				.filter(b -> "PENDING".equalsIgnoreCase(
+//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
+//				))
+//				.count();
+//
+//		long confirmedCount = bookingres.stream()
+//				.filter(b -> "CONFIRMED".equalsIgnoreCase(
+//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
+//				))
+//				.count();
+//
+//		long inProgressCount = bookingres.stream()
+//				.filter(b -> "IN-PROGRESS".equalsIgnoreCase(
+//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
+//				))
+//				.count();
+//
+//		// ✅ Summary response
+//		summary = new HashMap<>();
+//		summary.put("totalAppointments", totalCount);
+//		summary.put("pending", pendingCount);
+//		summary.put("confirmed", confirmedCount);
+//		summary.put("inProgress", inProgressCount);
+//		return ResponseEntity.ok(
+//				new Response(true, bookingres, summary, "Today bookings fetched", 200, null, null)
+//		);}
+//		else {
+//			return ResponseEntity.ok(
+//					new Response(true, bookingres, summary, "Today bookings not found", 200, null, null));}
+//
+//	} catch (Exception e) {
+//		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//				.body(new Response(false, null, null,
+//						"Error fetching today bookings: " + e.getMessage(),
+//						500, null, null));
+//	}
+//}
+
 @Override
 public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
 
 	try {
 		String today = LocalDate.now().format(FORMATTER);
+		List<Map<String,Object>> list = new ArrayList<>();
 
 		// ✅ Fetch ALL bookings (no status filter)
 		List<Booking> bookings =
@@ -2968,6 +3099,16 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 				n.setSession(null);}
 				return n;
 			}).toList();}
+		    bookingres.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
+		    map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
+		    map.put("name", n.getName()); map.put("mobileNumber", n.getMobileNumber()); map.put("doctorId", n.getDoctorId());
+		    map.put("doctorName", n.getDoctorName()); map.put("paymentType", n.getPaymentType()); map.put("visitType", n.getVisitType());
+		    map.put("status", n.getStatus()); map.put("followupStatus", n.getFollowupStatus()); map.put("patientId", n.getPatientId());
+		    map.put("clinicId", n.getClinicId()); map.put("customerId", n.getCustomerId());  map.put("branchId", n.getBranchId());
+		    map.put("session", n.getSession());
+		    list.add(map);
+		    return n;
+		    }).toList();  
 
 		} catch (Exception e) {
 			// log error instead of silent ignore
@@ -3004,11 +3145,11 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 		summary.put("confirmed", confirmedCount);
 		summary.put("inProgress", inProgressCount);
 		return ResponseEntity.ok(
-				new Response(true, bookingres, summary, "Today bookings fetched", 200, null, null)
+				new Response(true, list, summary, "Today bookings fetched", 200, null, null)
 		);}
 		else {
 			return ResponseEntity.ok(
-					new Response(true, bookingres, summary, "Today bookings not found", 200, null, null));}
+					new Response(true, Collections.emptyList(), summary, "Today bookings not found", 200, null, null));}
 
 	} catch (Exception e) {
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -3017,6 +3158,7 @@ public ResponseEntity<Response> getTodayAllBookings(String clinicId, String bran
 						500, null, null));
 	}
 }
+
 
 // ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 @Override

@@ -1,6 +1,7 @@
 package com.dermacare.bookingService.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -51,8 +52,8 @@ public class BookingServiceController {
 	
 	
 	@GetMapping("/getTodayBookings/{clincId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
-		List<BookingResponse> response = service.getTodayBookings(clincId, branchId);
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
+		List<Map<String,Object>> response = service.getTodayBookings(clincId, branchId);
 		if(response != null || !response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
 					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
