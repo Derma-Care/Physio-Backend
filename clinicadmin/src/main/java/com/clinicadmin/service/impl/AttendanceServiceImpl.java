@@ -97,11 +97,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 
             }
             
-            if (dto.getDescription() != null
-                    && !dto.getDescription().isBlank()) {
-
-                entity.setDescription(dto.getDescription());
-            }
+         
 
             // 🔥 ACTIVITIES
             if (dto.getActivities() != null && !dto.getActivities().isEmpty()) {
@@ -117,6 +113,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     act.setActivityId("ACT_" + System.nanoTime());
                     act.setActivity(a.getActivity());
                     act.setDuration(a.getDuration());
+                    act.setDescription(a.getDescription());
                     // 🔥 SAVE LATITUDE & LONGTITUDE
                     act.setLatitude(a.getLatitude());
                     act.setLongtitude(a.getLongtitude());
@@ -187,12 +184,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
             boolean updated = false;
             
-            if (dto.getDescription() != null
-                    && !dto.getDescription().isBlank()) {
-
-                entity.setDescription(dto.getDescription());
+//            if (dto.getDescription() != null
+//                    && !dto.getDescription().isBlank()) {
+//
+//                entity.setDescription(dto.getDescription());
                 updated = true;
-            }
+//            }
 
          // ✅ LOGIN UPDATE
             if (dto.getLoginTime() != null
@@ -301,7 +298,8 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                                 if (incoming.getDuration() != null)
                                     existing.setDuration(incoming.getDuration());
-
+                                if (incoming.getDescription() != null)
+                                    existing.setDescription(incoming.getDescription());
                                 if (incoming.getLocation() != null)
                                     existing.setLocation(incoming.getLocation());
 
@@ -429,7 +427,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             dto.setDate(entity.getDate());
             dto.setLogTime(entity.getLogTime());
             dto.setStatus(entity.getStatus());
-            dto.setDescription(entity.getDescription());
+//            dto.setDescription(entity.getDescription());
             // 🔹 LOGIN
             if (entity.getLogin() != null) {
 
@@ -502,6 +500,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             ad.setActivityId(a.getActivityId());
                             ad.setActivity(a.getActivity());
                             ad.setDuration(a.getDuration());
+                            ad.setDescription(a.getDescription());
 
                             // 🔥 LAT LONG
                             ad.setLatitude(a.getLatitude());
@@ -613,7 +612,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         entity.setClinicId(dto.getClinicId());
         entity.setBranchId(dto.getBranchId());
         entity.setDate(dto.getDate());
-        entity.setDescription(dto.getDescription());
+//        entity.setDescription(dto.getDescription());
 
         // 🔹 LOGIN
         if (dto.getLogin() != null) {
@@ -1010,9 +1009,6 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return EARTH_RADIUS * c;
     }
- // ============================================================================
- // 4. SERVICE IMPLEMENTATION - ADD THIS METHOD INSIDE AttendanceServiceImpl
- // ============================================================================
     @Override
     public Response getDailyByClinicAndBranch(
             String clinicId,
@@ -1050,7 +1046,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                         new DailyAllUsersResponseDTO();
 
                 // =====================================================
-                // BASIC USER DETAILS (ALWAYS AVAILABLE)
+                // BASIC USER DETAILS — always from credentials (live)
+                // ✅ Name and role always reflect latest DB value
                 // =====================================================
                 dto.setUserId(user.getStaffId());
                 dto.setName(user.getStaffName());
@@ -1061,8 +1058,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 // =====================================================
                 // DEFAULT VALUES
-                // If user has not logged in today, these values will be
-                // returned.
+                // If user has not logged in today, these will be returned
                 // =====================================================
                 dto.setStatus("Not Logged In");
                 dto.setLogTime(null);
@@ -1072,7 +1068,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 dto.setLogout(null);
 
                 // =====================================================
-                // FIND TODAY'S ATTENDANCE FOR THIS USER
+                // STEP 1: TRY FULL QUERY — clinicId + branchId + userId + date
                 // =====================================================
                 Optional<Attendance> attendanceOpt =
                         repo.findByClinicIdAndBranchIdAndUserIdAndDate(
@@ -1083,7 +1079,18 @@ public class AttendanceServiceImpl implements AttendanceService {
                         );
 
                 // =====================================================
-                // IF ATTENDANCE EXISTS, OVERRIDE DEFAULT VALUES
+                // STEP 2: FALLBACK — userId + date only
+                // Handles old records saved without clinicId/branchId
+                // =====================================================
+                if (!attendanceOpt.isPresent()) {
+                    attendanceOpt = repo.findByUserIdAndDate(
+                            user.getStaffId(),
+                            date
+                    );
+                }
+
+                // =====================================================
+                // STEP 3: IF ATTENDANCE FOUND — MAP ALL FIELDS
                 // =====================================================
                 if (attendanceOpt.isPresent()) {
 
@@ -1091,14 +1098,32 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                     // -------------------------------------------------
                     // BASIC ATTENDANCE DATA
+                    // ✅ Null-safe defaults
                     // -------------------------------------------------
-                    dto.setStatus(entity.getStatus());
+                    dto.setStatus(
+                            entity.getStatus() != null
+                                    ? entity.getStatus()
+                                    : "Not Logged In"
+                    );
+
                     dto.setLogTime(entity.getLogTime());
-                    dto.setWorkingHours(entity.getWorkingHours());
-                    dto.setIdleTime(entity.getIdleTime());
+
+                    dto.setWorkingHours(
+                            entity.getWorkingHours() != null
+                                    ? entity.getWorkingHours()
+                                    : "00:00"
+                    );
+
+                    dto.setIdleTime(
+                            entity.getIdleTime() != null
+                                    ? entity.getIdleTime()
+                                    : "00:00"
+                    );
 
                     // -------------------------------------------------
                     // LOGIN
+                    // ✅ Always re-resolve location from lat/long
+                    //    so location name changes reflect immediately
                     // -------------------------------------------------
                     if (entity.getLogin() != null) {
 
@@ -1108,8 +1133,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                         login.setLongtitude(entity.getLogin().getLongtitude());
 
                         if (entity.getLogin().getLatitude() != null
-                                && entity.getLogin().getLongtitude() != null) {
+                                && !entity.getLogin().getLatitude().isBlank()
+                                && entity.getLogin().getLongtitude() != null
+                                && !entity.getLogin().getLongtitude().isBlank()) {
 
+                            // ✅ Live resolve — always fresh location name
                             login.setLocation(
                                     getCityFromLatLong(
                                             entity.getLogin().getLatitude(),
@@ -1119,6 +1147,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                         } else {
 
+                            // Fallback: stored string if no lat/long available
                             login.setLocation(entity.getLogin().getLocation());
                         }
 
@@ -1127,6 +1156,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                     // -------------------------------------------------
                     // LOGOUT
+                    // ✅ Always re-resolve location from lat/long
                     // -------------------------------------------------
                     if (entity.getLogout() != null) {
 
@@ -1136,8 +1166,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                         logout.setLongtitude(entity.getLogout().getLongtitude());
 
                         if (entity.getLogout().getLatitude() != null
-                                && entity.getLogout().getLongtitude() != null) {
+                                && !entity.getLogout().getLatitude().isBlank()
+                                && entity.getLogout().getLongtitude() != null
+                                && !entity.getLogout().getLongtitude().isBlank()) {
 
+                            // ✅ Live resolve — always fresh location name
                             logout.setLocation(
                                     getCityFromLatLong(
                                             entity.getLogout().getLatitude(),
@@ -1147,15 +1180,40 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                         } else {
 
+                            // Fallback: stored string if no lat/long available
                             logout.setLocation(entity.getLogout().getLocation());
                         }
 
                         dto.setLogout(logout);
                     }
+
+                    // -------------------------------------------------
+                    // SELF-HEAL: Patch missing clinicId/branchId
+                    // ✅ Old records get fixed automatically on first fetch
+                    //    so future 4-field queries work correctly
+                    // -------------------------------------------------
+                    boolean needsUpdate = false;
+
+                    if (entity.getClinicId() == null
+                            || entity.getClinicId().isBlank()) {
+                        entity.setClinicId(clinicId);
+                        needsUpdate = true;
+                    }
+
+                    if (entity.getBranchId() == null
+                            || entity.getBranchId().isBlank()) {
+                        entity.setBranchId(branchId);
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate) {
+                        // ✅ Silently patch and save — no impact on response
+                        repo.save(entity);
+                    }
                 }
 
                 // =====================================================
-                // ADD USER TO RESULT LIST
+                // ADD TO RESULT LIST
                 // =====================================================
                 result.add(dto);
             }

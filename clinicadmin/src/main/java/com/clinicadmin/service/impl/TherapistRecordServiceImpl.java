@@ -24,6 +24,7 @@ import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
+import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
 
 @Service
@@ -34,6 +35,9 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     
     @Autowired
     private PhysiotherapyFeignClient physiotherapyFeignClient;
+    
+    @Autowired
+    private S3Service s3Service;
 
     @Override
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
@@ -53,37 +57,78 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         // ✅ TherapistRecord status
         record.setStatus("COMPLETED");
 
-        // ================= ENCODE =================
 
-        if (dto.getBeforeImage() != null) {
-            record.setBeforeImage(
-                    Base64.getEncoder().encodeToString(dto.getBeforeImage().getBytes())
-            );
-        }
+        // ================= UPLOAD FILES TO AWS S3 =================
 
-        if (dto.getAfterImage() != null) {
-            record.setAfterImage(
-                    Base64.getEncoder().encodeToString(dto.getAfterImage().getBytes())
-            );
-        }
+        // Upload Before Image
+        record.setBeforeImage(
+                s3Service.uploadFile("before-images", dto.getBeforeImage(), "png")
+        );
 
-        if (dto.getBeforeVideo() != null) {
-            record.setBeforeVideo(
-                    Base64.getEncoder().encodeToString(dto.getBeforeVideo().getBytes())
-            );
-        }
+        // Upload After Image
+        record.setAfterImage(
+                s3Service.uploadFile("after-images", dto.getAfterImage(), "png")
+        );
 
-        if (dto.getAfterVideo() != null) {
-            record.setAfterVideo(
-                    Base64.getEncoder().encodeToString(dto.getAfterVideo().getBytes())
-            );
-        }
+        // Upload Before Video
+        record.setBeforeVideo(
+                s3Service.uploadFile("before-videos", dto.getBeforeVideo(), "mp4")
+        );
 
-        if (dto.getVoiceRecord() != null) {
-            record.setVoiceRecord(
-                    Base64.getEncoder().encodeToString(dto.getVoiceRecord().getBytes())
-            );
-        }
+        // Upload After Video
+        record.setAfterVideo(
+                s3Service.uploadFile("after-videos", dto.getAfterVideo(), "mp4")
+        );
+
+        // Upload Voice Record
+        record.setVoiceRecord(
+                s3Service.uploadFile("voice-records", dto.getVoiceRecord(), "mp3")
+        );
+
+        // Upload Before Image
+        record.setBeforeImage(
+                s3Service.uploadFile(
+                        "before-images",
+                        dto.getBeforeImage(),
+                        "png"
+                )
+        );
+
+        // Upload After Image
+        record.setAfterImage(
+                s3Service.uploadFile(
+                        "after-images",
+                        dto.getAfterImage(),
+                        "png"
+                )
+        );
+
+        // Upload Before Video
+        record.setBeforeVideo(
+                s3Service.uploadFile(
+                        "before-videos",
+                        dto.getBeforeVideo(),
+                        "mp4"
+                )
+        );
+
+        // Upload After Video
+        record.setAfterVideo(
+                s3Service.uploadFile(
+                        "after-videos",
+                        dto.getAfterVideo(),
+                        "mp4"
+                )
+        );
+
+        // Upload Voice Record
+        record.setVoiceRecord(
+                s3Service.uploadFile(
+                        "voice-records",
+                        dto.getVoiceRecord(),
+                        "mp3"
+                )
+        );
 
         // ✅ Ensure IDs
         record.setTherapistRecordId(dto.getTherapistRecordId());
@@ -250,37 +295,11 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         
         
         
-
-        // ================= DECODE =================
-
-        if (record.getBeforeImage() != null) {
-            dto.setBeforeImage(
-                    new String(Base64.getDecoder().decode(record.getBeforeImage()))
-            );
-        }
-
-        if (record.getAfterImage() != null) {
-            dto.setAfterImage(
-                    new String(Base64.getDecoder().decode(record.getAfterImage()))
-            );
-        }
-
-        if (record.getBeforeVideo() != null) {
-            dto.setBeforeVideo(
-                    new String(Base64.getDecoder().decode(record.getBeforeVideo()))
-            );
-        }
-
-        if (record.getAfterVideo() != null) {
-            dto.setAfterVideo(
-                    new String(Base64.getDecoder().decode(record.getAfterVideo()))
-            );
-        }
-        if (record.getVoiceRecord() != null) {
-            dto.setVoiceRecord(
-                new String(Base64.getDecoder().decode(record.getVoiceRecord()))
-            );
-        }
+        dto.setBeforeImage(record.getBeforeImage());
+        dto.setAfterImage(record.getAfterImage());
+        dto.setBeforeVideo(record.getBeforeVideo());
+        dto.setAfterVideo(record.getAfterVideo());
+        dto.setVoiceRecord(record.getVoiceRecord());
 
         return dto;
     }
