@@ -60,4 +60,8 @@ public interface  BookingFeignClient {
 	@PutMapping("/api/v1/update/bookingId")
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
 	
+	  @GetMapping("/api/v1/getDoctorAppointmentsonStatus/{clinicId}/{doctorId}/{status}")
+			public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,
+				@PathVariable String doctorId,@PathVariable String status);
+			
 }

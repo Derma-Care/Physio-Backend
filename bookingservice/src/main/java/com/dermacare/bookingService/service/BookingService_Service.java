@@ -32,7 +32,7 @@ public interface BookingService_Service {
 	public ResponseEntity<?> getInProgressAppointments(String number);
 	public ResponseEntity<?> retrieveOneWeekAppointments(String cinicId,String branchId);								
 	public ResponseEntity<?> getDoctorFutureAppointments(String doctorId);
-	public List<BookingResponse> getBookedServicesByClinicIdWithBranchId(String clinicId, String branchId);
+	public List<Map<String,Object>> getBookedServicesByClinicIdWithBranchId(String clinicId, String branchId);
 	public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,String date);
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse dto);
 	public ResponseEntity<?> getRelationsByCustomerId(String customerId);
@@ -63,5 +63,9 @@ public ResponseEntity<Response> getBookingById(String bookingId);
 public List<BookingResponse> bookingByPatientIdAndBookingId(String patientId,String bookingId);
 public List<ReportsDTO> getReportsByPatientId(String patientId);
 public void deleteBookedServiceReports(String bookingId,String index);
+public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
+        String clinicId,       
+        String doctorId,
+        String status);
 	   	
 }

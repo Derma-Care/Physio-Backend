@@ -194,11 +194,11 @@ public class BookingServiceController {
 	}
 	
 	@GetMapping("/getBookedServicesByClinicIdWithBranchId/{clinicId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookedServicesByClinicIdWithBranchId(
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookedServicesByClinicIdWithBranchId(
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId) {
 
-	    List<BookingResponse> response = service.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
+		 List<Map<String,Object>> response = service.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
 	    if (response == null || response.isEmpty()) {
 	        return new ResponseEntity<>(ResponseStructure.buildResponse(null,
 	                "No bookings found for clinicId: " + clinicId + " and branchId: " + branchId,
@@ -423,5 +423,12 @@ public class BookingServiceController {
 	        return ResponseEntity.ok(response);
 	    }
 			
-		}
+	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{doctorId}/{status}")
+		public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,
+			@PathVariable String doctorId,@PathVariable String status)
+		{
+			return service.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, doctorId, status);
+		}	
+	    
+  }
 

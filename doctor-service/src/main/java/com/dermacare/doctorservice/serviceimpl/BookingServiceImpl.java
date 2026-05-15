@@ -3,6 +3,7 @@ package com.dermacare.doctorservice.serviceimpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.dermacare.doctorservice.dto.ExtractFeignMessage;
 import com.dermacare.doctorservice.dto.Response;
@@ -35,6 +36,21 @@ public class BookingServiceImpl implements BookingService {
     	 Response res = new Response();
     	try {
             return bookingFeignClient.getAppointsByInput(input);
+        } catch (FeignException ex) {
+        	res.setStatus(ex.status());
+        	res.setMessage(ExtractFeignMessage.clearMessage(ex));
+        	res.setSuccess(false);
+            return ResponseEntity.status(ex.status()).body(res);
+        }
+    }
+    
+    
+    @Override
+    public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,
+		String doctorId,String status) {
+    	 Response res = new Response();
+    	try {
+            return bookingFeignClient.getDoctorAppointmentsonStatus(clinicId, doctorId, status);
         } catch (FeignException ex) {
         	res.setStatus(ex.status());
         	res.setMessage(ExtractFeignMessage.clearMessage(ex));

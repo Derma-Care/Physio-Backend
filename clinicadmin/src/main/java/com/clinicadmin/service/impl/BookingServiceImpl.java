@@ -82,9 +82,9 @@ public class BookingServiceImpl implements BookingService {
 	}
 
 	@Override
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByClinicIdWithBranchId(String clinicId,
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingsByClinicIdWithBranchId(String clinicId,
 			String branchId) {
-		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+		ResponseStructure<List<Map<String,Object>>> res = new ResponseStructure<>();
 		try {
 			return bookingFeign.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
 		} catch (FeignException e) {
@@ -134,7 +134,7 @@ public class BookingServiceImpl implements BookingService {
 	public ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
-			return bookingFeign.getBookingByPatientId(patientId);
+			return bookingFeign.getAppointmentByPatientId(patientId);
 		} catch (FeignException e) {
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
