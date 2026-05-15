@@ -28,10 +28,10 @@ public class DailyAllUsersResponseDTO {
     private TimeLocationDTO login;
     private TimeLocationDTO logout;
 
-    private List<ActivityDTO> activities;
-
-	private String description;
-	
+//    private List<ActivityDTO> activities;
+//
+//	private String description;
+//	
 		
 	
 }

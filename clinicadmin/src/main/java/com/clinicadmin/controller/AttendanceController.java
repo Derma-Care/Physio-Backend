@@ -81,6 +81,11 @@ public class AttendanceController {
             @PathVariable String branchId,
             @PathVariable String date) {
 
+        // =========================================================
+        // DATE IS STILL PASSED IN THE URL TO KEEP THE ORIGINAL API.
+        // HOWEVER, INSIDE THE SERVICE METHOD, THIS DATE WILL BE
+        // OVERRIDDEN WITH TODAY'S DATE USING LocalDate.now().
+        // =========================================================
         Response response = service.getDailyByClinicAndBranch(
                 clinicId,
                 branchId,

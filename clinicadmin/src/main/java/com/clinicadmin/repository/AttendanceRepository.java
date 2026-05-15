@@ -45,4 +45,12 @@ public interface AttendanceRepository extends MongoRepository<Attendance, String
     List<Attendance> findByRoleAndDate(String role, String date);
 
 	List<Attendance> findByUserIdAndDateStartingWith(String userId, String month);
+
+//	Optional<Attendance> findByClinicIdAndBranchIdAndUserIdAndDate(String clinicId, String branchId, String staffId,
+//			String today);
+
+//	Optional<Attendance> findByClinicIdAndBranchIdAndUserIdAndDate(String clinicId, String branchId, String staffId);
+
+	Optional<Attendance> findByClinicIdAndBranchIdAndUserIdAndDate(String clinicId, String branchId, String staffId,
+			String date);
 }

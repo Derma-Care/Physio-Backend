@@ -1023,176 +1023,148 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         try {
 
-            // Get all attendance records for clinic + branch + date
-            List<Attendance> attendanceList =
-                    repo.findByClinicIdAndBranchIdAndDate(
+            // =========================================================
+            // GET ALL USERS FROM LOGIN CREDENTIALS
+            // BASED ON clinicId + branchId
+            // This ensures every user is returned even if they have not
+            // logged in today.
+            // =========================================================
+            List<DoctorLoginCredentials> users =
+                    credentialsRepository.findByHospitalIdAndBranchId(
                             clinicId,
-                            branchId,
-                            date
+                            branchId
                     );
 
-            if (attendanceList == null || attendanceList.isEmpty()) {
-                throw new RuntimeException("No attendance data found");
+            if (users == null || users.isEmpty()) {
+                throw new RuntimeException("No users found for this clinic and branch");
             }
 
             List<DailyAllUsersResponseDTO> result = new ArrayList<>();
 
-            for (Attendance entity : attendanceList) {
+            // =========================================================
+            // LOOP THROUGH ALL USERS
+            // =========================================================
+            for (DoctorLoginCredentials user : users) {
 
                 DailyAllUsersResponseDTO dto =
                         new DailyAllUsersResponseDTO();
 
-                // =========================================================
-                // BASIC ATTENDANCE DATA
-                // =========================================================
-                dto.setUserId(entity.getUserId());
-                dto.setClinicId(entity.getClinicId());
-                dto.setBranchId(entity.getBranchId());
-                dto.setDate(entity.getDate());
-                dto.setStatus(entity.getStatus());
-                dto.setLogTime(entity.getLogTime());
-                dto.setWorkingHours(entity.getWorkingHours());
-                dto.setIdleTime(entity.getIdleTime());
-                dto.setDescription(entity.getDescription());
+                // =====================================================
+                // BASIC USER DETAILS (ALWAYS AVAILABLE)
+                // =====================================================
+                dto.setUserId(user.getStaffId());
+                dto.setName(user.getStaffName());
+                dto.setRole(user.getRole());
+                dto.setClinicId(clinicId);
+                dto.setBranchId(branchId);
+                dto.setDate(date);
 
-                // =========================================================
-                // GET NAME + ROLE FROM DoctorLoginCredentials USING staffId
-                // =========================================================
-                try {
+                // =====================================================
+                // DEFAULT VALUES
+                // If user has not logged in today, these values will be
+                // returned.
+                // =====================================================
+                dto.setStatus("Not Logged In");
+                dto.setLogTime(null);
+                dto.setWorkingHours("00:00");
+                dto.setIdleTime("00:00");
+                dto.setLogin(null);
+                dto.setLogout(null);
 
-                    Optional<DoctorLoginCredentials> credentialsOpt =
-                            credentialsRepository.findByStaffId(
-                                    entity.getUserId()
+                // =====================================================
+                // FIND TODAY'S ATTENDANCE FOR THIS USER
+                // =====================================================
+                Optional<Attendance> attendanceOpt =
+                        repo.findByClinicIdAndBranchIdAndUserIdAndDate(
+                                clinicId,
+                                branchId,
+                                user.getStaffId(),
+                                date
+                        );
+
+                // =====================================================
+                // IF ATTENDANCE EXISTS, OVERRIDE DEFAULT VALUES
+                // =====================================================
+                if (attendanceOpt.isPresent()) {
+
+                    Attendance entity = attendanceOpt.get();
+
+                    // -------------------------------------------------
+                    // BASIC ATTENDANCE DATA
+                    // -------------------------------------------------
+                    dto.setStatus(entity.getStatus());
+                    dto.setLogTime(entity.getLogTime());
+                    dto.setWorkingHours(entity.getWorkingHours());
+                    dto.setIdleTime(entity.getIdleTime());
+
+                    // -------------------------------------------------
+                    // LOGIN
+                    // -------------------------------------------------
+                    if (entity.getLogin() != null) {
+
+                        TimeLocationDTO login = new TimeLocationDTO();
+                        login.setTime(entity.getLogin().getTime());
+                        login.setLatitude(entity.getLogin().getLatitude());
+                        login.setLongtitude(entity.getLogin().getLongtitude());
+
+                        if (entity.getLogin().getLatitude() != null
+                                && entity.getLogin().getLongtitude() != null) {
+
+                            login.setLocation(
+                                    getCityFromLatLong(
+                                            entity.getLogin().getLatitude(),
+                                            entity.getLogin().getLongtitude()
+                                    )
                             );
 
-                    if (credentialsOpt.isPresent()) {
+                        } else {
 
-                        DoctorLoginCredentials credentials =
-                                credentialsOpt.get();
+                            login.setLocation(entity.getLogin().getLocation());
+                        }
 
-                        // staffName -> name
-                        dto.setName(credentials.getStaffName());
-
-                        // role
-                        dto.setRole(credentials.getRole());
-
-                    } else {
-
-                        // Fallback if credentials not found
-                        dto.setName("");
-                        dto.setRole(entity.getRole());
+                        dto.setLogin(login);
                     }
 
-                } catch (Exception e) {
+                    // -------------------------------------------------
+                    // LOGOUT
+                    // -------------------------------------------------
+                    if (entity.getLogout() != null) {
 
-                    // Fallback if any exception occurs
-                    dto.setName("");
-                    dto.setRole(entity.getRole());
-                }
+                        TimeLocationDTO logout = new TimeLocationDTO();
+                        logout.setTime(entity.getLogout().getTime());
+                        logout.setLatitude(entity.getLogout().getLatitude());
+                        logout.setLongtitude(entity.getLogout().getLongtitude());
 
-                // =========================================================
-                // LOGIN
-                // =========================================================
-                if (entity.getLogin() != null) {
+                        if (entity.getLogout().getLatitude() != null
+                                && entity.getLogout().getLongtitude() != null) {
 
-                    TimeLocationDTO login = new TimeLocationDTO();
-                    login.setTime(entity.getLogin().getTime());
-                    login.setLatitude(entity.getLogin().getLatitude());
-                    login.setLongtitude(entity.getLogin().getLongtitude());
+                            logout.setLocation(
+                                    getCityFromLatLong(
+                                            entity.getLogout().getLatitude(),
+                                            entity.getLogout().getLongtitude()
+                                    )
+                            );
 
-                    if (entity.getLogin().getLatitude() != null
-                            && entity.getLogin().getLongtitude() != null) {
+                        } else {
 
-                        login.setLocation(
-                                getCityFromLatLong(
-                                        entity.getLogin().getLatitude(),
-                                        entity.getLogin().getLongtitude()
-                                )
-                        );
+                            logout.setLocation(entity.getLogout().getLocation());
+                        }
 
-                    } else {
-
-                        login.setLocation(entity.getLogin().getLocation());
+                        dto.setLogout(logout);
                     }
-
-                    dto.setLogin(login);
                 }
 
-                // =========================================================
-                // LOGOUT
-                // =========================================================
-                if (entity.getLogout() != null) {
-
-                    TimeLocationDTO logout = new TimeLocationDTO();
-                    logout.setTime(entity.getLogout().getTime());
-                    logout.setLatitude(entity.getLogout().getLatitude());
-                    logout.setLongtitude(entity.getLogout().getLongtitude());
-
-                    if (entity.getLogout().getLatitude() != null
-                            && entity.getLogout().getLongtitude() != null) {
-
-                        logout.setLocation(
-                                getCityFromLatLong(
-                                        entity.getLogout().getLatitude(),
-                                        entity.getLogout().getLongtitude()
-                                )
-                        );
-
-                    } else {
-
-                        logout.setLocation(entity.getLogout().getLocation());
-                    }
-
-                    dto.setLogout(logout);
-                }
-
-                // =========================================================
-                // ACTIVITIES
-                // =========================================================
-                if (entity.getActivities() != null) {
-
-                    List<ActivityDTO> activities =
-                            entity.getActivities()
-                                    .stream()
-                                    .map(a -> {
-
-                                        ActivityDTO ad =
-                                                new ActivityDTO();
-
-                                        ad.setActivityId(a.getActivityId());
-                                        ad.setActivity(a.getActivity());
-                                        ad.setDuration(a.getDuration());
-                                        ad.setLatitude(a.getLatitude());
-                                        ad.setLongtitude(a.getLongtitude());
-
-                                        if (a.getLatitude() != null
-                                                && a.getLongtitude() != null) {
-
-                                            ad.setLocation(
-                                                    getCityFromLatLong(
-                                                            a.getLatitude(),
-                                                            a.getLongtitude()
-                                                    )
-                                            );
-
-                                        } else {
-
-                                            ad.setLocation(a.getLocation());
-                                        }
-
-                                        return ad;
-
-                                    })
-                                    .collect(Collectors.toList());
-
-                    dto.setActivities(activities);
-                }
-
+                // =====================================================
+                // ADD USER TO RESULT LIST
+                // =====================================================
                 result.add(dto);
             }
 
+            // =========================================================
+            // SUCCESS RESPONSE
+            // =========================================================
             response.setSuccess(true);
-            response.setMessage("Daily attendance fetched successfully");
+            response.setMessage("Today's attendance for all users fetched successfully");
             response.setData(result);
             response.setStatus(200);
 
