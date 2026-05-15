@@ -34,5 +34,4 @@ public class Attendance {
     // 🔥 Activities
     private List<Activity> activities;
     
-    private String description;
-}
+   }

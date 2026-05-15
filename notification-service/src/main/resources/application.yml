@@ -3,13 +3,16 @@ spring:
     name: notification-service
 
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: localhost:9092
+
     consumer:
       group-id: notificationgroup
       enable-auto-commit: true
+      auto-offset-reset: latest
+
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      auto-offset-reset: latest  # <-- Added this line
+
       properties:
         spring:
           json:
@@ -18,38 +21,83 @@ spring:
             value:
               default:
                 type: com.dermacare.notification_service.entity.Booking
+
     listener:
       concurrency: 1
 
   data:
     mongodb:
-      uri: mongodb://mongodb:27017/DermaCareNotifications
+      uri: mongodb://localhost:27017/DermaCareNotifications?connectTimeoutMS=30000&socketTimeoutMS=60000
+
+  mvc:
+    async:
+      request-timeout: 60000
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 30000
+            readTimeout: 60000
 
 server:
   port: 9909
+
   servlet:
     context-path: /api
 
-eureka: 
+  tomcat:
+    connection-timeout: 60s
+
+eureka:
   instance:
     prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
   client:
     register-with-eureka: true
     fetch-registry: true
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
 
+    healthcheck:
+      enabled: true
+
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# ===============================
+# Actuator
+# ===============================
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info,metrics
 
+  endpoint:
+    health:
+      show-details: always
+
+# ===============================
+# App Info
+# ===============================
 info:
   app:
     name: notification-service
     description: Service responsible for handling notifications related to bookings
     version: 1.0.0
 
+# ===============================
+# Firebase
+# ===============================
 app:
   firebase-configuration-file: firebase-key.json
+
+# ===============================
+# Logging
+# ===============================
+logging:
+  level:
+    org.springframework.web: INFO
+    com.dermacare.notification_service: DEBUG

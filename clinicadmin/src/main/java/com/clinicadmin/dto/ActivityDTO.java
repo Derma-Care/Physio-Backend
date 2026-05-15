@@ -11,4 +11,6 @@ public class ActivityDTO {
     private String latitude;
     private String longtitude;
     private String location;
+    private String description;
+
 }

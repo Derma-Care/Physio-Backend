@@ -16,7 +16,7 @@ public class DailyAttendanceResponseDTO {
 
     private List<ActivityDTO> activities;
 
-	private String  description;
+//	private String  description;
 		
 		
 	
