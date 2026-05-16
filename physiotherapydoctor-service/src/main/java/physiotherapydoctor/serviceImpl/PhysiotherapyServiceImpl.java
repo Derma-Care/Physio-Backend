@@ -91,7 +91,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		PhysiotherapyRecord entity = mapToEntity(dto);
 
-		entity.setTherapistRecordId(dto.getTherapistRecordId());
+//		entity.setTherapistRecordId(dto.getTherapistRecordId());
 		// entity.setOverallStatus("Pending");
 
 		LocalDateTime now = LocalDateTime.now();
