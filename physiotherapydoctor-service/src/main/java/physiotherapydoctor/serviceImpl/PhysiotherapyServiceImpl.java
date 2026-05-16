@@ -720,7 +720,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		List<PhysiotherapyRecord> records = repository
 				.findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingId(clinicId, branchId, patientId, bookingId);
-
+System.out.println(records);
 		if (records == null || records.isEmpty()) {
 			response.setSuccess(false);
 			response.setMessage("No records found");

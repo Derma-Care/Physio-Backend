@@ -1769,9 +1769,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		        try {
 		        List<Map<String, Object>> list = new ArrayList<>();
 		        List<BookingResponse> reversedBookings = new ArrayList<>();
-
 		        LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Kolkata"));
-
+                if(!branchId.equalsIgnoreCase("all")){
 		        if (status.equalsIgnoreCase("pending")) {
                      String requiredStatus = "confirmed";
 		            List<Booking> bookings =
@@ -1804,7 +1803,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		                        LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
 		                        return bookingDate.isAfter(currentDate);
 		                    })
-		                    .toList();
+		                    .toList();		        		       
 		        }else{
 		            List<Booking> bookings =		            		
 		                    repository.findByClinicIdAndBranchIdAndDoctorIdAndStatusIgnoreCase(
@@ -1858,31 +1857,114 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 		                return n;
 
-		            }).toList();
+		            }).toList();}         
+		         }else {		        	
+		        	if (status.equalsIgnoreCase("pending")) {
+	                     String requiredStatus = "confirmed";
+			            List<Booking> bookings =
+			                    repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(
+			                            clinicId,                 
+			                            doctorId,
+			                            requiredStatus);
+			            reversedBookings = toResponses(bookings);
+			            // BEFORE current date
+			            reversedBookings = reversedBookings.stream()
+			                    .filter(b -> {
+			                        LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
+			                        return bookingDate.isBefore(currentDate);
+			                    })
+			                    .toList();
+			        } else if (status.equalsIgnoreCase("confirmed")) {		        	
+			            List<Booking> bookings =
+			                    repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(
+			                            clinicId,		                     
+			                            doctorId,
+			                            status);
 
-		            return ResponseEntity.status(HttpStatus.OK)
-		                    .body(new Response(
-		                            true,
-		                            list,
-		                            null,
-		                            "appointments are found",
-		                            200,
-		                            null,
-		                            null
-		                    ));
-		        }
+			            reversedBookings = toResponses(bookings);
 
-		        return ResponseEntity.status(HttpStatus.OK)
-		                .body(new Response(
-		                        false,
-		                        null,
-		                        null,
-		                        "No appointments found",
-		                        200,
-		                        null,
-		                        null
-		                ));
+			            // AFTER current date
+			            reversedBookings = reversedBookings.stream()
+			                    .filter(b -> {
+			                        LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
+			                        return bookingDate.isAfter(currentDate);
+			                    })
+			                    .toList();		        		       
+			        }else{
+			            List<Booking> bookings =		            		
+			                    repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(
+			                            clinicId,		                      
+			                            doctorId,
+			                            status);
+			            if(!bookings.isEmpty()) {
+			            reversedBookings = toResponses(bookings);
+			            }else {
+			             List<Booking> bkings =		            		
+					                 repository.findByClinicIdAndBranchIdAndDoctorIdAndFollowupStatusIgnoreCase(
+					                            clinicId,
+					                            branchId,
+					                            doctorId,
+					                            status);	
+			            	 reversedBookings = toResponses(bkings);}}
+			        if (reversedBookings != null && !reversedBookings.isEmpty()) {
 
+			            reversedBookings.stream().map(n -> {
+
+			                Map<String, Object> map = new LinkedHashMap<>();
+
+			                map.put("bookingId", n.getBookingId());
+			                map.put("serviceDate", n.getServiceDate());
+			                map.put("servicetime", n.getServicetime());
+			                map.put("name", n.getName());
+
+			                map.put("mobileNumber",
+			                        !n.getPatientMobileNumber().isEmpty()
+			                                ? n.getPatientMobileNumber()
+			                                : n.getMobileNumber());
+
+			                map.put("doctorId", n.getDoctorId());
+			                map.put("doctorName", n.getDoctorName());
+			                map.put("paymentType", n.getPaymentType());
+			                map.put("visitType", n.getVisitType());
+			                map.put("status", n.getStatus());
+			                map.put("followupStatus", n.getFollowupStatus());
+			                map.put("patientId", n.getPatientId());
+			                map.put("clinicId", n.getClinicId());
+			                map.put("customerId", n.getCustomerId());
+			                map.put("branchId", n.getBranchId());
+			                map.put("age", n.getAge());
+			                map.put("gender", n.getGender());
+			                map.put("branchName", n.getBranchname());
+			                map.put("problem", n.getProblem());
+			                map.put("session", n.getSession());
+
+			                list.add(map);
+
+			                return n;
+
+			            }).toList();}}
+                if(!list.isEmpty()) {
+                	  return ResponseEntity.status(HttpStatus.OK)
+			                    .body(new Response(
+			                            true,
+			                            list,
+			                            null,
+			                            "appointments are found",
+			                            200,
+			                            null,
+			                            null
+			                    ));
+                }else {
+                	 return ResponseEntity.status(HttpStatus.OK)
+			                    .body(new Response(
+			                            true,
+			                            null,
+			                            null,
+			                            "appointments are not found",
+			                            200,
+			                            null,
+			                            null
+			                    ));}
 		    } catch (Exception e) {
 
 		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
