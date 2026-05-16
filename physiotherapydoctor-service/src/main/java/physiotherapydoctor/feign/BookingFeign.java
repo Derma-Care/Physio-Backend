@@ -44,5 +44,9 @@ public interface BookingFeign {
 	
 	@GetMapping("/api/v1/getTodayDoctorAppointmentsByDoctorId/{clinicId}/{doctorId}")
 	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(@PathVariable String clinicId,@PathVariable String doctorId);
+
+	 @GetMapping("/api/v1/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
+		public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
+			@PathVariable String doctorId,@PathVariable String status);	
 	
 }

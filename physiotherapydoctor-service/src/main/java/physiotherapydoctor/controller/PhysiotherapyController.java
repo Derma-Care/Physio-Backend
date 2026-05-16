@@ -242,4 +242,11 @@ public class PhysiotherapyController {
 	    	return service.updateDoctorAvailability(doctorId, availabilityDTO);
 	    	
 	    }
+	    
+	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
+	 	public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
+	 		@PathVariable String doctorId,@PathVariable String status){
+	 		return service.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status);
+	 		   
+	 	 }
 }

@@ -73,6 +73,9 @@ public interface PhysiotherapyService {
 	Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO);
 
 	Response login(DoctorLoginDTO loginDTO);
+	
+	 public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,String branchId,
+		  		String doctorId,String status);
 
 
 

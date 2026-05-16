@@ -2389,4 +2389,18 @@ return null;
 		return sessions * price;
 	}
 
+	
+	  @Override
+      public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,String branchId,
+  		String doctorId,String status) {
+      	 Response res = new Response();
+      	try {
+              return bookingFeign.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status);
+          } catch (FeignException ex) {
+          	res.setStatus(ex.status());
+          	res.setMessage(ExtractFeignMessage.clearMessage(ex));
+          	res.setSuccess(false);
+              return ResponseEntity.status(ex.status()).body(res);
+          }
+      }
 }

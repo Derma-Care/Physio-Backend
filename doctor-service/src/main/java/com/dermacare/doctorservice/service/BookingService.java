@@ -25,7 +25,8 @@ public interface BookingService {
 	ResponseEntity<?> getDoctorFutureAppointments(String doctorId);
 	 public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 	    		String bookingId);
-	 public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,
-				String doctorId,String status);
+	 public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,String branchId,
+	    		String doctorId,String status);
+	        
 }
 

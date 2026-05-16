@@ -423,12 +423,11 @@ public class BookingServiceController {
 	        return ResponseEntity.ok(response);
 	    }
 			
-	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{doctorId}/{status}")
-		public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,
+	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
+		public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
 			@PathVariable String doctorId,@PathVariable String status)
 		{
-			return service.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, doctorId, status);
+			return service.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, branchId, doctorId, status);
 		}	
 	    
   }
-

@@ -84,12 +84,11 @@ public class BookingController {
 		   
 	 }
     
-    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{doctorId}/{status}")
-	public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
-		@PathVariable String doctorId,@PathVariable String status){
-		return bookingService.getDoctorAppointmentsonStatus(clinicId,doctorId, status);
-		   
-	 }
-
+    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
+ 	public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
+ 		@PathVariable String doctorId,@PathVariable String status){
+ 		return bookingService.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status);
+ 		   
+ 	 }
 }
 

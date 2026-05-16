@@ -44,20 +44,7 @@ public class BookingServiceImpl implements BookingService {
         }
     }
     
-    
-    @Override
-    public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,
-		String doctorId,String status) {
-    	 Response res = new Response();
-    	try {
-            return bookingFeignClient.getDoctorAppointmentsonStatus(clinicId, doctorId, status);
-        } catch (FeignException ex) {
-        	res.setStatus(ex.status());
-        	res.setMessage(ExtractFeignMessage.clearMessage(ex));
-        	res.setSuccess(false);
-            return ResponseEntity.status(ex.status()).body(res);
-        }
-    }
+   
 
     @Override
     public  ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId) {
@@ -159,7 +146,20 @@ public class BookingServiceImpl implements BookingService {
     		response.setMessage(e.getMessage());
     		response.setSuccess(false);
             return ResponseEntity.status(response.getStatus()).body(response);
-        }
+        }}
 
-}}
+        @Override
+        public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,String branchId,
+    		String doctorId,String status) {
+        	 Response res = new Response();
+        	try {
+                return bookingFeignClient.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status);
+            } catch (FeignException ex) {
+            	res.setStatus(ex.status());
+            	res.setMessage(ExtractFeignMessage.clearMessage(ex));
+            	res.setSuccess(false);
+                return ResponseEntity.status(ex.status()).body(res);
+            }
+        }
+}
 

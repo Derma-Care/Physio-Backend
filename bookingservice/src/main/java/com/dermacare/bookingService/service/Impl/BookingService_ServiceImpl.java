@@ -1762,7 +1762,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		
 		@Override
 		public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
-		        String clinicId,		       
+		        String clinicId,
+		        String branchId,
 		        String doctorId,
 		        String status) {
 		        try {
@@ -1774,8 +1775,9 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		        if (status.equalsIgnoreCase("pending")) {
                      String requiredStatus = "confirmed";
 		            List<Booking> bookings =
-		                    repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(
-		                            clinicId,		                          
+		                    repository.findByClinicIdAndBranchIdAndDoctorIdAndStatusIgnoreCase(
+		                            clinicId,
+		                            branchId,
 		                            doctorId,
 		                            requiredStatus);
 		            reversedBookings = toResponses(bookings);
@@ -1788,8 +1790,9 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		                    .toList();
 		        } else if (status.equalsIgnoreCase("confirmed")) {		        	
 		            List<Booking> bookings =
-		                    repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(
-		                            clinicId,                           
+		                    repository.findByClinicIdAndBranchIdAndDoctorIdAndStatusIgnoreCase(
+		                            clinicId,
+		                            branchId,
 		                            doctorId,
 		                            status);
 
@@ -1804,16 +1807,18 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		                    .toList();
 		        }else{
 		            List<Booking> bookings =		            		
-		                    repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(
-		                            clinicId,		                          
+		                    repository.findByClinicIdAndBranchIdAndDoctorIdAndStatusIgnoreCase(
+		                            clinicId,
+		                            branchId,
 		                            doctorId,
 		                            status);
 		            if(!bookings.isEmpty()) {
 		            reversedBookings = toResponses(bookings);
 		            }else {
 		             List<Booking> bkings =		            		
-				                 repository.findByClinicIdAndDoctorIdAndFollowupStatusIgnoreCase(
-				                            clinicId,		                          
+				                 repository.findByClinicIdAndBranchIdAndDoctorIdAndFollowupStatusIgnoreCase(
+				                            clinicId,
+				                            branchId,
 				                            doctorId,
 				                            status);	
 		            	 reversedBookings = toResponses(bkings);}}
