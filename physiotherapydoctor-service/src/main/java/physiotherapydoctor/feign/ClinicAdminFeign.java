@@ -55,6 +55,11 @@ public interface ClinicAdminFeign {
             @PathVariable String patientId,
             @PathVariable String sessionId);
     
+ // ================= GET Threapistdata by clinicId and Branch Id  with required field=================
+ 	@GetMapping("/clinic-admin/getTherapistWithRequiredFileds/{clinicId}/{branchId}")
+ 	public ResponseEntity<Response> getTherapistWithRequiredFileds(@PathVariable String clinicId,
+ 			@PathVariable String branchId);
+    
 }
     
     

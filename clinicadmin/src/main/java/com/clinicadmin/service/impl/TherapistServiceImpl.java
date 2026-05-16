@@ -22,6 +22,7 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistDTO;
+import com.clinicadmin.dto.TherapistResponseDTO;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Documents;
 import com.clinicadmin.entity.FeedbackDetails;
@@ -301,7 +302,41 @@ public class TherapistServiceImpl implements TherapistService {
                 HttpStatus.OK,
                 200);
     }
+    // ================= GET BY CLINICID AND BRANCHID only required fileds =================
+    
+    @Override
+    public Response getTherapistData(String clinicId, String branchId) {
 
+        List<Therapist> list =
+                repository.findByClinicIdAndBranchId(clinicId, branchId);
+
+        List<TherapistResponseDTO> responseList = new ArrayList<>();
+
+        for (Therapist data : list) {
+
+            TherapistResponseDTO dto = new TherapistResponseDTO();
+
+            dto.setClinicId(data.getClinicId());
+            dto.setBranchId(data.getBranchId());
+            dto.setTherapistId(data.getTherapistId());
+            dto.setFullName(data.getFullName());
+            dto.setYearsOfExperience(data.getYearsOfExperience());
+            dto.setExpertiseAreas(data.getExpertiseAreas());
+            dto.setContactNumber(data.getContactNumber());
+            dto.setSpecializations(data.getSpecializations());
+
+            responseList.add(dto);
+        }
+
+        Response response = new Response();
+        response.setSuccess(true);
+        response.setData(responseList);
+        response.setMessage("Successfully fetched therapists");
+        response.setStatus(HttpStatus.OK.value());
+
+        return response;
+    }
+    
  // ================= UPDATE BY THERAPISTID=================
     @Override
     public ResponseStructure<TherapistDTO> updateBytherapistId(
