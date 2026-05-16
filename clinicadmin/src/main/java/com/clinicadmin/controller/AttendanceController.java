@@ -96,4 +96,18 @@ public class AttendanceController {
                 .status(response.getStatus())
                 .body(response);
     }
+    @GetMapping("/getMonthlyReportforUserStartDateToEndDate/{clinicId}/{branchId}/{userId}/{startDate}/{endDate}")
+    public ResponseEntity<Response> getMonthlyByClinicAndBranch(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String userId,
+            @PathVariable String startDate,
+            @PathVariable String endDate) {
+
+        Response response = service.getMonthlyByClinicAndBranch(
+                clinicId, branchId, userId, startDate, endDate
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }

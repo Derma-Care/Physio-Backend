@@ -704,6 +704,8 @@ public class DoctorServiceImpl implements DoctorService {
 				doctor.setLanguages(dto.getLanguages());
 			if (dto.getHighlights() != null)
 				doctor.setHighlights(dto.getHighlights());
+			if (dto.getDateofJoining() != null)
+				doctor.setDateofJoining(dto.getDateofJoining());
 			if (dto.getDoctorSignature() != null)
 				doctor.setDoctorSignature(Base64CompressionUtil.compressBase64(dto.getDoctorSignature()));
 			if (dto.getDoctorFees() != null)

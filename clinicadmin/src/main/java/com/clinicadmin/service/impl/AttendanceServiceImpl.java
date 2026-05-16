@@ -41,7 +41,6 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     private final AdminServiceClient adminServiceClient;
     
- // Make sure this repository is injected in AttendanceServiceImpl
 
     @Autowired
     private DoctorLoginCredentialsRepository credentialsRepository;
@@ -1235,4 +1234,109 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return response;
     }
+    
+    @Override
+    public Response getMonthlyByClinicAndBranch(
+            String clinicId,
+            String branchId,
+            String userId,
+            String startDate,
+            String endDate) {
+
+        Response response = new Response();
+
+        try {
+
+            // =========================================================
+            // VALIDATION
+            // =========================================================
+            if (clinicId == null || clinicId.isBlank()
+                    || branchId == null || branchId.isBlank()
+                    || userId == null || userId.isBlank()
+                    || startDate == null || startDate.isBlank()
+                    || endDate == null || endDate.isBlank()) {
+                throw new RuntimeException(
+                        "clinicId, branchId, userId, startDate and endDate are required"
+                );
+            }
+
+            if (startDate.compareTo(endDate) > 0) {
+                throw new RuntimeException(
+                        "startDate must not be after endDate"
+                );
+            }
+
+            // =========================================================
+            // FETCH ATTENDANCE BETWEEN startDate AND endDate
+            // =========================================================
+            List<Attendance> attendanceList =
+                    repo.findByClinicIdAndBranchIdAndUserIdAndDateBetween(
+                            clinicId,
+                            branchId,
+                            userId,
+                            startDate,
+                            endDate
+                    );
+
+            // ---------------------------------------------------------
+            // FALLBACK — old records without clinicId/branchId
+            // ---------------------------------------------------------
+            if (attendanceList == null || attendanceList.isEmpty()) {
+                attendanceList =
+                        repo.findByUserIdAndDateBetween(
+                                userId,
+                                startDate,
+                                endDate
+                        );
+            }
+
+            // =========================================================
+            // MAP ONLY REQUIRED FIELDS
+            // =========================================================
+            List<MonthlyAttendanceResponseDTO> result = new ArrayList<>();
+
+            for (Attendance att : attendanceList) {
+
+                MonthlyAttendanceResponseDTO dto =
+                        new MonthlyAttendanceResponseDTO();
+
+                dto.setDate(att.getDate());
+
+                if (att.getLogin() != null) {
+                    dto.setInTime(att.getLogin().getTime());
+                }
+
+                if (att.getLogout() != null) {
+                    dto.setOutTime(att.getLogout().getTime());
+                }
+
+                dto.setLogTime(att.getLogTime());
+                dto.setWorkingHours(att.getWorkingHours());
+                dto.setIdleTime(att.getIdleTime());
+
+                result.add(dto);
+            }
+
+            // =========================================================
+            // SUCCESS RESPONSE
+            // =========================================================
+            response.setSuccess(true);
+            response.setMessage(
+                    "Attendance report for user " + userId
+                            + " from " + startDate + " to " + endDate
+                            + " fetched successfully"
+            );
+            response.setData(result);
+            response.setStatus(200);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+            response.setStatus(400);
+        }
+
+        return response;
+    }
+   
 }

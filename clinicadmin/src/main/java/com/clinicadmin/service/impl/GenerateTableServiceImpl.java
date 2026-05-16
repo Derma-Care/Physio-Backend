@@ -415,64 +415,114 @@ import lombok.RequiredArgsConstructor;
 	        return programDTO;
 	    }
 	
-	    // ==================================================
-	    // SESSION GENERATION
-	    // ==================================================
-	    private List<SessionDTO> generateSessions(
-	            LocalDate startDate,
-	            String frequency,
-	            int total
-	    ) {
-	
-	        List<SessionDTO> list = new ArrayList<>();
-	
-	        String number = frequency.replaceAll("[^0-9]", "");
-	        String unit = frequency.replaceAll("[0-9]", "");
-	
-	        int interval = number.isEmpty()
-	                ? 1
-	                : Integer.parseInt(number);
-	
-	        LocalDate date = startDate;
-	
-	        for (int i = 1; i <= total; i++) {
-	
-	            SessionDTO s = new SessionDTO();
-	
-	            s.setDate(
-	                    date.getMonthValue() + "/"
-	                            + date.getDayOfMonth() + "/"
-	                            + date.getYear()
-	            );
-	
-	            s.setStatus("Pending");
-	            s.setPaymentStatus("unpaid");
-	            s.setSessionId(generateSessionId(date, i));
-	
-	            list.add(s);
-	
-	            if (unit.equalsIgnoreCase("day")
-	                    || unit.equalsIgnoreCase("days")) {
-	
-	                date = date.plusDays(interval);
-	
-	            } else if (unit.equalsIgnoreCase("week")
-	                    || unit.equalsIgnoreCase("weeks")) {
-	
-	                date = date.plusWeeks(interval);
-	
-	            } else if (unit.equalsIgnoreCase("month")
-	                    || unit.equalsIgnoreCase("months")) {
-	
-	                date = date.plusMonths(interval);
-	
-	            } else {
-	                date = date.plusDays(interval);
-	            }
-	        }
-	
-	        return list;
-	    }
+	 // ==================================================
+	 // SESSION GENERATION
+	 // ==================================================
+	 private List<SessionDTO> generateSessions(
+	         LocalDate startDate,
+	         String frequency,
+	         int total
+	 ) {
+
+	     List<SessionDTO> list = new ArrayList<>();
+
+	     // Normalize frequency
+	     // Examples:
+	     // 2times/week
+	     // 3times/day
+	     // 1time/month
+	     frequency = frequency.toLowerCase().replace(" ", "");
+
+	     int times = 1;          // Number of sessions in one period
+	     String period = "day";  // day / week / month
+
+	     // ==========================================
+	     // Parse frequency
+	     // ==========================================
+	     if (frequency.matches("\\d+times?/\\w+")) {
+	         // Example: 2times/week, 1time/day
+	         String[] parts = frequency.split("times?/");
+	         times = Integer.parseInt(parts[0]);
+	         period = parts[1];
+
+	     } else if (frequency.matches("\\d+/\\w+")) {
+	         // Example: 2/week
+	         String[] parts = frequency.split("/");
+	         times = Integer.parseInt(parts[0]);
+	         period = parts[1];
+
+	     } else {
+	         // Fallback to old logic
+	         String number = frequency.replaceAll("[^0-9]", "");
+	         period = frequency.replaceAll("[0-9]", "");
+
+	         times = number.isEmpty() ? 1 : Integer.parseInt(number);
+
+	         period = period.replace("times/", "")
+	                        .replace("time/", "")
+	                        .replace("/", "");
+
+	         if (period.isEmpty()) {
+	             period = "day";
+	         }
+	     }
+
+	     LocalDate date = startDate;
+
+	     for (int i = 1; i <= total; i++) {
+
+	         SessionDTO s = new SessionDTO();
+
+	         s.setDate(
+	                 date.getMonthValue() + "/"
+	                         + date.getDayOfMonth() + "/"
+	                         + date.getYear()
+	         );
+
+	         s.setStatus("Pending");
+	         s.setPaymentStatus("unpaid");
+	         s.setSessionId(generateSessionId(date, i));
+
+	         list.add(s);
+
+//	          ==========================================
+	         // Date calculation based on frequency
+	         // ==========================================
+
+	         if (period.equalsIgnoreCase("day")
+	                 || period.equalsIgnoreCase("days")) {
+
+	             // For 2times/day with total=2:
+	             // Session 1 -> 16-May
+	             // Session 2 -> 17-May
+	             // Session 3 -> 18-May
+	             date = date.plusDays(1);
+
+	         } else if (period.equalsIgnoreCase("week")
+	                 || period.equalsIgnoreCase("weeks")) {
+
+	             // Example:
+	             // 2times/week -> every 3 days
+	             // 3times/week -> every 2 days
+	             int gap = Math.max(1, 7 / times);
+	             date = date.plusDays(gap);
+
+	         } else if (period.equalsIgnoreCase("month")
+	                 || period.equalsIgnoreCase("months")) {
+
+	             // Example:
+	             // 2times/month -> every 15 days
+	             int gap = Math.max(1, 30 / times);
+	             date = date.plusDays(gap);
+
+	         } else {
+	             // Default: next day
+	             date = date.plusDays(1);
+	         }
+	     }
+
+	     return list;
+	 }
 	
 	    // ==================================================
 	    // SESSION ID GENERATOR

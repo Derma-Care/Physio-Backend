@@ -24,5 +24,15 @@ public interface AttendanceService {
 
 	Response getDailyByClinicAndBranch(String clinicId, String branchId, String date);
 
+
+//	Response getMonthlyByClinicAndBranch(String clinicId, String branchId, String userId, String startDate,
+//			String endDate
+
+
+			Response getMonthlyByClinicAndBranch(String clinicId, String branchId, String userId, String startDate,
+					String endDate);
+
+
+
 //	Response getByClinicBranch(String clinicId, String branchId, String date);
 }

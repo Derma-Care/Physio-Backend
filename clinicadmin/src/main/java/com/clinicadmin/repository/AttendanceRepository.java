@@ -53,4 +53,9 @@ public interface AttendanceRepository extends MongoRepository<Attendance, String
 
 	Optional<Attendance> findByClinicIdAndBranchIdAndUserIdAndDate(String clinicId, String branchId, String staffId,
 			String date);
+
+
+
+	List<Attendance> findByClinicIdAndBranchIdAndUserIdAndDateBetween(String clinicId, String branchId, String staffId,
+			String startDate, String endDate);
 }
