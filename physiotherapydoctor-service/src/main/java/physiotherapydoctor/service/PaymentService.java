@@ -26,6 +26,12 @@ public interface PaymentService {
 			String therapistRecordId);
 
 	List<PaymentRecordResponse> findByClinicIdAndBranchId(String clinicId, String branchId);
+	
+	Response getCompletedTherapyRecord(
+	        String clinicId,
+	        String branchId,
+	        String therapistRecordId,
+	        String sessionId);
 
 
 //	Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,

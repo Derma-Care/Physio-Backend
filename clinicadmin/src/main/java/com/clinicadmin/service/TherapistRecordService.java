@@ -24,5 +24,8 @@ public interface TherapistRecordService {
 	public Response getTherapistSessionDetails(
 	            TherapistRecordRequest request);
 
+	ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecord(String clinicId, String branchId,
+			String therapistRecordId, String sessionId);
+
 
 }

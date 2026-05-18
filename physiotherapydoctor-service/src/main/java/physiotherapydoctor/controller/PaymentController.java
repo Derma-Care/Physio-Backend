@@ -24,188 +24,188 @@ import physiotherapydoctor.service.PaymentService;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentService service;
+	private final PaymentService service;
 
-    // ================= CREATE =================
-    @PostMapping("/payment/create")
-    public ResponseEntity<Response> create(@RequestBody PaymentRequest req) {
+	// ================= CREATE =================
+	@PostMapping("/payment/create")
+	public ResponseEntity<Response> create(@RequestBody PaymentRequest req) {
 
-        Response response = new Response();
+		Response response = new Response();
 
-        try {
-            PaymentRecordResponse result = service.createPayment(req);
+		try {
+			PaymentRecordResponse result = service.createPayment(req);
 
-            response.setSuccess(true);
-            response.setData(result);
-            response.setMessage("Payment created successfully");
-            response.setStatus(200);
+			response.setSuccess(true);
+			response.setData(result);
+			response.setMessage("Payment created successfully");
+			response.setStatus(200);
 
-        } catch (Exception e) {
+		} catch (Exception e) {
 
-            response.setSuccess(false);
-            response.setData(null);
-            response.setMessage(e.getMessage());
-            response.setStatus(400);
-        }
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage(e.getMessage());
+			response.setStatus(400);
+		}
 
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
 
-    // ================= UPDATE =================
-    @PostMapping("/payment/update")
-    public ResponseEntity<Response> update(@RequestBody PaymentRequest req) {
+	// ================= UPDATE =================
+	@PostMapping("/payment/update")
+	public ResponseEntity<Response> update(@RequestBody PaymentRequest req) {
 
-        Response response = new Response();
+		Response response = new Response();
 
-        try {
-            PaymentRecordResponse result = service.updatePayment(req);
+		try {
+			PaymentRecordResponse result = service.updatePayment(req);
 
-            response.setSuccess(true);
-            response.setData(result);
-            response.setMessage("Payment updated successfully");
-            response.setStatus(200);
+			response.setSuccess(true);
+			response.setData(result);
+			response.setMessage("Payment updated successfully");
+			response.setStatus(200);
 
-        } catch (Exception e) {
+		} catch (Exception e) {
 
-            response.setSuccess(false);
-            response.setData(null);
-            response.setMessage(e.getMessage());
-            response.setStatus(400);
-        }
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage(e.getMessage());
+			response.setStatus(400);
+		}
 
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
 
-    // ================= GET =================
-    @GetMapping("/payment/{bookingId}")
-    public ResponseEntity<Response> get(@PathVariable String bookingId) {
+	// ================= GET =================
+	@GetMapping("/payment/{bookingId}")
+	public ResponseEntity<Response> get(@PathVariable String bookingId) {
 
-        Response response = new Response();
+		Response response = new Response();
 
-        try {
-            PaymentRecordResponse result = service.getByBookingId(bookingId);
+		try {
+			PaymentRecordResponse result = service.getByBookingId(bookingId);
 
-            response.setSuccess(true);
-            response.setData(result);
-            response.setMessage("Payment fetched successfully");
-            response.setStatus(200);
+			response.setSuccess(true);
+			response.setData(result);
+			response.setMessage("Payment fetched successfully");
+			response.setStatus(200);
 
-        } catch (Exception e) {
+		} catch (Exception e) {
 
-            response.setSuccess(false);
-            response.setData(null);
-            response.setMessage(e.getMessage());
-            response.setStatus(404);
-        }
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage(e.getMessage());
+			response.setStatus(404);
+		}
 
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
 
-    // ================= DELETE =================
-    @DeleteMapping("/payment/{bookingId}")
-    public ResponseEntity<Response> delete(@PathVariable String bookingId) {
+	// ================= DELETE =================
+	@DeleteMapping("/payment/{bookingId}")
+	public ResponseEntity<Response> delete(@PathVariable String bookingId) {
 
-        Response response = new Response();
+		Response response = new Response();
 
-        try {
-            service.deleteByBookingId(bookingId);
+		try {
+			service.deleteByBookingId(bookingId);
 
-            response.setSuccess(true);
-            response.setData(null);
-            response.setMessage("Payment deleted successfully");
-            response.setStatus(200);
+			response.setSuccess(true);
+			response.setData(null);
+			response.setMessage("Payment deleted successfully");
+			response.setStatus(200);
 
-        } catch (Exception e) {
+		} catch (Exception e) {
 
-            response.setSuccess(false);
-            response.setData(null);
-            response.setMessage(e.getMessage());
-            response.setStatus(404);
-        }
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage(e.getMessage());
+			response.setStatus(404);
+		}
 
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
 
-    // ================= UPDATE SESSION FROM THERAPIST =================
-    @PutMapping("/updateSessionFromTherapist/{therapistRecordId}/{sessionId}")
-    public ResponseEntity<Response> updateSessionStatus(
-            @PathVariable String therapistRecordId,
-            @PathVariable String sessionId) {
+	// ================= UPDATE SESSION FROM THERAPIST =================
+	@PutMapping("/updateSessionFromTherapist/{therapistRecordId}/{sessionId}")
+	public ResponseEntity<Response> updateSessionStatus(@PathVariable String therapistRecordId,
+			@PathVariable String sessionId) {
 
-        Response response = new Response();
+		Response response = new Response();
 
-        try {
-            service.updateSessionStatusFromTherapist(therapistRecordId, sessionId);
+		try {
+			service.updateSessionStatusFromTherapist(therapistRecordId, sessionId);
 
-            response.setSuccess(true);
-            response.setData(null);
-            response.setMessage("Session updated successfully");
-            response.setStatus(200);
+			response.setSuccess(true);
+			response.setData(null);
+			response.setMessage("Session updated successfully");
+			response.setStatus(200);
 
-        } catch (Exception e) {
+		} catch (Exception e) {
 
-            response.setSuccess(false);
-            response.setData(null);
-            response.setMessage(e.getMessage());
-            response.setStatus(400);
-        }
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage(e.getMessage());
+			response.setStatus(400);
+		}
 
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
-    @GetMapping("/payment/getExerciseSessionsWithRecords/{clinicId}/{branchId}/{bookingId}/{patientId}/{therapistRecordId}")
-    public ResponseEntity<Response> getExerciseSessionsWithRecords(
-            @PathVariable String clinicId,
-            @PathVariable String branchId,
-            @PathVariable String bookingId,
-            @PathVariable String patientId,
-            @PathVariable String therapistRecordId) {
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
 
-        try {
-            Response response = service.getExerciseSessionsWithRecords(
-                    clinicId, branchId, bookingId, patientId, therapistRecordId);
+	@GetMapping("/payment/getExerciseSessionsWithRecords/{clinicId}/{branchId}/{bookingId}/{patientId}/{therapistRecordId}")
+	public ResponseEntity<Response> getExerciseSessionsWithRecords(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String bookingId, @PathVariable String patientId,
+			@PathVariable String therapistRecordId) {
 
-            return ResponseEntity.status(response.getStatus()).body(response);
+		try {
+			Response response = service.getExerciseSessionsWithRecords(clinicId, branchId, bookingId, patientId,
+					therapistRecordId);
 
-        } catch (Exception e) {
+			return ResponseEntity.status(response.getStatus()).body(response);
 
-            Response response = new Response();
-            response.setSuccess(false);
-            response.setData(null);
-            response.setMessage(e.getMessage());
-            response.setStatus(400);
+		} catch (Exception e) {
 
-            return ResponseEntity.status(response.getStatus()).body(response);
-        }
-    }
-    @GetMapping("/getPayments/{clinicId}/{branchId}")
-    public ResponseEntity<Response> getPayments(
-            @PathVariable String clinicId,
-            @PathVariable String branchId) {
+			Response response = new Response();
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage(e.getMessage());
+			response.setStatus(400);
 
-        Response response = new Response();
+			return ResponseEntity.status(response.getStatus()).body(response);
+		}
+	}
 
-        try {
+	@GetMapping("/getPayments/{clinicId}/{branchId}")
+	public ResponseEntity<Response> getPayments(@PathVariable String clinicId, @PathVariable String branchId) {
 
-            List<PaymentRecordResponse> records =
-                    service.findByClinicIdAndBranchId(
-                            clinicId,
-                            branchId);
+		Response response = new Response();
 
-            response.setSuccess(true);
-            response.setStatus(200);
-            response.setMessage("Payments fetched successfully");
-            response.setData(records);
+		try {
 
-        } catch (Exception e) {
+			List<PaymentRecordResponse> records = service.findByClinicIdAndBranchId(clinicId, branchId);
 
-            response.setSuccess(false);
-            response.setStatus(400);
-            response.setMessage(e.getMessage());
-            response.setData(null);
-        }
+			response.setSuccess(true);
+			response.setStatus(200);
+			response.setMessage("Payments fetched successfully");
+			response.setData(records);
 
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
+		} catch (Exception e) {
+
+			response.setSuccess(false);
+			response.setStatus(400);
+			response.setMessage(e.getMessage());
+			response.setData(null);
+		}
+
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+
+	@GetMapping("/getCompletedTherapyRecord/{clinicId}/{branchId}/{therapistRecordId}/{sessionId}")
+	public ResponseEntity<Response> getCompletedTherapyRecord(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String therapistRecordId, @PathVariable String sessionId) {
+
+		Response response = service.getCompletedTherapyRecord(clinicId, branchId, therapistRecordId, sessionId);
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+
 }

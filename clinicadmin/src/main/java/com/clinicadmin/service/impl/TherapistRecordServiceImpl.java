@@ -1,6 +1,5 @@
 package com.clinicadmin.service.impl;
 
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,7 @@ import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class TherapistRecordServiceImpl implements TherapistRecordService {
@@ -467,5 +467,35 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
             return response;
         }
+    }
+    
+    @Override
+    public ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecord(
+            String clinicId,
+            String branchId,
+            String therapistRecordId,
+            String sessionId) {
+
+        TherapistRecord record = repository
+                .findByClinicIdAndBranchIdAndTherapistRecordIdAndSessionId(
+                        clinicId,
+                        branchId,
+                        therapistRecordId,
+                        sessionId)
+                .orElseThrow(() -> new RuntimeException("Record not found"));
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        TherapistRecordDTO dto =
+                mapper.convertValue(record, TherapistRecordDTO.class);
+
+        ResponseStructure<TherapistRecordDTO> response =
+                new ResponseStructure<>();
+
+        response.setStatusCode(200);
+        response.setMessage("Record fetched successfully");
+        response.setData(dto);
+
+        return response;
     }
 }

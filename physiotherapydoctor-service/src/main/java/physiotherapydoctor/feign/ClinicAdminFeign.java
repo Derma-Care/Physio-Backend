@@ -59,7 +59,14 @@ public interface ClinicAdminFeign {
  	@GetMapping("/clinic-admin/getTherapistWithRequiredFileds/{clinicId}/{branchId}")
  	public ResponseEntity<Response> getTherapistWithRequiredFileds(@PathVariable String clinicId,
  			@PathVariable String branchId);
-    
+ 	
+ 	
+ 	@GetMapping("/clinic-admin/getCompletedTherapyRecord/{clinicId}/{branchId}/{therapistRecordId}/{sessionId}")
+ 	ResponseEntity<ResponseStructure<TherapistRecordDTO>> getCompletedTherapyRecord(
+ 	        @PathVariable String clinicId,
+ 	        @PathVariable String branchId,
+ 	        @PathVariable String therapistRecordId,
+ 	        @PathVariable String sessionId);
 }
     
     
