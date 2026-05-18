@@ -96,15 +96,35 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        existing.setSessioncompleted(dto.getSessioncompleted());
 
 	        if (dto.getNotes() != null) {
-	            existing.setNotes(Base64.getDecoder().decode(dto.getNotes()));
+	            existing.setNotes(dto.getNotes());
 	        }
 
-	        if (dto.getImage() != null) {
-	            existing.setImage(Base64.getDecoder().decode(dto.getImage()));
+	        // BEFORE IMAGE
+	        if (dto.getBeforeImage() != null) {
+	            existing.setBeforeImage(
+	                    Base64.getDecoder().decode(dto.getBeforeImage())
+	            );
 	        }
 
-	        if (dto.getVideo() != null) {
-	            existing.setVideo(Base64.getDecoder().decode(dto.getVideo()));
+	        // AFTER IMAGE
+	        if (dto.getAfterImage() != null) {
+	            existing.setAfterImage(
+	                    Base64.getDecoder().decode(dto.getAfterImage())
+	            );
+	        }
+
+	        // BEFORE VIDEO
+	        if (dto.getBeforeVideo() != null) {
+	            existing.setBeforeVideo(
+	                    Base64.getDecoder().decode(dto.getBeforeVideo())
+	            );
+	        }
+
+	        // AFTER VIDEO
+	        if (dto.getAfterVideo() != null) {
+	            existing.setAfterVideo(
+	                    Base64.getDecoder().decode(dto.getAfterVideo())
+	            );
 	        }
 
 	        TherapyRecord updated = repository.save(existing);
@@ -116,7 +136,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	        return new ResponseEntity<>(response, HttpStatus.OK);
 	    }
-
+	    
 	    @Override
 	    public ResponseEntity<?> deleteTherapyRecord(String id) {
 
@@ -200,20 +220,41 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                .patientid(dto.getPatientid())
 	                .name(dto.getName())
 	                .doctorid(dto.getDoctorid())
+
 	                .setsdone(dto.getSetsdone() != null
 	                        ? Integer.parseInt(dto.getSetsdone())
 	                        : null)
+
 	                .repitationdone(dto.isRepitationdone())
+
 	                .sessioncompleted(dto.getSessioncompleted())
-	                .notes(dto.getNotes() != null
-	                        ? Base64.getDecoder().decode(dto.getNotes())
+
+	                .notes(dto.getNotes())
+
+	                // BEFORE IMAGE
+	                .beforeImage(dto.getBeforeImage() != null
+	                        ? Base64.getDecoder()
+	                                .decode(dto.getBeforeImage())
 	                        : null)
-	                .image(dto.getImage() != null
-	                        ? Base64.getDecoder().decode(dto.getImage())
+
+	                // AFTER IMAGE
+	                .afterImage(dto.getAfterImage() != null
+	                        ? Base64.getDecoder()
+	                                .decode(dto.getAfterImage())
 	                        : null)
-	                .video(dto.getVideo() != null
-	                        ? Base64.getDecoder().decode(dto.getVideo())
+
+	                // BEFORE VIDEO
+	                .beforeVideo(dto.getBeforeVideo() != null
+	                        ? Base64.getDecoder()
+	                                .decode(dto.getBeforeVideo())
 	                        : null)
+
+	                // AFTER VIDEO
+	                .afterVideo(dto.getAfterVideo() != null
+	                        ? Base64.getDecoder()
+	                                .decode(dto.getAfterVideo())
+	                        : null)
+
 	                .build();
 	    }
 
@@ -222,26 +263,48 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	    private TherapyRecordDTO mapToDTO(TherapyRecord entity) {
 
 	        return TherapyRecordDTO.builder()
+
 	                .therapyrecordid(entity.getTherapyrecordid())
 	                .clincinid(entity.getClincinid())
 	                .brnchid(entity.getBrnchid())
 	                .patientid(entity.getPatientid())
 	                .name(entity.getName())
 	                .doctorid(entity.getDoctorid())
+
 	                .setsdone(entity.getSetsdone() != null
 	                        ? String.valueOf(entity.getSetsdone())
 	                        : null)
+
 	                .repitationdone(entity.isRepitationdone())
+
 	                .sessioncompleted(entity.getSessioncompleted())
-	                .notes(entity.getNotes() != null
-	                        ? Base64.getEncoder().encodeToString(entity.getNotes())
+
+	                .notes(entity.getNotes())
+
+	                // BEFORE IMAGE
+	                .beforeImage(entity.getBeforeImage() != null
+	                        ? Base64.getEncoder()
+	                                .encodeToString(entity.getBeforeImage())
 	                        : null)
-	                .image(entity.getImage() != null
-	                        ? Base64.getEncoder().encodeToString(entity.getImage())
+
+	                // AFTER IMAGE
+	                .afterImage(entity.getAfterImage() != null
+	                        ? Base64.getEncoder()
+	                                .encodeToString(entity.getAfterImage())
 	                        : null)
-	                .video(entity.getVideo() != null
-	                        ? Base64.getEncoder().encodeToString(entity.getVideo())
+
+	                // BEFORE VIDEO
+	                .beforeVideo(entity.getBeforeVideo() != null
+	                        ? Base64.getEncoder()
+	                                .encodeToString(entity.getBeforeVideo())
 	                        : null)
+
+	                // AFTER VIDEO
+	                .afterVideo(entity.getAfterVideo() != null
+	                        ? Base64.getEncoder()
+	                                .encodeToString(entity.getAfterVideo())
+	                        : null)
+
 	                .build();
 	    }
 	    
