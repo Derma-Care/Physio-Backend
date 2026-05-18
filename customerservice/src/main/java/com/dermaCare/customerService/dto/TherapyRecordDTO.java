@@ -32,7 +32,8 @@ public class TherapyRecordDTO {
 
     private String notes;
 
-    private String image;
-
-    private String video;
+    private String beforeImage;
+    private String afterImage;
+    private String beforeVideo;
+    private String afterVideo;
 }
