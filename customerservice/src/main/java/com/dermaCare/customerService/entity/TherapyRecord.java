@@ -38,11 +38,11 @@ public class TherapyRecord {
     private Boolean sessioncompleted;
 
    
-    private byte[] notes;
+    private String notes;
 
     
-    private byte[] image;
-
-    
-    private byte[] video;
+    private byte[] beforeImage;
+    private byte[]  afterImage;
+    private byte[]  beforeVideo;
+    private byte[] afterVideo;
 }
