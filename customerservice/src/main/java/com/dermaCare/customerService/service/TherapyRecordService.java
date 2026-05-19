@@ -25,4 +25,8 @@ public interface TherapyRecordService {
 	            String branchId,
 	            String patientId,
 	            String therapyRecordId);
+	    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
+	            String clinicId,
+	            String branchId,
+	            String exerciseId) ;
 }

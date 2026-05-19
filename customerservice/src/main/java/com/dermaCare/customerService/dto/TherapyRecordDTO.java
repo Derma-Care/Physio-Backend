@@ -1,5 +1,7 @@
 package com.dermaCare.customerService.dto;
 
+import java.util.List;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -23,17 +25,8 @@ public class TherapyRecordDTO {
     private String patientid;
 
     private String name;
+    private String excerciseId;
+    private String status;
 
-    private String setsdone;
-
-    private boolean repitationdone;
-
-    private Boolean sessioncompleted;
-
-    private String notes;
-
-    private String beforeImage;
-    private String afterImage;
-    private String beforeVideo;
-    private String afterVideo;
+   private List<TherophyRecordListDTO> therapyrecord;
 }

@@ -91,5 +91,18 @@ public class TherapyRecordController {
 	    }
 	    
 	    
+	    @GetMapping("/getByClinicBranchExercise/{clinicId}/{branchId}/{exerciseId}")
+	    public ResponseEntity<?> getTherapyRecords(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String exerciseId) {
+
+	        return service.getTherapyRecordsByClinicAndBranchAndExercise(
+	                clinicId,
+	                branchId,
+	                exerciseId);
+	    }
+	    
+	    
 }
 

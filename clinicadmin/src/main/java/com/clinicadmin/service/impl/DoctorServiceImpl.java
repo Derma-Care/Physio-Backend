@@ -719,7 +719,7 @@ public class DoctorServiceImpl implements DoctorService {
 //				doctor.setConsultation(consultation);
 //			}
 
-			doctor.setDoctorAvailabilityStatus(dto.isDoctorAvailabilityStatus());
+			doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());
 			doctor.setRecommendation(dto.isRecommendation());
 			doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
 			doctor.setAssociationsOrMemberships(dto.getAssociationsOrMemberships());

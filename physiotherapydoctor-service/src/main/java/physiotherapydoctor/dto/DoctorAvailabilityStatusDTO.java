@@ -9,5 +9,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DoctorAvailabilityStatusDTO {
   
-	private boolean doctorAvailabilityStatus;
+	private Boolean doctorAvailabilityStatus;
 }

@@ -25,6 +25,7 @@ import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
+import physiotherapydoctor.dto.DoctorsDTO;
 import physiotherapydoctor.dto.Exercise;
 import physiotherapydoctor.dto.ExerciseCalculations;
 import physiotherapydoctor.dto.PackageCalculation;
@@ -2315,10 +2316,19 @@ public Response login(DoctorLoginDTO loginDTO) {
 public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO) {
     if(doctorId==null || doctorId.isBlank()) {
     	return Response.builder().success(false).status(400) .message("Doctor ID must not be empty").build();
-    }
-return null;
-
-	}
+    }else {
+    	DoctorsDTO dto = new DoctorsDTO();
+    	dto.setDoctorAvailabilityStatus(availabilityDTO.getDoctorAvailabilityStatus());
+    	ResponseEntity<Response> res = clinicAdminFeign.updateDoctorById(doctorId, dto);
+    	int status = res.getBody().getStatus();
+    	if(status == 200) {
+    		return Response.builder().success(true).status(200) .message("Doctor status updated").build();
+    		  
+    	}else {
+    		return Response.builder().success(false).status(200) .message("Doctor not found").build();
+    			
+    	}
+    }}
 
 
 	private List<Exercise> mapExercises(List<TherapyExercise> source) {

@@ -157,7 +157,7 @@ public class DoctorController {
 	 */
 	@PutMapping("/updateDoctor/{doctorId}")
 	public ResponseEntity<Response> updateDoctorById(@PathVariable String doctorId,
-			@Validated(RequiredChecks.class) @RequestBody DoctorsDTO dto) {
+			 @RequestBody DoctorsDTO dto) {
 		dto.trimAllDoctorFields();
 		Response response = doctorService.upDateDoctorById(doctorId, dto);
 		return ResponseEntity.status(response.getStatus()).body(response);
