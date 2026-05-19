@@ -23,10 +23,11 @@ public class TherapyRecordDTO {
 
     @NotNull(message = "Patient ID is required")
     private String patientid;
-
+    private String duration;
     private String name;
     private String excerciseId;
     private String status;
-
+    private Integer sessioncountremaining;
+    private String frequancy;
    private List<TherophyRecordListDTO> therapyrecord;
 }

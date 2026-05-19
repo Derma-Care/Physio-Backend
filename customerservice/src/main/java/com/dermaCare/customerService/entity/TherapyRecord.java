@@ -26,7 +26,7 @@ public class TherapyRecord {
 
     
     private String brnchid;
-
+    private String duration;
   
     private String patientid;
 
@@ -34,6 +34,8 @@ public class TherapyRecord {
     private String name;
     private String status;
     private String excerciseId;
+    private Integer sessioncountremaining;
+    private String frequancy;
    
     private List<TherophyRecordList> therapyrecord;
 }

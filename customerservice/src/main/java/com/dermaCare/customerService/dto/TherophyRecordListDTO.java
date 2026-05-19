@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class TherophyRecordListDTO {
 
 	 private Integer setsdone;  
-	    private Boolean repitationdone;	   
+	    private String repitationdone;	   
 	    private Integer sessioncount;///current session
 	    private Integer session;///all sessions
 	    private Boolean sessioncompleted;

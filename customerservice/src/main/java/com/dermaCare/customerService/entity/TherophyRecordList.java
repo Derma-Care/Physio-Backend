@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 public class TherophyRecordList {
 	
 	 private Integer setsdone;  
-	    private Boolean repitationdone;	   
+	    private String repitationdone;	   
 	    private Integer sessioncount;///current session
 	    private Integer session;///all sessions
 	    private Boolean sessioncompleted;
 	    private LocalDate date;
 	    private String excerciseId;
-	    private String notes;    
+	    private String notes;   	   
 	    private byte[] beforeImage;
 	    private byte[]  afterImage;
 	    private byte[]  beforeVideo;

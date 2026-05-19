@@ -1,6 +1,5 @@
 package com.dermaCare.customerService.service;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -14,7 +13,7 @@ import com.dermaCare.customerService.entity.TherapyRecord;
 import com.dermaCare.customerService.entity.TherophyRecordList;
 import com.dermaCare.customerService.repository.TherapyRecordRepository;
 import com.dermaCare.customerService.util.Response;
-import lombok.RequiredArgsConstructor;
+
 
 @Service
 public class TherapyRecordServiceImpl implements TherapyRecordService{
@@ -32,7 +31,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	            TherapyRecord therapyRecord = mapToEntity(dto);
 	            therapyRecord.setStatus("pending");
-
+	           
 	            TherapyRecord savedRecord = repository.save(therapyRecord);
 
 	            response.setMessage("Therapy record created successfully");
@@ -123,6 +122,23 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	             existing.setExcerciseId(dto.getExcerciseId());
 	         }
 
+	         if (dto.getSessioncountremaining() != null) {
+	        	 existing.setSessioncountremaining(dto.getSessioncountremaining());
+	        	} else {
+	        		existing.setSessioncountremaining(0); // default value
+	        	}
+
+	        	if (dto.getFrequancy() != null) {
+	        	    dto.setFrequancy(dto.getFrequancy());
+	        	} else {
+	        		existing.setFrequancy("");
+	        	}
+
+	        	if (dto.getDuration() != null) {
+	        		existing.setDuration(dto.getDuration());
+	        	} else {
+	        		existing.setDuration("");
+	        	}
 	         // ================= THERAPY RECORD LIST =================
 
 	         if (dto.getTherapyrecord() != null &&
@@ -152,27 +168,26 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                         // ================= SESSION COUNT =================
 
 	                         if (recordDto.getSessioncount() != null) {
-	                        	 TherophyRecordList lst = existing.getTherapyrecord().get(existing.getTherapyrecord().size()-1);
+	                        	 therapy.setSessioncount(
+	                                     recordDto.getSessioncount());
+	                        try {
+	                         TherophyRecordList lst = existing.getTherapyrecord().get(existing.getTherapyrecord().size()-1);
 	                         //System.out.println(lst);
 	                         int value = lst.getSession().intValue()-recordDto.getSessioncount().intValue();
 	                         if(value!=0) {  	 
 	                    	  existing.setStatus("Active");
+	                    	  existing.setSessioncountremaining(value);
 	                    	  }else {
 	                    		  existing.setStatus("Completed"); 
-	                    	  }
-	                             therapy.setSessioncount(
-	                                     recordDto.getSessioncount());
-	                             }
-
+	                    		  existing.setSessioncountremaining(value);
+	                    	  }}catch(Exception e) {}}
 	                         // ================= SESSION =================
 
 	                         if (recordDto.getSession() != null) {
 
 	                             therapy.setSession(
-	                                     recordDto.getSession());
-
-	                         }
-
+	                                     recordDto.getSession());}	
+	                         
 	                         if (recordDto.getSessioncompleted() != null) {
 	                             therapy.setSessioncompleted(
 	                                     recordDto.getSessioncompleted());
@@ -580,8 +595,9 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        }
 	    }
 	    
+	    int sessioncompleted = 0;
 	    private TherapyRecord mapToEntity(TherapyRecordDTO dto) {
-
+	    	
 	        List<TherophyRecordList> therapyList =
 	                dto.getTherapyrecord()
 	                .stream()
@@ -597,13 +613,17 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                .name(dto.getName())
 	                .status(dto.getStatus())
 	                .excerciseId(dto.getExcerciseId())
+	                .sessioncountremaining(sessioncompleted).frequancy(dto.getFrequancy()).duration(dto.getDuration())
 	                .therapyrecord(therapyList)
 	                .build();
 	    }
 
 	    private TherophyRecordList mapTherapyList(
 	            TherophyRecordListDTO dto) {
-
+	    	try {
+	    	sessioncompleted =  dto.getSession().intValue()-dto.getSessioncount().intValue();          	 
+         	
+	    	}catch(Exception e) {}
 	        return new TherophyRecordList(
 	                dto.getSetsdone(),
 	                dto.getRepitationdone(),
@@ -708,6 +728,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                        therapyRecord.getName())
 	                .status(
 	                        therapyRecord.getStatus())
+	                .sessioncountremaining(therapyRecord.getSessioncountremaining()).frequancy(therapyRecord.getFrequancy()).duration(therapyRecord.getDuration())
 	                .excerciseId(
 	                        therapyRecord.getExcerciseId())
 	                .therapyrecord(therapyList)
