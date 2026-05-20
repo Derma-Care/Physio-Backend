@@ -43,12 +43,12 @@ public class TherapyRecordController {
 	        return service.getTherapyRecordById(id);
 	    }
 
-	    @PutMapping("/update/{id}")
+	    @PutMapping("/update/{id}/{excerciseid}")
 	    public ResponseEntity<?> updateTherapyRecord(
-	            @PathVariable String id,
+	            @PathVariable String id,@PathVariable String excerciseid,
 	            @RequestBody TherapyRecordDTO dto) {
 
-	        return service.updateTherapyRecord(id, dto);
+	        return service.updateTherapyRecord(id,excerciseid,dto);
 	    }
 
 	    @DeleteMapping("/delete/{id}")
@@ -91,15 +91,19 @@ public class TherapyRecordController {
 	    }
 	    
 	    
-	    @GetMapping("/getByClinicBranchExercise/{clinicId}/{branchId}/{exerciseId}")
+	    @GetMapping("/getByClinicBranchExercise/{clinicId}/{branchId}/{therapistId}/{patientid}/{exerciseId}")
 	    public ResponseEntity<?> getTherapyRecords(
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId,
-	            @PathVariable String exerciseId) {
+	            @PathVariable String therapistId,
+	            @PathVariable String patientid,
+	            @PathVariable String exerciseId){
 
 	        return service.getTherapyRecordsByClinicAndBranchAndExercise(
 	                clinicId,
 	                branchId,
+	                therapistId,
+	                patientid,
 	                exerciseId);
 	    }
 	    

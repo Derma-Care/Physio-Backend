@@ -24,10 +24,16 @@ public interface TherapyRecordRepository extends MongoRepository<TherapyRecord, 
             String patientid,
             String therapyrecordid);
     
-    List<TherapyRecord> findByClincinidAndBrnchidAndExcerciseId(
+    Optional<TherapyRecord> findByTherapyrecordidAndExcerciseId(           
+            String therapyrecordid,
+            String excerciseId);
+    
+    List<TherapyRecord> findByClincinidAndBrnchidAndTherapyrecordidAndPatientidAndExcerciseId(
             String clincinid,
             String brnchid,
+            String therapyid,
+            String patientid,
             String excerciseId);
 
-	Optional<TherapyRecord> findByTherapyrecordid(String therapyrecordid);
-}
+	Optional<TherapyRecord> findBy(String therapyrecordid);
+}  

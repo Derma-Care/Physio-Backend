@@ -11,8 +11,9 @@ public interface TherapyRecordService {
 
 	    ResponseEntity<?> getTherapyRecordById(String id);
 
-	    ResponseEntity<?> updateTherapyRecord(String id, TherapyRecordDTO dto);
-
+	    public ResponseEntity<?> updateTherapyRecord(
+		         String therapyrecordid,String excerciseId,
+		         TherapyRecordDTO dto);
 	    ResponseEntity<?> deleteTherapyRecord(String id);
 
 	    ResponseEntity<?> getByClinicBranchAndPatient(
@@ -25,8 +26,11 @@ public interface TherapyRecordService {
 	            String branchId,
 	            String patientId,
 	            String therapyRecordId);
+	    
 	    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
 	            String clinicId,
 	            String branchId,
-	            String exerciseId) ;
+	            String therapistid,
+	            String patientid,
+	            String exerciseId);
 }

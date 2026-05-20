@@ -56,7 +56,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	 
 	 @Override
 	 public ResponseEntity<?> updateTherapyRecord(
-	         String therapyrecordid,
+	         String therapyrecordid,String excerciseId,
 	         TherapyRecordDTO dto) {
 
 	     Response response = new Response();
@@ -64,7 +64,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	     try {
 
 	         Optional<TherapyRecord> optional =
-	                 repository.findByTherapyrecordid(therapyrecordid);
+	                 repository.findByTherapyrecordidAndExcerciseId(therapyrecordid,excerciseId);
 	         if (optional.isEmpty()) {
 
 	             response.setMessage("Therapy record not found");
@@ -129,7 +129,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        	}
 
 	        	if (dto.getFrequancy() != null) {
-	        	    dto.setFrequancy(dto.getFrequancy());
+	        		existing.setFrequancy(dto.getFrequancy());
 	        	} else {
 	        		existing.setFrequancy("");
 	        	}
@@ -557,6 +557,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
 	            String clinicId,
 	            String branchId,
+	            String therapistid,
+	            String patientid,
 	            String exerciseId) {
 
 	        Response response = new Response();
@@ -564,9 +566,11 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        try {
 
 	            List<TherapyRecord> records =
-	                    repository.findByClincinidAndBrnchidAndExcerciseId(
+	                    repository.findByClincinidAndBrnchidAndTherapyrecordidAndPatientidAndExcerciseId(
 	                            clinicId,
 	                            branchId,
+	                            therapistid,
+	                            patientid,
 	                            exerciseId);
 
 	            if (records.isEmpty()) {
