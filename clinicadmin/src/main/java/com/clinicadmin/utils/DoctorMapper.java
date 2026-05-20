@@ -121,7 +121,7 @@ public class DoctorMapper {
 		dto.setFocusAreas(doctor.getFocusAreas());
 		dto.setLanguages(doctor.getLanguages());
 		dto.setHighlights(doctor.getHighlights());
-		dto.setDoctorAvailabilityStatus(doctor.isDoctorAvailabilityStatus());
+		dto.setDoctorAvailabilityStatus(doctor.getDoctorAvailabilityStatus());
 		dto.setRecommendation(doctor.isRecommendation());
 		dto.setAadharID(doctor.getAadharID());
 		dto.setDateofBirth(doctor.getDateofBirth());
