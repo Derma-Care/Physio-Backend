@@ -50,7 +50,7 @@ public class DoctorMapper {
 		doctor.setFocusAreas(dto.getFocusAreas());
 		doctor.setLanguages(dto.getLanguages());
 		doctor.setHighlights(dto.getHighlights());
-		doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());
+		doctor.setDoctorAvailabilityStatus(true);
 		doctor.setRecommendation(dto.isRecommendation());
 		doctor.setAadharID(dto.getAadharID());
 		doctor.setDateofJoining(dto.getDateofJoining());
