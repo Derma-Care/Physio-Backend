@@ -17,7 +17,7 @@ import com.dermaCare.customerService.service.TherapyRecordService;
 
 @RestController
 @RequestMapping("/customer/therapy-records")
-@CrossOrigin(origins = "*")
+///@CrossOrigin(origins = "*")
 public class TherapyRecordController {
 
 	 @Autowired
