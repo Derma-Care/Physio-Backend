@@ -718,6 +718,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                        therapyRecord.getTherapyrecordid())
 	                .clincinid(
 	                        therapyRecord.getClincinid())
+	                .id(therapyRecord.getId())
 	                .brnchid(
 	                        therapyRecord.getBrnchid())
 	                .patientid(

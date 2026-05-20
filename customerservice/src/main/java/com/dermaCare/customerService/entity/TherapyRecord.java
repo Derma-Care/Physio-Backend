@@ -19,6 +19,7 @@ import lombok.*;
 public class TherapyRecord {
 
     @Id
+    private String id;
     private String therapyrecordid;
 
   

@@ -12,6 +12,7 @@ import lombok.*;
 @Builder
 public class TherapyRecordDTO {
 
+	private String id;
     private String therapyrecordid;
 
     @NotNull(message = "Clinic ID is required")
