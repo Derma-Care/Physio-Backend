@@ -418,37 +418,72 @@ public class PaymentServiceImpl implements PaymentService {
 	// ========================================================
 	private void distributePaymentToSessions(PaymentRecord record) {
 
-		if (record.getTherapyWithSessions() == null)
-			return;
+	    if (record.getTherapyWithSessions() == null) return;
 
-		double remaining = record.getTotalPaid();
+	    double remaining = record.getTotalPaid();
 
-		for (var pkg : record.getTherapyWithSessions()) {
-			if (pkg.getPrograms() == null)
-				continue;
-			for (var prog : pkg.getPrograms()) {
-				if (prog.getTherapyData() == null)
-					continue;
-				for (var therapy : prog.getTherapyData()) {
-					if (therapy.getExercises() == null)
-						continue;
-					for (var ex : therapy.getExercises()) {
-						if (ex.getSessions() == null)
-							continue;
-						double price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
-						for (var s : ex.getSessions()) {
-							if (remaining >= price) {
-								s.setPaymentStatus("Paid");
-								remaining -= price;
-							} else {
-								s.setPaymentStatus("Unpaid");
-							}
-						}
-					}
-				}
-			}
-		}
+	    double totalAmount = record.getTotalAmount();
+	    double finalAmount = record.getFinalAmount();
+	    double discountRatio = (totalAmount > 0) ? (finalAmount / totalAmount) : 1.0;
+
+	    for (var pkg : record.getTherapyWithSessions()) {
+	        if (pkg.getPrograms() == null) continue;
+	        for (var prog : pkg.getPrograms()) {
+	            if (prog.getTherapyData() == null) continue;
+	            for (var therapy : prog.getTherapyData()) {
+	                if (therapy.getExercises() == null) continue;
+	                for (var ex : therapy.getExercises()) {
+	                    if (ex.getSessions() == null) continue;
+
+	                    double rawPrice = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+	                    double effectivePrice = rawPrice * discountRatio;
+
+	                    for (var s : ex.getSessions()) {
+	                        if (remaining >= effectivePrice) {
+	                            s.setPaymentStatus("Paid");
+	                            remaining -= effectivePrice;
+	                        } else {
+	                            s.setPaymentStatus("Unpaid");
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }
 	}
+//	private void distributePaymentToSessions(PaymentRecord record) {
+//
+//		if (record.getTherapyWithSessions() == null)
+//			return;
+//
+//		double remaining = record.getTotalPaid();
+//
+//		for (var pkg : record.getTherapyWithSessions()) {
+//			if (pkg.getPrograms() == null)
+//				continue;
+//			for (var prog : pkg.getPrograms()) {
+//				if (prog.getTherapyData() == null)
+//					continue;
+//				for (var therapy : prog.getTherapyData()) {
+//					if (therapy.getExercises() == null)
+//						continue;
+//					for (var ex : therapy.getExercises()) {
+//						if (ex.getSessions() == null)
+//							continue;
+//						double price = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+//						for (var s : ex.getSessions()) {
+//							if (remaining >= price) {
+//								s.setPaymentStatus("Paid");
+//								remaining -= price;
+//							} else {
+//								s.setPaymentStatus("Unpaid");
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
 
 	// ========================================================
 	// PACKAGE STATUS UPDATE
