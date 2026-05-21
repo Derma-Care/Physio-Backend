@@ -36,7 +36,7 @@ public interface BookingService_Service {
 	public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,String date);
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse dto);
 	public ResponseEntity<?> getRelationsByCustomerId(String customerId);
-	public List<BookingResponse> bookingByCustomerId(String customerId);
+	public List<Map<String,Object>> bookingByCustomerId(String customerId);
 	public List<BookingResponse> bookingByPatientId(String patientId);
 	//public BookingInfoByInput bookingByInput(String input,String clinicId);
 	public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId);

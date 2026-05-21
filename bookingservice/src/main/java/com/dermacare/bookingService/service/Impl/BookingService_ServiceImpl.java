@@ -909,16 +909,26 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 	
 	
 	@Override
-	public List<BookingResponse> bookingByCustomerId(String customerId) {
+	public List<Map<String,Object>> bookingByCustomerId(String customerId) {
 		List<Booking> bookings = repository.findByCustomerId(customerId);
-		List<Booking> reversedBookings = new ArrayList<>();
-		for(int i = bookings.size()-1; i >= 0; i--) {
-			reversedBookings.add(bookings.get(i));
-		}
+		List<BookingResponse> reversedBookings = toResponses(bookings);
+		List<Map<String,Object>> list = new ArrayList<>(); 
 		if (bookings == null  || bookings.isEmpty()) {
 			return null;
+		}else {
+			reversedBookings.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
+			map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
+			map.put("name", n.getName()); map.put("mobileNumber",  !n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber()); map.put("doctorId", n.getDoctorId());
+			map.put("doctorName", n.getDoctorName()); map.put("paymentType", n.getPaymentType()); map.put("visitType", n.getVisitType());
+			map.put("status", n.getStatus()); map.put("followupStatus", n.getFollowupStatus()); map.put("patientId", n.getPatientId());
+			map.put("clinicId", n.getClinicId()); map.put("customerId", n.getCustomerId());  map.put("branchId", n.getBranchId());		
+			map.put("age", n.getAge());map.put("gender", n.getGender()); map.put("branchName", n.getBranchname());	map.put("problem", n.getProblem());		
+			list.add(map);
+			return n;
+			}).toList();
 		}
-		return toResponses(reversedBookings);
+		
+		return list;
 	}
 	
 	
