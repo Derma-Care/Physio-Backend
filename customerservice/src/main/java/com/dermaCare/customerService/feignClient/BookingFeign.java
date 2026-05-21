@@ -1,6 +1,7 @@
 package com.dermaCare.customerService.feignClient;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.HttpStatus;
@@ -72,7 +73,7 @@ public interface BookingFeign {
 	        @PathVariable String branchId);
 	
 	@GetMapping("/api/v1/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByCustomerId(@PathVariable String customerId);
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId);
 
 	@GetMapping("/api/v1/appointments/Inprogress/{customerId}")
 	public ResponseEntity<?> getInprogressAppointmentsByCustomerId(@PathVariable String customerId);

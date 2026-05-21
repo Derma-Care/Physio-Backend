@@ -2139,6 +2139,8 @@ System.out.println(records);
 			    map.setVisitNumber( String.valueOf(i + 1));
 				map.setVisitDate(record.getCreatedAt());
 				map.setVisitTime(record.getCreatedTime());
+				PhysiotherapyDoctorData data = mapToPhysiotherapyDoctorData(record);
+				map.setPhysiotherapyDoctorData(data);
 				result.add(map);
 			}
 
