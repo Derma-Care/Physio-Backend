@@ -71,8 +71,8 @@ public interface BookingFeign {
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId);
 	
-	@GetMapping("/api/v1/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByCustomerId(@PathVariable String customerId);
+	@GetMapping("/api/v1/booking/customerId/{customerId}/{branchId}")
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByCustomerId(@PathVariable String customerId,@PathVariable String branchId);
 
 	@GetMapping("/api/v1/appointments/Inprogress/{customerId}")
 	public ResponseEntity<?> getInprogressAppointmentsByCustomerId(@PathVariable String customerId);

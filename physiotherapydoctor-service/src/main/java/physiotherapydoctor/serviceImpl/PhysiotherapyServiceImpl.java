@@ -48,6 +48,8 @@ import physiotherapydoctor.dto.TherapyWithSessions;
 import physiotherapydoctor.dto.TherapyinfoForPackage;
 import physiotherapydoctor.dto.TherophyDataDto;
 import physiotherapydoctor.dto.TreatmentPlan;
+import physiotherapydoctor.dto.VisitDetailsDTO;
+import physiotherapydoctor.dto.VisitDetailsDTO.PhysiotherapyDoctorData;
 import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
 import physiotherapydoctor.feign.BookingFeign;
@@ -2126,22 +2128,17 @@ System.out.println(records);
 			mapper.setDefaultPropertyInclusion(
 					JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
 
-			List<Map<String, Object>> result = new ArrayList<>();
+			List<VisitDetailsDTO> result = new ArrayList<>();
 
 			for (int i = 0; i < records.size(); i++) {
 
 				PhysiotherapyRecord record = records.get(i);
 
-				Map<String, Object> map = new LinkedHashMap<>();
+				VisitDetailsDTO map = new VisitDetailsDTO();
 
-				map.put("visitNumber", "Visit " + (i + 1));
-				map.put("visitDate", record.getCreatedAt());
-				map.put("visitTime", record.getCreatedTime());
-
-				map.put("physiotherapyDoctorData",
-						mapper.convertValue(record, new TypeReference<Map<String, Object>>() {
-						}));
-
+			    map.setVisitNumber( String.valueOf(i + 1));
+				map.setVisitDate(record.getCreatedAt());
+				map.setVisitTime(record.getCreatedTime());
 				result.add(map);
 			}
 
@@ -2161,6 +2158,42 @@ System.out.println(records);
 
 			return response;
 		}
+	}
+	
+	public static PhysiotherapyDoctorData mapToPhysiotherapyDoctorData(
+			PhysiotherapyRecord entity) {
+
+	    if (entity == null) {
+	        return null;
+	    }
+
+	    PhysiotherapyDoctorData dto = new PhysiotherapyDoctorData();
+
+	    dto.setTherapistRecordId(entity.getTherapistRecordId());
+	    dto.setBookingId(entity.getBookingId());
+	    dto.setClinicId(entity.getClinicId());
+	    dto.setBranchId(entity.getBranchId());
+	    dto.setCreatedAt(entity.getCreatedAt());
+	    dto.setUpdatedAt(entity.getUpdatedAt());
+	    dto.setPrescriptionPdf(entity.getPrescriptionPdf());
+	    dto.setCreatedTime(entity.getCreatedTime());
+
+	    // PatientInfo Mapping
+	    if (entity.getPatientInfo() != null) {
+
+	    	VisitDetailsDTO.PatientInfo patientDto =
+	    	        new VisitDetailsDTO.PatientInfo();
+
+	    	patientDto.setPatientId(entity.getPatientInfo().getPatientId());
+	    	patientDto.setPatientName(entity.getPatientInfo().getPatientName());
+	    	patientDto.setMobileNumber(entity.getPatientInfo().getMobileNumber());
+	    	patientDto.setAge(entity.getPatientInfo().getAge());
+	    	patientDto.setSex(entity.getPatientInfo().getSex());
+
+	    	dto.setPatientInfo(patientDto);
+	    }
+
+	    return dto;
 	}
 
 	@Override

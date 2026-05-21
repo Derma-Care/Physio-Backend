@@ -162,10 +162,10 @@ public class BookingServiceController {
 	}
 	
 	
-	@GetMapping("/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId) {
+	@GetMapping("/booking/customerId/{customerId}/{branchId}")
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId,@PathVariable String branchId) {
 
-		List<Map<String,Object>> response = service.bookingByCustomerId(customerId);
+		List<Map<String,Object>> response = service.bookingByCustomerId(customerId,branchId);
 		if (response == null || response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
 					"Clinic  Does not have any booking yet" + customerId, HttpStatus.OK, HttpStatus.OK.value()),

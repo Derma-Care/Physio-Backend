@@ -909,8 +909,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 	
 	
 	@Override
-	public List<Map<String,Object>> bookingByCustomerId(String customerId) {
-		List<Booking> bookings = repository.findByCustomerId(customerId);
+	public List<Map<String,Object>> bookingByCustomerId(String customerId,String branchId) {
+		List<Booking> bookings = repository.findByCustomerIdAndBranchId(customerId,branchId);
 		List<BookingResponse> reversedBookings = toResponses(bookings);
 		List<Map<String,Object>> list = new ArrayList<>(); 
 		if (bookings == null  || bookings.isEmpty()) {
