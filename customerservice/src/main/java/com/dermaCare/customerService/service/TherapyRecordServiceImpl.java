@@ -30,10 +30,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        try {
 
 	            TherapyRecord therapyRecord = mapToEntity(dto);
-	            therapyRecord.setStatus("pending");
-	           
+	            //therapyRecord.setStatus("pending");	           
 	            TherapyRecord savedRecord = repository.save(therapyRecord);
-
 	            response.setMessage("Therapy record created successfully");
 	            response.setStatus(HttpStatus.CREATED.value());
 	            response.setSuccess(true);
@@ -600,6 +598,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	    }
 	    
 	    int sessioncompleted = 0;
+	    String status = null;
 	    private TherapyRecord mapToEntity(TherapyRecordDTO dto) {
 	    	
 	        List<TherophyRecordList> therapyList =
@@ -610,6 +609,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	        return TherapyRecord.builder()
 	                .therapyrecordid(dto.getTherapyrecordid())
+	                .status(status)
 	                .clincinid(dto.getClincinid())
 	                .brnchid(dto.getBrnchid())
 	                .patientid(dto.getPatientid())
@@ -626,8 +626,11 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	            TherophyRecordListDTO dto) {
 	    	try {
 	    	sessioncompleted =  dto.getSession().intValue()-dto.getSessioncount().intValue();          	 
-         	
-	    	}catch(Exception e) {}
+         	if(dto.getSessioncount().intValue() != 0) {
+	    	status = "Active";
+         	}else {
+         		status = "pending";	
+         	}}catch(Exception e) {}
 	        return new TherophyRecordList(
 	                dto.getSetsdone(),
 	                dto.getRepitationdone(),
