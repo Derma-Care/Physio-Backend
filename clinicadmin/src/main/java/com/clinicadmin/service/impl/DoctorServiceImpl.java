@@ -61,7 +61,7 @@ import com.clinicadmin.entity.Doctors;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.feignclient.NotificationFeign;
-import com.clinicadmin.feignclient.ServiceFeignClient;
+//import com.clinicadmin.feignclient.ServiceFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.DoctorSlotRepository;
 import com.clinicadmin.repository.DoctorsRepository;
@@ -119,7 +119,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	public DoctorServiceImpl(DoctorsRepository doctorsRepository,
 			DoctorLoginCredentialsRepository credentialsRepository, PasswordEncoder passwordEncoder,
-			DoctorSlotRepository slotRepository, ServiceFeignClient serviceFeignClient) {
+			DoctorSlotRepository slotRepository) {
 		this.doctorsRepository = doctorsRepository;
 		this.credentialsRepository = credentialsRepository;
 		this.passwordEncoder = passwordEncoder;
