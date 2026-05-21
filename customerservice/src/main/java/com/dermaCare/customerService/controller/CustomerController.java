@@ -21,6 +21,7 @@ import com.dermaCare.customerService.dto.ConsultationDTO;
 import com.dermaCare.customerService.dto.CustomerDTO;
 import com.dermaCare.customerService.dto.CustomerLoginDTO;
 import com.dermaCare.customerService.dto.CustomerRatingDomain;
+import com.dermaCare.customerService.dto.ExerciseSessionsWithRecords;
 import com.dermaCare.customerService.dto.FavouriteDoctorsDTO;
 import com.dermaCare.customerService.dto.FirstVisitHistoryRequest;
 import com.dermaCare.customerService.dto.LoginDTO;
@@ -30,6 +31,7 @@ import com.dermaCare.customerService.dto.TherapistRecordRequest;
 import com.dermaCare.customerService.dto.VisitHistoryRequest;
 import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.service.CustomerService;
+import com.dermaCare.customerService.service.PhysiotherapyService;
 import com.dermaCare.customerService.util.GetByKey;
 import com.dermaCare.customerService.util.OtpUtil;
 import com.dermaCare.customerService.util.ResBody;
@@ -49,6 +51,8 @@ public class CustomerController {
 	private CustomerService customerService;
 	@Autowired
 	private GetByKey getByKey;
+	@Autowired
+	private PhysiotherapyService service;
 	
 	private static final Logger log = LoggerFactory.getLogger(CustomerController.class);
 		
@@ -633,6 +637,11 @@ public ResponseEntity<Response> getAverageRatingByDoctorId( @PathVariable String
 		   @RequestBody BookingRequset req) {
 
        return customerService.bookPhysioAppointment(req);
+   }
+   
+   @PostMapping("/getExerciseSessionsWithRecords")
+   public ResponseEntity<Response> getExerciseSessionsWithRecords(@RequestBody ExerciseSessionsWithRecords  dto) {
+       return service.getExerciseSessionsWithRecords(dto.getClinicId(), dto.getBranchId(), dto.getBookingId(), dto.getPatientId(), dto.getTherapistId(), dto.getTherapistRecordId());
    }
 
    

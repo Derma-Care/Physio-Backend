@@ -13,8 +13,8 @@ public interface PaymentRepository extends MongoRepository<PaymentRecord, String
 
 	List<PaymentRecord> findByTherapistRecordId(String therapistRecordId);
 
-	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(String clinicId,
-			String branchId, String bookingId, String patientId, String therapistRecordId);
+	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(String clinicId,
+			String branchId, String bookingId, String patientId,String therapistId, String therapistRecordId);
 
 	List<PaymentRecord> findByClinicIdAndBranchId(String clinicId, String branchId);
 }

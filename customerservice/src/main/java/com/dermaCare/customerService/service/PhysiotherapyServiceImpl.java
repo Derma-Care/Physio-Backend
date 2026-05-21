@@ -8,12 +8,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
+
 import com.dermaCare.customerService.dto.MutiplePartsDto;
 import com.dermaCare.customerService.dto.QuestionsByPartDTO;
 import com.dermaCare.customerService.dto.QuestionsDTO;
+import com.dermaCare.customerService.dto.TherapistRecordRequest;
 import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.entity.QuestionsEntity;
+import com.dermaCare.customerService.feignClient.PhysioFeign;
 import com.dermaCare.customerService.repository.PhysiotherapyRepo;
+import com.dermaCare.customerService.util.ExtractFeignMessage;
 import com.dermaCare.customerService.util.GetByKey;
 import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.SequenceGeneratorService;
@@ -22,6 +27,8 @@ import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.SequenceGeneratorService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import feign.FeignException;
 
 
 @Service
@@ -32,7 +39,10 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	    
 	    @Autowired
 	    private GetByKey getByKey;
-
+	    
+	    @Autowired
+	    private PhysioFeign physioFeign;
+	  
 	    @Autowired
 	    private SequenceGeneratorService sequenceGenerator;
 	    
@@ -224,4 +234,19 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	                    HttpStatus.INTERNAL_SERVER_ERROR
 	            );
 	        }
-	    }}
+	    }
+	    
+	    public ResponseEntity<Response> getExerciseSessionsWithRecords(String clinicId,
+				String branchId,  String bookingId,  String patientId, String therapistId,
+				String therapistRecordId) {
+	        Response response = new Response();
+	        try {
+	        	return physioFeign.getExerciseSessionsWithRecords(clinicId, branchId, bookingId, patientId,therapistId, therapistRecordId);
+	        } catch (FeignException e) {      
+	            response.setStatus(e.status());
+	            response.setMessage(ExtractFeignMessage.clearMessage(e));
+	            response.setSuccess(false);
+	        } return ResponseEntity.status(response.getStatus()).body(response);}
+
+
+}

@@ -1261,15 +1261,15 @@ public class PaymentServiceImpl implements PaymentService {
 //    }
 	@Override
 	public Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
-			String therapistRecordId) {
+			String therapistId,	String therapistRecordId) {
 
 		Response response = new Response();
 
 		try {
 
 			PaymentRecord record = repo
-					.findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistRecordId(clinicId, branchId,
-							bookingId, patientId, therapistRecordId)
+					.findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(clinicId, branchId,
+							bookingId, patientId,therapistId, therapistRecordId)
 					.orElseThrow(() -> new RuntimeException("Payment record not found"));
 
 			List<Object> exerciseList = new ArrayList<>();
