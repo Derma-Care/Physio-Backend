@@ -2330,14 +2330,14 @@ public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByCli
 
 
 @Override
-public ResponseEntity<?> getBookingsByCustomerId(String customerId,String branchId) {
+public ResponseEntity<?> getBookingsByCustomerId(String customerId) {
 
     log.info("GET_BOOKINGS_BY_CUSTOMER :: START :: customerId={}", customerId);
 
     ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 
     try {
-         return bookingFeign.getBookingByCustomerId(customerId,branchId);
+         return bookingFeign.getBookingByCustomerId(customerId);
 
     } catch (FeignException e) {
 
