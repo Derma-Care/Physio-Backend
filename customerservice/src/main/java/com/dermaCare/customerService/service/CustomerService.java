@@ -90,7 +90,7 @@ public interface CustomerService {
     public Response getAverageRating(String branchId, String doctorId);
     
     // SUBSERVICE
-    public Response getSubServiceInfoBySubServiceId(String subServiceId) throws JsonProcessingException ;
+//    public Response getSubServiceInfoBySubServiceId(String subServiceId) throws JsonProcessingException ;
     
     //DOCTORINFOBYSUBSERVICEID
     public Response getDoctorsandHospitalDetails(String hospitalId, String subServiceId)throws JsonProcessingException;
@@ -99,9 +99,9 @@ public interface CustomerService {
     public Response getHospitalsAndDoctorsDetailsBySubServiceId(String subServiceId);
     
     //Services
-    public Response getServiceById( String categoryId);
-	public Response getSubServicesByServiceId(String serviceId);
-	public Response getAllCategory();
+//    public Response getServiceById( String categoryId);
+//	public Response getSubServicesByServiceId(String serviceId);
+//	public Response getAllCategory();
 	
 	//NOTIFICATION
 	public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
@@ -109,7 +109,7 @@ public interface CustomerService {
 
 	public ResponseEntity<?> getInProgressAppointments( String mnumber);
 	
-	public Response getBranchesInfoBySubServiceId(String clinicId,String subServiceId,String latitude,String longtitude) throws JsonProcessingException;
+//	public Response getBranchesInfoBySubServiceId(String clinicId,String subServiceId,String latitude,String longtitude) throws JsonProcessingException;
 	
 	public Response getReportsAndDoctorSaveDetails(String customerId);
 	
