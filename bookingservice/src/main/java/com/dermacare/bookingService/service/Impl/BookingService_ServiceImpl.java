@@ -51,6 +51,7 @@ import com.dermacare.bookingService.entity.Status;
 import com.dermacare.bookingService.entity.TheraphyAnswersEntity;
 import com.dermacare.bookingService.feign.ClinicAdminFeign;
 import com.dermacare.bookingService.feign.DoctorFeign;
+import com.dermacare.bookingService.feign.NotificationFeign;
 import com.dermacare.bookingService.feign.PhysioDoctorFeign;
 //import com.dermacare.bookingService.producer.KafkaProducer;
 import com.dermacare.bookingService.repository.BookingServiceRepository;
@@ -79,14 +80,15 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 //	@Autowired
 //	private KafkaProducer kafkaProducer;
 	
-//	// @Autowired
-	//private NotificationFeign notificationFeign;
+	@Autowired
+	private NotificationFeign notificationFeign;
 	
 	@Autowired
 	private DoctorFeign doctorFeign;
 	
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
+	
 	@Autowired
 	private geneateIds sequenceGeneratorService;
 	
@@ -366,6 +368,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Override
 	 public ResponseEntity<?> physioAppointment(BookingRequset request) {
 		 Response res = new Response();
+		  ObjectMapper mapper = new ObjectMapper();
+	         mapper.registerModule(new JavaTimeModule());
+	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		 ResponseEntity<?> repnse = null;
 		 try {
 			 if (request.getFreeFollowUps() == null) {
@@ -380,8 +385,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			 if (request.getFreeFollowUps() == null) {
 			        throw new RuntimeException("Free FollowUps is mandatory");
 			    }
-
-
 			   if (request.getPatientMobileNumber() == null || request.getPatientMobileNumber().trim().isEmpty()) {
 			    	if(request.getMobileNumber() == null  || request.getMobileNumber().trim().isEmpty()) {
 			        throw new RuntimeException("patientmobilenumber or Mobile Number is mandatory");
@@ -413,26 +416,20 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	     //System.out.println(entity);
 	     Booking updatedBooking = repository.save(entity);
 	     if(updatedBooking != null) {
-//	    	  try {
-//	            	 updatedBooking.setAttachments(null); 
-//	            	 updatedBooking.setPartImage(null);
-//	            	 updatedBooking.setConsentFormPdf(null);
-//	            	 updatedBooking.setPrescriptionPdf(null);
-//	                 kafkaProducer.publishBooking(updatedBooking);
-//	             } catch (Exception e) {	            	 
-//	    	    	  res.setMessage(e.getMessage());
-//	    	    	  res.setStatus(500);
-//	    	    	  res.setSuccess(false);
-//	    	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);}
-	    	  ObjectMapper mapper = new ObjectMapper();
-		         mapper.registerModule(new JavaTimeModule());
-		         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-	    	  res.setData(mapper.convertValue(updatedBooking,BookingResponse.class ) );
-	    	  res.setMessage("Booked Successfully");
+	     int status = 0;
+	    	  try {
+	          Response respnse =  notificationFeign.createNotification(mapper.convertValue(updatedBooking,BookingResponse.class )).getBody();
+	          status = respnse.getStatus();
+	    	  }catch (Exception e) {}	    	  
+	    	 /// res.setData(mapper.convertValue(updatedBooking,BookingResponse.class ) );
+	    	  if(status == 200) {
+	    	  res.setMessage("Appointment Booked Successfully and notification sent");}
+	    	  else {
+	    		  res.setMessage("Appointment Booked Successfully but notification not sent");}}
 	    	  res.setStatus(200);
 	    	  res.setSuccess(true);
 	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);
-	    	  }}catch (Exception e) {
+		     }catch (Exception e) {
 	    		  res.setMessage(e.getMessage());
     	    	  res.setStatus(500);
     	    	  res.setSuccess(false);

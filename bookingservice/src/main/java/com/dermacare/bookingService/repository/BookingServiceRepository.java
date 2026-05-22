@@ -3,6 +3,8 @@ package com.dermacare.bookingService.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.http.ResponseEntity;
@@ -72,4 +74,5 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public List<Booking> findByClinicIdAndDoctorIdAndFollowupStatusIgnoreCase(String clinicId, String doctorId,
 			String status);
 	public List<Booking> findByCustomerId(String customerId);
+	public Page<Booking> findByCustomerId(String customerId, Pageable pageable);
 	}

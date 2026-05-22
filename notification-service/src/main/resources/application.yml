@@ -2,25 +2,25 @@ spring:
   application:
     name: notification-service
 
-  kafka:
-    bootstrap-servers: localhost:9092
+#  kafka:
+#    bootstrap-servers: localhost:9092
+#
+#    consumer:
+#      group-id: notificationgroup
+#      enable-auto-commit: true
+#      auto-offset-reset: latest
+#
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
-    consumer:
-      group-id: notificationgroup
-      enable-auto-commit: true
-      auto-offset-reset: latest
-
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-      properties:
-        spring:
-          json:
-            trusted:
-              packages: com.dermacare.notification_service.entity
-            value:
-              default:
-                type: com.dermacare.notification_service.entity.Booking
+#      properties:
+#        spring:
+#          json:
+#            trusted:
+#              packages: com.dermacare.notification_service.entity
+#            value:
+#              default:
+#                type: com.dermacare.notification_service.entity.Booking
 
     listener:
       concurrency: 1
