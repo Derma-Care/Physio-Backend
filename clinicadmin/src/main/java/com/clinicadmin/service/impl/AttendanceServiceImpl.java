@@ -94,6 +94,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                     entity.setStatus(null);
                 }
                 
+                
+                
             }
             
          
@@ -417,6 +419,32 @@ public class AttendanceServiceImpl implements AttendanceService {
         Response response = new Response();
 
         try {
+
+            // ✅ FIND ATTENDANCE FOR PASSED DATE
+            Optional<Attendance> optional =
+                    repo.findByUserIdAndDate(userId, date);
+
+            //  IF NO RECORD FOUND
+            // RETURN EMPTY RESPONSE
+            if (!optional.isPresent()) {
+
+                DailyAttendanceResponseDTO emptyDto =
+                        new DailyAttendanceResponseDTO();
+
+                emptyDto.setDate(date);
+                emptyDto.setStatus("Not Logged In");
+                emptyDto.setLogTime(null);
+                emptyDto.setLogin(null);
+                emptyDto.setLogout(null);
+                emptyDto.setActivities(new ArrayList<>());
+
+                response.setSuccess(true);
+                response.setMessage("No attendance found");
+                response.setData(emptyDto);
+                response.setStatus(200);
+
+                return response;
+            }
 
             Attendance entity = repo.findByUserIdAndDate(userId, date)
                     .orElseThrow(() -> new RuntimeException("No data found"));

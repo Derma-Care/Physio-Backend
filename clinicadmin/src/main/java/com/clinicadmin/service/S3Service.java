@@ -1,5 +1,6 @@
 package com.clinicadmin.service;
 
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
@@ -10,7 +11,10 @@ import org.springframework.stereotype.Service;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 @Service
 public class S3Service {
@@ -28,6 +32,9 @@ public class S3Service {
 
     @Value("${aws.region}")
     private String region;
+    
+    @Autowired
+    private S3Presigner s3Presigner;
 
     public String uploadFile(String folder, String base64Data, String extension) {
 
@@ -91,11 +98,28 @@ public class S3Service {
                 RequestBody.fromBytes(bytes)
         );
 
-        // Return public URL
-        return "https://" + bucketName
-                + ".s3."
-                + region
-                + ".amazonaws.com/"
-                + fileName;
+        // Return signed URL for private bucket
+        return generateSignedUrl(fileName);
     }
+    
+    public String generateSignedUrl(String fileName) {
+
+        GetObjectRequest getObjectRequest =
+                GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(fileName)
+                        .build();
+
+        GetObjectPresignRequest presignRequest =
+                GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofDays(7))
+                        .getObjectRequest(getObjectRequest)
+                        .build();
+
+        return s3Presigner
+                .presignGetObject(presignRequest)
+                .url()
+                .toString();
+    }
+
 }
