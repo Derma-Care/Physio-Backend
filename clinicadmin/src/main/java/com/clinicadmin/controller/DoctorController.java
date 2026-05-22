@@ -29,7 +29,7 @@ import com.clinicadmin.dto.DoctorsDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TempBlockingSlot;
 import com.clinicadmin.dto.UpdateSlotRequestDTO;
-import com.clinicadmin.service.DoctorNoteService;
+//import com.clinicadmin.service.DoctorNoteService;
 import com.clinicadmin.service.DoctorService;
 import com.clinicadmin.validations.FormatChecks;
 import com.clinicadmin.validations.RequiredChecks;
@@ -46,8 +46,8 @@ public class DoctorController {
 	@Autowired
 	private DoctorService doctorService;
 	
-	@Autowired
-	private DoctorNoteService doctorNoteService;
+//	@Autowired
+//	private DoctorNoteService doctorNoteService;
 	
 	@Autowired
 	private Validator validator;
@@ -387,11 +387,11 @@ public class DoctorController {
        ---------------------------------------------------------------------------------------------------------------------------*/
 
 	// -------------------------getAllNotes-----------------------------------------------
-	@GetMapping("/notes/getAllNotes")
-	public ResponseEntity<Response> getAllNotes() {
-		Response response = doctorNoteService.getAllNotes();
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+//	@GetMapping("/notes/getAllNotes")
+//	public ResponseEntity<Response> getAllNotes() {
+//		Response response = doctorNoteService.getAllNotes();
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
 	
 	
 	//NOTIFICATION OF DOCTOR
