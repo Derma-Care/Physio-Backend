@@ -168,17 +168,20 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                         if (recordDto.getSessioncount() != null) {
 	                        	 therapy.setSessioncount(
 	                                     recordDto.getSessioncount());
-	                        try {
-	                         TherophyRecordList lst = existing.getTherapyrecord().get(existing.getTherapyrecord().size()-1);
-	                         //System.out.println(lst);
-	                         int value = lst.getSession().intValue()-recordDto.getSessioncount().intValue();
-	                         if(value!=0) {  	 
-	                    	  existing.setStatus("Active");
-	                    	  existing.setSessioncountremaining(value);
-	                    	  }else {
-	                    		  existing.setStatus("Completed"); 
-	                    		  existing.setSessioncountremaining(value);
-	                    	  }}catch(Exception e) {}}
+								 try {
+									 TherophyRecordList lst = existing.getTherapyrecord().get(existing.getTherapyrecord().size()-1);
+									 int size = existing.getTherapyrecord().size();
+									 System.out.println(size);
+									 int add = size + recordDto.getSessioncount().intValue();
+									 int value = lst.getSession().intValue() - add;
+									 System.out.println(value);
+									 if(value!=0) {
+										 existing.setStatus("Active");
+										 existing.setSessioncountremaining(value);
+									 }else {
+										 existing.setStatus("Completed");
+										 existing.setSessioncountremaining(value);
+									 }}catch(Exception e) {}}
 	                         // ================= SESSION =================
 
 	                         if (recordDto.getSession() != null) {
