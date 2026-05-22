@@ -29,11 +29,13 @@ import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.entity.Session;
 import com.clinicadmin.entity.Therapist;
 import com.clinicadmin.entity.TherapistAttendance;
+import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
+import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.repository.TherapistRepository;
 import com.clinicadmin.service.EmailService;
 import com.clinicadmin.service.TherapistService;
@@ -71,6 +73,9 @@ public class TherapistServiceImpl implements TherapistService {
 	
 	@Autowired
 	private TherapistAttendanceRepository therapistAttendanceRepository;
+	
+	@Autowired
+	private TherapistRecordRepository therapistRecordRepository;
     @Override
 
     public Response therapistOnboarding(TherapistDTO dto) {
@@ -972,7 +977,7 @@ public class TherapistServiceImpl implements TherapistService {
         
     }
     @Override
-    public Response getTherapistPerformanceSummary(String clinicId,String branchId,String therapistId,int year) {
+    public Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year) {
 
         Response response = new Response();
 
@@ -1013,83 +1018,94 @@ public class TherapistServiceImpl implements TherapistService {
                             .collect(Collectors.toList());
 
             // =========================================================
-            // 2. TOTAL NUMBER OF SESSIONS COMPLETED
-            // Logic:
-            // - Fetch all payments for the clinic and branch.
-            // - Filter only the selected therapist.
+            // 2. FETCH THERAPIST RECORDS
+            // Used for totalSessionCompleted and totalSessionTime.
+            // - Fetch all TherapistRecord for this therapist.
+            // - Filter by selected year using completedDate.
+            // - Filter by clinicId and branchId.
             // - Consider only valid service types:
             //   PACKAGE / PROGRAM / THERAPY / EXERCISE.
-            // - For those records, recursively search for all "sessions"
-            //   arrays and count only sessions where status = "Completed".
+            // - Count records where status = "COMPLETED".
+            // - Sum duration of those completed records.
             // =========================================================
-            int totalSessionCompleted = 0;
+            List<TherapistRecord> therapistRecords =
+                    therapistRecordRepository
+                            .findByClinicIdAndBranchIdAndTherapistId(
+                                    clinicId,
+                                    branchId,
+                                    therapistId)
+                            .stream()
+                            .filter(record -> {
+                                try {
 
-            Response paymentResponse =
-                    physiotherapyFeignClient.getPayments(
-                            clinicId,
-                            branchId);
+                                    // ---------------------------------
+                                    // Filter by year
+                                    // ---------------------------------
+                                    if (record.getCompletedDate() == null
+                                            || record.getCompletedDate()
+                                                     .trim()
+                                                     .isEmpty()) {
+                                        return false;
+                                    }
 
-            List<Map<String, Object>> payments =
-                    (List<Map<String, Object>>) paymentResponse.getData();
+                                    LocalDate completedDate =
+                                            LocalDate.parse(
+                                                    record.getCompletedDate()
+                                                          .substring(0, 10));
 
-            if (payments != null) {
+                                    if (completedDate.getYear() != year) {
+                                        return false;
+                                    }
 
-                for (Map<String, Object> payment : payments) {
+                                    // ---------------------------------
+                                    // Filter by valid service types
+                                    // ---------------------------------
+                                    String serviceType = record.getServiceType();
 
-                    // ---------------------------------------------------------
-                    // Filter by selected year
-                    // ---------------------------------------------------------
-                    Object paymentDateObj = payment.get("sessionStartDate");
+                                    if (serviceType == null) {
+                                        return false;
+                                    }
 
-                    // If date is missing, skip this payment
-                    if (paymentDateObj == null) {
-                        continue;
-                    }
+                                    return "PACKAGE".equalsIgnoreCase(serviceType)
+                                            || "PROGRAM".equalsIgnoreCase(serviceType)
+                                            || "THERAPY".equalsIgnoreCase(serviceType)
+                                            || "EXERCISE".equalsIgnoreCase(serviceType);
 
-                    try {
-                        LocalDate paymentDate =
-                                LocalDate.parse(
-                                        paymentDateObj.toString()
-                                                .substring(0, 10));
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
 
-                        // Skip if payment year does not match requested year
-                        if (paymentDate.getYear() != year) {
-                            continue;
-                        }
+            // =========================================================
+            // 2a. TOTAL SESSION COMPLETED
+            // Count records where status = "COMPLETED"
+            // =========================================================
+            int totalSessionCompleted = (int) therapistRecords.stream()
+                    .filter(record ->
+                            record.getStatus() != null
+                            && "COMPLETED".equalsIgnoreCase(
+                                    record.getStatus().trim()))
+                    .count();
 
-                    } catch (Exception e) {
-                        // Invalid date format, skip this payment
-                        continue;
-                    }
+            // =========================================================
+            // 2b. TOTAL SESSION TIME
+            // Sum duration of all completed records
+            // =========================================================
+            long totalSessionMinutes = therapistRecords.stream()
+                    .filter(record ->
+                            record.getStatus() != null
+                            && "COMPLETED".equalsIgnoreCase(
+                                    record.getStatus().trim())
+                            && record.getDuration() != null
+                            && !record.getDuration().trim().isEmpty())
+                    .mapToLong(record ->
+                            convertToMinutes(record.getDuration()))
+                    .sum();
 
-                    // ---------------------------------------------------------
-                    // Filter by therapistId
-                    // ---------------------------------------------------------
-                    if (!therapistId.equals(
-                            String.valueOf(payment.get("therapistId")))) {
-                        continue;
-                    }
+            String formattedTotalSessionTime =
+                    formatDuration(totalSessionMinutes);
 
-                    // ---------------------------------------------------------
-                    // Consider only supported service types
-                    // ---------------------------------------------------------
-                    String serviceType =
-                            String.valueOf(payment.get("serviceType"));
-
-                    if (!"PACKAGE".equalsIgnoreCase(serviceType)
-                            && !"PROGRAM".equalsIgnoreCase(serviceType)
-                            && !"THERAPY".equalsIgnoreCase(serviceType)
-                            && !"EXERCISE".equalsIgnoreCase(serviceType)) {
-                        continue;
-                    }
-
-                    // ---------------------------------------------------------
-                    // Count all sessions with status = "Completed"
-                    // ---------------------------------------------------------
-                    totalSessionCompleted +=
-                            countCompletedSessions(payment);
-                }
-            }
             // =========================================================
             // 3. TOTAL AVERAGE RATING
             // rating is stored as String in FeedbackDetails
@@ -1112,6 +1128,16 @@ public class TherapistServiceImpl implements TherapistService {
             // Round to 2 decimal places
             totalAvgRating =
                     Math.round(totalAvgRating * 100.0) / 100.0;
+
+            // =========================================================
+            // 3a. TOTAL NUMBER OF RATINGS
+            // Count of feedback records with a valid, non-empty rating
+            // =========================================================
+            long totalNoOfRatings = feedbackList.stream()
+                    .filter(feedback ->
+                            feedback.getRating() != null
+                            && !feedback.getRating().trim().isEmpty())
+                    .count();
 
             // =========================================================
             // 4. TOTAL IDLE TIME
@@ -1165,8 +1191,7 @@ public class TherapistServiceImpl implements TherapistService {
                         }
                     }
 
-                    long idleMinutes =
-                            logMinutes - workingMinutes;
+                    long idleMinutes = logMinutes - workingMinutes;
 
                     if (idleMinutes < 0) {
                         idleMinutes = 0;
@@ -1193,7 +1218,7 @@ public class TherapistServiceImpl implements TherapistService {
                         for (Session session : attendance.getSessions()) {
 
                             String description = session.getDescription();
-                            String duration = session.getDuration();
+                            String duration    = session.getDuration();
 
                             if (description != null
                                     && "Training".equalsIgnoreCase(
@@ -1211,22 +1236,67 @@ public class TherapistServiceImpl implements TherapistService {
 
             String formattedTrainingHours =
                     formatDuration(totalTrainingMinutes);
+            
+         // =========================================================
+         // 6. PAID LEAVES COUNT
+         // =========================================================
+         long paidLeaveDays = 0;
 
+         if (attendanceList != null) {
+             for (TherapistAttendance attendance : attendanceList) {
+                 if (attendance.getSessions() != null) {
+                     boolean hasPaidLeave = attendance.getSessions()
+                             .stream()
+                             .anyMatch(session ->
+                                     session.getActivity() != null
+                                     && "Paid Leaves".equalsIgnoreCase(  // ✅ "Paid Leaves" with s
+                                             session.getActivity().trim()));
+                     if (hasPaidLeave) {
+                         paidLeaveDays++;
+                     }
+                 }
+             }
+         }
+
+         // =========================================================
+         // 7. LOSS OF PAY (LOP) COUNT
+         // =========================================================
+         long lossOfPayDays = 0;
+
+         if (attendanceList != null) {
+             for (TherapistAttendance attendance : attendanceList) {
+                 if (attendance.getSessions() != null) {
+                     boolean hasLOP = attendance.getSessions()
+                             .stream()
+                             .anyMatch(session ->
+                                     session.getActivity() != null
+                                     && "Loss of Pay".equalsIgnoreCase(  // ✅ confirm this string from your DB too
+                                             session.getActivity().trim()));
+                     if (hasLOP) {
+                         lossOfPayDays++;
+                     }
+                 }
+             }
+         }
             // =========================================================
-            // 6. RESPONSE DATA
+            // 8. RESPONSE DATA
             // =========================================================
             Map<String, Object> data = new HashMap<>();
-            data.put("clinicId", clinicId);
-            data.put("branchId", branchId);
-            data.put("therapistId", therapistId);
-            data.put("year", year);
+            data.put("clinicId",              clinicId);
+            data.put("branchId",              branchId);
+            data.put("therapistId",           therapistId);
+            data.put("year",                  year);
             data.put("totalSessionCompleted", totalSessionCompleted);
-            data.put("totalIdleTime", formattedIdleTime);
-            data.put("totalAvgRating", totalAvgRating);
-            data.put("totalTrainingHours", formattedTrainingHours);
+            data.put("totalSessionTime",      formattedTotalSessionTime);
+            data.put("totalIdleTime",         formattedIdleTime);
+            data.put("totalAvgRating",        totalAvgRating);
+            data.put("totalNoOfRatings",      totalNoOfRatings);
+            data.put("totalTrainingHours",    formattedTrainingHours);
+            data.put("paidLeaveDays",         paidLeaveDays);   // ✅ NEW
+            data.put("lossOfPayDays",         lossOfPayDays);   // ✅ NEW
 
             // =========================================================
-            // 7. SUCCESS RESPONSE
+            // 9. SUCCESS RESPONSE
             // =========================================================
             response.setSuccess(true);
             response.setStatus(200);
@@ -1244,6 +1314,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     }
+
     /**
      * Converts total minutes into hours only.
      *
@@ -1276,6 +1347,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return totalHours + " hrs";
     }
+
     /**
      * Converts time strings into total minutes.
      *
@@ -1384,6 +1456,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return totalMinutes;
     }
+
     /**
      * Recursively searches the given object for all keys named "sessions"
      * and counts how many session objects have status = "Completed".
@@ -1428,5 +1501,58 @@ public class TherapistServiceImpl implements TherapistService {
         }
 
         return count;
+    }
+
+    /**
+     * Recursively searches the given object for all keys named "sessions"
+     * and sums the duration of sessions where status = "Completed".
+     *
+     * The "duration" field inside each session is parsed using
+     * convertToMinutes(), which supports formats like:
+     *   "30 mins", "1 hr", "1 hr 30 mins", "90", etc.
+     */
+    private long sumCompletedSessionTime(Object obj) {
+
+        long total = 0;
+
+        if (obj instanceof Map<?, ?> map) {
+
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+
+                // If the current key is "sessions", sum durations of completed ones
+                if ("sessions".equals(entry.getKey())
+                        && entry.getValue() instanceof List<?> sessions) {
+
+                    for (Object sessionObj : sessions) {
+
+                        if (sessionObj instanceof Map<?, ?> sessionMap) {
+
+                            Object statusObj   = sessionMap.get("status");
+                            Object durationObj = sessionMap.get("duration");
+
+                            if (statusObj != null
+                                    && "Completed".equalsIgnoreCase(
+                                            statusObj.toString())
+                                    && durationObj != null) {
+
+                                total += convertToMinutes(
+                                        durationObj.toString());
+                            }
+                        }
+                    }
+                }
+
+                // Continue searching deeper
+                total += sumCompletedSessionTime(entry.getValue());
+            }
+
+        } else if (obj instanceof List<?> list) {
+
+            for (Object item : list) {
+                total += sumCompletedSessionTime(item);
+            }
+        }
+
+        return total;
     }
 }

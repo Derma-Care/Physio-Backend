@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import com.clinicadmin.entity.Therapist;
 import com.clinicadmin.entity.TherapistRecord;
 
 public interface TherapistRecordRepository extends MongoRepository<TherapistRecord, String> {
@@ -28,5 +29,5 @@ void deleteBySessionId(String sessionId);
 Optional<TherapistRecord> findByClinicIdAndBranchIdAndPatientIdAndBookingIdAndTherapistIdAndTherapistRecordId(
 		String clinicId, String branchId, String patientId, String bookingId, String therapistId,
 		String therapistRecordId);
-	
+List<TherapistRecord> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);	
 }
