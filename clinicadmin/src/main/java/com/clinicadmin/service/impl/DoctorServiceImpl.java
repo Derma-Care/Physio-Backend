@@ -719,11 +719,27 @@ public class DoctorServiceImpl implements DoctorService {
 //				doctor.setConsultation(consultation);
 //			}
 
-			doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());
-			doctor.setRecommendation(dto.isRecommendation());
-			doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
-			doctor.setAssociationsOrMemberships(dto.getAssociationsOrMemberships());
-			doctor.setBranches(dto.getBranches());
+			if (dto.getDoctorAvailabilityStatus() != null) {
+			    doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());
+			}
+
+			if (dto.isRecommendation() != doctor.isRecommendation()) {
+			    doctor.setRecommendation(dto.isRecommendation());
+			}
+
+			if (dto.isAssociatedWithIADVC() != doctor.isAssociatedWithIADVC()) {
+			    doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
+			}
+
+			if (dto.getAssociationsOrMemberships() != null 
+			        && !dto.getAssociationsOrMemberships().isEmpty()) {
+			    doctor.setAssociationsOrMemberships(dto.getAssociationsOrMemberships());
+			}
+
+			if (dto.getBranches() != null 
+			        && !dto.getBranches().isEmpty()) {
+			    doctor.setBranches(dto.getBranches());
+			}
 
 			log.info("Saving updated doctor data for doctorId={}", doctorId);
 			Doctors updatedDoctor = doctorsRepository.save(doctor);

@@ -171,10 +171,10 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 								 try {
 									 TherophyRecordList lst = existing.getTherapyrecord().get(existing.getTherapyrecord().size()-1);
 									 int size = existing.getTherapyrecord().size();
-									 System.out.println(size);
+									// System.out.println(size);
 									 int add = size + recordDto.getSessioncount().intValue();
 									 int value = lst.getSession().intValue() - add;
-									 System.out.println(value);
+									// System.out.println(value);
 									 if(value!=0) {
 										 existing.setStatus("Active");
 										 existing.setSessioncountremaining(value);
@@ -628,12 +628,22 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	    private TherophyRecordList mapTherapyList(
 	            TherophyRecordListDTO dto) {
 	    	try {
-	    	sessioncompleted =  dto.getSession().intValue()-dto.getSessioncount().intValue();          	 
+	    	//sessioncompleted =  dto.getSession().intValue()-dto.getSessioncount().intValue();          	 
          	if(dto.getSessioncount().intValue() != 0) {
 	    	status = "Active";
          	}else {
          		status = "pending";	
          	}}catch(Exception e) {}
+	    	 try {
+				 int value = dto.getSession().intValue() - dto.getSessioncount().intValue();				
+				// System.out.println(value);
+				 if(value!=0) {
+					 status ="Active";
+					 sessioncompleted = value;
+				 }else {
+					 status = "Completed";
+					 sessioncompleted = value;
+				 }}catch(Exception e) {}
 	        return new TherophyRecordList(
 	                dto.getSetsdone(),
 	                dto.getRepitationdone(),
