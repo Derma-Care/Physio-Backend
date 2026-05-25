@@ -418,39 +418,98 @@ public class PaymentServiceImpl implements PaymentService {
 	// ========================================================
 	private void distributePaymentToSessions(PaymentRecord record) {
 
-	    if (record.getTherapyWithSessions() == null) return;
+		if (record.getTherapyWithSessions() == null)
+			return;
 
-	    double remaining = record.getTotalPaid();
+		double remaining = record.getTotalPaid();
 
-	    double totalAmount = record.getTotalAmount();
-	    double finalAmount = record.getFinalAmount();
-	    double discountRatio = (totalAmount > 0) ? (finalAmount / totalAmount) : 1.0;
+		double totalAmount = record.getTotalAmount();
+		double finalAmount = record.getFinalAmount();
 
-	    for (var pkg : record.getTherapyWithSessions()) {
-	        if (pkg.getPrograms() == null) continue;
-	        for (var prog : pkg.getPrograms()) {
-	            if (prog.getTherapyData() == null) continue;
-	            for (var therapy : prog.getTherapyData()) {
-	                if (therapy.getExercises() == null) continue;
-	                for (var ex : therapy.getExercises()) {
-	                    if (ex.getSessions() == null) continue;
+		double discountRatio = (totalAmount > 0) ? (finalAmount / totalAmount) : 1.0;
 
-	                    double rawPrice = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
-	                    double effectivePrice = rawPrice * discountRatio;
+		for (var pkg : record.getTherapyWithSessions()) {
 
-	                    for (var s : ex.getSessions()) {
-	                        if (remaining >= effectivePrice) {
-	                            s.setPaymentStatus("Paid");
-	                            remaining -= effectivePrice;
-	                        } else {
-	                            s.setPaymentStatus("Unpaid");
-	                        }
-	                    }
-	                }
-	            }
-	        }
-	    }
+			if (pkg.getPrograms() == null)
+				continue;
+
+			for (var prog : pkg.getPrograms()) {
+
+				if (prog.getTherapyData() == null)
+					continue;
+
+				for (var therapy : prog.getTherapyData()) {
+
+					if (therapy.getExercises() == null)
+						continue;
+
+					for (var ex : therapy.getExercises()) {
+
+						if (ex.getSessions() == null)
+							continue;
+
+						double rawPrice = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+
+						// ✅ rounded effective price
+						double effectivePrice = Math.round(rawPrice * discountRatio * 100.0) / 100.0;
+
+						for (var s : ex.getSessions()) {
+
+							// ✅ FIX floating precision issue
+							if (remaining + 0.01 >= effectivePrice) {
+
+								s.setPaymentStatus("Paid");
+
+								remaining -= effectivePrice;
+
+								// ✅ avoid negative tiny values
+								remaining = Math.round(remaining * 100.0) / 100.0;
+
+							} else {
+
+								s.setPaymentStatus("Unpaid");
+							}
+						}
+					}
+				}
+			}
+		}
 	}
+//	private void distributePaymentToSessions(PaymentRecord record) {
+//
+//	    if (record.getTherapyWithSessions() == null) return;
+//
+//	    double remaining = record.getTotalPaid();
+//
+//	    double totalAmount = record.getTotalAmount();
+//	    double finalAmount = record.getFinalAmount();
+//	    double discountRatio = (totalAmount > 0) ? (finalAmount / totalAmount) : 1.0;
+//
+//	    for (var pkg : record.getTherapyWithSessions()) {
+//	        if (pkg.getPrograms() == null) continue;
+//	        for (var prog : pkg.getPrograms()) {
+//	            if (prog.getTherapyData() == null) continue;
+//	            for (var therapy : prog.getTherapyData()) {
+//	                if (therapy.getExercises() == null) continue;
+//	                for (var ex : therapy.getExercises()) {
+//	                    if (ex.getSessions() == null) continue;
+//
+//	                    double rawPrice = ex.getPricePerSession() != null ? ex.getPricePerSession() : 0;
+//	                    double effectivePrice = rawPrice * discountRatio;
+//
+//	                    for (var s : ex.getSessions()) {
+//	                        if (remaining >= effectivePrice) {
+//	                            s.setPaymentStatus("Paid");
+//	                            remaining -= effectivePrice;
+//	                        } else {
+//	                            s.setPaymentStatus("Unpaid");
+//	                        }
+//	                    }
+//	                }
+//	            }
+//	        }
+//	    }
+//	}
 //	private void distributePaymentToSessions(PaymentRecord record) {
 //
 //		if (record.getTherapyWithSessions() == null)
@@ -1261,15 +1320,15 @@ public class PaymentServiceImpl implements PaymentService {
 //    }
 	@Override
 	public Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
-			String therapistId,	String therapistRecordId) {
+			String therapistId, String therapistRecordId) {
 
 		Response response = new Response();
 
 		try {
 
 			PaymentRecord record = repo
-					.findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(clinicId, branchId,
-							bookingId, patientId,therapistId, therapistRecordId)
+					.findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(clinicId,
+							branchId, bookingId, patientId, therapistId, therapistRecordId)
 					.orElseThrow(() -> new RuntimeException("Payment record not found"));
 
 			List<Object> exerciseList = new ArrayList<>();
@@ -1351,51 +1410,43 @@ public class PaymentServiceImpl implements PaymentService {
 
 		return response;
 	}
+
 //    -------------------------------------check completed record-----------------------------
 	@Override
-	public Response getCompletedTherapyRecord(
-	        String clinicId,
-	        String branchId,
-	        String therapistRecordId,
-	        String sessionId) {
+	public Response getCompletedTherapyRecord(String clinicId, String branchId, String therapistRecordId,
+			String sessionId) {
 
-	    Response response = new Response();
+		Response response = new Response();
 
-	    try {
+		try {
 
-	        ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr =
-	                clinicAdminFeign.getCompletedTherapyRecord(
-	                        clinicId,
-	                        branchId,
-	                        therapistRecordId,
-	                        sessionId);
+			ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
+					.getCompletedTherapyRecord(clinicId, branchId, therapistRecordId, sessionId);
 
-	        if (tr != null
-	                && tr.getBody() != null
-	                && tr.getBody().getData() != null) {
+			if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
 
-	            response.setSuccess(true);
-	            response.setStatus(200);
-	            response.setMessage("Therapy record fetched successfully");
-	            response.setData(tr.getBody().getData());
+				response.setSuccess(true);
+				response.setStatus(200);
+				response.setMessage("Therapy record fetched successfully");
+				response.setData(tr.getBody().getData());
 
-	        } else {
+			} else {
 
-	            response.setSuccess(false);
-	            response.setStatus(404);
-	            response.setMessage("Therapy record not found");
-	        }
+				response.setSuccess(false);
+				response.setStatus(404);
+				response.setMessage("Therapy record not found");
+			}
 
-	    } catch (Exception e) {
+		} catch (Exception e) {
 
-	        response.setSuccess(false);
-	        response.setStatus(500);
-	        response.setMessage(e.getMessage());
-	    }
+			response.setSuccess(false);
+			response.setStatus(500);
+			response.setMessage(e.getMessage());
+		}
 
-	    return response;
+		return response;
 	}
-	
+
 	// ========================================================
 	// FIND BY CLINIC AND BRANCH
 	// ========================================================
