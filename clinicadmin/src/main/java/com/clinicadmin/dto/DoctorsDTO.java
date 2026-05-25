@@ -133,6 +133,8 @@ public class DoctorsDTO {
 
 	private String updatedDate;
 	
+	private BankAccountDetails bankAccountDetails;
+	
 	
 
 	public void trimAllDoctorFields() {

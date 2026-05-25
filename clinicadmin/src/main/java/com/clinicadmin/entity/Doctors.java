@@ -7,6 +7,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.DoctorBranches;
 import com.clinicadmin.dto.DoctorCategoryDTO;
 import com.clinicadmin.dto.DoctorServicesDTO;
@@ -71,6 +72,7 @@ public class Doctors {
     private String updatedDate;
 
 	private String  Status;
+	private BankAccountDetails bankAccountDetails;
 		
 	}
 

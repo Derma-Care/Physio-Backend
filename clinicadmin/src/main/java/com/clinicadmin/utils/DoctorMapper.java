@@ -5,6 +5,7 @@ import java.time.ZoneId;
 
 import org.bson.types.ObjectId;
 
+import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.ConsultationTypeDTO;
 import com.clinicadmin.dto.DoctorFeeDTO;
 import com.clinicadmin.dto.DoctorsDTO;
@@ -79,7 +80,27 @@ public class DoctorMapper {
 //			consultation.setVideoOrOnline(dto.getConsultation().getVideoOrOnline());
 //			doctor.setConsultation(consultation);
 //		}
+		if (dto.getBankAccountDetails() != null) {
 
+		    BankAccountDetails bankDetails = new BankAccountDetails();
+
+		    bankDetails.setAccountHolderName(
+		            dto.getBankAccountDetails().getAccountHolderName());
+
+		    bankDetails.setAccountNumber(
+		            dto.getBankAccountDetails().getAccountNumber());
+
+		    bankDetails.setBankName(
+		            dto.getBankAccountDetails().getBankName());
+
+		    bankDetails.setBranchName(
+		            dto.getBankAccountDetails().getBranchName());
+
+		    bankDetails.setIfscCode(
+		            dto.getBankAccountDetails().getIfscCode());		   
+
+		    doctor.setBankAccountDetails(bankDetails);
+		}
 		return doctor;
 	}
 
@@ -151,6 +172,28 @@ public class DoctorMapper {
 //			consultationDTO.setVideoOrOnline(doctor.getConsultation().getVideoOrOnline());
 //			dto.setConsultation(consultationDTO);
 //		}
+		
+		if (doctor.getBankAccountDetails() != null) {
+
+		    BankAccountDetails bankDetails = new BankAccountDetails();
+
+		    bankDetails.setAccountHolderName(
+		            doctor.getBankAccountDetails().getAccountHolderName());
+
+		    bankDetails.setAccountNumber(
+		            doctor.getBankAccountDetails().getAccountNumber());
+
+		    bankDetails.setBankName(
+		            doctor.getBankAccountDetails().getBankName());
+
+		    bankDetails.setBranchName(
+		            doctor.getBankAccountDetails().getBranchName());
+
+		    bankDetails.setIfscCode(
+		            doctor.getBankAccountDetails().getIfscCode());
+
+		    dto.setBankAccountDetails(bankDetails);
+		}
 
 		return dto;
 	}
