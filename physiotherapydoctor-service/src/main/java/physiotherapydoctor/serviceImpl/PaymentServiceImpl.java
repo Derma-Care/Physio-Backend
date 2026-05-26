@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.PaymentHistory;
@@ -31,7 +29,7 @@ import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.dto.response.ProgramResponse;
 import physiotherapydoctor.dto.response.TherapyResponse;
 import physiotherapydoctor.entity.PaymentRecord;
-import physiotherapydoctor.feign.BookingFeign;
+import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.service.PaymentService;
@@ -43,7 +41,7 @@ public class PaymentServiceImpl implements PaymentService {
 	private final PaymentRepository repo;
 
 	@Autowired
-	private BookingFeign bookingFeign;
+	private BookingFeignClient bookingFeign;
 
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;

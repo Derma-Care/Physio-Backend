@@ -11,13 +11,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
@@ -52,7 +55,7 @@ import physiotherapydoctor.dto.VisitDetailsDTO;
 import physiotherapydoctor.dto.VisitDetailsDTO.PhysiotherapyDoctorData;
 import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
-import physiotherapydoctor.feign.BookingFeign;
+import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
@@ -66,7 +69,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	private final PhysiotherapydoctorRespository repository;
 
 	@Autowired
-	private BookingFeign bookingFeign;
+	private BookingFeignClient bookingFeign;
 
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
