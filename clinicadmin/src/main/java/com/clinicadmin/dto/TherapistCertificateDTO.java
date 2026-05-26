@@ -1,5 +1,7 @@
 package com.clinicadmin.dto;
 
+import java.time.LocalDateTime;
+
 import lombok.Data;
 
 @Data
@@ -19,4 +21,6 @@ public class TherapistCertificateDTO {
     private String issueAuthority;
 
     private String upload;
+    
+    private LocalDateTime uploadDateTime;
 }

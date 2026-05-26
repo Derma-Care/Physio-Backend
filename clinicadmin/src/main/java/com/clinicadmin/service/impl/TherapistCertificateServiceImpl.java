@@ -1,5 +1,6 @@
 package com.clinicadmin.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -206,7 +207,7 @@ public class TherapistCertificateServiceImpl
         dto.setTherapistId(entity.getTherapistId());
         dto.setCertificateName(entity.getCertificateName());
         dto.setIssueAuthority(entity.getIssueAuthority());
-
+        dto.setUploadDateTime(entity.getUploadDateTime());
         // DB has fileKey → generate fresh signed URL
         // for frontend on every request
         if (entity.getUpload() != null
@@ -234,7 +235,8 @@ public class TherapistCertificateServiceImpl
         entity.setTherapistId(dto.getTherapistId());
         entity.setCertificateName(dto.getCertificateName());
         entity.setIssueAuthority(dto.getIssueAuthority());
-
+        entity.setUploadDateTime(
+                LocalDateTime.now());
         // Store only fileKey in DB
         // e.g. "certificates/uuid.jpg"
         entity.setUpload(

@@ -1,5 +1,7 @@
 package com.clinicadmin.entity;
 
+import java.time.LocalDateTime;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -23,4 +25,7 @@ public class TherapistCertificate {
     private String issueAuthority;
 
     private String upload;
+    
+    private LocalDateTime uploadDateTime;
+
 }

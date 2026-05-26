@@ -72,32 +72,31 @@ public class S3Controller {
 
     // ─────────────────────────────────────────────
     // Resolve config — returns null for unknown field
-    // (caller must handle null with a 400 response)
     // ─────────────────────────────────────────────
     private FieldConfig resolveConfig(String fieldName) {
         return switch (fieldName) {
-        case "certificate" -> new FieldConfig(
-        	    "certificates",
-        	    MAX_PDF_SIZE,                                           // 10MB
-        	    "10 MB",
-        	    Stream.concat(IMAGE_EXTS.stream(), DOC_EXTS.stream())  // jpg+png+pdf
-        	          .collect(Collectors.toUnmodifiableSet()),
-        	    Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
-        	          .collect(Collectors.toUnmodifiableSet())
-        	);
+            case "certificate" -> new FieldConfig(
+                    "certificates",
+                    MAX_PDF_SIZE,
+                    "10 MB",
+                    Stream.concat(IMAGE_EXTS.stream(), DOC_EXTS.stream())
+                          .collect(Collectors.toUnmodifiableSet()),
+                    Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
+                          .collect(Collectors.toUnmodifiableSet())
+            );
             case "beforeImage"  -> new FieldConfig("before-images",  MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "afterImage"   -> new FieldConfig("after-images",   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "beforeVideo"  -> new FieldConfig("before-videos",  MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
             case "afterVideo"   -> new FieldConfig("after-videos",   MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
             case "voiceRecord"  -> new FieldConfig("voice-records",  MAX_AUDIO_SIZE, "20 MB",  AUDIO_EXTS, AUDIO_MIMES);
-            case "consentPdf"   -> new FieldConfig("consent-images", MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "consentPdf"   -> new FieldConfig("consent-pdfs",   MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
             case "patient"      -> new FieldConfig("patients",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "doctor"       -> new FieldConfig("doctors",        MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "prescription" -> new FieldConfig("prescriptions",  MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
             case "exercise"     -> new FieldConfig("exercises",      MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
             case "branch"       -> new FieldConfig("branches",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "report"       -> new FieldConfig("reports",        MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
-            default             -> null;   // ← no throw; caller returns 400
+            default             -> null;
         };
     }
 
@@ -110,7 +109,6 @@ public class S3Controller {
     // Response: { uploadUrl, fileKey, contentType }
     // Frontend MUST use contentType value in the
     // PUT Content-Type header when uploading to S3
-    // — any mismatch causes SignatureDoesNotMatch
     // ─────────────────────────────────────────────
     @GetMapping("/api/s3/upload-url")
     public ResponseEntity<?> getUploadUrl(
@@ -171,9 +169,6 @@ public class S3Controller {
         }
 
         // ── 3. Generate presigned PUT URL ─────────
-        // Returns uploadUrl, fileKey, contentType
-        // contentType is locked into the S3 signature —
-        // frontend must use this exact value in PUT header
         Map<String, String> response =
                 s3Service.generatePresignedPutUrl(config.folder(), extension);
 
@@ -184,9 +179,6 @@ public class S3Controller {
     // GET /api/s3/validate-upload
     //   ?fileKey=before-videos/uuid.mov
     //   &fieldName=beforeVideo
-    // Call this AFTER upload to S3 to verify the
-    // actual uploaded file matches expected type,
-    // MIME, and size
     // ─────────────────────────────────────────────
     @GetMapping("/api/s3/validate-upload")
     public ResponseEntity<?> validateUpload(
@@ -211,7 +203,7 @@ public class S3Controller {
 
         if (uploadedExt.isEmpty()) {
             return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)                          // 400
+                    .status(HttpStatus.BAD_REQUEST)
                     .body(Map.of(
                             "valid", false,
                             "error", "Could not determine file extension from key: " + fileKey
@@ -233,11 +225,10 @@ public class S3Controller {
         }
 
         // ── 2. Fetch S3 metadata (MIME + size) ────
-        // Returns null if file does not exist in S3
         Map<String, Object> s3Meta = s3Service.getUploadedFileMeta(fileKey);
         if (s3Meta == null) {
             return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)                            // 404
+                    .status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
                             "valid", false,
                             "error", "File not found in S3 for key: " + fileKey
@@ -250,14 +241,13 @@ public class S3Controller {
         // ── 3. MIME type check ────────────────────
         if (contentType == null || contentType.isBlank()) {
             return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)                          // 400
+                    .status(HttpStatus.BAD_REQUEST)
                     .body(Map.of(
                             "valid", false,
                             "error", "Could not read content-type from S3 for key: " + fileKey
                     ));
         }
 
-        // Strip charset e.g. "image/png; charset=utf-8" → "image/png"
         String mimeOnly = contentType.split(";")[0].trim().toLowerCase();
 
         if (!config.allowedMimes().contains(mimeOnly)) {
@@ -278,7 +268,7 @@ public class S3Controller {
         if (uploadedSize > config.maxAllowedSize()) {
             String uploadedMB = String.format("%.2f MB", uploadedSize / (double) MB);
             return ResponseEntity
-                    .status(HttpStatus.PAYLOAD_TOO_LARGE)                    // 413
+                    .status(HttpStatus.PAYLOAD_TOO_LARGE)
                     .body(Map.of(
                             "valid",        false,
                             "uploadedSize", uploadedMB,
