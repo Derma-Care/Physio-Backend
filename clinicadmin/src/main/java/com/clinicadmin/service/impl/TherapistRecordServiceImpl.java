@@ -32,17 +32,17 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Autowired
     private TherapistRecordRepository repository;
-    
+
     @Autowired
     private PhysiotherapyFeignClient physiotherapyFeignClient;
-    
+
     @Autowired
     private S3Service s3Service;
 
     @Override
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
 
-        // ✅ Basic validation
+        // Basic validation
         if (dto == null) {
             return ResponseStructure.buildResponse(
                     null,
@@ -54,99 +54,83 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         TherapistRecord record = mapToEntity(dto);
 
-        // ✅ TherapistRecord status
+        // Status
         record.setStatus("COMPLETED");
 
+        // ═══════════════════════════════════════════
+        // NEW FLOW — frontend uploads directly to S3
+        // dto fields contain fileKey (not base64)
+        // just convert fileKey → signed URL
+        // ═══════════════════════════════════════════
 
-        // ================= UPLOAD FILES TO AWS S3 =================
+        // Before Image
+        if (dto.getBeforeImage() != null
+                && !dto.getBeforeImage().isBlank()) {
+            record.setBeforeImage(
+                s3Service.generateSignedUrl(dto.getBeforeImage())
+            );
+        }
 
-        // Upload Before Image
-        record.setBeforeImage(
-                s3Service.uploadFile("before-images", dto.getBeforeImage(), "png")
-        );
+        // After Image
+        if (dto.getAfterImage() != null
+                && !dto.getAfterImage().isBlank()) {
+            record.setAfterImage(
+                s3Service.generateSignedUrl(dto.getAfterImage())
+            );
+        }
 
-        // Upload After Image
-        record.setAfterImage(
-                s3Service.uploadFile("after-images", dto.getAfterImage(), "png")
-        );
+        // Before Video
+        if (dto.getBeforeVideo() != null
+                && !dto.getBeforeVideo().isBlank()) {
+            record.setBeforeVideo(
+                s3Service.generateSignedUrl(dto.getBeforeVideo())
+            );
+        }
 
-        // Upload Before Video
-        record.setBeforeVideo(
-                s3Service.uploadFile("before-videos", dto.getBeforeVideo(), "mp4")
-        );
+        // After Video
+        if (dto.getAfterVideo() != null
+                && !dto.getAfterVideo().isBlank()) {
+            record.setAfterVideo(
+                s3Service.generateSignedUrl(dto.getAfterVideo())
+            );
+        }
 
-        // Upload After Video
-        record.setAfterVideo(
-                s3Service.uploadFile("after-videos", dto.getAfterVideo(), "mp4")
-        );
+        // Voice Record
+        if (dto.getVoiceRecord() != null
+                && !dto.getVoiceRecord().isBlank()) {
+            record.setVoiceRecord(
+                s3Service.generateSignedUrl(dto.getVoiceRecord())
+            );
+        }
 
-        // Upload Voice Record
-        record.setVoiceRecord(
-                s3Service.uploadFile("voice-records", dto.getVoiceRecord(), "mp3")
-        );
+        // Consent PDF
+        if (dto.getConsentPdfUrl() != null
+                && !dto.getConsentPdfUrl().isBlank()) {
+            record.setConsentPdfUrl(
+                s3Service.generateSignedUrl(dto.getConsentPdfUrl())
+            );
+        }
 
-        // Upload Before Image
-        record.setBeforeImage(
-                s3Service.uploadFile(
-                        "before-images",
-                        dto.getBeforeImage(),
-                        "png"
-                )
-        );
+        // ═══════════════════════════════════════════
 
-        // Upload After Image
-        record.setAfterImage(
-                s3Service.uploadFile(
-                        "after-images",
-                        dto.getAfterImage(),
-                        "png"
-                )
-        );
-
-        // Upload Before Video
-        record.setBeforeVideo(
-                s3Service.uploadFile(
-                        "before-videos",
-                        dto.getBeforeVideo(),
-                        "mp4"
-                )
-        );
-
-        // Upload After Video
-        record.setAfterVideo(
-                s3Service.uploadFile(
-                        "after-videos",
-                        dto.getAfterVideo(),
-                        "mp4"
-                )
-        );
-
-        // Upload Voice Record
-        record.setVoiceRecord(
-                s3Service.uploadFile(
-                        "voice-records",
-                        dto.getVoiceRecord(),
-                        "mp3"
-                )
-        );
-
-        // ✅ Ensure IDs
+        // Set IDs
         record.setTherapistRecordId(dto.getTherapistRecordId());
         record.setSessionId(dto.getSessionId());
 
-        // ✅ Save therapist record
+        // Save
         TherapistRecord saved = repository.save(record);
 
-        // 🔥 Call Physiotherapy Service
+        // Call Physiotherapy Service
         try {
-
             if (dto.getTherapistRecordId() != null
                     && !dto.getTherapistRecordId().trim().isEmpty()
                     && dto.getSessionId() != null
                     && !dto.getSessionId().trim().isEmpty()) {
 
-                String therapistRecordId = dto.getTherapistRecordId().trim();
-                String sessionId = dto.getSessionId().trim();
+                String therapistRecordId =
+                        dto.getTherapistRecordId().trim();
+                String sessionId =
+                        dto.getSessionId().trim();
 
                 System.out.println("Calling Physio API => "
                         + therapistRecordId + " | " + sessionId);
@@ -156,9 +140,12 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                         sessionId
                 );
 
-                System.out.println("Physio session status updated successfully");
+                System.out.println(
+                        "Physio session status updated successfully");
+
             } else {
-                System.out.println("TherapistRecordId or SessionId is empty");
+                System.out.println(
+                        "TherapistRecordId or SessionId is empty");
             }
 
         } catch (Exception e) {
@@ -173,6 +160,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                 201
         );
     }
+
     // ================= GET =================
     @Override
     public ResponseStructure<TherapistRecordDTO> getByIds(
@@ -300,6 +288,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setBeforeVideo(record.getBeforeVideo());
         dto.setAfterVideo(record.getAfterVideo());
         dto.setVoiceRecord(record.getVoiceRecord());
+        dto.setConsentPdfUrl(record.getConsentPdfUrl());
 
         return dto;
     }

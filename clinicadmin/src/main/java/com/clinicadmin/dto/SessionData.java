@@ -11,4 +11,5 @@ public class SessionData {
     private String activity;
     private String duration;
     private String location;
+    private String description;
 }

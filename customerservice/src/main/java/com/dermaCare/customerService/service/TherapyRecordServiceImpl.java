@@ -3,10 +3,13 @@ package com.dermaCare.customerService.service;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.dermaCare.customerService.dto.TherapyRecordDTO;
 import com.dermaCare.customerService.dto.TherophyRecordListDTO;
 import com.dermaCare.customerService.entity.TherapyRecord;
@@ -553,7 +556,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	   
 	    
-	    
+	 @Transactional(readOnly = true)    
 	    @Override
 	    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
 	            String clinicId,

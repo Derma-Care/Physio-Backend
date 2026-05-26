@@ -62,6 +62,9 @@ public class TherapistRecord {
 	private String latitude;
 	private String longitude;
 	private String location;
+	private String consentPdfUrl;
+	public String description;
+
 
 
 	

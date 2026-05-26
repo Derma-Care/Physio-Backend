@@ -1063,7 +1063,304 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
 
             List<DailyAllUsersResponseDTO> result = new ArrayList<>();
+            
+         // =========================================================
+         // ADD CLINIC ADMIN
+         // =========================================================
+         try {
 
+             ResponseEntity<Response> clinicResponse =
+                     adminServiceClient.getAllClinics();
+
+             if (clinicResponse.getBody() != null
+                     && clinicResponse.getBody().getData() != null) {
+
+                 List<Map<String, Object>> clinics =
+                         (List<Map<String, Object>>) clinicResponse.getBody().getData();
+
+                 for (Map<String, Object> clinic : clinics) {
+
+                     DailyAllUsersResponseDTO clinicDto =
+                             new DailyAllUsersResponseDTO();
+
+                     // BASIC DETAILS
+                     clinicDto.setUserId(
+                             clinic.get("hospitalId") != null
+                                     ? clinic.get("hospitalId").toString()
+                                     : "");
+
+                     clinicDto.setName(
+                             clinic.get("name") != null
+                                     ? clinic.get("name").toString()
+                                     : "");
+
+                     clinicDto.setRole(
+                             clinic.get("role") != null
+                                     ? clinic.get("role").toString()
+                                     : "ADMIN");
+
+                     clinicDto.setClinicId(
+                             clinic.get("hospitalId") != null
+                                     ? clinic.get("hospitalId").toString()
+                                     : "");
+
+                     clinicDto.setBranchId(
+                             clinic.get("branch") != null
+                                     ? clinic.get("branch").toString()
+                                     : "");
+
+                     clinicDto.setDate(date);
+
+                     // DEFAULT VALUES
+                     clinicDto.setStatus("Not Logged In");
+                     clinicDto.setLogTime(null);
+                     clinicDto.setWorkingHours("00:00");
+                     clinicDto.setIdleTime("00:00");
+                     clinicDto.setLogin(null);
+                     clinicDto.setLogout(null);
+
+                     // FETCH ATTENDANCE
+                     Optional<Attendance> attendanceOpt =
+                             repo.findByClinicIdAndBranchIdAndUserIdAndDate(
+                                     clinicDto.getClinicId(),
+                                     clinicDto.getBranchId(),
+                                     clinicDto.getUserId(),
+                                     date
+                             );
+
+                     // FALLBACK
+                     if (!attendanceOpt.isPresent()) {
+
+                         attendanceOpt = repo.findByUserIdAndDate(
+                                 clinicDto.getUserId(),
+                                 date
+                         );
+                     }
+
+                     // MAP ATTENDANCE
+                     if (attendanceOpt.isPresent()) {
+
+                         Attendance entity = attendanceOpt.get();
+
+                         clinicDto.setStatus(
+                                 entity.getStatus() != null
+                                         ? entity.getStatus()
+                                         : "Not Logged In"
+                         );
+
+                         clinicDto.setLogTime(entity.getLogTime());
+
+                         clinicDto.setWorkingHours(
+                                 entity.getWorkingHours() != null
+                                         ? entity.getWorkingHours()
+                                         : "00:00"
+                         );
+
+                         clinicDto.setIdleTime(
+                                 entity.getIdleTime() != null
+                                         ? entity.getIdleTime()
+                                         : "00:00"
+                         );
+
+                         // LOGIN
+                         if (entity.getLogin() != null) {
+
+                             TimeLocationDTO login =
+                                     new TimeLocationDTO();
+
+                             login.setTime(entity.getLogin().getTime());
+                             login.setLatitude(entity.getLogin().getLatitude());
+                             login.setLongtitude(entity.getLogin().getLongtitude());
+
+                             login.setLocation(
+                                     getCityFromLatLong(
+                                             entity.getLogin().getLatitude(),
+                                             entity.getLogin().getLongtitude()
+                                     )
+                             );
+
+                             clinicDto.setLogin(login);
+                         }
+
+                         // LOGOUT
+                         if (entity.getLogout() != null) {
+
+                             TimeLocationDTO logout =
+                                     new TimeLocationDTO();
+
+                             logout.setTime(entity.getLogout().getTime());
+                             logout.setLatitude(entity.getLogout().getLatitude());
+                             logout.setLongtitude(entity.getLogout().getLongtitude());
+
+                             logout.setLocation(
+                                     getCityFromLatLong(
+                                             entity.getLogout().getLatitude(),
+                                             entity.getLogout().getLongtitude()
+                                     )
+                             );
+
+                             clinicDto.setLogout(logout);
+                         }
+                     }
+
+                     result.add(clinicDto);
+                 }
+             }
+
+         } catch (Exception e) {
+
+             System.out.println("Clinic admin attendance error: "
+                     + e.getMessage());
+         }
+
+         // =========================================================
+         // ADD BRANCH ADMIN
+         // =========================================================
+         try {
+
+             ResponseEntity<Response> branchResponse =
+                     adminServiceClient.getAllBranches();
+
+             if (branchResponse.getBody() != null
+                     && branchResponse.getBody().getData() != null) {
+
+                 List<Map<String, Object>> branches =
+                         (List<Map<String, Object>>) branchResponse.getBody().getData();
+
+                 for (Map<String, Object> branch : branches) {
+
+                     DailyAllUsersResponseDTO branchDto =
+                             new DailyAllUsersResponseDTO();
+
+                     // BASIC DETAILS
+                     branchDto.setUserId(
+                             branch.get("branchId") != null
+                                     ? branch.get("branchId").toString()
+                                     : "");
+
+                     branchDto.setName(
+                             branch.get("branchName") != null
+                                     ? branch.get("branchName").toString()
+                                     : "");
+
+                     branchDto.setRole(
+                             branch.get("role") != null
+                                     ? branch.get("role").toString()
+                                     : "ADMIN");
+
+                     branchDto.setClinicId(
+                             branch.get("clinicId") != null
+                                     ? branch.get("clinicId").toString()
+                                     : "");
+
+                     branchDto.setBranchId(
+                             branch.get("branchId") != null
+                                     ? branch.get("branchId").toString()
+                                     : "");
+
+                     branchDto.setDate(date);
+
+                     // DEFAULT VALUES
+                     branchDto.setStatus("Not Logged In");
+                     branchDto.setLogTime(null);
+                     branchDto.setWorkingHours("00:00");
+                     branchDto.setIdleTime("00:00");
+                     branchDto.setLogin(null);
+                     branchDto.setLogout(null);
+
+                     // FETCH ATTENDANCE
+                     Optional<Attendance> attendanceOpt =
+                             repo.findByClinicIdAndBranchIdAndUserIdAndDate(
+                                     branchDto.getClinicId(),
+                                     branchDto.getBranchId(),
+                                     branchDto.getUserId(),
+                                     date
+                             );
+
+                     // FALLBACK
+                     if (!attendanceOpt.isPresent()) {
+
+                         attendanceOpt = repo.findByUserIdAndDate(
+                                 branchDto.getUserId(),
+                                 date
+                         );
+                     }
+
+                     // MAP ATTENDANCE
+                     if (attendanceOpt.isPresent()) {
+
+                         Attendance entity = attendanceOpt.get();
+
+                         branchDto.setStatus(
+                                 entity.getStatus() != null
+                                         ? entity.getStatus()
+                                         : "Not Logged In"
+                         );
+
+                         branchDto.setLogTime(entity.getLogTime());
+
+                         branchDto.setWorkingHours(
+                                 entity.getWorkingHours() != null
+                                         ? entity.getWorkingHours()
+                                         : "00:00"
+                         );
+
+                         branchDto.setIdleTime(
+                                 entity.getIdleTime() != null
+                                         ? entity.getIdleTime()
+                                         : "00:00"
+                         );
+
+                         // LOGIN
+                         if (entity.getLogin() != null) {
+
+                             TimeLocationDTO login =
+                                     new TimeLocationDTO();
+
+                             login.setTime(entity.getLogin().getTime());
+                             login.setLatitude(entity.getLogin().getLatitude());
+                             login.setLongtitude(entity.getLogin().getLongtitude());
+
+                             login.setLocation(
+                                     getCityFromLatLong(
+                                             entity.getLogin().getLatitude(),
+                                             entity.getLogin().getLongtitude()
+                                     )
+                             );
+
+                             branchDto.setLogin(login);
+                         }
+
+                         // LOGOUT
+                         if (entity.getLogout() != null) {
+
+                             TimeLocationDTO logout =
+                                     new TimeLocationDTO();
+
+                             logout.setTime(entity.getLogout().getTime());
+                             logout.setLatitude(entity.getLogout().getLatitude());
+                             logout.setLongtitude(entity.getLogout().getLongtitude());
+
+                             logout.setLocation(
+                                     getCityFromLatLong(
+                                             entity.getLogout().getLatitude(),
+                                             entity.getLogout().getLongtitude()
+                                     )
+                             );
+
+                             branchDto.setLogout(logout);
+                         }
+                     }
+
+                     result.add(branchDto);
+                 }
+             }
+
+         } catch (Exception e) {
+
+             System.out.println("Branch admin attendance error: "
+                     + e.getMessage());
+         }
             // =========================================================
             // LOOP THROUGH ALL USERS
             // =========================================================
