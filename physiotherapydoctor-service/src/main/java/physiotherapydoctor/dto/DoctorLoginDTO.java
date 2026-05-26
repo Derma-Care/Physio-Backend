@@ -15,6 +15,7 @@ public class DoctorLoginDTO {
 //    private String fcmToken;
 	private String deviceId;
 	private String doctorId;
+	private String role;
 
 
     public void setusername(String username) {
