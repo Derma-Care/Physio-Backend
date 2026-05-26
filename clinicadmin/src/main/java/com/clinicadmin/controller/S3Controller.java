@@ -2,6 +2,8 @@ package com.clinicadmin.controller;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.clinicadmin.service.S3Service;
 
 @RestController
-@RequestMapping("/api/s3")
+@RequestMapping("/clinic-admin")
 public class S3Controller {
 
     @Autowired
@@ -74,7 +76,15 @@ public class S3Controller {
     // ─────────────────────────────────────────────
     private FieldConfig resolveConfig(String fieldName) {
         return switch (fieldName) {
-            case "certificate"  -> new FieldConfig("certificates",   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+        case "certificate" -> new FieldConfig(
+        	    "certificates",
+        	    MAX_PDF_SIZE,                                           // 10MB
+        	    "10 MB",
+        	    Stream.concat(IMAGE_EXTS.stream(), DOC_EXTS.stream())  // jpg+png+pdf
+        	          .collect(Collectors.toUnmodifiableSet()),
+        	    Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
+        	          .collect(Collectors.toUnmodifiableSet())
+        	);
             case "beforeImage"  -> new FieldConfig("before-images",  MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "afterImage"   -> new FieldConfig("after-images",   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
             case "beforeVideo"  -> new FieldConfig("before-videos",  MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
@@ -102,7 +112,7 @@ public class S3Controller {
     // PUT Content-Type header when uploading to S3
     // — any mismatch causes SignatureDoesNotMatch
     // ─────────────────────────────────────────────
-    @GetMapping("/upload-url")
+    @GetMapping("/api/s3/upload-url")
     public ResponseEntity<?> getUploadUrl(
             @RequestParam String fieldName,
             @RequestParam(required = false, defaultValue = "0") long fileSize,
@@ -178,7 +188,7 @@ public class S3Controller {
     // actual uploaded file matches expected type,
     // MIME, and size
     // ─────────────────────────────────────────────
-    @GetMapping("/validate-upload")
+    @GetMapping("/api/s3/validate-upload")
     public ResponseEntity<?> validateUpload(
             @RequestParam String fileKey,
             @RequestParam String fieldName) {
@@ -299,7 +309,7 @@ public class S3Controller {
     // GET /api/s3/signed-url
     //   ?fileKey=certificates/uuid.jpg
     // ─────────────────────────────────────────────
-    @GetMapping("/signed-url")
+    @GetMapping("/api/s3/signed-url")
     public ResponseEntity<String> getSignedUrl(
             @RequestParam String fileKey) {
 
