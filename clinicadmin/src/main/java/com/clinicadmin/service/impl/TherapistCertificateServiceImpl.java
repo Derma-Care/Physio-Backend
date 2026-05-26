@@ -22,7 +22,7 @@ public class TherapistCertificateServiceImpl
     private TherapistCertificateRepository repository;
 
     @Autowired
-    private S3Service s3Service;  // ← inject S3Service
+    private S3Service s3Service;
 
     // CREATE
     @Override
@@ -31,16 +31,9 @@ public class TherapistCertificateServiceImpl
 
         Response response = new Response();
 
-        // If upload contains a fileKey (not base64),
-        // convert it to a signed GET URL before saving
-        if (dto.getUpload() != null
-                && !dto.getUpload().isBlank()) {
-            String signedUrl =
-                s3Service.generateSignedUrl(
-                    dto.getUpload());   // fileKey → signed URL
-            dto.setUpload(signedUrl);
-        }
-
+        // Store fileKey directly in DB — NOT signed URL
+        // dto.getUpload() has fileKey from frontend
+        // e.g. "certificates/uuid.jpg"
         TherapistCertificate entity = dtoToEntity(dto);
 
         repository.save(entity);
@@ -143,15 +136,15 @@ public class TherapistCertificateServiceImpl
             entity.setCertificateName(dto.getCertificateName());
             entity.setIssueAuthority(dto.getIssueAuthority());
 
-            // Only update upload if a new fileKey was sent
+            // Only update upload if new fileKey was sent
+            // Store fileKey directly — NOT signed URL
             if (dto.getUpload() != null
                     && !dto.getUpload().isBlank()) {
-                String signedUrl =
-                    s3Service.generateSignedUrl(
-                        dto.getUpload());  // fileKey → signed URL
-                entity.setUpload(signedUrl);
+                entity.setUpload(
+                    extractFileKey(dto.getUpload())
+                );
             }
-            // If dto.upload is null/blank → keep existing upload in DB
+            // If null/blank → keep existing fileKey in DB
 
             repository.save(entity);
 
@@ -204,7 +197,8 @@ public class TherapistCertificateServiceImpl
     private TherapistCertificateDTO entityToDto(
             TherapistCertificate entity) {
 
-        TherapistCertificateDTO dto = new TherapistCertificateDTO();
+        TherapistCertificateDTO dto =
+                new TherapistCertificateDTO();
 
         dto.setId(entity.getId());
         dto.setClinicId(entity.getClinicId());
@@ -212,7 +206,17 @@ public class TherapistCertificateServiceImpl
         dto.setTherapistId(entity.getTherapistId());
         dto.setCertificateName(entity.getCertificateName());
         dto.setIssueAuthority(entity.getIssueAuthority());
-        dto.setUpload(entity.getUpload());
+
+        // DB has fileKey → generate fresh signed URL
+        // for frontend on every request
+        if (entity.getUpload() != null
+                && !entity.getUpload().isBlank()) {
+            String fileKey =
+                extractFileKey(entity.getUpload());
+            dto.setUpload(
+                s3Service.generateSignedUrl(fileKey)
+            );
+        }
 
         return dto;
     }
@@ -221,7 +225,8 @@ public class TherapistCertificateServiceImpl
     private TherapistCertificate dtoToEntity(
             TherapistCertificateDTO dto) {
 
-        TherapistCertificate entity = new TherapistCertificate();
+        TherapistCertificate entity =
+                new TherapistCertificate();
 
         entity.setId(dto.getId());
         entity.setClinicId(dto.getClinicId());
@@ -229,8 +234,47 @@ public class TherapistCertificateServiceImpl
         entity.setTherapistId(dto.getTherapistId());
         entity.setCertificateName(dto.getCertificateName());
         entity.setIssueAuthority(dto.getIssueAuthority());
-        entity.setUpload(dto.getUpload());
+
+        // Store only fileKey in DB
+        // e.g. "certificates/uuid.jpg"
+        entity.setUpload(
+            extractFileKey(dto.getUpload())
+        );
 
         return entity;
+    }
+
+    // ─────────────────────────────────────────────
+    // Extract fileKey from full signed URL
+    // Input:  "https://physiocare-prod-storage.s3.ap-south-1.amazonaws.com/certificates/uuid.png?X-Amz-..."
+    // Output: "certificates/uuid.png"
+    // If already a fileKey → returns as-is
+    // ─────────────────────────────────────────────
+    private String extractFileKey(String signedUrl) {
+
+        if (signedUrl == null || signedUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            // Already a fileKey (not a full URL)
+            if (!signedUrl.startsWith("http")) {
+                return signedUrl;
+            }
+
+            // Remove base URL
+            String withoutBase = signedUrl
+                    .substring(signedUrl
+                        .indexOf(".amazonaws.com/") + 15);
+
+            // Remove query params "?X-Amz-..."
+            return withoutBase.contains("?")
+                    ? withoutBase.substring(
+                        0, withoutBase.indexOf("?"))
+                    : withoutBase;
+
+        } catch (Exception e) {
+            return signedUrl;
+        }
     }
 }
