@@ -61,8 +61,8 @@ public class Booking  {
     private String channelId;
     private String bookedAt;
     private Integer visitCount;
-    private List<byte[]> attachments;
-    private byte[] consentFormPdf;
+    private List<String> attachments;
+    private String consentFormPdf;
     private List<byte[]> prescriptionPdf;
     private double totalFee;
 	private String paymentType;
@@ -79,7 +79,7 @@ public class Booking  {
     private TreatmentResponseDTO treatments; // treatmentName -> treatment details
     private String bodyPartId;
    	private String bodyPartName;
-   	private byte[] partImage;
+   	private String partImage;
    	private Map<String,List<TheraphyAnswersEntity>> theraphyAnswers;
    	private List<String> parts;
    	private double partAmount;

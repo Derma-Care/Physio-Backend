@@ -53,6 +53,22 @@ public class TherapistCertificateController {
                         clinicId,
                         branchId));
     }
+    
+    @GetMapping("/getTherapistCertificatesByClinicIdBranchIdAndTherapistId/{clinicId}/{branchId}/{therapistId}")
+    public ResponseEntity<Response> getCertificatesByClinicBranchAndTherapist(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String therapistId) {
+
+        Response response =
+                service.getCertificatesByClinicBranchAndTherapist(
+                        clinicId,
+                        branchId,
+                        therapistId);
+
+        return ResponseEntity.status(response.getStatus())
+                .body(response);
+    }
 
     // UPDATE
     @PutMapping("/updateTherapistCertificateById/{id}")

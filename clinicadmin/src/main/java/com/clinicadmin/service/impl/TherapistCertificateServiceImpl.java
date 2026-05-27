@@ -116,6 +116,33 @@ public class TherapistCertificateServiceImpl
 
         return response;
     }
+    
+    // GET BY CLINIC + BRANCH + THERAPIST
+    @Override
+    public Response getCertificatesByClinicBranchAndTherapist(
+            String clinicId,
+            String branchId,
+            String therapistId) {
+
+        Response response = new Response();
+
+        List<TherapistCertificateDTO> list =
+                repository.findByClinicIdAndBranchIdAndTherapistId(
+                        clinicId,
+                        branchId,
+                        therapistId)
+                .stream()
+                .map(this::entityToDto)
+                .collect(Collectors.toList());
+
+        response.setSuccess(true);
+        response.setStatus(200);
+        response.setMessage("Certificates fetched successfully");
+        response.setData(list);
+
+        return response;
+    }
+
 
     // UPDATE
     @Override

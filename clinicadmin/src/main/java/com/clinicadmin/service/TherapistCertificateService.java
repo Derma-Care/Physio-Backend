@@ -22,4 +22,6 @@ public interface TherapistCertificateService {
             TherapistCertificateDTO dto);
 
     Response deleteCertificate(String id);
+
+	Response getCertificatesByClinicBranchAndTherapist(String clinicId, String branchId, String therapistId);
 }
