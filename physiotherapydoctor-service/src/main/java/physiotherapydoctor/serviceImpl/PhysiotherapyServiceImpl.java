@@ -446,6 +446,21 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		return response;
 	}
+	
+	
+	@Override
+	public String getByBookingId(String id) {
+
+		Response response = new Response();		
+
+		Optional<PhysiotherapyRecord> optional = repository.findByBookingId(id);
+
+		if (optional.isEmpty()) {
+			
+			return null;
+		}		
+		return optional.get().getPrescriptionPdf();
+	}
 
 	// ✅ GET ALL
 	@Override

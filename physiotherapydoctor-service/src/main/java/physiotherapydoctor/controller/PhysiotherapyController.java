@@ -44,6 +44,13 @@ public class PhysiotherapyController {
 		Response response = service.getById(id);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
+	
+	@GetMapping("/physiotherapy-recordgetById/{BookingId}")
+	public String getByBookingId(@PathVariable String BookingId) {
+
+		String response = service.getByBookingId(BookingId);
+		return response;
+	}
 
 	// ✅ GET ALL
 	@GetMapping("/physiotherapy-record/getAll")

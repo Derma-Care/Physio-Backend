@@ -76,6 +76,10 @@ public interface PhysiotherapyService {
 	
 	 public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,String branchId,
 		  		String doctorId,String status);
+	 
+	 public String getByBookingId(String id);
+
+			
 
 
 

@@ -270,9 +270,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	     response.setIsFollowupStatus(entity.getIsFollowupStatus());
 	     response.setConsultationFee(entity.getListOfConsultationFee().get(0).getConsulationFee());
 	     //System.out.println(entity.getListOfConsultationFee());
-	     DoctorSaveDetailsDTO dto = getPrescriptionpdf(response.getBookingId());
+	     String dto = getPrescriptionpdf(response.getBookingId());
 	     if (dto != null) {
-	         response.setPrescriptionPdf(dto.getPrescriptionPdf());
+	    	 response.setPrescriptionPdf(Collections.singletonList(dto));
 	     }
 
 	     response.setBookingId(String.valueOf(entity.getBookingId()));
@@ -292,15 +292,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 }
 
 	 
-	 private DoctorSaveDetailsDTO getPrescriptionpdf(String bid) {
-	     try {
-	         ObjectMapper mapper = new ObjectMapper();
-	         mapper.registerModule(new JavaTimeModule());
-	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-	         Response res = doctorFeign.getDoctorSaveDetailsByBookingId(bid).getBody();
-	         return mapper.convertValue(res.getData(), DoctorSaveDetailsDTO.class);
-	     } catch (Exception e) {
-	         System.out.println(e.getMessage());
+	 private String getPrescriptionpdf(String bid) {
+	     try {	        
+	         String res = physioDoctorFeign.getByBookingId(bid);
+	         return res;
+	         }catch(Exception e) {	         
 	         return null;
 	     }
 	 }
@@ -320,10 +316,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		List<BookingResponse> res = mapper.convertValue(bookings,new TypeReference<List<BookingResponse>>(){});
 		for(BookingResponse bres : res) {
 			//System.out.println(bres.getBookingId());
-			DoctorSaveDetailsDTO dto = getPrescriptionpdf(bres.getBookingId());
+		 String dto = getPrescriptionpdf(bres.getBookingId());
 			//System.out.println(dto);
 			if(dto != null ) {
-			bres.setPrescriptionPdf(dto.getPrescriptionPdf());}}
+			bres.setPrescriptionPdf(Collections.singletonList(dto));}}
 		return res;
 	}	
 		
@@ -1371,10 +1367,10 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		            BookingResponse baseResponse = new ObjectMapper().convertValue(booking, BookingResponse.class);
 
 		            // Attach prescription PDF if available
-		            DoctorSaveDetailsDTO dto = getPrescriptionpdf(booking.getBookingId());
-		            if (dto != null) {
-		                baseResponse.setPrescriptionPdf(dto.getPrescriptionPdf());
-		            }
+		            String dto = getPrescriptionpdf(baseResponse.getBookingId());
+		   	     if (dto != null) {
+		   	    	baseResponse.setPrescriptionPdf(Collections.singletonList(dto));
+		   	     }
 
 		            // 🧩 Create separate responses per treatment
 		            if (booking.getTreatments() != null && booking.getTreatments().getGeneratedData() != null) {
@@ -1526,10 +1522,10 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 //		                    bookingResponse.getTreatments().setCurrentSitting(treatment.getCurrentSitting());
 
 		                    // Attach prescription PDF if exists
-		                    DoctorSaveDetailsDTO dto = getPrescriptionpdf(booking.getBookingId());
-		                    if (dto != null) {
-		                        bookingResponse.setPrescriptionPdf(dto.getPrescriptionPdf());
-		                    }
+		                    String dto = getPrescriptionpdf(booking.getBookingId());
+		   		   	     if (dto != null) {
+		   		   	   bookingResponse.setPrescriptionPdf(Collections.singletonList(dto));
+		   		   	     }
 
 		                    bookingResponses.add(bookingResponse);
 		                });
