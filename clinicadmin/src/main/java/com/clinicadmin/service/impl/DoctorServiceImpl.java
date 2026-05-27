@@ -35,6 +35,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
@@ -710,6 +711,40 @@ public class DoctorServiceImpl implements DoctorService {
 				doctor.setDoctorSignature(Base64CompressionUtil.compressBase64(dto.getDoctorSignature()));
 			if (dto.getDoctorFees() != null)
 				doctor.setDoctorFees(DoctorMapper.mapDoctorFeeDTOtoEntity(dto.getDoctorFees()));
+			if (dto.getBankAccountDetails() != null) {
+
+				BankAccountDetails bankDetails = doctor.getBankAccountDetails();
+
+				if (dto.getBankAccountDetails() != null) {
+
+				    if (dto.getBankAccountDetails().getAccountHolderName() != null) {
+				        bankDetails.setAccountHolderName(
+				                dto.getBankAccountDetails().getAccountHolderName());
+				    }
+
+				    if (dto.getBankAccountDetails().getAccountNumber() != null) {
+				        bankDetails.setAccountNumber(
+				                dto.getBankAccountDetails().getAccountNumber());
+				    }
+
+				    if (dto.getBankAccountDetails().getBankName() != null) {
+				        bankDetails.setBankName(
+				                dto.getBankAccountDetails().getBankName());
+				    }
+
+				    if (dto.getBankAccountDetails().getBranchName() != null) {
+				        bankDetails.setBranchName(
+				                dto.getBankAccountDetails().getBranchName());
+				    }
+
+				    if (dto.getBankAccountDetails().getIfscCode() != null) {
+				        bankDetails.setIfscCode(
+				                dto.getBankAccountDetails().getIfscCode());
+				    }
+				}
+
+				doctor.setBankAccountDetails(bankDetails);
+			}
 
 //			if (dto.getConsultation() != null) {
 //				ConsultationType consultation = new ConsultationType();

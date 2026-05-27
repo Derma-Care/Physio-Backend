@@ -92,22 +92,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private geneateIds sequenceGeneratorService;
 	
-	public DoctorSaveDetailsDTO saveDetails = new DoctorSaveDetailsDTO();
-	public DoctorSaveDetailsDTO sDetails = new DoctorSaveDetailsDTO();
-	public DoctorSaveDetailsDTO sd = new DoctorSaveDetailsDTO();
-
-	 private static final List<String> VALID_STATUS =
-		        Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
-		        		"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
-		        		"follow-up pending",
-						"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
-		private static final List<String> VALID_WEEK_STATUS =
-		Arrays.asList("PENDING","pending","confirmed","In-progress","IN-PROGRESS","CONFIRMED","due for Investigation","investigation done","session","follow-up pending","DUE FOR INVESTIGATION",
-				"INVESTIGATION DONE","SESSION","rescheduled","RESCHEDULED",
-				"follow-up pending",
-				"FOLLOW-UP PENDING","Follow-up Needed","FOLLOW-UP NEEDED","Cancelled","CANCELLED","DROP","Drop","No Reply","NO REPLY","No Follow-up","NO FOLLOW-UP","Completed","COMPLETED");
-
-	 
+	
 	 @Override
 	 public ResponseEntity<?> addService(BookingResponse request) {
 	     ResponseStructure<FollowupBookingDto> response = new ResponseStructure<>();
@@ -319,19 +304,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	         return null;
 	     }
 	 }
-
-	 
-	  private static String generatePatientId(String id) {	       
-	        String uuid = UUID.randomUUID().toString();
-	        String randomPart = uuid.replaceAll("-", "").substring(0, 6).toUpperCase();
-	        return id+"_"+"PT_" + randomPart;
-	    }
-	  
-	  private static String generateCustomerId(String branchId) {
-		    String uuid = UUID.randomUUID().toString();
-		    String randomPart = uuid.replaceAll("-", "").substring(0, 6).toUpperCase();
-		    return branchId + "_CR_" + randomPart;
-		}
 	
 	
 	private static String randomNumber() {
@@ -354,16 +326,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			bres.setPrescriptionPdf(dto.getPrescriptionPdf());}}
 		return res;
 	}	
-	
-	
-	
-	
-//	 public ResponseEntity<?> physioAppointment() {
-//	     ResponseStructure<BookingResponse> response = new ResponseStructure<>();
-//	     List<Booking> existingBooking = repository.findByClinicIdAndBranchId(cId, bId);
-//	     LocalDa
-//	}
-	
+		
 	
 	@Override
 	 public ResponseEntity<?> physioAppointment(BookingRequset request) {
@@ -527,7 +490,7 @@ LocalDate bookingDate =
 LocalDate.parse(b.getServiceDate(), dateFormatter);
 
 if (bookingDate.equals(currentDate)
-&& b.getStatus().equalsIgnoreCase("Confirmed")) {
+&& b.getStatus().equalsIgnoreCase("Confirmed") || b.getStatus().equalsIgnoreCase("pending") ) {
 
 BookingResponse temp = toResponse(b);
 
@@ -668,7 +631,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 	                        if (add) {
 	                            BookingResponse temp = toResponse(b);
-	                            temp.setSubServiceName(treatmentName);
+	                           // temp.setSubServiceName(treatmentName);
 	                            temp.setServiceDate(d.getDate());
 	                            temp.setServicetime(b.getServicetime());
 	                            temp.setStatus(d.getStatus());
@@ -1430,8 +1393,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		                    singleTreatment.setPendingSittings(treatment.getPendingSittings());
 		                    singleTreatment.setCurrentSitting(treatment.getCurrentSitting());
 
-		                    treatmentResponse.setTreatments(singleTreatment);
-		                    treatmentResponse.setSubServiceName(treatmentName); // Make subServiceName reflect this treatment
+		                   // treatmentResponse.setTreatments(singleTreatment);
+		                    ///treatmentResponse.setSubServiceName(treatmentName); // Make subServiceName reflect this treatment
 
 		                    bookingResponses.add(treatmentResponse);
 		                }
@@ -1554,13 +1517,13 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		                    BookingResponse bookingResponse = new ObjectMapper().convertValue(booking, BookingResponse.class);
 
 		                    Map<String, TreatmentDetailsDTO> singleTreatment = new HashMap<>();
-		                    singleTreatment.put(treatmentName, treatment);
-		                    bookingResponse.getTreatments().setGeneratedData(singleTreatment);
-
-		                    bookingResponse.getTreatments().setTotalSittings(treatment.getTotalSittings());
-		                    bookingResponse.getTreatments().setTakenSittings(treatment.getTakenSittings());
-		                    bookingResponse.getTreatments().setPendingSittings(treatment.getPendingSittings());
-		                    bookingResponse.getTreatments().setCurrentSitting(treatment.getCurrentSitting());
+//		                    singleTreatment.put(treatmentName, treatment);
+//		                    bookingResponse.getTreatments().setGeneratedData(singleTreatment);
+//
+//		                    bookingResponse.getTreatments().setTotalSittings(treatment.getTotalSittings());
+//		                    bookingResponse.getTreatments().setTakenSittings(treatment.getTakenSittings());
+//		                    bookingResponse.getTreatments().setPendingSittings(treatment.getPendingSittings());
+//		                    bookingResponse.getTreatments().setCurrentSitting(treatment.getCurrentSitting());
 
 		                    // Attach prescription PDF if exists
 		                    DoctorSaveDetailsDTO dto = getPrescriptionpdf(booking.getBookingId());
@@ -2640,8 +2603,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			        if (dto.getName() != null && !dto.getName().isEmpty())
 			            entity.setName(dto.getName());
 
-			        if (dto.getRelation() != null && !dto.getRelation().isEmpty())
-			            entity.setRelation(dto.getRelation());
+//			        if (dto.getRelation() != null && !dto.getRelation().isEmpty())
+//			            entity.setRelation(dto.getRelation());
 
 			        if (dto.getPatientMobileNumber() != null && !dto.getPatientMobileNumber().isEmpty())
 			            entity.setPatientMobileNumber(dto.getPatientMobileNumber());
@@ -2738,11 +2701,11 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			            entity.setDoctorWebDeviceId(dto.getDoctorWebDeviceId());
 
 			        // -------- SERVICE --------
-			        if (dto.getSubServiceId() != null && !dto.getSubServiceId().isEmpty())
-			            entity.setSubServiceId(dto.getSubServiceId());
-
-			        if (dto.getSubServiceName() != null && !dto.getSubServiceName().isEmpty())
-			            entity.setSubServiceName(dto.getSubServiceName());
+//			        if (dto.getSubServiceId() != null && !dto.getSubServiceId().isEmpty())
+//			            entity.setSubServiceId(dto.getSubServiceId());
+//
+//			        if (dto.getSubServiceName() != null && !dto.getSubServiceName().isEmpty())
+//			            entity.setSubServiceName(dto.getSubServiceName());
 
 			        if (dto.getServiceDate() != null && !dto.getServiceDate().isEmpty())
 			            entity.setServiceDate(dto.getServiceDate());
@@ -2800,8 +2763,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			        if (dto.getReasonForCancel() != null && !dto.getReasonForCancel().isEmpty())
 			            entity.setReasonForCancel(dto.getReasonForCancel());
 
-			        if (dto.getNotes() != null && !dto.getNotes().isEmpty())
-			            entity.setNotes(dto.getNotes());
+//			        if (dto.getNotes() != null && !dto.getNotes().isEmpty())
+//			            entity.setNotes(dto.getNotes());
 
 			        // -------- FILES --------
 			        if (dto.getAttachments() != null && !dto.getAttachments().isEmpty())
@@ -2832,19 +2795,19 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			            entity.setDoctorRefCode(dto.getDoctorRefCode());
 
 			        // -------- SITTINGS --------
-			        if (dto.getTotalSittings() != null)
-			            entity.setTotalSittings(dto.getTotalSittings());
-
-			        if (dto.getPendingSittings() != null)
-			            entity.setPendingSittings(dto.getPendingSittings());
-
-			        if (dto.getTakenSittings() != null)
-			            entity.setTakenSittings(dto.getTakenSittings());
-
-			        if (dto.getCurrentSitting() != null)
-			            entity.setCurrentSitting(dto.getCurrentSitting());
-                  
-			        // -------- BODY PART --------
+//			        if (dto.getTotalSittings() != null)
+//			            entity.setTotalSittings(dto.getTotalSittings());
+//
+//			        if (dto.getPendingSittings() != null)
+//			            entity.setPendingSittings(dto.getPendingSittings());
+//
+//			        if (dto.getTakenSittings() != null)
+//			            entity.setTakenSittings(dto.getTakenSittings());
+//
+//			        if (dto.getCurrentSitting() != null)
+//			            entity.setCurrentSitting(dto.getCurrentSitting());
+//                  
+//			        // -------- BODY PART --------
 			        if (dto.getBodyPartId() != null && !dto.getBodyPartId().isEmpty())
 			            entity.setBodyPartId(dto.getBodyPartId());
 
@@ -2905,8 +2868,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			            entity.setActivityLevels(dto.getActivityLevels());
 
 			        // -------- TREATMENTS --------
-			        if (dto.getTreatments() != null)
-			            entity.setTreatments(dto.getTreatments());
+//			        if (dto.getTreatments() != null)
+//			            entity.setTreatments(dto.getTreatments());
 			        if(dto.getFoc() != null)
 			           entity.setFoc(dto.getFoc());			        
 			        if (entity.getFreeFollowUps() != null && entity.getFreeFollowUps() == 0) {
@@ -3752,8 +3715,8 @@ try {
     if (dto.getName() != null && !dto.getName().isEmpty())
         entity.setName(dto.getName());
 
-    if (dto.getRelation() != null && !dto.getRelation().isEmpty())
-        entity.setRelation(dto.getRelation());
+//    if (dto.getRelation() != null && !dto.getRelation().isEmpty())
+//        entity.setRelation(dto.getRelation());
 
     if (dto.getPatientMobileNumber() != null && !dto.getPatientMobileNumber().isEmpty())
         entity.setPatientMobileNumber(dto.getPatientMobileNumber());
@@ -3830,11 +3793,11 @@ try {
         entity.setDoctorWebDeviceId(dto.getDoctorWebDeviceId());
 
     // -------- SERVICE --------
-    if (dto.getSubServiceId() != null && !dto.getSubServiceId().isEmpty())
-        entity.setSubServiceId(dto.getSubServiceId());
-
-    if (dto.getSubServiceName() != null && !dto.getSubServiceName().isEmpty())
-        entity.setSubServiceName(dto.getSubServiceName());
+//    if (dto.getSubServiceId() != null && !dto.getSubServiceId().isEmpty())
+//        entity.setSubServiceId(dto.getSubServiceId());
+//
+//    if (dto.getSubServiceName() != null && !dto.getSubServiceName().isEmpty())
+//        entity.setSubServiceName(dto.getSubServiceName());
 
     if (dto.getServiceDate() != null && !dto.getServiceDate().isEmpty())
         entity.setServiceDate(dto.getServiceDate());

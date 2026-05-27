@@ -18,8 +18,7 @@ public class BookingResponse {
 	
 	private String bookingId;
 	private String bookingFor;
-	private String name;
-	private String relation;
+	private String name;	
 	private String dob;
 	private String patientMobileNumber;
 	private String patientId;
@@ -44,8 +43,6 @@ public class BookingResponse {
 	private String doctorName;
 	private String doctorMobileDeviceId;
 	private String doctorWebDeviceId;
-	private String subServiceId;
-	private String subServiceName;
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
@@ -54,7 +51,6 @@ public class BookingResponse {
 	private Integer visitCount;
 	private String channelId;
 	private String reasonForCancel;
-	private String notes;
 	private List<ReportsDtoList> reports;
 	private String BookedAt;
 	private List<StatusDTO> currentStatus;
@@ -64,20 +60,14 @@ public class BookingResponse {
 	private String consentFormPdf;
 	private List<String> prescriptionPdf;
 	private String doctorRefCode;
-	private String paymentType;	
-	private Integer totalSittings;
-	private Integer pendingSittings;
-	private Integer takenSittings;
-	private Integer currentSitting;
+	private String paymentType;		
 	private String followupDate;
 	private String foc;
 	private String focReason;
 	private String followupStatus;
 	private String treatmentName;
-	private String treatmentDate;
 	// ✅ Add treatments info
-    private TreatmentResponseDTO treatments;
-    
+   // private TreatmentResponseDTO treatments;    
     // ✅ Add this new field
     private String updatedTreatment;
     private String bodyPartId;
