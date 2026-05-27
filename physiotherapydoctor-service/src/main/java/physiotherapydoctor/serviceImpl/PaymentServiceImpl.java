@@ -97,8 +97,9 @@ public class PaymentServiceImpl implements PaymentService {
 		record.setTotalAmount(total);
 		record.setDiscountAmount(discount);
 		record.setFinalAmount(finalAmount);
+		double amount = req.isPayAfterService() ? req.getAmount() : 0;
 
-		double amount = req.getAmount();
+		record.setPayAfterService(req.isPayAfterService());
 
 		// ================= PAYMENT =================
 		record.setTotalPaid(amount);
@@ -142,21 +143,32 @@ public class PaymentServiceImpl implements PaymentService {
 
 		PaymentRecord record = repo.findByBookingId(req.getBookingId())
 				.orElseThrow(() -> new RuntimeException("Payment not found"));
-
+		record.setPayAfterService(req.isPayAfterService());
 		if (req.getTherapyWithSessions() != null) {
 			throw new RuntimeException("Do not send therapyWithSessions in update");
 		}
 
-		if (req.getAmount() == null || req.getAmount() <= 0) {
-			throw new RuntimeException("Amount must be greater than 0");
+		record.setPayAfterService(req.isPayAfterService());
+
+		if (req.isPayAfterService()) {
+
+		    if (req.getAmount() == null || req.getAmount() <= 0) {
+		        throw new RuntimeException("Amount must be greater than 0");
+		    }
 		}
+
+		double amount = req.isPayAfterService()
+		        ? req.getAmount()
+		        : 0;
 
 		double currentPaid = record.getTotalPaid();
 		double finalAmount = record.getFinalAmount();
 		double remaining = finalAmount - currentPaid;
 
 		// ================= OVERPAYMENT PREVENTION =================
-		double newPaid = currentPaid + req.getAmount();
+		double newPaid = currentPaid + amount;
+
+		
 
 		if (newPaid > finalAmount) {
 			throw new RuntimeException("Payment exceeds final amount. Remaining payable: " + remaining);
@@ -801,6 +813,7 @@ public class PaymentServiceImpl implements PaymentService {
 		PaymentRecordResponse res = new PaymentRecordResponse();
 
 		res.setId(record.getId());
+		res.setPayAfterService(record.isPayAfterService());
 		res.setClinicId(record.getClinicId());
 		res.setBranchId(record.getBranchId());
 		res.setBookingId(record.getBookingId());
