@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dermacare.bookingService.service.S3Service;
 
 @RestController
-@RequestMapping("/v1/s3")
+@RequestMapping("/v1")
 public class S3Controller {
 
     @Autowired
@@ -94,7 +94,7 @@ public class S3Controller {
     //   &fileSize=50000
     //   &extension=png
     // ─────────────────────────────────────────────
-    @GetMapping("/upload-url")
+    @GetMapping("/s3/upload-url")
     public ResponseEntity<?> getUploadUrl(
             @RequestParam String fieldName,
             @RequestParam(required = false, defaultValue = "0") long fileSize,
@@ -159,7 +159,7 @@ public class S3Controller {
     //   ?fileKey=part-images/uuid.png
     //   &fieldName=partImage
     // ─────────────────────────────────────────────
-    @GetMapping("/validate-upload")
+    @GetMapping("/s3/validate-upload")
     public ResponseEntity<?> validateUpload(
             @RequestParam String fileKey,
             @RequestParam String fieldName) {
@@ -272,7 +272,7 @@ public class S3Controller {
     // GET /api/v1/s3/signed-url
     //   ?fileKey=part-images/uuid.png
     // ─────────────────────────────────────────────
-    @GetMapping("/signed-url")
+    @GetMapping("/s3/signed-url")
     public ResponseEntity<?> getSignedUrl(@RequestParam String fileKey) {
         try {
             String signedUrl = s3Service.generateSignedUrl(fileKey);
