@@ -20,6 +20,7 @@ public class PaymentRecord {
 
 	@Id
 	private String id;
+	private boolean payAfterService; //true->paid, false -> payslater
 
 	private String clinicId;
 	private String branchId;

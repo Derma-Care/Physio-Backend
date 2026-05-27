@@ -20,15 +20,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.ConsultationFeesDTO;
@@ -56,6 +57,7 @@ import com.dermacare.bookingService.feign.PhysioDoctorFeign;
 //import com.dermacare.bookingService.producer.KafkaProducer;
 import com.dermacare.bookingService.repository.BookingServiceRepository;
 import com.dermacare.bookingService.service.BookingService_Service;
+import com.dermacare.bookingService.service.S3Service;
 import com.dermacare.bookingService.util.Response;
 import com.dermacare.bookingService.util.ResponseStructure;
 import com.dermacare.bookingService.util.geneateIds;
@@ -91,6 +93,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	
 	@Autowired
 	private geneateIds sequenceGeneratorService;
+	
+	@Autowired
+	private S3Service s3Service;
 	
 	
 	 @Override
@@ -287,6 +292,40 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	             }
 	         });
 	     }
+	     
+	     // ── S3 signed URLs ──────────────────────────────
+	     try {
+	         if (entity.getPartImage() != null && !entity.getPartImage().isEmpty()) {
+	             response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
+	         }
+	     } catch (Exception e) {
+	         System.out.println("partImage URL error: " + e.getMessage());
+	     }
+
+	     try {
+	         if (entity.getConsentFormPdf() != null && !entity.getConsentFormPdf().isEmpty()) {
+	             response.setConsentFormPdf(s3Service.generateSignedUrl(entity.getConsentFormPdf()));
+	         }
+	     } catch (Exception e) {
+	         System.out.println("consentFormPdf URL error: " + e.getMessage());
+	     }
+
+	     try {
+	         if (entity.getAttachments() != null && !entity.getAttachments().isEmpty()) {
+	             List<String> signedUrls = entity.getAttachments().stream()
+	                     .map(key -> {
+	                         try {
+	                             return s3Service.generateSignedUrl(key);
+	                         } catch (Exception ex) {
+	                             return key;
+	                         }
+	                     })
+	                     .collect(Collectors.toList());
+	             response.setAttachments(signedUrls);
+	         }
+	     } catch (Exception e) {
+	         System.out.println("attachments URL error: " + e.getMessage());
+	     }
 
 	     return response;
 	 }
@@ -315,6 +354,43 @@ public class BookingService_ServiceImpl implements BookingService_Service {
          mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	            
 		List<BookingResponse> res = mapper.convertValue(bookings,new TypeReference<List<BookingResponse>>(){});
 		for(BookingResponse bres : res) {
+			
+
+			 // ── S3 signed URLs ──────────────────────────────
+		     try {
+		    	 System.out.println(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
+			     
+		         if (bres.getPartImage() != null && !bres.getPartImage().isEmpty()) {
+		        	 bres.setPartImage(s3Service.generateSignedUrl(bres.getPartImage()));
+		         }
+		     } catch (Exception e) {
+		         System.out.println("partImage URL error: " + e.getMessage());
+		     }
+
+		     try {
+		         if (bres.getConsentFormPdf() != null && !bres.getConsentFormPdf().isEmpty()) {
+		        	 bres.setConsentFormPdf(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
+		           }
+		     } catch (Exception e) {
+		         System.out.println("consentFormPdf URL error: " + e.getMessage());
+		     }
+
+		     try {
+		         if (bres.getAttachments() != null && !bres.getAttachments().isEmpty()) {
+		             List<String> signedUrls = bres.getAttachments().stream()
+		                     .map(key -> {
+		                         try {
+		                             return s3Service.generateSignedUrl(key);
+		                         } catch (Exception ex) {
+		                             return key;
+		                         }
+		                     })
+		                     .collect(Collectors.toList());
+		             bres.setAttachments(signedUrls);
+		         }
+		     } catch (Exception e) {
+		         System.out.println("attachments URL error: " + e.getMessage());
+		     }
 			//System.out.println(bres.getBookingId());
 		 String dto = getPrescriptionpdf(bres.getBookingId());
 			//System.out.println(dto);
@@ -2764,13 +2840,10 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 			        // -------- FILES --------
 			        if (dto.getAttachments() != null && !dto.getAttachments().isEmpty())
-			            entity.setAttachments(
-			                new ObjectMapper().convertValue(dto.getAttachments(),
-			                        new TypeReference<List<byte[]>>() {})
-			            );
+			            entity.setAttachments(dto.getAttachments());
 
 			        if (dto.getConsentFormPdf() != null && !dto.getConsentFormPdf().isEmpty())
-			            entity.setConsentFormPdf(Base64.getDecoder().decode(dto.getConsentFormPdf()));
+			            entity.setConsentFormPdf(dto.getConsentFormPdf());
 
 			        if (dto.getPrescriptionPdf() != null && !dto.getPrescriptionPdf().isEmpty())
 			            entity.setPrescriptionPdf(
@@ -2811,7 +2884,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			            entity.setBodyPartName(dto.getBodyPartName());
 
 			        if (dto.getPartImage() != null && !dto.getPartImage().isEmpty())
-			            entity.setPartImage(Base64.getDecoder().decode(dto.getPartImage()));
+			            entity.setPartImage(dto.getPartImage());
 			        if (dto.getReports() != null) {
 				            entity.setReports(new ObjectMapper().convertValue(
 				                    dto.getReports(),
@@ -3823,15 +3896,12 @@ try {
    if (dto.getStatus() != null) {entity.setStatus(dto.getStatus());}
 ///System.out.println(dto.getStatus());
     // -------- FILES --------
-    if (dto.getAttachments() != null && !dto.getAttachments().isEmpty())
-        entity.setAttachments(
-            new ObjectMapper().convertValue(dto.getAttachments(),
-                    new TypeReference<List<byte[]>>() {})
-        );
+   if (dto.getAttachments() != null && !dto.getAttachments().isEmpty())
+	    entity.setAttachments(dto.getAttachments());
 
-    if (dto.getConsentFormPdf() != null && !dto.getConsentFormPdf().isEmpty())
-        entity.setConsentFormPdf(Base64.getDecoder().decode(dto.getConsentFormPdf()));
 
+   if (dto.getConsentFormPdf() != null && !dto.getConsentFormPdf().isEmpty())
+	    entity.setConsentFormPdf(dto.getConsentFormPdf());
     // -------- PAYMENT --------
      if( dto.getPaymentType() != null && !dto.getPaymentType().isEmpty()) {
         	entity.setPaymentType(dto.getPaymentType());}
@@ -3852,7 +3922,7 @@ try {
         entity.setBodyPartName(dto.getBodyPartName());
 
     if (dto.getPartImage() != null && !dto.getPartImage().isEmpty())
-        entity.setPartImage(Base64.getDecoder().decode(dto.getPartImage()));
+        entity.setPartImage(dto.getPartImage());
 
     // -------- THERAPY --------
     if (dto.getTheraphyAnswers() != null)

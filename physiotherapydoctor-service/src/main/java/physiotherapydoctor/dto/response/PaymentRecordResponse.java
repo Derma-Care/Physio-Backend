@@ -8,6 +8,7 @@ import physiotherapydoctor.dto.PaymentHistory;
 public class PaymentRecordResponse {
 
     private String id;
+    private boolean payAfterService;
     private String clinicId;
     private String branchId;
     private String bookingId;
