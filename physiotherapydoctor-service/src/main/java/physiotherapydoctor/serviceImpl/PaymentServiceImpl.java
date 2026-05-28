@@ -56,8 +56,11 @@ public class PaymentServiceImpl implements PaymentService {
 			throw new RuntimeException("Already exists, use update");
 		}
 
-		if (req.getAmount() == null || req.getAmount() <= 0) {
-			throw new RuntimeException("Amount must be greater than 0");
+		if (req.isPayAfterService()) {
+
+		    if (req.getAmount() == null || req.getAmount() <= 0) {
+		        throw new RuntimeException("Amount must be greater than 0");
+		    }
 		}
 
 		if (req.getTherapyWithSessions() == null || req.getTherapyWithSessions().isEmpty()) {
