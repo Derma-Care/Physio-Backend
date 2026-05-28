@@ -59,9 +59,12 @@ resilience4j:
         wait-duration-in-open-state: 1m
 
 # ===============================
-# Actuator
+# Actuator — FIXED
 # ===============================
 management:
+  server:
+    base-path: /               # ← ADDED: moves actuator out of /api
+
   endpoints:
     web:
       exposure:
@@ -70,6 +73,8 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true          
 
 # ===============================
 # Firebase

@@ -1254,12 +1254,12 @@ public class TherapistServiceImpl implements TherapistService {
 
                         for (Session session : attendance.getSessions()) {
 
-                            String description = session.getDescription();
+                            String activity = session.getActivity();
                             String duration    = session.getDuration();
 
-                            if (description != null
+                            if (activity != null
                                     && "Training".equalsIgnoreCase(
-                                            description.trim())
+                                    		activity.trim())
                                     && duration != null
                                     && !duration.trim().isEmpty()) {
 
@@ -1286,7 +1286,7 @@ public class TherapistServiceImpl implements TherapistService {
                              .stream()
                              .anyMatch(session ->
                                      session.getActivity() != null
-                                     && "Paid Leaves".equalsIgnoreCase(  // ✅ "Paid Leaves" with s
+                                     && "Paid Leave".equalsIgnoreCase(  // ✅ "Paid Leaves" with s
                                              session.getActivity().trim()));
                      if (hasPaidLeave) {
                          paidLeaveDays++;
