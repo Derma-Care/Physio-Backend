@@ -55,9 +55,9 @@ public class CustomerOnboardingController {
     
 
     // ✅ Get Customers by HospitalId
-    @GetMapping("/customers/hospital/{hospitalId}")
-    public ResponseEntity<Response> getCustomersByHospitalId(@PathVariable String hospitalId) {
-        Response response = customerOnboardingService.getCustomersByHospitalId(hospitalId);
+    @GetMapping("/customers/hospital/{hospitalId}/{branchId}")
+    public ResponseEntity<Response> getCustomersByHospitalId(@PathVariable String hospitalId,@PathVariable String branchId) {
+        Response response = customerOnboardingService.getCustomersByHospitalId(hospitalId,branchId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 

@@ -33,8 +33,10 @@ public class BookingServiceImpl implements BookingService {
 
 	@Autowired
 	DoctorService doctorService;	
+	
 	@Autowired	
 	DoctorServiceImpl doctorServiceImpl;
+	
 	@Autowired
 	private CustomerServiceFeignClient customerServiceFeignClient;
 	
@@ -402,7 +404,11 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	        }else {
     	    res = bookingFeign.bookPhysioAppointment(req);}
     	//System.out.println(res);
-    	 if(res.getBody().getData() != null) {
+    	 if(res.getBody().getStatus() == 200) {
+//    		 System.out.println( req.getDoctorId());
+//    		 System.out.println(req.getBranchId());
+//    		 System.out.println( req.getServiceDate());
+//    		 System.out.println( req.getServicetime() );
     		 doctorServiceImpl.updateSlot(         
     				 req.getDoctorId(),
 	                    req.getBranchId(),
