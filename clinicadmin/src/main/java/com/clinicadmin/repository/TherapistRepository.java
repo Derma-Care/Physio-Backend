@@ -22,4 +22,6 @@ public interface TherapistRepository extends MongoRepository<Therapist, String> 
     List<Therapist> findByClinicIdAndBranchId(String clinicId, String branchId);
 
     List<Therapist> findByClinicId(String clinicId);
+
+	Optional<Therapist> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
 }

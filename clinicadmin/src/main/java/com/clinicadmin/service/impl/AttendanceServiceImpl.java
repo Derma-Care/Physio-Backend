@@ -1,6 +1,7 @@
 package com.clinicadmin.service.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1080,6 +1081,13 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                  for (Map<String, Object> clinic : clinics) {
 
+                     // ✅ FILTER — only process matching clinicId
+                     String hospitalId = clinic.get("hospitalId") != null
+                             ? clinic.get("hospitalId").toString() : "";
+                     if (!hospitalId.equals(clinicId)) {
+                         continue;
+                     }
+
                      DailyAllUsersResponseDTO clinicDto =
                              new DailyAllUsersResponseDTO();
 
@@ -1213,154 +1221,183 @@ public class AttendanceServiceImpl implements AttendanceService {
                      + e.getMessage());
          }
 
-         // =========================================================
-         // ADD BRANCH ADMIN
-         // =========================================================
-         try {
+      // =========================================================
+      // ADD BRANCH ADMIN
+      // =========================================================
+      try {
 
-             ResponseEntity<Response> branchResponse =
-                     adminServiceClient.getAllBranches();
+          ResponseEntity<Response> branchResponse =
+                  adminServiceClient.getAllBranches();
 
-             if (branchResponse.getBody() != null
-                     && branchResponse.getBody().getData() != null) {
+          if (branchResponse.getBody() != null
+                  && branchResponse.getBody().getData() != null) {
 
-                 List<Map<String, Object>> branches =
-                         (List<Map<String, Object>>) branchResponse.getBody().getData();
+              // ✅ BUILD clinicId → clinicName MAP from getAllClinics()
+              Map<String, String> clinicNameMap = new HashMap<>();
+              try {
+                  ResponseEntity<Response> clinicRes =
+                          adminServiceClient.getAllClinics();
+                  if (clinicRes.getBody() != null
+                          && clinicRes.getBody().getData() != null) {
+                      List<Map<String, Object>> cls =
+                              (List<Map<String, Object>>) clinicRes.getBody().getData();
+                      for (Map<String, Object> c : cls) {
+                          String hId = c.get("hospitalId") != null
+                                  ? c.get("hospitalId").toString() : "";
+                          String hName = c.get("name") != null
+                                  ? c.get("name").toString() : "";
+                          clinicNameMap.put(hId, hName);
+                      }
+                  }
+              } catch (Exception e) {
+                  System.out.println("clinicNameMap build error: "
+                          + e.getMessage());
+              }
 
-                 for (Map<String, Object> branch : branches) {
+              List<Map<String, Object>> branches =
+                      (List<Map<String, Object>>) branchResponse.getBody().getData();
 
-                     DailyAllUsersResponseDTO branchDto =
-                             new DailyAllUsersResponseDTO();
+              for (Map<String, Object> branch : branches) {
 
-                     // BASIC DETAILS
-                     branchDto.setUserId(
-                             branch.get("branchId") != null
-                                     ? branch.get("branchId").toString()
-                                     : "");
+                  // ✅ FILTER — only process matching clinicId + branchId
+                  String bClinicId = branch.get("clinicId") != null
+                          ? branch.get("clinicId").toString() : "";
+                  String bBranchId = branch.get("branchId") != null
+                          ? branch.get("branchId").toString() : "";
+                  if (!bClinicId.equals(clinicId) || !bBranchId.equals(branchId)) {
+                      continue;
+                  }
 
-                     branchDto.setName(
-                             branch.get("branchName") != null
-                                     ? branch.get("branchName").toString()
-                                     : "");
+                  DailyAllUsersResponseDTO branchDto =
+                          new DailyAllUsersResponseDTO();
 
-                     branchDto.setRole(
-                             branch.get("role") != null
-                                     ? branch.get("role").toString()
-                                     : "ADMIN");
+                  // BASIC DETAILS
+                  branchDto.setUserId(
+                          branch.get("branchId") != null
+                                  ? branch.get("branchId").toString()
+                                  : "");
 
-                     branchDto.setClinicId(
-                             branch.get("clinicId") != null
-                                     ? branch.get("clinicId").toString()
-                                     : "");
+                  // ✅ HOSPITAL NAME instead of branch name
+                  branchDto.setName(clinicNameMap.getOrDefault(bClinicId, ""));
 
-                     branchDto.setBranchId(
-                             branch.get("branchId") != null
-                                     ? branch.get("branchId").toString()
-                                     : "");
+                  branchDto.setRole(
+                          branch.get("role") != null
+                                  ? branch.get("role").toString()
+                                  : "ADMIN");
 
-                     branchDto.setDate(date);
+                  branchDto.setClinicId(
+                          branch.get("clinicId") != null
+                                  ? branch.get("clinicId").toString()
+                                  : "");
 
-                     // DEFAULT VALUES
-                     branchDto.setStatus("Not Logged In");
-                     branchDto.setLogTime(null);
-                     branchDto.setWorkingHours("00:00");
-                     branchDto.setIdleTime("00:00");
-                     branchDto.setLogin(null);
-                     branchDto.setLogout(null);
+                  branchDto.setBranchId(
+                          branch.get("branchId") != null
+                                  ? branch.get("branchId").toString()
+                                  : "");
 
-                     // FETCH ATTENDANCE
-                     Optional<Attendance> attendanceOpt =
-                             repo.findByClinicIdAndBranchIdAndUserIdAndDate(
-                                     branchDto.getClinicId(),
-                                     branchDto.getBranchId(),
-                                     branchDto.getUserId(),
-                                     date
-                             );
+                  branchDto.setDate(date);
 
-                     // FALLBACK
-                     if (!attendanceOpt.isPresent()) {
+                  // DEFAULT VALUES
+                  branchDto.setStatus("Not Logged In");
+                  branchDto.setLogTime(null);
+                  branchDto.setWorkingHours("00:00");
+                  branchDto.setIdleTime("00:00");
+                  branchDto.setLogin(null);
+                  branchDto.setLogout(null);
 
-                         attendanceOpt = repo.findByUserIdAndDate(
-                                 branchDto.getUserId(),
-                                 date
-                         );
-                     }
+                  // FETCH ATTENDANCE
+                  Optional<Attendance> attendanceOpt =
+                          repo.findByClinicIdAndBranchIdAndUserIdAndDate(
+                                  branchDto.getClinicId(),
+                                  branchDto.getBranchId(),
+                                  branchDto.getUserId(),
+                                  date
+                          );
 
-                     // MAP ATTENDANCE
-                     if (attendanceOpt.isPresent()) {
+                  // FALLBACK
+                  if (!attendanceOpt.isPresent()) {
 
-                         Attendance entity = attendanceOpt.get();
+                      attendanceOpt = repo.findByUserIdAndDate(
+                              branchDto.getUserId(),
+                              date
+                      );
+                  }
 
-                         branchDto.setStatus(
-                                 entity.getStatus() != null
-                                         ? entity.getStatus()
-                                         : "Not Logged In"
-                         );
+                  // MAP ATTENDANCE
+                  if (attendanceOpt.isPresent()) {
 
-                         branchDto.setLogTime(entity.getLogTime());
+                      Attendance entity = attendanceOpt.get();
 
-                         branchDto.setWorkingHours(
-                                 entity.getWorkingHours() != null
-                                         ? entity.getWorkingHours()
-                                         : "00:00"
-                         );
+                      branchDto.setStatus(
+                              entity.getStatus() != null
+                                      ? entity.getStatus()
+                                      : "Not Logged In"
+                      );
 
-                         branchDto.setIdleTime(
-                                 entity.getIdleTime() != null
-                                         ? entity.getIdleTime()
-                                         : "00:00"
-                         );
+                      branchDto.setLogTime(entity.getLogTime());
 
-                         // LOGIN
-                         if (entity.getLogin() != null) {
+                      branchDto.setWorkingHours(
+                              entity.getWorkingHours() != null
+                                      ? entity.getWorkingHours()
+                                      : "00:00"
+                      );
 
-                             TimeLocationDTO login =
-                                     new TimeLocationDTO();
+                      branchDto.setIdleTime(
+                              entity.getIdleTime() != null
+                                      ? entity.getIdleTime()
+                                      : "00:00"
+                      );
 
-                             login.setTime(entity.getLogin().getTime());
-                             login.setLatitude(entity.getLogin().getLatitude());
-                             login.setLongtitude(entity.getLogin().getLongtitude());
+                      // LOGIN
+                      if (entity.getLogin() != null) {
 
-                             login.setLocation(
-                                     getCityFromLatLong(
-                                             entity.getLogin().getLatitude(),
-                                             entity.getLogin().getLongtitude()
-                                     )
-                             );
+                          TimeLocationDTO login =
+                                  new TimeLocationDTO();
 
-                             branchDto.setLogin(login);
-                         }
+                          login.setTime(entity.getLogin().getTime());
+                          login.setLatitude(entity.getLogin().getLatitude());
+                          login.setLongtitude(entity.getLogin().getLongtitude());
 
-                         // LOGOUT
-                         if (entity.getLogout() != null) {
+                          login.setLocation(
+                                  getCityFromLatLong(
+                                          entity.getLogin().getLatitude(),
+                                          entity.getLogin().getLongtitude()
+                                  )
+                          );
 
-                             TimeLocationDTO logout =
-                                     new TimeLocationDTO();
+                          branchDto.setLogin(login);
+                      }
 
-                             logout.setTime(entity.getLogout().getTime());
-                             logout.setLatitude(entity.getLogout().getLatitude());
-                             logout.setLongtitude(entity.getLogout().getLongtitude());
+                      // LOGOUT
+                      if (entity.getLogout() != null) {
 
-                             logout.setLocation(
-                                     getCityFromLatLong(
-                                             entity.getLogout().getLatitude(),
-                                             entity.getLogout().getLongtitude()
-                                     )
-                             );
+                          TimeLocationDTO logout =
+                                  new TimeLocationDTO();
 
-                             branchDto.setLogout(logout);
-                         }
-                     }
+                          logout.setTime(entity.getLogout().getTime());
+                          logout.setLatitude(entity.getLogout().getLatitude());
+                          logout.setLongtitude(entity.getLogout().getLongtitude());
 
-                     result.add(branchDto);
-                 }
-             }
+                          logout.setLocation(
+                                  getCityFromLatLong(
+                                          entity.getLogout().getLatitude(),
+                                          entity.getLogout().getLongtitude()
+                                  )
+                          );
 
-         } catch (Exception e) {
+                          branchDto.setLogout(logout);
+                      }
+                  }
 
-             System.out.println("Branch admin attendance error: "
-                     + e.getMessage());
-         }
+                  result.add(branchDto);
+              }
+          }
+
+      } catch (Exception e) {
+
+          System.out.println("Branch admin attendance error: "
+                  + e.getMessage());
+      }
             // =========================================================
             // LOOP THROUGH ALL USERS
             // =========================================================
