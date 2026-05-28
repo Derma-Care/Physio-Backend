@@ -16,6 +16,7 @@ public interface CustomerOnboardingRepository extends MongoRepository<CustomerOn
 	void deleteByCustomerId(String customerId);
 
 	List<CustomerOnbording> findByHospitalId(String hospitalId);
+	
 
 	List<CustomerOnbording> findByBranchId(String branchId);
 	

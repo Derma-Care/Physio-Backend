@@ -463,6 +463,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	    		  res.setMessage("Appointment Booked Successfully but notification not sent");}}
 	    	  res.setStatus(200);
 	    	  res.setSuccess(true);
+	    	 // BookingResponse bookingResponse = toResponse(updatedBooking);
+	    	  //Map<String,Object> map = new LinkedHashMap<>();
+//	    	  map.put("DoctorId",updatedBooking.getDoctorId() );
+//	    	  map.put("BranchId", updatedBooking.getBranchId());
+//	    	  map.put("ServiceDate", updatedBooking.getServiceDate());
+//	    	  map.put("ServiceTime", updatedBooking.getServicetime());
 	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);
 		     }catch (Exception e) {
 	    		  res.setMessage(e.getMessage());

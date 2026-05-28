@@ -325,10 +325,10 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 
 	@Override
-	public Response getCustomersByHospitalId(String hospitalId) {
+	public Response getCustomersByHospitalId(String hospitalId,String branchId) {
 	    Response response = new Response();
 	    try {
-	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalId(hospitalId)
+	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
 	                .stream()
 	                .map(this::convertToDTO)
 	                .collect(Collectors.toList());

@@ -20,7 +20,7 @@ public interface CustomerOnboardingService {
 
 	Response deleteCustomer(String customerId);
 
-	Response getCustomersByHospitalId(String hospitalId);
+	Response getCustomersByHospitalId(String hospitalId,String branchId);
 
 	Response getCustomersByBranchId(String branchId);
 
