@@ -3,12 +3,14 @@ package com.clinicadmin.service.impl;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -845,34 +847,69 @@ public class TherapistServiceImpl implements TherapistService {
 
                                 if (sessions == null) continue;
 
-                                List<Map<String, Object>> paidSessions =
-                                        sessions.stream()
-                                                .filter(session -> {
+//                                List<Map<String, Object>> paidSessions =
+//                                        sessions.stream()
+//                                                .filter(session -> {
+//
+//                                                    Object statusObj =
+//                                                            session.get("paymentStatus");
+//
+//                                                    if (statusObj == null)
+//                                                        return false;
+//
+//                                                    String status =
+//                                                            statusObj.toString().trim();
+//
+//                                                    return "Paid"
+//                                                            .equalsIgnoreCase(status);
+//
+//                                                })
+//                                                .collect(Collectors.toList());
+//
+//                                if (!paidSessions.isEmpty()) {
+//
+//                                    Map<String, Object> updatedExercise =
+//                                            new HashMap<>(exercise);
+//
+//                                    updatedExercise.put(
+//                                            "sessions",
+//                                            new ArrayList<>(paidSessions)
+//                                    );
+//
+//                                    filteredExercises.add(updatedExercise);
+//                                }
+                                
+                             // ✅ Separate Paid & Unpaid Sessions
+                                List<Map<String, Object>> paidSessions = new ArrayList<>();
+                                List<Map<String, Object>> unpaidSessions = new ArrayList<>();
 
-                                                    Object statusObj =
-                                                            session.get("paymentStatus");
+                                for (Map<String, Object> session : sessions) {
 
-                                                    if (statusObj == null)
-                                                        return false;
+                                    Object statusObj = session.get("paymentStatus");
 
-                                                    String status =
-                                                            statusObj.toString().trim();
+                                    if (statusObj == null) {
+                                        continue;
+                                    }
 
-                                                    return "Paid"
-                                                            .equalsIgnoreCase(status);
+                                    String status = statusObj.toString().trim();
 
-                                                })
-                                                .collect(Collectors.toList());
+                                    if ("Paid".equalsIgnoreCase(status)) {
 
-                                if (!paidSessions.isEmpty()) {
+                                        paidSessions.add(session);
+
+                                    } else if ("Unpaid".equalsIgnoreCase(status)) {
+
+                                        unpaidSessions.add(session);
+                                    }
+                                }
+
+                                if (!paidSessions.isEmpty() || !unpaidSessions.isEmpty()) {
 
                                     Map<String, Object> updatedExercise =
                                             new HashMap<>(exercise);
 
-                                    updatedExercise.put(
-                                            "sessions",
-                                            new ArrayList<>(paidSessions)
-                                    );
+                                    updatedExercise.put("paidSessions", paidSessions);
+                                    updatedExercise.put("unpaidSessions", unpaidSessions);
 
                                     filteredExercises.add(updatedExercise);
                                 }
@@ -1277,7 +1314,92 @@ public class TherapistServiceImpl implements TherapistService {
                      }
                  }
              }
+             
+          // =========================================================
+          // 8. FETCH THERAPIST JOINING DATE & EXPERIENCE
+          // =========================================================
+
+          String joiningDate = null;
+          int calculatedExperience = 0;
+
+          Optional<Therapist> therapistOptional =
+        		  repository.findByClinicIdAndBranchIdAndTherapistId(
+                          clinicId,
+                          branchId,
+                          therapistId);
+
+          if (therapistOptional.isPresent()) {
+
+              Therapist therapist = therapistOptional.get();
+
+              joiningDate = therapist.getDateofJoining();
+
+              if (joiningDate != null && !joiningDate.trim().isEmpty()) {
+
+                  try {
+
+                      LocalDate joiningLocalDate =
+                              LocalDate.parse(joiningDate.substring(0, 10));
+
+                      calculatedExperience =
+                              Period.between(joiningLocalDate, LocalDate.now())
+                                    .getYears();
+
+                  } catch (Exception e) {
+
+                      calculatedExperience = 0;
+                  }
+              }
+          }
          }
+      // =========================================================
+      // 8. FETCH THERAPIST JOINING DATE & EXPERIENCE
+      // =========================================================
+
+      String joiningDate = null;
+      double calculatedExperience = 0.0;
+
+      Optional<Therapist> therapistOptional =
+              repository.findByClinicIdAndBranchIdAndTherapistId(
+                      clinicId,
+                      branchId,
+                      therapistId);
+
+      if (therapistOptional.isPresent()) {
+
+          Therapist therapist = therapistOptional.get();
+
+          joiningDate = therapist.getDateofJoining();
+
+          if (joiningDate != null && !joiningDate.trim().isEmpty()) {
+
+              try {
+
+                  LocalDate joiningLocalDate =
+                          LocalDate.parse(joiningDate.substring(0, 10));
+
+                  Period period =
+                          Period.between(
+                                  joiningLocalDate,
+                                  LocalDate.now());
+
+                  int years = period.getYears();
+                  int months = period.getMonths();
+
+                  // Example:
+                  // 3 years 5 months => 3.5
+                  calculatedExperience =
+                          Double.parseDouble(
+                                  years + "." + months);
+
+              } catch (Exception e) {
+
+                  e.printStackTrace();
+                  calculatedExperience = 0.0;
+              }
+          }
+      }
+
             // =========================================================
             // 8. RESPONSE DATA
             // =========================================================
@@ -1286,6 +1408,8 @@ public class TherapistServiceImpl implements TherapistService {
             data.put("branchId",              branchId);
             data.put("therapistId",           therapistId);
             data.put("year",                  year);
+            data.put("joiningDate", joiningDate);
+            data.put("yearsOfExperience", calculatedExperience);
             data.put("totalSessionCompleted", totalSessionCompleted);
             data.put("totalSessionTime",      formattedTotalSessionTime);
             data.put("totalIdleTime",         formattedIdleTime);

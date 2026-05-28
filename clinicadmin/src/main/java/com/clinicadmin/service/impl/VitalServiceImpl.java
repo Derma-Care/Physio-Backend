@@ -1,7 +1,9 @@
 package com.clinicadmin.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -38,15 +40,15 @@ public class VitalServiceImpl implements VitalService {
         Response res = new Response();
         try {
 
-            Optional<Vitals> existingVitals = vitalsRepository.findByBookingId(bookingId);
-            if (existingVitals.isPresent()) {
-                log.warn("Vitals already exist | bookingId={}", bookingId);
-
-                res.setSuccess(false);
-                res.setMessage("Vitals already exist for bookingId: " + bookingId);
-                res.setStatus(HttpStatus.CONFLICT.value());
-                return res;
-            }
+//            Optional<Vitals> existingVitals = vitalsRepository.findByBookingId(bookingId);
+//            if (existingVitals.isPresent()) {
+//                log.warn("Vitals already exist | bookingId={}", bookingId);
+//
+//                res.setSuccess(false);
+//                res.setMessage("Vitals already exist for bookingId: " + bookingId);
+//                res.setStatus(HttpStatus.CONFLICT.value());
+//                return res;
+//            }
 
             ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
                     bookingFeign.getBookedService(bookingId);
@@ -120,38 +122,43 @@ public class VitalServiceImpl implements VitalService {
         Response res = new Response();
 
         try {
-            Optional<Vitals> vitals =
+
+            List<Vitals> vitalsList =
                     vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
 
-            if (vitals.isPresent()) {
+            if (!vitalsList.isEmpty()) {
 
-                Vitals savedVitals = vitals.get();
+                List<VitalsDTO> dtoList = new ArrayList<>();
 
-                VitalsDTO dto1 = new VitalsDTO();
-                dto1.setId(savedVitals.getId().toString());
-                dto1.setPatientId(savedVitals.getPatientId());
-                dto1.setPatientName(savedVitals.getPatientName());
-                dto1.setBloodPressure(savedVitals.getBloodPressure());
-                dto1.setBmi(savedVitals.getBmi());
-                dto1.setHeight(savedVitals.getHeight());
-                dto1.setTemperature(savedVitals.getTemperature());
-                dto1.setWeight(savedVitals.getWeight());
-                dto1.setBookingId(savedVitals.getBookingId());
+                for (Vitals savedVitals : vitalsList) {
 
-                // ✅ ADD DATE
-                dto1.setDate(savedVitals.getDate());
+                    VitalsDTO dto1 = new VitalsDTO();
+
+                    dto1.setId(savedVitals.getId().toString());
+                    dto1.setPatientId(savedVitals.getPatientId());
+                    dto1.setPatientName(savedVitals.getPatientName());
+                    dto1.setBloodPressure(savedVitals.getBloodPressure());
+                    dto1.setBmi(savedVitals.getBmi());
+                    dto1.setHeight(savedVitals.getHeight());
+                    dto1.setTemperature(savedVitals.getTemperature());
+                    dto1.setWeight(savedVitals.getWeight());
+                    dto1.setBookingId(savedVitals.getBookingId());
+
+                    // ✅ ADD DATE
+                    dto1.setDate(savedVitals.getDate());
+
+                    dtoList.add(dto1);
+                }
 
                 res.setSuccess(true);
-
-                // ✅ ARRAY RESPONSE
-                res.setData(Collections.singletonList(dto1));
-
+                res.setData(dtoList);
                 res.setMessage("Vitals data retrieved successfully");
                 res.setStatus(HttpStatus.OK.value());
 
                 return res;
 
             } else {
+
                 res.setSuccess(true);
                 res.setData(Collections.emptyList());
                 res.setMessage("Vitals data not found");
@@ -171,7 +178,6 @@ public class VitalServiceImpl implements VitalService {
             return res;
         }
     }
-
     @Override
     public Response updateVitals(String bookingId, String patientId, VitalsDTO dto) {
 
@@ -181,12 +187,12 @@ public class VitalServiceImpl implements VitalService {
 
         try {
 
-            Optional<Vitals> vitOpt =
+            List<Vitals> vitOpt =
                     vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
 
-            if (vitOpt.isPresent()) {
+            if (!vitOpt.isEmpty()) {
 
-                Vitals vital = vitOpt.get();
+                Vitals vital = vitOpt.get(0);
 
                 if (dto.getBloodPressure() != null) vital.setBloodPressure(dto.getBloodPressure());
                 if (dto.getBmi() != null) vital.setBmi(dto.getBmi());
@@ -245,10 +251,10 @@ public class VitalServiceImpl implements VitalService {
 
         try {
 
-            Optional<Vitals> vit =
-                    vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
+        	List<Vitals> vit =
+        	        vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
 
-            if (vit.isPresent()) {
+            if (!vit.isEmpty()) {
 
                 vitalsRepository.deleteByBookingIdAndPatientId(bookingId, patientId);
 
