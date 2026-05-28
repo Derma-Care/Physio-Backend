@@ -47,13 +47,12 @@ spring.lifecycle:
   timeout-per-shutdown-phase: 30s
 
 # =========================================================
-
 # AWS S3
 # =========================================================
 
 aws:
-  accessKeyId: 
-  secretAccessKey: 
+  accessKeyId:
+  secretAccessKey:
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage
@@ -106,10 +105,12 @@ resilience4j:
         timeout-duration: 60s
 
 # =========================================================
-# ACTUATOR
+# ACTUATOR — FIXED
 # =========================================================
 
 management:
+  server:
+    base-path: /              # ← FIXED: moves actuator out of /api context-path
 
   endpoints:
     web:
@@ -119,6 +120,8 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true         # ← enables liveness & readiness probes
 
 # =========================================================
 # INFO
