@@ -99,7 +99,8 @@ public class ReportsServiceImpl implements ReportsService {
                 if (existingReports == null) existingReports = new ArrayList<>();
                 existingReports.add(dto);
                 bookingData.setReports(existingReports);
-
+                bookingData.setCurrentStatus(null);
+                bookingData.setListOfConsultationFee(null);
                 // Set IDs from booking service
                 dto.setCustomerId(bookingData.getCustomerId());
                 dto.setPatientId(bookingData.getPatientId());

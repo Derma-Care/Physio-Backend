@@ -445,7 +445,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			    }
 
 			    if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
-			        throw new RuntimeException("Service Date is mandatory");
+			        throw new RuntimeException("Service Date is mandatory");}
+			        
+			    if (request.getServicetime() == null || request.getServicetime().trim().isEmpty()) {
+				        throw new RuntimeException("Service Time is mandatory");
 			    }
 	     Booking entity = toEntity(request);
 	     //System.out.println(entity);
@@ -2683,6 +2686,9 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 //			        if (dto.getRelation() != null && !dto.getRelation().isEmpty())
 //			            entity.setRelation(dto.getRelation());
+			        if(dto.getReports() != null || !dto.getReports().isEmpty()) {
+			        	entity.setReports(new ObjectMapper().convertValue(dto.getReports(), new TypeReference<List<ReportsList>>() {
+						}));}
 
 			        if (dto.getPatientMobileNumber() != null && !dto.getPatientMobileNumber().isEmpty())
 			            entity.setPatientMobileNumber(dto.getPatientMobileNumber());
@@ -2740,8 +2746,8 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 //				    					entity.setTreatments(treatmentResponseDTO);		
 //				    			}}}}catch(Exception e) {System.out.println(e.getMessage());}}
 			        if(dto.getFollowupStatus() != null ) {
-				        entity.setFollowupStatus(dto.getFollowupStatus());
-				        System.out.println(dto.getFollowupStatus()); }
+				        entity.setFollowupStatus(dto.getFollowupStatus());}
+				       // System.out.println(dto.getFollowupStatus()); }
 			        // -------- PROBLEM --------
 			        if (dto.getProblem() != null && !dto.getProblem().isEmpty())
 			            entity.setProblem(dto.getProblem());
@@ -2865,6 +2871,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 			        if (dto.getTotalFee() > 0)
 			            entity.setTotalFee(dto.getTotalFee());
+			        
 
 			        if (dto.getDoctorRefCode() != null && !dto.getDoctorRefCode().isEmpty())
 			            entity.setDoctorRefCode(dto.getDoctorRefCode());
