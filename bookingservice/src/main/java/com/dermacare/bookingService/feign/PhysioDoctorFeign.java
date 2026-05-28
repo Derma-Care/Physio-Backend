@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import com.dermacare.bookingService.dto.Session;
 
 
-@FeignClient(value = "PHYSIOTHERAPYDOCTOR-SERVICE")
+@FeignClient(value = "physiotherapydoctor-service")
 public interface PhysioDoctorFeign {
 	
 	@GetMapping("/api/physiotherapy-doctor/getPhysioByBookingId/{bookingId}/{date}")
