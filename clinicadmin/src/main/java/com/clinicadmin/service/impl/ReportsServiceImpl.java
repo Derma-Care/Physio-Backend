@@ -35,7 +35,7 @@ public class ReportsServiceImpl implements ReportsService {
     private BookingFeign bookingFeign;
 
     @Autowired
-    private S3Service s3Service; // ✅ S3 integration
+    private S3Service s3Service;
 
     // ─────────────────────────────────────────────────────────────────
     // HELPER: Reports entity → ReportsDTO with fresh signed URLs
@@ -47,7 +47,6 @@ public class ReportsServiceImpl implements ReportsService {
         if (report.getReportFile() != null) {
             for (String key : report.getReportFile()) {
                 if (key != null && !key.isBlank()) {
-                    // ✅ Generate fresh 7-day signed URL from stored S3 key
                     signedUrls.add(s3Service.generateSignedUrl(key));
                 }
             }
@@ -61,7 +60,7 @@ public class ReportsServiceImpl implements ReportsService {
         dto.setReportDate(report.getReportDate());
         dto.setReportStatus(report.getReportStatus());
         dto.setReportType(report.getReportType());
-        dto.setReportFile(signedUrls); // ✅ signed URLs returned to frontend
+        dto.setReportFile(signedUrls);
         return dto;
     }
 
@@ -78,9 +77,7 @@ public class ReportsServiceImpl implements ReportsService {
         }
 
         ReportsDtoList dtoList = new ReportsDtoList();
-
         dtoList.setId(entity.getId());
-
         dtoList.setCustomerId(entity.getCustomerId());
         dtoList.setPatientId(entity.getPatientId());
         dtoList.setReportsList(dtos);
@@ -98,14 +95,39 @@ public class ReportsServiceImpl implements ReportsService {
             if (key == null || key.isBlank()) {
                 return "File key cannot be null or blank";
             }
-            // ✅ Check file actually exists in S3 (HeadObject call)
             var meta = s3Service.getUploadedFileMeta(key);
             if (meta == null) {
                 return "File not found in S3 for key: " + key
                         + ". Please upload via presigned URL first.";
             }
         }
-        return null; // all valid
+        return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // HELPER: Convert raw S3 keys inside BookingResponse.reports
+    // to fresh 7-day signed URLs before returning to frontend.
+    // Booking Service stores raw keys — it has no S3Service,
+    // so signing must happen here on the Clinic Admin side.
+    // ─────────────────────────────────────────────────────────────────
+    private BookingResponse signReportUrlsInBookingResponse(BookingResponse bookingData) {
+        if (bookingData == null || bookingData.getReports() == null) return bookingData;
+
+        for (ReportsDtoList reportsDtoList : bookingData.getReports()) {
+            if (reportsDtoList.getReportsList() == null) continue;
+
+            for (ReportsDTO report : reportsDtoList.getReportsList()) {
+                if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
+
+                List<String> signedUrls = report.getReportFile().stream()
+                        .filter(key -> key != null && !key.isBlank())
+                        .map(s3Service::generateSignedUrl) // ✅ raw key → signed URL
+                        .collect(Collectors.toList());
+
+                report.setReportFile(signedUrls);
+            }
+        }
+        return bookingData;
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -132,7 +154,6 @@ public class ReportsServiceImpl implements ReportsService {
 
             for (ReportsDTO reportDTO : dto.getReportsList()) {
 
-                // ── Validate bookingId ──────────────────────────────
                 if (reportDTO.getBookingId() == null || reportDTO.getBookingId().isEmpty()) {
                     return Response.builder()
                             .success(false)
@@ -144,7 +165,6 @@ public class ReportsServiceImpl implements ReportsService {
 
                 bookingId = reportDTO.getBookingId();
 
-                // ── Validate S3 keys (reportFile now holds S3 keys) ─
                 String keyError = validateS3Keys(reportDTO.getReportFile());
                 if (keyError != null) {
                     return Response.builder()
@@ -155,7 +175,6 @@ public class ReportsServiceImpl implements ReportsService {
                             .build();
                 }
 
-                // ✅ Build entity — store S3 keys directly (no base64 decode)
                 Reports report = Reports.builder()
                         .bookingId(reportDTO.getBookingId())
                         .patientId(reportDTO.getPatientId())
@@ -185,7 +204,6 @@ public class ReportsServiceImpl implements ReportsService {
 
                 bookingData.setCurrentStatus(null);
                 bookingData.setListOfConsultationFee(null);
-                // Set IDs from booking service
 
                 dto.setCustomerId(bookingData.getCustomerId());
                 dto.setPatientId(bookingData.getPatientId());
@@ -200,10 +218,9 @@ public class ReportsServiceImpl implements ReportsService {
 
             ReportsList saved = reportsRepository.save(reportsList);
 
-            // ✅ Return with signed URLs in reportFile
             return Response.builder()
                     .success(true)
-                    .data(toResponseDtoList(saved))
+                    .data(toResponseDtoList(saved)) // ✅ signed URLs returned
                     .message("Report uploaded successfully")
                     .status(HttpStatus.CREATED.value())
                     .build();
@@ -237,7 +254,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             if (reportsListData != null && !reportsListData.isEmpty()) {
                 List<ReportsDtoList> result = reportsListData.stream()
-                        .map(this::toResponseDtoList) // ✅ signed URLs generated here
+                        .map(this::toResponseDtoList)
                         .collect(Collectors.toList());
 
                 res.setSuccess(true);
@@ -271,7 +288,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             if (reportList != null && !reportList.isEmpty()) {
                 List<ReportsDtoList> result = reportList.stream()
-                        .map(this::toResponseDtoList) // ✅ signed URLs generated here
+                        .map(this::toResponseDtoList)
                         .collect(Collectors.toList());
 
                 res.setSuccess(true);
@@ -306,7 +323,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             if (reportsListData != null && !reportsListData.isEmpty()) {
                 List<ReportsDtoList> result = reportsListData.stream()
-                        .map(this::toResponseDtoList) // ✅ signed URLs generated here
+                        .map(this::toResponseDtoList)
                         .collect(Collectors.toList());
 
                 res.setSuccess(true);
@@ -342,7 +359,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             if (reportsListData != null && !reportsListData.isEmpty()) {
                 List<ReportsDtoList> result = reportsListData.stream()
-                        .map(this::toResponseDtoList) // ✅ signed URLs generated here
+                        .map(this::toResponseDtoList)
                         .collect(Collectors.toList());
 
                 res.setSuccess(true);
@@ -367,7 +384,6 @@ public class ReportsServiceImpl implements ReportsService {
 
     // ─────────────────────────────────────────────────────────────────
     // UPDATE REPORT
-    // Accepts new S3 fileKeys in reportFile field
     // ─────────────────────────────────────────────────────────────────
     @Override
     public Response updateReport(String reportId, ReportsDtoList dto) {
@@ -402,7 +418,6 @@ public class ReportsServiceImpl implements ReportsService {
 
             for (ReportsDTO incoming : dto.getReportsList()) {
 
-                // ── Validate S3 keys if provided ────────────────────
                 if (incoming.getReportFile() != null && !incoming.getReportFile().isEmpty()) {
                     String keyError = validateS3Keys(incoming.getReportFile());
                     if (keyError != null) {
@@ -445,8 +460,6 @@ public class ReportsServiceImpl implements ReportsService {
                             r.setReportStatus(incoming.getReportStatus());
                         if (incoming.getReportType() != null)
                             r.setReportType(incoming.getReportType());
-
-                        // ✅ Replace file keys if new ones provided
                         if (incoming.getReportFile() != null && !incoming.getReportFile().isEmpty())
                             r.setReportFile(incoming.getReportFile());
 
@@ -456,7 +469,6 @@ public class ReportsServiceImpl implements ReportsService {
                     }
                 }
 
-                // ── No match found → add as new report entry ────────
                 if (!updated) {
                     Reports newReport = Reports.builder()
                             .bookingId(incoming.getBookingId())
@@ -466,7 +478,7 @@ public class ReportsServiceImpl implements ReportsService {
                             .reportDate(incoming.getReportDate())
                             .reportStatus(incoming.getReportStatus())
                             .reportType(incoming.getReportType())
-                            .reportFile(incoming.getReportFile()) // ✅ S3 keys
+                            .reportFile(incoming.getReportFile())
                             .build();
                     existingReports.add(newReport);
                 }
@@ -477,7 +489,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             return Response.builder()
                     .success(true)
-                    .data(toResponseDtoList(updatedEntity)) // ✅ signed URLs returned
+                    .data(toResponseDtoList(updatedEntity))
                     .message("Report updated successfully")
                     .status(HttpStatus.OK.value())
                     .build();
@@ -511,8 +523,6 @@ public class ReportsServiceImpl implements ReportsService {
 
             ReportsList reportsList = optional.get();
 
-            // ✅ No S3 delete here — S3 keys are shared with booking service
-            // Booking feign call to sync deletion
             if (reportsList.getReportsList() != null
                     && !reportsList.getReportsList().isEmpty()) {
                 Reports reports = reportsList.getReportsList().get(0);
@@ -540,7 +550,6 @@ public class ReportsServiceImpl implements ReportsService {
 
     // ─────────────────────────────────────────────────────────────────
     // DELETE SINGLE REPORT FILE BY INDEX
-    // Removes S3 key at given index from the stored list
     // ─────────────────────────────────────────────────────────────────
     @Override
     public Response deleteReportFile(String reportId, String bookingId, int fileIndex) {
@@ -574,11 +583,7 @@ public class ReportsServiceImpl implements ReportsService {
                                 .build();
                     }
 
-                    // ✅ Remove the S3 key at this index from MongoDB
-                    // Note: actual S3 object is NOT deleted (may be referenced by booking service)
                     fileKeys.remove(fileIndex);
-
-                    // Sync deletion with booking service
                     bookingFeign.deleteReport(bookingId, String.valueOf(fileIndex));
 
                     if (fileKeys.isEmpty()) {
@@ -603,7 +608,6 @@ public class ReportsServiceImpl implements ReportsService {
                         .build();
             }
 
-            // If all report entries gone → delete the document
             if (reportEntries.isEmpty()) {
                 reportsRepository.deleteById(reportId);
                 return Response.builder()
@@ -621,7 +625,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .success(true)
                     .message("Report file deleted successfully for bookingId: " + bookingId)
                     .status(HttpStatus.OK.value())
-                    .data(toResponseDtoList(updatedList)) // ✅ signed URLs in response
+                    .data(toResponseDtoList(updatedList))
                     .build();
 
         } catch (Exception e) {

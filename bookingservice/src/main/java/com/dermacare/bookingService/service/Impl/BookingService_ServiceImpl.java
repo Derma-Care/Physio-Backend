@@ -7,7 +7,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -40,6 +39,7 @@ import com.dermacare.bookingService.dto.PatientAndPriceInfo;
 import com.dermacare.bookingService.dto.PatientInfo;
 import com.dermacare.bookingService.dto.RelationInfoDTO;
 import com.dermacare.bookingService.dto.ReportsDTO;
+import com.dermacare.bookingService.dto.ReportsDtoList;
 import com.dermacare.bookingService.dto.Session;
 import com.dermacare.bookingService.dto.TreatmentDetailsDTO;
 import com.dermacare.bookingService.dto.TreatmentResponseDTO;
@@ -268,67 +268,89 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 
 
 	 private BookingResponse toResponse(Booking entity) {
-		  ObjectMapper mapper = new ObjectMapper();
-	         mapper.registerModule(new JavaTimeModule());
-	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	        
-	     BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
-	     response.setIsFollowupStatus(entity.getIsFollowupStatus());
-	     response.setConsultationFee(entity.getListOfConsultationFee().get(0).getConsulationFee());
-	     //System.out.println(entity.getListOfConsultationFee());
-	     String dto = getPrescriptionpdf(response.getBookingId());
-	     if (dto != null) {
-	    	 response.setPrescriptionPdf(Collections.singletonList(dto));
-	     }
+		    ObjectMapper mapper = new ObjectMapper();
+		    mapper.registerModule(new JavaTimeModule());
+		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+		    BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
+		    response.setIsFollowupStatus(entity.getIsFollowupStatus());
+		    response.setConsultationFee(entity.getListOfConsultationFee().get(0).getConsulationFee());
 
-	     response.setBookingId(String.valueOf(entity.getBookingId()));
+		    String dto = getPrescriptionpdf(response.getBookingId());
+		    if (dto != null) {
+		        response.setPrescriptionPdf(Collections.singletonList(dto));
+		    }
 
-	     // Update each treatment status
-	     if (entity.getTreatments() != null && entity.getTreatments().getGeneratedData() != null) {
-	         entity.getTreatments().getGeneratedData().forEach((name, t) -> {
-	             if (t.getPendingSittings() != null && t.getPendingSittings() > 0) {
-	                 t.setStatus("In-Progress");
-	             } else {
-	                 t.setStatus("Confirmed");
-	             }
-	         });
-	     }
-	     
-	     // ── S3 signed URLs ──────────────────────────────
-	     try {
-	         if (entity.getPartImage() != null && !entity.getPartImage().isEmpty()) {
-	             response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
-	         }
-	     } catch (Exception e) {
-	         System.out.println("partImage URL error: " + e.getMessage());
-	     }
+		    response.setBookingId(String.valueOf(entity.getBookingId()));
 
-	     try {
-	         if (entity.getConsentFormPdf() != null && !entity.getConsentFormPdf().isEmpty()) {
-	             response.setConsentFormPdf(s3Service.generateSignedUrl(entity.getConsentFormPdf()));
-	         }
-	     } catch (Exception e) {
-	         System.out.println("consentFormPdf URL error: " + e.getMessage());
-	     }
+		    if (entity.getTreatments() != null && entity.getTreatments().getGeneratedData() != null) {
+		        entity.getTreatments().getGeneratedData().forEach((name, t) -> {
+		            if (t.getPendingSittings() != null && t.getPendingSittings() > 0) {
+		                t.setStatus("In-Progress");
+		            } else {
+		                t.setStatus("Confirmed");
+		            }
+		        });
+		    }
 
-	     try {
-	         if (entity.getAttachments() != null && !entity.getAttachments().isEmpty()) {
-	             List<String> signedUrls = entity.getAttachments().stream()
-	                     .map(key -> {
-	                         try {
-	                             return s3Service.generateSignedUrl(key);
-	                         } catch (Exception ex) {
-	                             return key;
-	                         }
-	                     })
-	                     .collect(Collectors.toList());
-	             response.setAttachments(signedUrls);
-	         }
-	     } catch (Exception e) {
-	         System.out.println("attachments URL error: " + e.getMessage());
-	     }
+		    // ── S3 signed URLs ──────────────────────────────
+		    try {
+		        if (entity.getPartImage() != null && !entity.getPartImage().isEmpty()) {
+		            response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
+		        }
+		    } catch (Exception e) {
+		        System.out.println("partImage URL error: " + e.getMessage());
+		    }
 
-	     return response;
-	 }
+		    try {
+		        if (entity.getConsentFormPdf() != null && !entity.getConsentFormPdf().isEmpty()) {
+		            response.setConsentFormPdf(s3Service.generateSignedUrl(entity.getConsentFormPdf()));
+		        }
+		    } catch (Exception e) {
+		        System.out.println("consentFormPdf URL error: " + e.getMessage());
+		    }
+
+		    try {
+		        if (entity.getAttachments() != null && !entity.getAttachments().isEmpty()) {
+		            List<String> signedUrls = entity.getAttachments().stream()
+		                    .map(key -> {
+		                        try { return s3Service.generateSignedUrl(key); }
+		                        catch (Exception ex) { return key; }
+		                    })
+		                    .collect(Collectors.toList());
+		            response.setAttachments(signedUrls);
+		        }
+		    } catch (Exception e) {
+		        System.out.println("attachments URL error: " + e.getMessage());
+		    }
+
+		    // ── ✅ NEW: Sign report file keys → signed URLs ──
+		    try {
+		        if (response.getReports() != null) {
+		            for (com.dermacare.bookingService.dto.ReportsDtoList reportsDtoList : response.getReports()) {
+		                if (reportsDtoList.getReportsList() == null) continue;
+		                for (com.dermacare.bookingService.dto.ReportsDTO report : reportsDtoList.getReportsList()) {
+		                    if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
+		                    List<String> signedUrls = report.getReportFile().stream()
+		                            .filter(key -> key != null && !key.isBlank())
+		                            .map(key -> {
+		                                try {
+		                                    return clinicAdminFeign.getSignedUrl(key); // ✅ calls Clinic Admin
+		                                } catch (Exception ex) {
+		                                    System.out.println("report sign error: " + ex.getMessage());
+		                                    return key; // fallback to raw key
+		                                }
+		                            })
+		                            .collect(Collectors.toList());
+		                    report.setReportFile(signedUrls);
+		                }
+		            }
+		        }
+		    } catch (Exception e) {
+		        System.out.println("reports URL signing error: " + e.getMessage());
+		    }
+
+		    return response;
+		}
 
 	 
 	 private String getPrescriptionpdf(String bid) {
@@ -348,56 +370,82 @@ public class BookingService_ServiceImpl implements BookingService_Service {
     }
 
 	
-	private List<BookingResponse> toResponses(List<Booking> bookings) {	
-		 ObjectMapper mapper = new ObjectMapper();
-         mapper.registerModule(new JavaTimeModule());
-         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);	            
-		List<BookingResponse> res = mapper.convertValue(bookings,new TypeReference<List<BookingResponse>>(){});
-		for(BookingResponse bres : res) {
-			
+	private List<BookingResponse> toResponses(List<Booking> bookings) {
+	    ObjectMapper mapper = new ObjectMapper();
+	    mapper.registerModule(new JavaTimeModule());
+	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+	    List<BookingResponse> res = mapper.convertValue(bookings, new TypeReference<List<BookingResponse>>() {});
 
-			 // ── S3 signed URLs ──────────────────────────────
-		     try {
-		    	 System.out.println(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
-			     
-		         if (bres.getPartImage() != null && !bres.getPartImage().isEmpty()) {
-		        	 bres.setPartImage(s3Service.generateSignedUrl(bres.getPartImage()));
-		         }
-		     } catch (Exception e) {
-		         System.out.println("partImage URL error: " + e.getMessage());
-		     }
+	    for (BookingResponse bres : res) {
 
-		     try {
-		         if (bres.getConsentFormPdf() != null && !bres.getConsentFormPdf().isEmpty()) {
-		        	 bres.setConsentFormPdf(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
-		           }
-		     } catch (Exception e) {
-		         System.out.println("consentFormPdf URL error: " + e.getMessage());
-		     }
+	        // ── partImage ───────────────────────────────────
+	        try {
+	            if (bres.getPartImage() != null && !bres.getPartImage().isEmpty()) {
+	                bres.setPartImage(s3Service.generateSignedUrl(bres.getPartImage()));
+	            }
+	        } catch (Exception e) {
+	            System.out.println("partImage URL error: " + e.getMessage());
+	        }
 
-		     try {
-		         if (bres.getAttachments() != null && !bres.getAttachments().isEmpty()) {
-		             List<String> signedUrls = bres.getAttachments().stream()
-		                     .map(key -> {
-		                         try {
-		                             return s3Service.generateSignedUrl(key);
-		                         } catch (Exception ex) {
-		                             return key;
-		                         }
-		                     })
-		                     .collect(Collectors.toList());
-		             bres.setAttachments(signedUrls);
-		         }
-		     } catch (Exception e) {
-		         System.out.println("attachments URL error: " + e.getMessage());
-		     }
-			//System.out.println(bres.getBookingId());
-		 String dto = getPrescriptionpdf(bres.getBookingId());
-			//System.out.println(dto);
-			if(dto != null ) {
-			bres.setPrescriptionPdf(Collections.singletonList(dto));}}
-		return res;
-	}	
+	        // ── consentFormPdf ──────────────────────────────
+	        try {
+	            if (bres.getConsentFormPdf() != null && !bres.getConsentFormPdf().isEmpty()) {
+	                bres.setConsentFormPdf(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
+	            }
+	        } catch (Exception e) {
+	            System.out.println("consentFormPdf URL error: " + e.getMessage());
+	        }
+
+	        // ── attachments ─────────────────────────────────
+	        try {
+	            if (bres.getAttachments() != null && !bres.getAttachments().isEmpty()) {
+	                List<String> signedUrls = bres.getAttachments().stream()
+	                        .map(key -> {
+	                            try { return s3Service.generateSignedUrl(key); }
+	                            catch (Exception ex) { return key; }
+	                        })
+	                        .collect(Collectors.toList());
+	                bres.setAttachments(signedUrls);
+	            }
+	        } catch (Exception e) {
+	            System.out.println("attachments URL error: " + e.getMessage());
+	        }
+
+	        // ── ✅ NEW: reports — sign raw S3 keys via Clinic Admin Feign ──
+	        try {
+	            if (bres.getReports() != null) {
+	                for (ReportsDtoList reportsDtoList : bres.getReports()) {
+	                    if (reportsDtoList.getReportsList() == null) continue;
+	                    for (ReportsDTO report : reportsDtoList.getReportsList()) {
+	                        if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
+	                        List<String> signedUrls = report.getReportFile().stream()
+	                                .filter(key -> key != null && !key.isBlank())
+	                                .map(key -> {
+	                                    try {
+	                                        return clinicAdminFeign.getSignedUrl(key); // ✅ Clinic Admin signs it
+	                                    } catch (Exception ex) {
+	                                        System.out.println("report sign error: " + ex.getMessage());
+	                                        return key; // fallback to raw key
+	                                    }
+	                                })
+	                                .collect(Collectors.toList());
+	                        report.setReportFile(signedUrls);
+	                    }
+	                }
+	            }
+	        } catch (Exception e) {
+	            System.out.println("reports URL signing error: " + e.getMessage());
+	        }
+
+	        // ── prescriptionPdf ─────────────────────────────
+	        String dto = getPrescriptionpdf(bres.getBookingId());
+	        if (dto != null) {
+	            bres.setPrescriptionPdf(Collections.singletonList(dto));
+	        }
+	    }
+
+	    return res;
+	}
 		
 	
 	@Override

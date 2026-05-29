@@ -7,6 +7,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import com.dermacare.bookingService.dto.CustomerOnbordingDTO;
 import com.dermacare.bookingService.util.Response;
 
@@ -47,7 +49,13 @@ public interface ClinicAdminFeign {
 	    
 	    @GetMapping("/clinic-admin/customer/name/{name}/{clinicId}")
 	    public  List<CustomerOnbordingDTO> getCustomerByNameAndClinicId(@PathVariable String name,@PathVariable String clinicId);
-	    	
+	 // ─────────────────────────────────────────────────────────────────
+	    // S3 — Get signed URL for a raw S3 key
+	    // Used to convert report file keys → accessible signed URLs
+	    // before returning BookingResponse to frontend
+	    // ─────────────────────────────────────────────────────────────────
+	    @GetMapping("/clinic-admin/api/s3/signed-url")
+	    String getSignedUrl(@RequestParam("fileKey") String fileKey);
 	    
 
 }
