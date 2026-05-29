@@ -6,12 +6,11 @@ import java.time.ZoneId;
 import org.bson.types.ObjectId;
 
 import com.clinicadmin.dto.BankAccountDetails;
-import com.clinicadmin.dto.ConsultationTypeDTO;
 import com.clinicadmin.dto.DoctorFeeDTO;
 import com.clinicadmin.dto.DoctorsDTO;
-import com.clinicadmin.entity.ConsultationType;
 import com.clinicadmin.entity.DoctorFee;
 import com.clinicadmin.entity.Doctors;
+import com.clinicadmin.service.S3Service;
 
 public class DoctorMapper {
 
@@ -22,9 +21,8 @@ public class DoctorMapper {
 			doctor.setId(new ObjectId(dto.getId()));
 		}
 
-		// 🔹 Fix: check DTO instead of doctor
 		if (dto.getDoctorPicture() != null && !dto.getDoctorPicture().isBlank()) {
-			doctor.setDoctorPicture(Base64CompressionUtil.compressBase64(dto.getDoctorPicture()));
+		    doctor.setDoctorPicture(dto.getDoctorPicture()); // S3 key stored as-is
 		}
 
 		doctor.setDoctorId(dto.getDoctorId());
@@ -60,9 +58,8 @@ public class DoctorMapper {
 		doctor.setCreatedBy(dto.getCreatedBy());
 		doctor.setCreatedBy(LocalDateTime.now(ZoneId.of("Asia/Kolkata")).toString());
 
-		// 🔹 Check null before compress
 		if (dto.getDoctorSignature() != null && !dto.getDoctorSignature().isBlank()) {
-			doctor.setDoctorSignature(Base64CompressionUtil.compressBase64(dto.getDoctorSignature()));
+		    doctor.setDoctorSignature(dto.getDoctorSignature()); // S3 key stored as-is
 		}
 
 		doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
@@ -118,9 +115,8 @@ public class DoctorMapper {
 		dto.setPermissions(dto.getPermissions());
 		dto.setRole(doctor.getRole());
 
-		// 🔹 Null checks before decompress
 		if (doctor.getDoctorPicture() != null && !doctor.getDoctorPicture().isBlank()) {
-			dto.setDoctorPicture(Base64CompressionUtil.decompressBase64(doctor.getDoctorPicture()));
+		    dto.setDoctorPicture(doctor.getDoctorPicture()); // S3 key passed through as-is
 		}
 
 		dto.setDoctorLicence(doctor.getDoctorLicence());
@@ -151,7 +147,7 @@ public class DoctorMapper {
 
 
 		if (doctor.getDoctorSignature() != null && !doctor.getDoctorSignature().isBlank()) {
-			dto.setDoctorSignature(Base64CompressionUtil.decompressBase64(doctor.getDoctorSignature()));
+		    dto.setDoctorSignature(doctor.getDoctorSignature()); // S3 key passed through as-is
 		}
 
 		dto.setAssociatedWithIADVC(doctor.isAssociatedWithIADVC());
@@ -210,5 +206,15 @@ public class DoctorMapper {
 		dto.setInClinicFee(fee.getInClinicFee());
 		dto.setVedioConsultationFee(fee.getVedioConsultationFee());
 		return dto;
+	}
+	
+	// ── Overloaded: maps entity to DTO AND resolves S3 signed URLs ─
+	public static DoctorsDTO mapDoctorEntityToDoctorDTO(Doctors doctor, S3Service s3Service) {
+	    DoctorsDTO dto = mapDoctorEntityToDoctorDTO(doctor); // reuse existing mapper
+	    if (dto.getDoctorPicture() != null && !dto.getDoctorPicture().isBlank())
+	        dto.setDoctorPicture(s3Service.generateSignedUrl(dto.getDoctorPicture()));
+	    if (dto.getDoctorSignature() != null && !dto.getDoctorSignature().isBlank())
+	        dto.setDoctorSignature(s3Service.generateSignedUrl(dto.getDoctorSignature()));
+	    return dto;
 	}
 }
