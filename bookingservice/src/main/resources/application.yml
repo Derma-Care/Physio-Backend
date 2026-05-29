@@ -18,7 +18,16 @@ spring:
 #      properties:
 #        delivery.timeout.ms: 120000
 #        request.timeout.ms: 30000
+ 
+  
+<<<<<<< Updated upstream
+  
+=======
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
+>>>>>>> Stashed changes
   cloud:
     openfeign:
       client:
@@ -51,8 +60,10 @@ spring.lifecycle:
 # =========================================================
 
 aws:
-  accessKeyId:
-  secretAccessKey:
+
+  accessKeyId: 
+  secretAccessKey: 
+
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage

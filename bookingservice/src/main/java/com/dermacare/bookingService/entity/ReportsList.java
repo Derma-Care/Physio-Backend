@@ -16,7 +16,6 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ReportsList {
 
-	private String id;
 	private List<Reports> reportsList;
 
 }
