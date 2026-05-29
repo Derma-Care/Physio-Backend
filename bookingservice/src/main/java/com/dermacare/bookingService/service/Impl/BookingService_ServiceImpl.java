@@ -853,7 +853,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 		
 	public BookingResponse getBookedService(String bookingId) {
 		try {		
-		Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();	
+		Booking entity = repository.findByBookingId(bookingId).get();	
 		System.out.println(entity);
 		if(entity != null) {
 			BookingResponse res = toResponse(entity);
@@ -874,7 +874,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 	
 	public void deleteBookedServiceReports(String bookingId,String index) {
 		try {
-		Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();	
+		Booking entity = repository.findByBookingId(bookingId).get();	
 		if(entity != null && index.equalsIgnoreCase("null")) {
 			try {
 				entity.getReports().clear();
@@ -2674,7 +2674,7 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 			public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(BookingResponse dto) {
 				Booking updated = null;
 				try {
-			        Booking entity = repository.findByBookingIdIgnoreCase(dto.getBookingId())
+			        Booking entity = repository.findByBookingId(dto.getBookingId())
 			                .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
 
 			        // -------- BASIC --------
@@ -3736,7 +3736,7 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
 	public ResponseEntity<Response> getBookingById(String bookingId) {
 		try {			
-			Optional<Booking> booking = repository.findByBookingIdIgnoreCase(bookingId);
+			Optional<Booking> booking = repository.findByBookingId(bookingId);
 			if(booking.isPresent()) {
 				if(!booking.get().getFollwupBookings().isEmpty()) {
 					ObjectMapper mapper = new ObjectMapper();
@@ -3787,7 +3787,7 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 
 private Booking updateForFollowup(BookingResponse dto) {
 try {
-    Booking entity = repository.findByBookingIdIgnoreCase(dto.getBookingId())
+    Booking entity = repository.findByBookingId(dto.getBookingId())
             .orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
 
     // -------- BASIC --------
