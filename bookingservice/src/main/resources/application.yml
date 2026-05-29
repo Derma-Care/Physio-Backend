@@ -20,14 +20,7 @@ spring:
 #        request.timeout.ms: 30000
  
   
-<<<<<<< Updated upstream
-  
-=======
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
 
->>>>>>> Stashed changes
   cloud:
     openfeign:
       client:
