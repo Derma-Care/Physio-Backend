@@ -41,20 +41,15 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
 import com.clinicadmin.dto.ClinicDTO;
 import com.clinicadmin.dto.ClinicWithDoctorsDTO;
-import com.clinicadmin.dto.ClinicWithDoctorsDTO2;
 import com.clinicadmin.dto.ConsultationTypeDTO;
 import com.clinicadmin.dto.DoctorAvailabilityStatusDTO;
 import com.clinicadmin.dto.DoctorAvailableSlotDTO;
-import com.clinicadmin.dto.DoctorCategoryDTO;
 import com.clinicadmin.dto.DoctorLoginDTO;
-import com.clinicadmin.dto.DoctorServicesDTO;
 import com.clinicadmin.dto.DoctorSlotDTO;
-import com.clinicadmin.dto.DoctorSubServiceDTO;
 import com.clinicadmin.dto.DoctorsDTO;
 import com.clinicadmin.dto.ResBody;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TempBlockingSlot;
-import com.clinicadmin.entity.ConsultationType;
 import com.clinicadmin.entity.DoctorCounter;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.DoctorSlot;
@@ -68,7 +63,7 @@ import com.clinicadmin.repository.DoctorSlotRepository;
 import com.clinicadmin.repository.DoctorsRepository;
 import com.clinicadmin.service.DoctorService;
 import com.clinicadmin.service.EmailService;
-import com.clinicadmin.utils.Base64CompressionUtil;
+import com.clinicadmin.service.S3Service;
 import com.clinicadmin.utils.DoctorMapper;
 import com.clinicadmin.utils.DoctorSlotMapper;
 import com.clinicadmin.utils.ExtractFeignMessage;
@@ -113,6 +108,9 @@ public class DoctorServiceImpl implements DoctorService {
 	
 	@Autowired
 	private EmailService emailService;
+	
+	@Autowired
+	private S3Service s3Service;
 
 	private List<TempBlockingSlot> slots = new CopyOnWriteArrayList<>();
 
@@ -321,7 +319,7 @@ public class DoctorServiceImpl implements DoctorService {
 						    log.error("Failed to send doctor onboarding email: {}", e.getMessage());
 						}
 
-			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(savedDoctor);
+			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(savedDoctor,s3Service);
 			Map<String, Object> data = new HashMap<>();
 			data.put("doctor", toDTO);
 			data.put("username", username);
@@ -542,8 +540,9 @@ public class DoctorServiceImpl implements DoctorService {
 			List<Doctors> doctorList = doctorsRepository.findByHospitalId(hospitalId);
 			if (!doctorList.isEmpty()) {
 				log.info("Doctors found hospitalId={}, count={}", hospitalId, doctorList.size());
-				List<DoctorsDTO> dtos = doctorList.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-						.collect(Collectors.toList());
+				List<DoctorsDTO> dtos = doctorList.stream()
+				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+				        .collect(Collectors.toList());
 				response.setSuccess(true);
 				response.setData(dtos);
 				response.setMessage("Doctors fetched successfully");
@@ -578,7 +577,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 			if (doctorOptional.isPresent()) {
 				Doctors dataFromDB = doctorOptional.get();
-				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dataFromDB);
+				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dataFromDB,s3Service);
 				log.info("Doctor found. doctorId={}, doctorName={}", toDTO.getDoctorId(), toDTO.getDoctorName());
 				response.setSuccess(true);
 				response.setData(toDTO);
@@ -665,8 +664,8 @@ public class DoctorServiceImpl implements DoctorService {
 			log.debug("Doctor found. Updating fields for doctorId={}", doctorId);
 
 			/* ---------- FIELD UPDATES ---------- */
-			if (dto.getDoctorPicture() != null)
-				doctor.setDoctorPicture(Base64CompressionUtil.compressBase64(dto.getDoctorPicture()));
+			if (dto.getDoctorPicture() != null && !dto.getDoctorPicture().isBlank())
+			    doctor.setDoctorPicture(dto.getDoctorPicture()); // S3 key stored as-is
 			if (dto.getHospitalId() != null)
 				doctor.setHospitalId(dto.getHospitalId());
 			if (dto.getDoctorEmail() != null)
@@ -707,8 +706,8 @@ public class DoctorServiceImpl implements DoctorService {
 				doctor.setHighlights(dto.getHighlights());
 			if (dto.getDateofJoining() != null)
 				doctor.setDateofJoining(dto.getDateofJoining());
-			if (dto.getDoctorSignature() != null)
-				doctor.setDoctorSignature(Base64CompressionUtil.compressBase64(dto.getDoctorSignature()));
+			if (dto.getDoctorSignature() != null && !dto.getDoctorSignature().isBlank())
+			    doctor.setDoctorSignature(dto.getDoctorSignature()); // S3 key stored as-is
 			if (dto.getDoctorFees() != null)
 				doctor.setDoctorFees(DoctorMapper.mapDoctorFeeDTOtoEntity(dto.getDoctorFees()));
 			if (dto.getBankAccountDetails() != null) {
@@ -779,7 +778,7 @@ public class DoctorServiceImpl implements DoctorService {
 			log.info("Saving updated doctor data for doctorId={}", doctorId);
 			Doctors updatedDoctor = doctorsRepository.save(doctor);
 
-			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(updatedDoctor);
+			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(updatedDoctor,s3Service);
 
 			response.setSuccess(true);
 			response.setData(toDTO);
@@ -837,7 +836,7 @@ public class DoctorServiceImpl implements DoctorService {
 				log.info("Doctor found. clinicId={}, doctorId={}", clinicId, doctorId);
 
 				Doctors dbData = doctorOptional.get();
-				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dbData);
+				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dbData,s3Service);
 
 				response.setSuccess(true);
 				response.setData(toDTO);
@@ -1329,8 +1328,9 @@ public class DoctorServiceImpl implements DoctorService {
 
 				log.info("Found {} doctors for hospitalId={} and branchId={}", doctorList.size(), hospitalId, branchId);
 
-				List<DoctorsDTO> dtos = doctorList.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-						.collect(Collectors.toList());
+				List<DoctorsDTO> dtos = doctorList.stream()
+				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+				        .collect(Collectors.toList());
 
 				response.setSuccess(true);
 				response.setData(dtos);
@@ -2620,7 +2620,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 		// ✅ Convert doctors with consultation mapping
 		List<DoctorsDTO> doctorDTOs = doctorList.stream().map(doc -> {
-			DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(doc);
+			DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(doc,s3Service);
 
 //			if (doc.getConsultation() != null) {
 //				ConsultationType consultation = doc.getConsultation();
@@ -2708,17 +2708,15 @@ public class DoctorServiceImpl implements DoctorService {
 
 					// Convert doctors
 					List<DoctorsDTO> doctors = doctorEntities.stream().map(doc -> {
-						DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doc);
+						DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doc,s3Service);
 
 						// doctorFees mapping
 						if (doc.getDoctorFees() != null) {
 							dto.setDoctorFees(DoctorMapper.mapDoctorFeeEntityToDTO(doc.getDoctorFees()));
 						}
 
-						// doctorSignature decompress
-						if (doc.getDoctorSignature() != null) {
-							dto.setDoctorSignature(Base64CompressionUtil.decompressBase64(doc.getDoctorSignature()));
-						}
+						if (doc.getDoctorSignature() != null && !doc.getDoctorSignature().isBlank())
+						    dto.setDoctorSignature(doc.getDoctorSignature()); // S3 key passed through as-is
 
 						return dto;
 					}).collect(Collectors.toList());
@@ -2946,7 +2944,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<DoctorsDTO> matchedDoctors = new ArrayList<>();
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
 					boolean relevant = isDoctorRelevant(dto, keyPointsFromUser);
 					log.info("Doctor: {} | Relevant: {}", dto.getDoctorName(), relevant);
 
@@ -2971,9 +2969,9 @@ public class DoctorServiceImpl implements DoctorService {
 						continue;
 
 					List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(clinic.getHospitalId());
-					List<DoctorsDTO> allDoctors = doctorEntities.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-							.toList();
-
+					List<DoctorsDTO> allDoctors = doctorEntities.stream()
+					        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+					        .toList();
 					clinic.setDoctors(allDoctors);
 					result.add(clinic);
 				}
@@ -3056,8 +3054,9 @@ public class DoctorServiceImpl implements DoctorService {
 				// Fetch doctors by hospitalId
 				List<Doctors> doctorsDbData = doctorsRepository.findByHospitalId(clinicDTO.getHospitalId());
 
-				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO)
-						.collect(Collectors.toList());
+				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream()
+				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+				        .collect(Collectors.toList());
 
 				// Map ClinicDTO -> ClinicWithDoctorsDTO
 				ClinicWithDoctorsDTO clDTO = objectMapper.convertValue(clinicDTO, ClinicWithDoctorsDTO.class);
@@ -3447,7 +3446,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(clinic.getHospitalId());
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
 					int score = calculateDoctorScore(dto, keyPointsFromUser);
 
 					log.info("Doctor: {} | Score: {}", dto.getDoctorName(), score);
@@ -3564,7 +3563,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(clinic.getHospitalId());
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
 
 //					// 🧠 Step 1: Filter based on consultation type (numeric)
 //					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
@@ -3641,7 +3640,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(hospitalId);
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
 
 //					// ✅ Step 1: Filter by consultation type
 //					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
@@ -3684,8 +3683,9 @@ public class DoctorServiceImpl implements DoctorService {
 					&& doc.getBranches().stream().anyMatch(b -> branchId.equals(b.getBranchId()))).toList();
 
 			if (!doctorList.isEmpty()) {
-				List<DoctorsDTO> dtos = doctorList.stream().map(DoctorMapper::mapDoctorEntityToDoctorDTO).toList();
-
+				List<DoctorsDTO> dtos = doctorList.stream()
+				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+				        .toList();
 				response.setSuccess(true);
 				response.setData(dtos);
 				response.setMessage(
