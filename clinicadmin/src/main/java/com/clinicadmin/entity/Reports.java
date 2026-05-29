@@ -20,11 +20,11 @@ public class Reports {
 	private String reportDate;
 	private String reportStatus;
 	private String reportType;
-<<<<<<< Updated upstream
+
 	private List<String>reportFile;
 	 
-=======
-	private List<String>reportFile; 
->>>>>>> Stashed changes
+
+
+
 
 }

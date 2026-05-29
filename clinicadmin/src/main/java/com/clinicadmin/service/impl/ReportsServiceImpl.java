@@ -78,10 +78,9 @@ public class ReportsServiceImpl implements ReportsService {
         }
 
         ReportsDtoList dtoList = new ReportsDtoList();
-<<<<<<< Updated upstream
+
         dtoList.setId(entity.getId());
-=======
->>>>>>> Stashed changes
+
         dtoList.setCustomerId(entity.getCustomerId());
         dtoList.setPatientId(entity.getPatientId());
         dtoList.setReportsList(dtos);
@@ -183,13 +182,11 @@ public class ReportsServiceImpl implements ReportsService {
                 if (existingReports == null) existingReports = new ArrayList<>();
                 existingReports.add(dto);
                 bookingData.setReports(existingReports);
-<<<<<<< Updated upstream
+
                 bookingData.setCurrentStatus(null);
                 bookingData.setListOfConsultationFee(null);
                 // Set IDs from booking service
-=======
 
->>>>>>> Stashed changes
                 dto.setCustomerId(bookingData.getCustomerId());
                 dto.setPatientId(bookingData.getPatientId());
 
