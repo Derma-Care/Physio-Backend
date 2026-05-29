@@ -91,7 +91,8 @@ public class S3Controller {
             case "voiceRecord"  -> new FieldConfig("voice-records",  MAX_AUDIO_SIZE, "20 MB",  AUDIO_EXTS, AUDIO_MIMES);
             case "consentPdf"   -> new FieldConfig("consent-pdfs",   MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
             case "patient"      -> new FieldConfig("patients",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
-            case "doctor"       -> new FieldConfig("doctors",        MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "doctorPicture" -> new FieldConfig("doctors",        MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "doctorSignature"-> new FieldConfig("doctor-signatures", MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES); // ← ADDED
             case "prescription" -> new FieldConfig("prescriptions",  MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
             case "exercise"     -> new FieldConfig("exercises",      MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
             case "branch"       -> new FieldConfig("branches",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
