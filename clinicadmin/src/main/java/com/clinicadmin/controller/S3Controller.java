@@ -95,7 +95,15 @@ public class S3Controller {
             case "prescription" -> new FieldConfig("prescriptions",  MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
             case "exercise"     -> new FieldConfig("exercises",      MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
             case "branch"       -> new FieldConfig("branches",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
-            case "report"       -> new FieldConfig("reports",        MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
+            case "report" -> new FieldConfig(
+                    "reports",
+                    MAX_PDF_SIZE,
+                    "10 MB",
+                    Stream.concat(IMAGE_EXTS.stream(), DOC_EXTS.stream())
+                          .collect(Collectors.toUnmodifiableSet()),
+                    Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
+                          .collect(Collectors.toUnmodifiableSet())
+            );
             default             -> null;
         };
     }
