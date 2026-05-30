@@ -1,11 +1,10 @@
 package com.clinicadmin.entity;
 
-import java.util.Date;
 import java.util.List;
 
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
+
+import com.clinicadmin.dto.ServiceInfo;
 
 //import com.clinicadmin.dto.ServiceInfo;
 
@@ -43,7 +42,7 @@ public class FeedbackDetails {
 
     // ================= SERVICE =================
     private String serviceType;
-//    private List<ServiceInfo> service;
+    private List<ServiceInfo> service;
 
     // ================= SESSION =================
     private int totalNoOfSessions;

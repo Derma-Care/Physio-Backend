@@ -37,7 +37,7 @@ public class FeedbackDetailsDTO {
 
     // ================= SERVICE =================
     private String serviceType;
-//    private List<ServiceInfo> service;
+    private List<ServiceInfo> service;
 
     // ================= SESSION =================
     private int totalNoOfSessions;
