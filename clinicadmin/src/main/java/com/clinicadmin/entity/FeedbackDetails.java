@@ -7,7 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 
-import com.clinicadmin.dto.ServiceInfo;
+//import com.clinicadmin.dto.ServiceInfo;
 
 import lombok.Data;
 
@@ -43,7 +43,7 @@ public class FeedbackDetails {
 
     // ================= SERVICE =================
     private String serviceType;
-    private List<ServiceInfo> service;
+//    private List<ServiceInfo> service;
 
     // ================= SESSION =================
     private int totalNoOfSessions;

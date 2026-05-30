@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.CustomConsentFormDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
-import com.clinicadmin.dto.SubServicesDto;
+//import com.clinicadmin.dto.SubServicesDto;
 import com.clinicadmin.entity.CustomConsentForm;
 //import com.clinicadmin.feignclient.ServiceFeignClient;
 import com.clinicadmin.repository.CustomConsentFormRepository;

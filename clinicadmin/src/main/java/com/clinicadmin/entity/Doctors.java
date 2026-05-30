@@ -9,9 +9,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.DoctorBranches;
-import com.clinicadmin.dto.DoctorCategoryDTO;
-import com.clinicadmin.dto.DoctorServicesDTO;
-import com.clinicadmin.dto.DoctorSubServiceDTO;
+//import com.clinicadmin.dto.DoctorCategoryDTO;
+//import com.clinicadmin.dto.DoctorServicesDTO;
+//import com.clinicadmin.dto.DoctorSubServiceDTO;
 import com.clinicadmin.utils.ObjectIdSerializer;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
