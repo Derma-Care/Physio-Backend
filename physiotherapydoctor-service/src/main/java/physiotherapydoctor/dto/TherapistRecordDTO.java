@@ -52,7 +52,7 @@ public class TherapistRecordDTO {
 	private String latitude;
 	private String longitude;
 	private String location;
-	public String ConsentPdfUrl;
+	public String consentPdfUrl;
 	
 	}
 		
