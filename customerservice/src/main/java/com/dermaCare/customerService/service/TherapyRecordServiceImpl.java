@@ -220,21 +220,21 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	                         // IMAGE & VIDEO MAPPING
 
-	                         if (recordDto.getBeforeImage() != null) {
-	                        	    therapy.setBeforeImage(recordDto.getBeforeImage());
-	                        	}
+	                         therapy.setBeforeImage(
+	                        		    (recordDto.getBeforeImage() != null && !recordDto.getBeforeImage().isBlank())
+	                        		        ? recordDto.getBeforeImage() : null);
 
-	                         if (recordDto.getAfterImage() != null) {
-	                        	    therapy.setAfterImage(recordDto.getAfterImage());
-	                        	}
+	                         therapy.setAfterImage(
+	                        		    (recordDto.getAfterImage() != null && !recordDto.getAfterImage().isBlank())
+	                        		        ? recordDto.getAfterImage() : null);
 
-	                         if (recordDto.getBeforeVideo() != null) {
-	                        	    therapy.setBeforeVideo(recordDto.getBeforeVideo());
-	                        	}
+	                         therapy.setBeforeVideo(
+	                        		    (recordDto.getBeforeVideo() != null && !recordDto.getBeforeVideo().isBlank())
+	                        		        ? recordDto.getBeforeVideo() : null);
 
-	                         if (recordDto.getAfterVideo() != null) {
-	                        	    therapy.setAfterVideo(recordDto.getAfterVideo());
-	                        	}
+	                         therapy.setAfterVideo(
+	                        		    (recordDto.getAfterVideo() != null && !recordDto.getAfterVideo().isBlank())
+	                        		        ? recordDto.getAfterVideo() : null);
 	                         list.add(therapy);
 	                         return therapy;
 
@@ -584,7 +584,9 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	            response.setMessage("Therapy records fetched successfully");
 	            response.setStatus(HttpStatus.OK.value());
 	            response.setSuccess(true);
-	            response.setData(records);
+	            response.setData(records.stream()          // ← FIX
+	                    .map(this::mapToDTO)               // ← converts file keys to signed URLs
+	                    .collect(Collectors.toList()));
 
 	            return new ResponseEntity<>(response, HttpStatus.OK);
 
@@ -651,10 +653,10 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	    	            dto.getDate(),
 	    	            dto.getExcerciseId(),
 	    	            dto.getNotes(),
-	    	            dto.getBeforeImage(),   // ← S3 file key, no .getBytes()
-	    	            dto.getAfterImage(),    // ← S3 file key, no .getBytes()
-	    	            dto.getBeforeVideo(),   // ← S3 file key, no .getBytes()
-	    	            dto.getAfterVideo()     // ← S3 file key, no .getBytes()
+	    	            (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) ? dto.getBeforeImage() : null,
+	    	            	    (dto.getAfterImage()  != null && !dto.getAfterImage().isBlank())  ? dto.getAfterImage()  : null,
+	    	            	    (dto.getBeforeVideo() != null && !dto.getBeforeVideo().isBlank()) ? dto.getBeforeVideo() : null,
+	    	            	    (dto.getAfterVideo()  != null && !dto.getAfterVideo().isBlank())  ? dto.getAfterVideo()  : null
 	    	    );
 	    	}
 	    
@@ -695,7 +697,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	                        // byte[] → String conversion
 
-	                        // ── Convert S3 file key → signed URL ──
+	                     // ✅ Read from record (entity), convert S3 key → signed URL
 	                        dto.setBeforeImage(toSignedUrl(record.getBeforeImage()));
 	                        dto.setAfterImage(toSignedUrl(record.getAfterImage()));
 	                        dto.setBeforeVideo(toSignedUrl(record.getBeforeVideo()));

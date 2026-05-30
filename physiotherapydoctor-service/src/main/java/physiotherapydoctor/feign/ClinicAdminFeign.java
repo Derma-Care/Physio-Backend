@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
@@ -146,6 +147,9 @@ public interface ClinicAdminFeign {
 		    
 		    @GetMapping("/clinic-admin/labtests/{hospitalId}")
 		    public ResponseEntity<Response> getLabTestsByHospitalId(@PathVariable String hospitalId);
+		    
+		    @GetMapping("/clinic-admin/api/s3/signed-url")
+		    ResponseEntity<String> getSignedUrl(@RequestParam("fileKey") String fileKey);
 
 }
     
