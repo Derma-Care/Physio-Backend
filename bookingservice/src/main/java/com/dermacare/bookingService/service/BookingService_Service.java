@@ -9,6 +9,7 @@ import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.util.Response;
+import com.dermacare.bookingService.util.ResponseStructure;
 
 public interface BookingService_Service {
 
@@ -34,7 +35,7 @@ public interface BookingService_Service {
 	public ResponseEntity<?> getDoctorFutureAppointments(String doctorId);
 	public List<Map<String,Object>> getBookedServicesByClinicIdWithBranchId(String clinicId, String branchId);
 	public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,String date);
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse dto);
+	public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(BookingResponse dto);
 	public ResponseEntity<?> getRelationsByCustomerId(String customerId);
 	public List<Map<String,Object>> bookingByCustomerId(String customerId);
 	public List<BookingResponse> bookingByPatientId(String patientId);

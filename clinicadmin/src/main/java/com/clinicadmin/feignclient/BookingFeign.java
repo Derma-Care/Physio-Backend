@@ -79,7 +79,7 @@ public interface BookingFeign {
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String date);
 	
 	@PutMapping("/api/v1/update/bookingId")
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
+	public ResponseEntity<ResponseStructure<BookingResponse>>  updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
 	
 	@PostMapping("/api/v1/appointments/serviceDate/serviceTime/DoctorId")
 	public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp);

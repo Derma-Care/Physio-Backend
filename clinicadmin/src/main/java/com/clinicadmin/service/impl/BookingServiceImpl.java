@@ -120,11 +120,22 @@ public class BookingServiceImpl implements BookingService {
 	}
 
 	@Override
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse bookingResponse) {
+	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse response) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
-			return bookingFeign.updateAppointmentBasedOnBookingId(bookingResponse);
-		} catch (FeignException e) {
+			ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse = bookingFeign.updateAppointmentBasedOnBookingId(response);
+			if(bookingResponse.getBody().getData() != null) {
+			if( response.getDoctorId() != null&&
+						 response.getBranchId()!= null&&
+						 response.getServiceDate()!= null&&
+						 response.getServicetime()!= null) {
+				 doctorServiceImpl.updateSlot(         
+						 bookingResponse.getBody().getData().getDoctorId(),
+						 bookingResponse.getBody().getData().getBranchId(),
+						 bookingResponse.getBody().getData().getServiceDate(),
+						 bookingResponse.getBody().getData().getServicetime());			
+			  }} return bookingResponse;
+			} catch (FeignException e) {
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
 			return ResponseEntity.status(res.getStatusCode()).body(res);
@@ -153,6 +164,11 @@ public class BookingServiceImpl implements BookingService {
 				ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);
 				BookingResponse bookingResponse = res.getBody().getData();
 				if (bookingResponse != null) {
+					 doctorServiceImpl.updateSlot(         
+							 bookingResponse.getDoctorId(),
+							 bookingResponse.getBranchId(),
+							 bookingResponse.getServiceDate(),
+							 bookingResponse.getServicetime());
 					response.setData(bookingResponse);
 					response.setMessage("follow up appointment found");
 					response.setSuccess(true);
@@ -174,7 +190,7 @@ public class BookingServiceImpl implements BookingService {
 				}
 			} catch (FeignException e) {
 				response.setStatus(e.status());
-				response.setMessage(e.getMessage());
+				response.setMessage( ExtractFeignMessage.clearMessage(e));
 				response.setSuccess(false);
 			}
 			return response;
@@ -238,7 +254,7 @@ public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
         return bookingFeign.getTodayPhysioBookings(clinicId, branchId);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -252,7 +268,7 @@ public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
         return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -280,7 +296,7 @@ public ResponseEntity<?> getUpcomingBookings(String clinicId,
         return bookingFeign.getUpcomingBookings(clinicId, branchId, option);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -294,7 +310,7 @@ public ResponseEntity<?> getBookingsByDate(String clinicId,
         return bookingFeign.getPhysioBookingBasedOnDate(clinicId, branchId, date);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -309,7 +325,7 @@ public ResponseEntity<?> getBookingsByDateRange(String clinicId,
         return bookingFeign.getPhysioBookingsByCustomeRange(clinicId, branchId, start, end);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -323,7 +339,7 @@ public ResponseEntity<?> getBookedServiceById(String bookingId) {
         return bookingFeign.getBookedService(bookingId);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -337,7 +353,7 @@ public ResponseEntity<?> getBookingById(String bookingId){
         return bookingFeign.getBookingById(bookingId);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
@@ -351,7 +367,7 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
         return bookingFeign.getTodayBookings(clinicId, branchId);
     } catch (FeignException e) {
     	response.setStatus(e.status());
-		response.setMessage(e.getMessage());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
         return ResponseEntity.status(response.getStatus()).body(response);
     }

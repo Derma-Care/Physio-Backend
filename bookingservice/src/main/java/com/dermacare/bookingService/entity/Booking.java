@@ -52,7 +52,7 @@ public class Booking  {
     private String servicetime;
     private String consultationType;
     private List<ConsultationFees> listOfConsultationFee;
-    private double consultationFee;
+    private Double consultationFee;
     private String reasonForCancel;
     private String notes;
     private List<Status> currentStatus;

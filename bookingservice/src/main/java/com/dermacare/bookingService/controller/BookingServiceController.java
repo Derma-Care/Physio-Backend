@@ -316,7 +316,7 @@ public class BookingServiceController {
 		
 		
 		@PutMapping("/update/bookingId")
-		public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse ){
+		public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse ){
 			return service.updateAppointmentBasedOnBookingId(bookingResponse);
 		}
 		
