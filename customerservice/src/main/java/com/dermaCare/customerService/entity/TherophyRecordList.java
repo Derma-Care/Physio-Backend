@@ -18,9 +18,9 @@ public class TherophyRecordList {
 	    private LocalDate date;
 	    private String excerciseId;
 	    private String notes;   	   
-	    private byte[] beforeImage;
-	    private byte[]  afterImage;
-	    private byte[]  beforeVideo;
-	    private byte[] afterVideo;
+	    private String beforeImage;
+	    private String  afterImage;
+	    private String  beforeVideo;
+	    private String afterVideo;
 
 }

@@ -59,11 +59,11 @@ resilience4j:
         wait-duration-in-open-state: 1m
 
 # ===============================
-# Actuator — FIXED
+# Actuator
 # ===============================
 management:
   server:
-    base-path: /               # ← ADDED: moves actuator out of /api
+    base-path: /
 
   endpoints:
     web:
@@ -74,7 +74,17 @@ management:
     health:
       show-details: always
       probes:
-        enabled: true          
+        enabled: true
+
+# ===============================
+# AWS S3
+# ===============================
+aws:
+  accessKeyId: 
+  secretAccessKey: 
+  region: ap-south-1
+  s3:
+    bucket: physiocare-prod-storage
 
 # ===============================
 # Firebase

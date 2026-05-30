@@ -23,6 +23,9 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	 @Autowired
 	    private TherapyRecordRepository repository;
+	 
+	 @Autowired
+	    private S3Service s3Service; 
 
 	 
 	 @Override
@@ -218,28 +221,20 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                         // IMAGE & VIDEO MAPPING
 
 	                         if (recordDto.getBeforeImage() != null) {
-	                             therapy.setBeforeImage(
-	                                     recordDto.getBeforeImage()
-	                                     .getBytes());
-	                         }
+	                        	    therapy.setBeforeImage(recordDto.getBeforeImage());
+	                        	}
 
 	                         if (recordDto.getAfterImage() != null) {
-	                             therapy.setAfterImage(
-	                                     recordDto.getAfterImage()
-	                                     .getBytes());
-	                         }
+	                        	    therapy.setAfterImage(recordDto.getAfterImage());
+	                        	}
 
 	                         if (recordDto.getBeforeVideo() != null) {
-	                             therapy.setBeforeVideo(
-	                                     recordDto.getBeforeVideo()
-	                                     .getBytes());
-	                         }
+	                        	    therapy.setBeforeVideo(recordDto.getBeforeVideo());
+	                        	}
 
 	                         if (recordDto.getAfterVideo() != null) {
-	                             therapy.setAfterVideo(
-	                                     recordDto.getAfterVideo()
-	                                     .getBytes());
-	                         }
+	                        	    therapy.setAfterVideo(recordDto.getAfterVideo());
+	                        	}
 	                         list.add(therapy);
 	                         return therapy;
 
@@ -647,28 +642,21 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 					 status = "Completed";
 					 sessioncompleted = value;
 				 }}catch(Exception e) {}
-	        return new TherophyRecordList(
-	                dto.getSetsdone(),
-	                dto.getRepitationdone(),
-	                dto.getSessioncount(),
-	                dto.getSession(),
-	                dto.getSessioncompleted(),
-	                dto.getDate(),
-	                dto.getExcerciseId(),
-	                dto.getNotes(),
-	                dto.getBeforeImage() != null
-	                        ? dto.getBeforeImage().getBytes()
-	                        : null,
-	                dto.getAfterImage() != null
-	                        ? dto.getAfterImage().getBytes()
-	                        : null,
-	                dto.getBeforeVideo() != null
-	                        ? dto.getBeforeVideo().getBytes()
-	                        : null,
-	                dto.getAfterVideo() != null
-	                        ? dto.getAfterVideo().getBytes()
-	                        : null);
-	    }
+	    	 return new TherophyRecordList(
+	    	            dto.getSetsdone(),
+	    	            dto.getRepitationdone(),
+	    	            dto.getSessioncount(),
+	    	            dto.getSession(),
+	    	            dto.getSessioncompleted(),
+	    	            dto.getDate(),
+	    	            dto.getExcerciseId(),
+	    	            dto.getNotes(),
+	    	            dto.getBeforeImage(),   // ← S3 file key, no .getBytes()
+	    	            dto.getAfterImage(),    // ← S3 file key, no .getBytes()
+	    	            dto.getBeforeVideo(),   // ← S3 file key, no .getBytes()
+	    	            dto.getAfterVideo()     // ← S3 file key, no .getBytes()
+	    	    );
+	    	}
 	    
 	    
 	    private TherapyRecordDTO mapToDTO(TherapyRecord therapyRecord) {
@@ -707,30 +695,11 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	                        // byte[] → String conversion
 
-	                        dto.setBeforeImage(
-	                                record.getBeforeImage() != null
-	                                        ? new String(
-	                                        record.getBeforeImage())
-	                                        : null);
-
-	                        dto.setAfterImage(
-	                                record.getAfterImage() != null
-	                                        ? new String(
-	                                        record.getAfterImage())
-	                                        : null);
-
-	                        dto.setBeforeVideo(
-	                                record.getBeforeVideo() != null
-	                                        ? new String(
-	                                        record.getBeforeVideo())
-	                                        : null);
-
-	                        dto.setAfterVideo(
-	                                record.getAfterVideo() != null
-	                                        ? new String(
-	                                        record.getAfterVideo())
-	                                        : null);
-
+	                        // ── Convert S3 file key → signed URL ──
+	                        dto.setBeforeImage(toSignedUrl(record.getBeforeImage()));
+	                        dto.setAfterImage(toSignedUrl(record.getAfterImage()));
+	                        dto.setBeforeVideo(toSignedUrl(record.getBeforeVideo()));
+	                        dto.setAfterVideo(toSignedUrl(record.getAfterVideo()));
 	                        return dto;
 
 	                    }).toList();
@@ -758,5 +727,9 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                .therapyrecord(therapyList)
 	                .build();
 	    }
-	  
+	 // ── Convert file key to signed URL, returns null if key is null ──
+	    private String toSignedUrl(String fileKey) {
+	        if (fileKey == null || fileKey.isBlank()) return null;
+	        return s3Service.generateSignedUrl(fileKey);
+	    }
 	}
