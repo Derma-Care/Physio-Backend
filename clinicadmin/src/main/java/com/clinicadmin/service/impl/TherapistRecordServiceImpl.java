@@ -63,52 +63,28 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         // just convert fileKey → signed URL
         // ═══════════════════════════════════════════
 
-        // Before Image
-        if (dto.getBeforeImage() != null
-                && !dto.getBeforeImage().isBlank()) {
-            record.setBeforeImage(
-                s3Service.generateSignedUrl(dto.getBeforeImage())
-            );
+        if (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) {
+            record.setBeforeImage(dto.getBeforeImage()); // ✅ store raw key
+        }
+        if (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) {
+            record.setBeforeImage(dto.getBeforeImage()); // ✅ store raw key
         }
 
-        // After Image
-        if (dto.getAfterImage() != null
-                && !dto.getAfterImage().isBlank()) {
-            record.setAfterImage(
-                s3Service.generateSignedUrl(dto.getAfterImage())
-            );
+        if (dto.getBeforeVideo() != null && !dto.getBeforeVideo().isBlank()) {
+            record.setBeforeVideo(dto.getBeforeVideo());
         }
-
-        // Before Video
-        if (dto.getBeforeVideo() != null
-                && !dto.getBeforeVideo().isBlank()) {
-            record.setBeforeVideo(
-                s3Service.generateSignedUrl(dto.getBeforeVideo())
-            );
-        }
-
         // After Video
-        if (dto.getAfterVideo() != null
-                && !dto.getAfterVideo().isBlank()) {
-            record.setAfterVideo(
-                s3Service.generateSignedUrl(dto.getAfterVideo())
-            );
+        if (dto.getAfterVideo() != null && !dto.getAfterVideo().isBlank()) {
+            record.setAfterVideo(dto.getAfterVideo());
         }
 
-        // Voice Record
-        if (dto.getVoiceRecord() != null
-                && !dto.getVoiceRecord().isBlank()) {
-            record.setVoiceRecord(
-                s3Service.generateSignedUrl(dto.getVoiceRecord())
-            );
+        if (dto.getVoiceRecord() != null && !dto.getVoiceRecord().isBlank()) {
+            record.setVoiceRecord(dto.getVoiceRecord());
         }
 
-        // Consent PDF
-        if (dto.getConsentPdfUrl() != null
-                && !dto.getConsentPdfUrl().isBlank()) {
-            record.setConsentPdfUrl(
-                s3Service.generateSignedUrl(dto.getConsentPdfUrl())
-            );
+     // Consent PDF
+        if (dto.getConsentPdfUrl() != null && !dto.getConsentPdfUrl().isBlank()) {
+            record.setConsentPdfUrl(dto.getConsentPdfUrl());
         }
 
         // ═══════════════════════════════════════════
