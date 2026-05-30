@@ -740,6 +740,11 @@ public class DoctorServiceImpl implements DoctorService {
 				        bankDetails.setIfscCode(
 				                dto.getBankAccountDetails().getIfscCode());
 				    }
+				    
+				    if (dto.getBankAccountDetails().getPanCardNumber()  != null) {
+				        bankDetails.setPanCardNumber(
+				                dto.getBankAccountDetails().getPanCardNumber());
+				    }
 				}
 
 				doctor.setBankAccountDetails(bankDetails);
