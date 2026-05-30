@@ -53,10 +53,8 @@ spring.lifecycle:
 # =========================================================
 
 aws:
-
-  accessKeyId: 
+  accessKeyId:
   secretAccessKey: 
-
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage
