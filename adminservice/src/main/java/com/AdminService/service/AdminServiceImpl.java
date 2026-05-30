@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
@@ -32,9 +32,9 @@ import com.AdminService.dto.DoctorsDTO;
 import com.AdminService.dto.DoctortInfo;
 import com.AdminService.dto.LabTestDTO;
 import com.AdminService.dto.ProbableDiagnosisDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.TreatmentDTO;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.entity.Admin;
@@ -2237,39 +2237,39 @@ public class AdminServiceImpl implements AdminService {
 
     
 
-    @Override
-
-   	public Response getAllSubServicesFromClincAdmin(){
-
-   		 Response response = new  Response();
-
-   	    	try {
-
-   	    		ResponseEntity<ResponseStructure<List<SubServicesDto>>> res = clinicAdminFeign.getAllSubServices();
-
-   	    		  if(res.getBody().getData() != null ) {
-
-   	    			 response.setStatus(res.getBody().getHttpStatus().value());
-
-   	    			response.setData(res.getBody());
-
-   	    			  return response;
-
-   	    		  }}catch(FeignException e) {
-
-   	    	            response.setStatus(e.status());
-
-   		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-   		    			response.setSuccess(false);
-
-   	    	        }
-
-   	                    return response;	
-
-   }
-
- 
+//    @Override
+//
+//   	public Response getAllSubServicesFromClincAdmin(){
+//
+//   		 Response response = new  Response();
+//
+//   	    	try {
+//
+//   	    		ResponseEntity<ResponseStructure<List<SubServicesDto>>> res = clinicAdminFeign.getAllSubServices();
+//
+//   	    		  if(res.getBody().getData() != null ) {
+//
+//   	    			 response.setStatus(res.getBody().getHttpStatus().value());
+//
+//   	    			response.setData(res.getBody());
+//
+//   	    			  return response;
+//
+//   	    		  }}catch(FeignException e) {
+//
+//   	    	            response.setStatus(e.status());
+//
+//   		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//   		    			response.setSuccess(false);
+//
+//   	    	        }
+//
+//   	                    return response;	
+//
+//   }
+//
+// 
 
     ///GETDOCTORINFO
 
@@ -2504,21 +2504,21 @@ public class AdminServiceImpl implements AdminService {
 
 	// === Helper methods ===
 
-	private ResponseEntity<ResponseStructure<SubServicesDto>> buildErrorResponse(String message, int statusCode) {
-		ResponseStructure<SubServicesDto> errorResponse = ResponseStructure.<SubServicesDto>builder().data(null)
-				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
-				.build();
-		return ResponseEntity.status(statusCode).body(errorResponse);
-	}
+//	private ResponseEntity<ResponseStructure<SubServicesDto>> buildErrorResponse(String message, int statusCode) {
+//		ResponseStructure<SubServicesDto> errorResponse = ResponseStructure.<SubServicesDto>builder().data(null)
+//				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
+//				.build();
+//		return ResponseEntity.status(statusCode).body(errorResponse);
+//	}
 
-	private ResponseEntity<ResponseStructure<List<SubServicesDto>>> buildErrorResponseList(String message,
-			int statusCode) {
-		ResponseStructure<List<SubServicesDto>> errorResponse = ResponseStructure.<List<SubServicesDto>>builder()
-				.data(null) // <-- changed from null to empty list
-				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
-				.build();
-		return ResponseEntity.status(statusCode).body(errorResponse);
-	}
+//	private ResponseEntity<ResponseStructure<List<SubServicesDto>>> buildErrorResponseList(String message,
+//			int statusCode) {
+//		ResponseStructure<List<SubServicesDto>> errorResponse = ResponseStructure.<List<SubServicesDto>>builder()
+//				.data(null) // <-- changed from null to empty list
+//				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
+//				.build();
+//		return ResponseEntity.status(statusCode).body(errorResponse);
+//	}
 
 	private String extractCleanMessage(String rawMessage) {
 		// Try to extract the "message" value from JSON string if included
@@ -2533,6 +2533,9 @@ public class AdminServiceImpl implements AdminService {
 		}
 		return rawMessage;
 	}
+
+
+
 
 
 

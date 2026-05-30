@@ -15,13 +15,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.service.AdminService;
 import com.AdminService.util.PermissionsUtil;
@@ -378,27 +378,27 @@ public ResponseEntity<Response> deleteCustomerBasicDetails(@PathVariable String 
 
 //GETALLSUBSERVICES
 
-@GetMapping("/getAllSubservicesByClinicAdmin")
-
-public ResponseEntity<Object> getAllSubservicesByClinicAdmin(){
-
-	Response response = serviceImpl.getAllSubServicesFromClincAdmin();
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-	     return null;}
-
-}
+//@GetMapping("/getAllSubservicesByClinicAdmin")
+//
+//public ResponseEntity<Object> getAllSubservicesByClinicAdmin(){
+//
+//	Response response = serviceImpl.getAllSubServicesFromClincAdmin();
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response.getData());
+//
+//	 }
+//
+//	else {
+//
+//	     return null;}
+//
+//}
 
 
 

@@ -3,13 +3,13 @@ package com.AdminService.service;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.util.Response;
 import com.AdminService.util.ResponseStructure;
@@ -59,7 +59,7 @@ public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobile
 public Response deleteCustomerBasicDetails(String mobileNumber);
 
 //SUBSERVICES
-public Response getAllSubServicesFromClincAdmin();
+//public Response getAllSubServicesFromClincAdmin();
 
 //BOOKINGS
 
