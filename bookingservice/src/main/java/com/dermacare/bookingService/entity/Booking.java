@@ -46,15 +46,15 @@ public class Booking  {
     private String doctorName;
     private String doctorDeviceId;
     private String doctorWebDeviceId;
-    private String subServiceId;
-    private String subServiceName;
+//    private String subServiceId;
+//    private String subServiceName;
     private String serviceDate;
     private String servicetime;
     private String consultationType;
     private List<ConsultationFees> listOfConsultationFee;
     private Double consultationFee;
     private String reasonForCancel;
-    private String notes;
+   // private String notes;
     private List<Status> currentStatus;
 	private String status;
     private List<ReportsList> reports;
@@ -69,11 +69,11 @@ public class Booking  {
     private String doctorRefCode;
     private String consultationExpiration;
     private String followupStatus;
-    private Integer sittings;
-    private Integer totalSittings;
-    private Integer pendingSittings;
-    private Integer takenSittings;
-    private Integer currentSitting;
+//    private Integer sittings;
+//    private Integer totalSittings;
+//    private Integer pendingSittings;
+//    private Integer takenSittings;
+//    private Integer currentSitting;
     private String foc;
     // ------------------- NEW: Treatments and dates -------------------
     private TreatmentResponseDTO treatments; // treatmentName -> treatment details
@@ -135,14 +135,14 @@ public class Booking  {
         this.doctorName = booking.getDoctorName();
         this.doctorDeviceId = booking.getDoctorDeviceId();
         this.doctorWebDeviceId = booking.getDoctorWebDeviceId();
-        this.subServiceId = booking.getSubServiceId();
-        this.subServiceName = booking.getSubServiceName();
+//        this.subServiceId = booking.getSubServiceId();
+//        this.subServiceName = booking.getSubServiceName();
         this.serviceDate = booking.getServiceDate();
         this.servicetime = booking.getServicetime();
         this.consultationType = booking.getConsultationType();
         this.consultationFee = booking.getConsultationFee();
         this.reasonForCancel = booking.getReasonForCancel();
-        this.notes = booking.getNotes();
+//        this.notes = booking.getNotes();
         this.reports = booking.getReports();
         this.channelId = booking.getChannelId();
         this.bookedAt = booking.getBookedAt();
@@ -155,10 +155,10 @@ public class Booking  {
         this.doctorRefCode = booking.getDoctorRefCode();
         this.consultationExpiration = booking.getConsultationExpiration();
         this.followupStatus = booking.getFollowupStatus();
-        this.totalSittings = booking.getTotalSittings();
-        this.pendingSittings = booking.getPendingSittings();
-        this.takenSittings = booking.getTakenSittings();
-        this.currentSitting = booking.getCurrentSitting();
+//        this.totalSittings = booking.getTotalSittings();
+//        this.pendingSittings = booking.getPendingSittings();
+//        this.takenSittings = booking.getTakenSittings();
+//        this.currentSitting = booking.getCurrentSitting();
         this.treatments = booking.getTreatments();
     }
 }
