@@ -74,7 +74,7 @@ public class FollowupBookingDto {
 	    private Integer currentSitting;
 	    private String foc;
 	    // ------------------- NEW: Treatments and dates -------------------
-	    private TreatmentResponseDTO treatments; // treatmentName -> treatment details
+	    ///private TreatmentResponseDTO treatments; // treatmentName -> treatment details
 	    private String bodyPartId;
 	   	private String bodyPartName;
 	   	private String partImage;

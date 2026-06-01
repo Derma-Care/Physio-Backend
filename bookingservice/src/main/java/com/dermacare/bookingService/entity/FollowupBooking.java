@@ -2,7 +2,6 @@ package com.dermacare.bookingService.entity;
 
 import java.util.List;
 import java.util.Map;
-import com.dermacare.bookingService.dto.TreatmentResponseDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;

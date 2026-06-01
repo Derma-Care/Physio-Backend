@@ -41,8 +41,6 @@ import com.dermacare.bookingService.dto.RelationInfoDTO;
 import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.dto.ReportsDtoList;
 import com.dermacare.bookingService.dto.Session;
-import com.dermacare.bookingService.dto.TreatmentDetailsDTO;
-import com.dermacare.bookingService.dto.TreatmentResponseDTO;
 import com.dermacare.bookingService.entity.Booking;
 import com.dermacare.bookingService.entity.ConsultationFees;
 import com.dermacare.bookingService.entity.FollowupBooking;

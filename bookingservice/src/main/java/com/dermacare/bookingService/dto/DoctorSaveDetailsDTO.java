@@ -33,7 +33,7 @@ public class DoctorSaveDetailsDTO {
 	private int visitCount; 
 	private SymptomDetailsDTO symptoms;
 	private TestDetailsDTO tests;
-	private TreatmentResponseDTO treatments;
+	//private TreatmentResponseDTO treatments;
 	private FollowUpDetailsDTO followUp;
 	private PrescriptionDetailsDTO prescription;
 	private List<String> prescriptionPdf;
