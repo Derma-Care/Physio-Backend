@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import com.dermaCare.customerService.service.S3Service;
 
 @RestController
-@RequestMapping("/customer-service")
+@RequestMapping("/customer")
 public class S3Controller {
 
     @Autowired

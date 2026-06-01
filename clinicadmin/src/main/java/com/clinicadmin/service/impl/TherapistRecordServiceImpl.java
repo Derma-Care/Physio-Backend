@@ -42,7 +42,6 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     @Override
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
 
-        // Basic validation
         if (dto == null) {
             return ResponseStructure.buildResponse(
                     null,
@@ -53,71 +52,31 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         TherapistRecord record = mapToEntity(dto);
-
-        // Status
         record.setStatus("COMPLETED");
 
-        // ═══════════════════════════════════════════
-        // NEW FLOW — frontend uploads directly to S3
-        // dto fields contain fileKey (not base64)
-        // just convert fileKey → signed URL
-        // ═══════════════════════════════════════════
-
-        // Before Image
-        if (dto.getBeforeImage() != null
-                && !dto.getBeforeImage().isBlank()) {
-            record.setBeforeImage(
-                s3Service.generateSignedUrl(dto.getBeforeImage())
-            );
+        // ✅ Store raw file keys in DB
+        if (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) {
+            record.setBeforeImage(dto.getBeforeImage());
+        }
+        if (dto.getAfterImage() != null && !dto.getAfterImage().isBlank()) {
+            record.setAfterImage(dto.getAfterImage());
+        }
+        if (dto.getBeforeVideo() != null && !dto.getBeforeVideo().isBlank()) {
+            record.setBeforeVideo(dto.getBeforeVideo());
+        }
+        if (dto.getAfterVideo() != null && !dto.getAfterVideo().isBlank()) {
+            record.setAfterVideo(dto.getAfterVideo());
+        }
+        if (dto.getVoiceRecord() != null && !dto.getVoiceRecord().isBlank()) {
+            record.setVoiceRecord(dto.getVoiceRecord());
+        }
+        if (dto.getConsentPdfUrl() != null && !dto.getConsentPdfUrl().isBlank()) {
+            record.setConsentPdfUrl(dto.getConsentPdfUrl());
         }
 
-        // After Image
-        if (dto.getAfterImage() != null
-                && !dto.getAfterImage().isBlank()) {
-            record.setAfterImage(
-                s3Service.generateSignedUrl(dto.getAfterImage())
-            );
-        }
-
-        // Before Video
-        if (dto.getBeforeVideo() != null
-                && !dto.getBeforeVideo().isBlank()) {
-            record.setBeforeVideo(
-                s3Service.generateSignedUrl(dto.getBeforeVideo())
-            );
-        }
-
-        // After Video
-        if (dto.getAfterVideo() != null
-                && !dto.getAfterVideo().isBlank()) {
-            record.setAfterVideo(
-                s3Service.generateSignedUrl(dto.getAfterVideo())
-            );
-        }
-
-        // Voice Record
-        if (dto.getVoiceRecord() != null
-                && !dto.getVoiceRecord().isBlank()) {
-            record.setVoiceRecord(
-                s3Service.generateSignedUrl(dto.getVoiceRecord())
-            );
-        }
-
-        // Consent PDF
-        if (dto.getConsentPdfUrl() != null
-                && !dto.getConsentPdfUrl().isBlank()) {
-            record.setConsentPdfUrl(
-                s3Service.generateSignedUrl(dto.getConsentPdfUrl())
-            );
-        }
-
-        // ═══════════════════════════════════════════
-
-        // Set IDs
         record.setTherapistRecordId(dto.getTherapistRecordId());
         record.setSessionId(dto.getSessionId());
 
-        // Save
         TherapistRecord saved = repository.save(record);
 
         // Call Physiotherapy Service
@@ -127,34 +86,20 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                     && dto.getSessionId() != null
                     && !dto.getSessionId().trim().isEmpty()) {
 
-                String therapistRecordId =
-                        dto.getTherapistRecordId().trim();
-                String sessionId =
-                        dto.getSessionId().trim();
-
-                System.out.println("Calling Physio API => "
-                        + therapistRecordId + " | " + sessionId);
-
                 physiotherapyFeignClient.updateSessionStatus(
-                        therapistRecordId,
-                        sessionId
+                        dto.getTherapistRecordId().trim(),
+                        dto.getSessionId().trim()
                 );
 
-                System.out.println(
-                        "Physio session status updated successfully");
-
-            } else {
-                System.out.println(
-                        "TherapistRecordId or SessionId is empty");
             }
-
         } catch (Exception e) {
             System.out.println("Physio update failed");
             e.printStackTrace();
         }
 
+        // ✅ Return signed URLs in response (not raw keys)
         return ResponseStructure.buildResponse(
-                mapToDTO(saved),
+                mapToDTOWithSignedUrls(saved),
                 "Record saved successfully",
                 HttpStatus.CREATED,
                 201
@@ -172,7 +117,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         		.orElseThrow(() -> new RuntimeException("Record not found"));
 
         return ResponseStructure.buildResponse(
-                mapToDTO(record),
+        		 mapToDTOWithSignedUrls(record), // ✅
                 "Record fetched successfully",
                 HttpStatus.OK,
                 200
@@ -308,7 +253,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         List<TherapistRecordDTO> dtoList = records.stream()
-                .map(this::mapToDTO)
+                .map(this::mapToDTOWithSignedUrls) // ✅
                 .toList();
 
         return ResponseStructure.buildResponse(
@@ -348,7 +293,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         return ResponseStructure.buildResponse(
-                mapToDTO(record),
+                mapToDTOWithSignedUrls(record), // ✅
                 "Therapist record fetched successfully",
                 HttpStatus.OK,
                 200
@@ -483,8 +428,37 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         response.setStatusCode(200);
         response.setMessage("Record fetched successfully");
-        response.setData(dto);
+        response.setData(mapToDTOWithSignedUrls(record)); // ✅ signed URLs
+
 
         return response;
+    }
+    
+    private TherapistRecordDTO mapToDTOWithSignedUrls(TherapistRecord record) {
+
+        // ✅ First map normally
+        TherapistRecordDTO dto = mapToDTO(record);
+
+        // ✅ Then replace raw keys with fresh signed URLs
+        if (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) {
+            dto.setBeforeImage(s3Service.generateSignedUrl(dto.getBeforeImage()));
+        }
+        if (dto.getAfterImage() != null && !dto.getAfterImage().isBlank()) {
+            dto.setAfterImage(s3Service.generateSignedUrl(dto.getAfterImage()));
+        }
+        if (dto.getBeforeVideo() != null && !dto.getBeforeVideo().isBlank()) {
+            dto.setBeforeVideo(s3Service.generateSignedUrl(dto.getBeforeVideo()));
+        }
+        if (dto.getAfterVideo() != null && !dto.getAfterVideo().isBlank()) {
+            dto.setAfterVideo(s3Service.generateSignedUrl(dto.getAfterVideo()));
+        }
+        if (dto.getVoiceRecord() != null && !dto.getVoiceRecord().isBlank()) {
+            dto.setVoiceRecord(s3Service.generateSignedUrl(dto.getVoiceRecord()));
+        }
+        if (dto.getConsentPdfUrl() != null && !dto.getConsentPdfUrl().isBlank()) {
+            dto.setConsentPdfUrl(s3Service.generateSignedUrl(dto.getConsentPdfUrl()));
+        }
+
+        return dto;
     }
 }

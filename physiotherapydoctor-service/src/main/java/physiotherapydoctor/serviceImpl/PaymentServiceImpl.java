@@ -45,6 +45,8 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
+	
+	
 
 	// ========================================================
 	// CREATE
@@ -1425,40 +1427,76 @@ public class PaymentServiceImpl implements PaymentService {
 		return response;
 	}
 
-//    -------------------------------------check completed record-----------------------------
 	@Override
 	public Response getCompletedTherapyRecord(String clinicId, String branchId, String therapistRecordId,
-			String sessionId) {
+	        String sessionId) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		try {
+	    try {
 
-			ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
-					.getCompletedTherapyRecord(clinicId, branchId, therapistRecordId, sessionId);
+	        ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
+	                .getCompletedTherapyRecord(clinicId, branchId, therapistRecordId, sessionId);
 
-			if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
+	        if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
 
-				response.setSuccess(true);
-				response.setStatus(200);
-				response.setMessage("Therapy record fetched successfully");
-				response.setData(tr.getBody().getData());
+	            TherapistRecordDTO dto = tr.getBody().getData();
 
-			} else {
+	            // ✅ Regenerate fresh signed URLs via Clinic Admin Feign
+	            dto.setConsentPdfUrl(refreshSignedUrl(dto.getConsentPdfUrl()));
+	            dto.setBeforeImage(refreshSignedUrl(dto.getBeforeImage()));
+	            dto.setAfterImage(refreshSignedUrl(dto.getAfterImage()));
+	            dto.setBeforeVideo(refreshSignedUrl(dto.getBeforeVideo()));
+	            dto.setAfterVideo(refreshSignedUrl(dto.getAfterVideo()));
+	            dto.setVoiceRecord(refreshSignedUrl(dto.getVoiceRecord()));
 
-				response.setSuccess(false);
-				response.setStatus(404);
-				response.setMessage("Therapy record not found");
-			}
+	            response.setSuccess(true);
+	            response.setStatus(200);
+	            response.setMessage("Therapy record fetched successfully");
+	            response.setData(dto);
 
-		} catch (Exception e) {
+	        } else {
 
-			response.setSuccess(false);
-			response.setStatus(500);
-			response.setMessage(e.getMessage());
-		}
+	            response.setSuccess(false);
+	            response.setStatus(404);
+	            response.setMessage("Therapy record not found");
+	        }
 
-		return response;
+	    } catch (Exception e) {
+
+	        response.setSuccess(false);
+	        response.setStatus(500);
+	        response.setMessage(e.getMessage());
+	    }
+
+	    return response;
+	}
+
+	// ✅ Extract S3 key from signed URL and call Clinic Admin to get fresh URL
+	private String refreshSignedUrl(String signedUrl) {
+	    if (signedUrl == null || signedUrl.isBlank()) return signedUrl;
+	    try {
+	        String fileKey = extractKey(signedUrl);
+	        ResponseEntity<String> result = clinicAdminFeign.getSignedUrl(fileKey);
+	        if (result != null && result.getBody() != null) {
+	            return result.getBody();
+	        }
+	    } catch (Exception e) {
+	        System.out.println("Failed to refresh signed URL: " + e.getMessage());
+	    }
+	    return signedUrl; // fallback: return existing URL
+	}
+
+	// ✅ Extract raw S3 key from signed URL
+	private String extractKey(String signedUrl) {
+	    try {
+	        String withoutQuery = signedUrl.split("\\?")[0];
+	        java.net.URI uri = new java.net.URI(withoutQuery);
+	        String path = uri.getPath();
+	        return path.startsWith("/") ? path.substring(1) : path;
+	    } catch (Exception e) {
+	        return signedUrl;
+	    }
 	}
 
 	// ========================================================
