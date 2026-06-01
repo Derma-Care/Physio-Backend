@@ -19,7 +19,7 @@ public interface BookingService_Service {
 	public List<BookingResponse> getBookedServices(String mobileNumber);
 	public List<BookingResponse> getAllBookedServices();
 	public List<BookingResponse> bookingByDoctorId(String doctorId);
-	public List<BookingResponse> bookingByServiceId(String serviceId);
+	////public List<BookingResponse> bookingByServiceId(String serviceId);
 	public List<BookingResponse> bookingByClinicId(String clinicId);
 	//public ResponseEntity<?> updateAppointment(BookingResponse bookingResponse);
 	public List<BookingResponse> bookingByBranchId(String branchId);
