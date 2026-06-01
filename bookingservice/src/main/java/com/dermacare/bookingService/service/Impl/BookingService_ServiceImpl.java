@@ -865,18 +865,18 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		return toResponses(reversedBookings);
 	}
 
-	@Override
-	public List<BookingResponse> bookingByServiceId(String serviceId) {
-		List<Booking> bookings = repository.findBySubServiceId(serviceId);
-		List<Booking> reversedBookings = new ArrayList<>();
-		for(int i = bookings.size()-1; i >= 0; i--) {
-			reversedBookings.add(bookings.get(i));
-		}
-		if (bookings == null  || bookings.isEmpty()) {
-			return null;
-		}
-		return toResponses(reversedBookings);
-	}
+	// @Override
+	// public List<BookingResponse> bookingByServiceId(String serviceId) {
+	// 	List<Booking> bookings = repository.findBySubServiceId(serviceId);
+	// 	List<Booking> reversedBookings = new ArrayList<>();
+	// 	for(int i = bookings.size()-1; i >= 0; i--) {
+	// 		reversedBookings.add(bookings.get(i));
+	// 	}
+	// 	if (bookings == null  || bookings.isEmpty()) {
+	// 		return null;
+	// 	}
+	// 	return toResponses(reversedBookings);
+	// }
 	
 	
 	@Override
