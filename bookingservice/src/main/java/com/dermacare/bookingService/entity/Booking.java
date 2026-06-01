@@ -76,7 +76,7 @@ public class Booking  {
 //    private Integer currentSitting;
     private String foc;
     // ------------------- NEW: Treatments and dates -------------------
-    private TreatmentResponseDTO treatments; // treatmentName -> treatment details
+    ///private TreatmentResponseDTO treatments; // treatmentName -> treatment details
     private String bodyPartId;
    	private String bodyPartName;
    	private String partImage;
@@ -159,6 +159,6 @@ public class Booking  {
 //        this.pendingSittings = booking.getPendingSittings();
 //        this.takenSittings = booking.getTakenSittings();
 //        this.currentSitting = booking.getCurrentSitting();
-        this.treatments = booking.getTreatments();
+       /// this.treatments = booking.getTreatments();
     }
 }

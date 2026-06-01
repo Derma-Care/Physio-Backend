@@ -264,15 +264,15 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 		    response.setBookingId(String.valueOf(entity.getBookingId()));
 
-		    if (entity.getTreatments() != null && entity.getTreatments().getGeneratedData() != null) {
-		        entity.getTreatments().getGeneratedData().forEach((name, t) -> {
-		            if (t.getPendingSittings() != null && t.getPendingSittings() > 0) {
-		                t.setStatus("In-Progress");
-		            } else {
-		                t.setStatus("Confirmed");
-		            }
-		        });
-		    }
+//		    if (entity.getTreatments() != null && entity.getTreatments().getGeneratedData() != null) {
+//		        entity.getTreatments().getGeneratedData().forEach((name, t) -> {
+//		            if (t.getPendingSittings() != null && t.getPendingSittings() > 0) {
+//		                t.setStatus("In-Progress");
+//		            } else {
+//		                t.setStatus("Confirmed");
+//		            }
+//		        });
+//		    }
 
 		    // ── S3 signed URLs ──────────────────────────────
 		    try {
@@ -641,186 +641,88 @@ return ResponseEntity.status(res.getStatusCode()).body(res);
 
 
 
-	public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
-	        String hospitalId,
-	        String doctorId,
-	        String number) {
+@Override
+public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
+        String hospitalId,
+        String doctorId,
+        String number) {
 
-	    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-	    List<BookingResponse> responses = new ArrayList<>();
+    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+    List<BookingResponse> responses = new ArrayList<>();
 
-	    try {
-	        List<Booking> bookings =
-	                repository.findByClinicIdAndDoctorId(hospitalId, doctorId);
+    try {
 
-	        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+        List<Booking> bookings =
+                repository.findByClinicIdAndDoctorId(hospitalId, doctorId);
 
-	        if (bookings == null || bookings.isEmpty()) {
-	            res.setStatusCode(200);
-	            res.setData(responses);
-	            res.setMessage("Appointments Are Not Found");
-	            return ResponseEntity.ok(res);
-	        }
+        if (bookings == null || bookings.isEmpty()) {
+            res.setStatusCode(200);
+            res.setData(responses);
+            res.setMessage("Appointments Are Not Found");
+            return ResponseEntity.ok(res);
+        }
 
-	        for (Booking b : bookings) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
 
-	            /* -------------------------------
-	             * CASE A: TREATMENT BOOKINGS
-	             * ------------------------------- */
-	            if (b.getTreatments() != null
-	                    && b.getTreatments().getGeneratedData() != null) {
+        for (Booking booking : bookings) {
 
-	                for (Map.Entry<String, TreatmentDetailsDTO> entry
-	                        : b.getTreatments().getGeneratedData().entrySet()) {
+            if (booking.getServiceDate() == null) {
+                continue;
+            }
 
-	                    String treatmentName = entry.getKey();
-	                    TreatmentDetailsDTO treatment = entry.getValue();
+            LocalDate appointmentDate =
+                    LocalDate.parse(booking.getServiceDate());
 
-	                    if (treatment.getDates() == null) continue;
+            boolean add = false;
 
-	                    for (DatesDTO d : treatment.getDates()) {
+            switch (number) {
 
-	                        LocalDate appointmentDate =
-	                                LocalDate.parse(d.getDate());
+                // Upcoming
+                case "1":
+                    add = "Confirmed".equalsIgnoreCase(booking.getStatus())
+                            && appointmentDate.isAfter(today);
+                    break;
 
-	                        boolean add = false;
+                // Upcoming Online
+                case "2":
+                    add = "Online Consultation".equalsIgnoreCase(booking.getConsultationType())
+                            && "Confirmed".equalsIgnoreCase(booking.getStatus())
+                            && appointmentDate.isAfter(today);
+                    break;
 
-	                        switch (number) {
+                // Completed
+                case "3":
+                    add = "Completed".equalsIgnoreCase(booking.getStatus());
+                    break;
 
-	                            // 1️⃣ UPCOMING (Future confirmed sittings)
-	                            case "1":
-	                                if ("Confirmed".equalsIgnoreCase(d.getStatus())
-	                                        && appointmentDate.isAfter(today)) {
-	                                    add = true;
-	                                }
-	                                break;
+                // In Progress
+                case "4":
+                    add = "In-Progress".equalsIgnoreCase(booking.getStatus());
+                    break;
+            }
 
-	                            // 2️⃣ UPCOMING ONLINE
-	                            case "2":
-	                                if ("Online Consultation".equalsIgnoreCase(b.getConsultationType())
-	                                        && "Confirmed".equalsIgnoreCase(d.getStatus())
-	                                        && appointmentDate.isAfter(today)) {
-	                                    add = true;
-	                                }
-	                                break;
+            if (add) {
+                responses.add(toResponse(booking));
+            }
+        }
 
-	                            // 3️⃣ COMPLETED
-	                            case "3":
-	                                if ("Completed".equalsIgnoreCase(d.getStatus())) {
-	                                    add = true;
-	                                }
-	                                break;
+        res.setStatusCode(200);
+        res.setData(responses);
+        res.setMessage(
+                responses.isEmpty()
+                        ? "Appointments Are Not Found"
+                        : "Appointments Are Found"
+        );
 
-	                            // 4️⃣ ACTIVE / IN-PROGRESS
-	                            case "4": // Active (ONLY next pending sitting)
+    } catch (Exception e) {
 
-	                                if (!"In-Progress".equalsIgnoreCase(b.getStatus())) {
-	                                    break;
-	                                }
+        res.setStatusCode(500);
+        res.setData(null);
+        res.setMessage(e.getMessage());
+    }
 
-	                                // Find earliest pending sitting
-	                                DatesDTO nextPending = null;
-
-	                                for (DatesDTO date : treatment.getDates()) {
-	                                    if ("Pending".equalsIgnoreCase(date.getStatus())) {
-	                                        if (nextPending == null ||
-	                                            LocalDate.parse(date.getDate())
-	                                                     .isBefore(LocalDate.parse(nextPending.getDate()))) {
-	                                            nextPending = date;
-	                                        }
-	                                    }
-	                                }
-
-	                                // Add ONLY the next pending sitting
-	                                if (nextPending != null && d == nextPending) {
-	                                    add = true;
-	                                }
-
-	                                break;
-
-	                        }
-
-	                        if (add) {
-	                            BookingResponse temp = toResponse(b);
-	                           // temp.setSubServiceName(treatmentName);
-	                            temp.setServiceDate(d.getDate());
-	                            temp.setServicetime(b.getServicetime());
-	                            temp.setStatus(d.getStatus());
-	                            responses.add(temp);
-	                        }
-	                    }
-	                }
-	            }
-
-	            /* -------------------------------
-	             * CASE B: NORMAL BOOKINGS
-	             * ------------------------------- */
-	            else if (b.getServiceDate() != null) {
-
-	                LocalDate appointmentDate =
-	                        LocalDate.parse(b.getServiceDate());
-
-	                boolean add = false;
-
-	                switch (number) {
-
-	                    // 1️⃣ UPCOMING
-	                    case "1":
-	                        if ("Confirmed".equalsIgnoreCase(b.getStatus())
-	                                && appointmentDate.isAfter(today)) {
-	                            add = true;
-	                        }
-	                        break;
-
-	                    // 2️⃣ UPCOMING ONLINE
-	                    case "2":
-	                        if ("Online Consultation".equalsIgnoreCase(b.getConsultationType())
-	                                && "Confirmed".equalsIgnoreCase(b.getStatus())
-	                                && appointmentDate.isAfter(today)) {
-	                            add = true;
-	                        }
-	                        break;
-
-	                    // 3️⃣ COMPLETED
-	                    case "3":
-	                        if ("Completed".equalsIgnoreCase(b.getStatus())) {
-	                            add = true;
-	                        }
-	                        break;
-
-	                    // 4️⃣ ACTIVE / IN-PROGRESS
-	                    case "4":
-	                        if ("In-Progress".equalsIgnoreCase(b.getStatus())) {
-	                            add = true;
-	                        }
-	                        break;
-	                }
-
-	                if (add) {
-	                    BookingResponse temp = toResponse(b);
-	                    responses.add(temp);
-	                }
-	            }
-	        }
-
-	        res.setStatusCode(200);
-	        res.setData(responses);
-	        res.setMessage(
-	                responses.isEmpty()
-	                        ? "Appointments Are Not Found"
-	                        : "Appointments Are Found"
-	        );
-
-	    } catch (Exception e) {
-	        res.setStatusCode(500);
-	        res.setData(null);
-	        res.setMessage(e.getMessage());
-	    }
-
-	    return ResponseEntity.status(res.getStatusCode()).body(res);
-	}
-
-
+    return ResponseEntity.status(res.getStatusCode()).body(res);
+}
 
 		
 	public ResponseEntity<?> getCompletedApntsByDoctorId(String hospitalId,String doctorId) {
