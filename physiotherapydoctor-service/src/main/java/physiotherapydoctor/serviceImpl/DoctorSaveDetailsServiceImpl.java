@@ -346,13 +346,13 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             bookingData.setStatus(status);
 
             // ✅ Set sitting summary
-            bookingData.setTotalSittings(overallTotalSittings);
-            bookingData.setTakenSittings(overallTakenSittings);
-            bookingData.setPendingSittings(overallPendingSittings);
-            bookingData.setCurrentSitting(overallCurrentSitting);
-
-            // ✅ Include the full treatment details
-            bookingData.setTreatments(treatmentResponseDTO);
+//            bookingData.setTotalSittings(overallTotalSittings);
+//            bookingData.setTakenSittings(overallTakenSittings);
+//            bookingData.setPendingSittings(overallPendingSittings);
+//            bookingData.setCurrentSitting(overallCurrentSitting);
+//
+//            // ✅ Include the full treatment details
+//            bookingData.setTreatments(treatmentResponseDTO);
 
             bookingData.setCurrentStatus(null);
             bookingData.setListOfConsultationFee(null);

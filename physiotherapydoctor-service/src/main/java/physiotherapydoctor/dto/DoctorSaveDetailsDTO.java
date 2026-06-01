@@ -45,5 +45,5 @@ public class DoctorSaveDetailsDTO {
 	private int pendingSittings;
 	private int takenSittings;
 	private int currentSitting;
-//  private int visitNumber;
+  private int visitNumber;
 }
