@@ -726,7 +726,8 @@ public class TherapistServiceImpl implements TherapistService {
                         programs.add(pkg);
 
                     }
-                 // ✅ THERAPY TYPE
+
+                    // ✅ THERAPY TYPE
                     else if (pkg.containsKey("therapyId")) {
 
                         programs = new ArrayList<>();
@@ -740,79 +741,31 @@ public class TherapistServiceImpl implements TherapistService {
                         programs.add(therapyWrapper);
 
                     }
-                 
 
-                 // ✅ EXERCISE TYPE
-                 else if (pkg.containsKey("exerciseId")) {
+                    // ✅ EXERCISE TYPE
+                    else if (pkg.containsKey("exerciseId")) {
 
-                     programs = new ArrayList<>();
+                        programs = new ArrayList<>();
 
-                     // Create therapy wrapper dynamically from exercise data
-                     Map<String, Object> therapyWrapper = new HashMap<>();
+                        Map<String, Object> therapyWrapper = new HashMap<>();
+                        therapyWrapper.put("exerciseId", pkg.get("exerciseId"));
+                        therapyWrapper.put("exerciseName", pkg.get("exerciseName"));
+                        therapyWrapper.put("totalTherapyPrice", pkg.get("totalPrice"));
+                        therapyWrapper.put("paymentStatus", pkg.get("paymentStatus"));
+                        therapyWrapper.put(
+                                "exercises",
+                                new ArrayList<>(Arrays.asList(pkg))
+                        );
 
-                     // Use exerciseId as therapyId
-                     therapyWrapper.put("exerciseId", pkg.get("exerciseId"));
+                        Map<String, Object> programWrapper = new HashMap<>();
+                        programWrapper.put(
+                                "therapyData",
+                                new ArrayList<>(Arrays.asList(therapyWrapper))
+                        );
 
-                     // Use exerciseName as therapyName
-                     therapyWrapper.put("exerciseName", pkg.get("exerciseName"));
+                        programs.add(programWrapper);
+                    }
 
-                     // Use totalPrice as totalTherapyPrice
-                     therapyWrapper.put("totalTherapyPrice", pkg.get("totalPrice"));
-
-                     // Use actual paymentStatus from exercise
-                     therapyWrapper.put("paymentStatus", pkg.get("paymentStatus"));
-
-                     // Add the original exercise as-is
-                     therapyWrapper.put(
-                             "exercises",
-                             new ArrayList<>(Arrays.asList(pkg))
-                     );
-
-                     // Wrap into program structure expected by existing logic
-                     Map<String, Object> programWrapper = new HashMap<>();
-                     programWrapper.put(
-                             "therapyData",
-                             new ArrayList<>(Arrays.asList(therapyWrapper))
-                     );
-
-                     programs.add(programWrapper);
-                 }
-
-                 // ✅ EXERCISE TYPE
-                 else if (pkg.containsKey("exerciseId")) {
-
-                     programs = new ArrayList<>();
-
-                     // Create therapy wrapper dynamically from exercise data
-                     Map<String, Object> therapyWrapper = new HashMap<>();
-
-                     // Use exerciseId as therapyId
-                     therapyWrapper.put("exerciseId", pkg.get("exerciseId"));
-
-                     // Use exerciseName as therapyName
-                     therapyWrapper.put("exerciseName", pkg.get("exerciseName"));
-
-                     // Use totalPrice as totalTherapyPrice
-                     therapyWrapper.put("totalTherapyPrice", pkg.get("totalPrice"));
-
-                     // Use actual paymentStatus from exercise
-                     therapyWrapper.put("paymentStatus", pkg.get("paymentStatus"));
-
-                     // Add the original exercise as-is
-                     therapyWrapper.put(
-                             "exercises",
-                             new ArrayList<>(Arrays.asList(pkg))
-                     );
-
-                     // Wrap into program structure expected by existing logic
-                     Map<String, Object> programWrapper = new HashMap<>();
-                     programWrapper.put(
-                             "therapyData",
-                             new ArrayList<>(Arrays.asList(therapyWrapper))
-                     );
-
-                     programs.add(programWrapper);
-                 }
                     // ✅ INVALID
                     else {
                         continue;
@@ -845,74 +798,12 @@ public class TherapistServiceImpl implements TherapistService {
                                 List<Map<String, Object>> sessions =
                                         (List<Map<String, Object>>) exercise.get("sessions");
 
-                                if (sessions == null) continue;
+                                if (sessions == null || sessions.isEmpty()) continue;
 
-//                                List<Map<String, Object>> paidSessions =
-//                                        sessions.stream()
-//                                                .filter(session -> {
-//
-//                                                    Object statusObj =
-//                                                            session.get("paymentStatus");
-//
-//                                                    if (statusObj == null)
-//                                                        return false;
-//
-//                                                    String status =
-//                                                            statusObj.toString().trim();
-//
-//                                                    return "Paid"
-//                                                            .equalsIgnoreCase(status);
-//
-//                                                })
-//                                                .collect(Collectors.toList());
-//
-//                                if (!paidSessions.isEmpty()) {
-//
-//                                    Map<String, Object> updatedExercise =
-//                                            new HashMap<>(exercise);
-//
-//                                    updatedExercise.put(
-//                                            "sessions",
-//                                            new ArrayList<>(paidSessions)
-//                                    );
-//
-//                                    filteredExercises.add(updatedExercise);
-//                                }
-                                
-                             // ✅ Separate Paid & Unpaid Sessions
-                                List<Map<String, Object>> paidSessions = new ArrayList<>();
-                                List<Map<String, Object>> unpaidSessions = new ArrayList<>();
-
-                                for (Map<String, Object> session : sessions) {
-
-                                    Object statusObj = session.get("paymentStatus");
-
-                                    if (statusObj == null) {
-                                        continue;
-                                    }
-
-                                    String status = statusObj.toString().trim();
-
-                                    if ("Paid".equalsIgnoreCase(status)) {
-
-                                        paidSessions.add(session);
-
-                                    } else if ("Unpaid".equalsIgnoreCase(status)) {
-
-                                        unpaidSessions.add(session);
-                                    }
-                                }
-
-                                if (!paidSessions.isEmpty() || !unpaidSessions.isEmpty()) {
-
-                                    Map<String, Object> updatedExercise =
-                                            new HashMap<>(exercise);
-
-                                    updatedExercise.put("paidSessions", paidSessions);
-                                    updatedExercise.put("unpaidSessions", unpaidSessions);
-
-                                    filteredExercises.add(updatedExercise);
-                                }
+                                // ✅ Put ALL sessions (Paid + Unpaid) inside paidSessions field
+                                Map<String, Object> updatedExercise = new HashMap<>(exercise);
+                                updatedExercise.put("paidSessions", new ArrayList<>(sessions));
+                                filteredExercises.add(updatedExercise);
                             }
 
                             if (!filteredExercises.isEmpty()) {
@@ -975,7 +866,7 @@ public class TherapistServiceImpl implements TherapistService {
 
             response.setSuccess(true);
             response.setData(data);
-            response.setMessage("Paid sessions fetched successfully");
+            response.setMessage("Sessions fetched successfully");
             response.setStatus(200);
 
         } catch (Exception e) {
