@@ -9,7 +9,7 @@ public class Activity {
     private String activity;
     private String duration;
     private String latitude;
-    private String longtitude;
+    private String longitude;
     private String location;
     private String description;
 

@@ -118,7 +118,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     act.setDescription(a.getDescription());
                     // 🔥 SAVE LATITUDE & LONGTITUDE
                     act.setLatitude(a.getLatitude());
-                    act.setLongtitude(a.getLongtitude());
+                    act.setLongitude(a.getLongtitude());
                     // 🔥 AUTO LOCATION FROM LAT LONG
                     if (a.getLatitude() != null
                             && !a.getLatitude().isBlank()
@@ -532,16 +532,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                             // 🔥 LAT LONG
                             ad.setLatitude(a.getLatitude());
-                           ad.setLongtitude(a.getLongtitude());
+                           ad.setLongtitude(a.getLongitude());
 
                             // 🔥 AUTO LOCATION FROM LAT LONG
                             if (a.getLatitude() != null
-                                    && a.getLongtitude() != null) {
+                                    && a.getLongitude() != null) {
 
                                 ad.setLocation(
                                         getCityFromLatLong(
                                                 a.getLatitude(),
-                                                a.getLongtitude()
+                                                a.getLongitude()
                                         )
                                 );
 
@@ -787,16 +787,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 // 🔥 LAT LONG
                 act.setLatitude(a.getLatitude());
-                act.setLongtitude(a.getLongtitude());
+                act.setLongtitude(a.getLongitude());
 
                 // 🔥 AUTO CONVERT LOCATION
                 if (a.getLatitude() != null
-                        && a.getLongtitude() != null) {
+                        && a.getLongitude() != null) {
 
                     act.setLocation(
                             getCityFromLatLong(
                                     a.getLatitude(),
-                                    a.getLongtitude()
+                                    a.getLongitude()
                             )
                     );
 
