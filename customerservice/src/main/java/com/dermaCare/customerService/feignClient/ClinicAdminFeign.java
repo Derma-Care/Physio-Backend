@@ -73,6 +73,10 @@ public interface ClinicAdminFeign {
 	 @PostMapping("/clinic-admin/therapist-session-details")
 	    public ResponseEntity<Response> getTherapistSessionDetails(
 	            @RequestBody TherapistRecordRequest request);
+	 
+//	 @PostMapping("/clinic-admin/customers/login")
+//	    public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto);
+//	    
 
 	 
 //	//FALLBACK METHODS

@@ -65,6 +65,7 @@ public class BookingServiceController {
 
 	@GetMapping("/getBookedServiceById/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id) {
+		//System.out.println("hii"); 
 		BookingResponse response = service.getBookedService(id);
 		if(response != null) {
 		return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",

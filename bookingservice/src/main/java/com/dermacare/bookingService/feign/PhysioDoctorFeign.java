@@ -18,7 +18,7 @@ public interface PhysioDoctorFeign {
 	 @GetMapping("/api/physiotherapy-doctor/followups/today/booking-ids")
 	 public List<String> getTodayFollowUpBookingIds();
 
-	 @GetMapping("/api/physiotherapy-recordgetById/{BookingId}")
+	 @GetMapping("/api/physiotherapy-doctor/prescription/{BookingId}")
 		public String getByBookingId(@PathVariable String BookingId);
 
 

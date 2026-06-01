@@ -337,7 +337,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	     try {	        
 	         String res = physioDoctorFeign.getByBookingId(bid);
 	         return res;
-	         }catch(Exception e) {	         
+	         }catch(Exception e) {	
+	        	 System.out.println(e.getMessage());
 	         return null;
 	     }
 	 }
@@ -784,7 +785,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	public BookingResponse getBookedService(String bookingId) {
 		try {		
 		Booking entity = repository.findByBookingId(bookingId).get();	
-		System.out.println(entity);
+		//System.out.println(entity);
 		if(entity != null) {
 			BookingResponse res = toResponse(entity);
 			List<Session> lst = new ArrayList<>();
@@ -880,26 +881,52 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	
 	@Override
-	public List<Map<String,Object>> bookingByCustomerId(String customerId) {
-		List<Booking> bookings = repository.findByCustomerId(customerId);
-		List<BookingResponse> reversedBookings = toResponses(bookings);
-		List<Map<String,Object>> list = new ArrayList<>(); 
-		if (bookings == null  || bookings.isEmpty()) {
-			return null;
-		}else {
-			reversedBookings.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
-			map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
-			map.put("name", n.getName()); map.put("mobileNumber",  !n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber()); map.put("doctorId", n.getDoctorId());
-			map.put("doctorName", n.getDoctorName()); map.put("paymentType", n.getPaymentType()); map.put("visitType", n.getVisitType());
-			map.put("status", n.getStatus()); map.put("followupStatus", n.getFollowupStatus()); map.put("patientId", n.getPatientId());
-			map.put("clinicId", n.getClinicId()); map.put("customerId", n.getCustomerId());  map.put("branchId", n.getBranchId());		
-			map.put("age", n.getAge());map.put("gender", n.getGender()); map.put("branchName", n.getBranchname());	map.put("problem", n.getProblem());		
-			list.add(map);
-			return n;
-			}).toList();
-		}
-		
-		return list;
+	public List<Map<String, Object>> bookingByCustomerId(String customerId) {
+
+	    List<Booking> bookings = repository.findByCustomerId(customerId);
+
+	    if (bookings == null || bookings.isEmpty()) {
+	        return Collections.emptyList();
+	    }
+
+	    bookings = bookings.stream()
+	            .filter(booking -> !"COMPLETED".equalsIgnoreCase(booking.getStatus()))
+	            .toList();
+
+	    List<BookingResponse> reversedBookings = toResponses(bookings);
+
+	    List<Map<String, Object>> list = new ArrayList<>();
+
+	    reversedBookings.forEach(n -> {
+	        Map<String, Object> map = new LinkedHashMap<>();
+
+	        map.put("bookingId", n.getBookingId());
+	        map.put("serviceDate", n.getServiceDate());
+	        map.put("servicetime", n.getServicetime());
+	        map.put("name", n.getName());
+	        map.put("mobileNumber",
+	                n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+	                        ? n.getPatientMobileNumber()
+	                        : n.getMobileNumber());
+	        map.put("doctorId", n.getDoctorId());
+	        map.put("doctorName", n.getDoctorName());
+	        map.put("paymentType", n.getPaymentType());
+	        map.put("visitType", n.getVisitType());
+	        map.put("status", n.getStatus());
+	        map.put("followupStatus", n.getFollowupStatus());
+	        map.put("patientId", n.getPatientId());
+	        map.put("clinicId", n.getClinicId());
+	        map.put("customerId", n.getCustomerId());
+	        map.put("branchId", n.getBranchId());
+	        map.put("age", n.getAge());
+	        map.put("gender", n.getGender());
+	        map.put("branchName", n.getBranchname());
+	        map.put("problem", n.getProblem());
+
+	        list.add(map);
+	    });
+
+	    return list;
 	}
 	
 	

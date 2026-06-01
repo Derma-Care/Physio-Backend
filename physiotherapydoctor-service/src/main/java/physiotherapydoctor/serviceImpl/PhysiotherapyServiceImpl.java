@@ -450,8 +450,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	
 	@Override
 	public String getByBookingId(String id) {
-
-		Response response = new Response();		
+		
+  try {
+		//Response response = new Response();		
 
 		Optional<PhysiotherapyRecord> optional = repository.findByBookingId(id);
 
@@ -460,7 +461,10 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return null;
 		}		
 		return optional.get().getPrescriptionPdf();
-	}
+	}catch(Exception e) {
+		///System.out.println(e.getMessage());
+		return null;
+	}}
 
 	// ✅ GET ALL
 	@Override
