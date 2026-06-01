@@ -130,20 +130,20 @@ public class BookingServiceController {
 
 	}
 
-	@GetMapping("/getBookedServicesByServiceId/{serviceId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId) {
+	// @GetMapping("/getBookedServicesByServiceId/{serviceId}")
+	// public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId) {
 
-		List<BookingResponse> response = service.bookingByServiceId(serviceId);
-		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"Service Does not Booked by AnyOne" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);
-		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booking fetched sucessfully on ServiceId" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
-				HttpStatus.OK);
+	// 	List<BookingResponse> response = service.bookingByServiceId(serviceId);
+	// 	if (response == null || response.isEmpty()) {
+	// 		return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+	// 				"Service Does not Booked by AnyOne" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
+	// 				HttpStatus.OK);
+	// 	}
+	// 	return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+	// 			"Booking fetched sucessfully on ServiceId" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
+	// 			HttpStatus.OK);
 
-	}
+	// }
 	
 	
 	@GetMapping("/getBookedServicesByClinicId/{clinicId}")
