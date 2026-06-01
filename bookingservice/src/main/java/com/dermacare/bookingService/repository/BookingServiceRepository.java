@@ -19,7 +19,7 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	 public  List<Booking> findByMobileNumber(String mobileNumber);
 	 public  List<Booking> findByDoctorId(String doctorId);
 	 public  List<Booking> findByBranchId(String branchId);
-	 public  List<Booking> findBySubServiceId(String subServiceId);
+	 ////public  List<Booking> findBySubServiceId(String subServiceId);
 	 public  List<Booking> findByClinicId(String clinicId);
 	 public Optional<Booking> findByBookingId(String bookingId);
 	 @Query("{$or: [ { 'name': ?0 }, { 'bookingId': ?0 }, { 'patientId': ?0 } ]}")
