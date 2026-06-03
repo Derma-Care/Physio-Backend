@@ -75,6 +75,12 @@ public class S3Service {
         }
 
         String ext         = extension.toLowerCase().trim();
+        // ✅ Validate extension is allowed
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException(
+                "File extension '." + ext + "' is not allowed. Allowed: " + ALLOWED_EXTENSIONS
+            );
+        }
         String contentType = resolveContentType(ext);
         String fileName    = folder + "/" + UUID.randomUUID() + "." + ext;
 
