@@ -26,10 +26,12 @@ import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
 import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.TherapistAttendance;
 import com.clinicadmin.entity.TimeLocation;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AttendanceRepository;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.service.AttendanceService;
 
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,8 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AttendanceRepository repo;
     
     private final AdminServiceClient adminServiceClient;
+    
+    private final TherapistAttendanceRepository therapistAttendanceRepo;
     
 
     @Autowired
@@ -1418,6 +1422,204 @@ public class AttendanceServiceImpl implements AttendanceService {
                 dto.setIdleTime("00:00");
                 dto.setLogin(null);
                 dto.setLogout(null);
+                
+                // =====================================================
+                // THERAPIST ATTENDANCE
+                // =====================================================
+                if ("physiotherapist".equalsIgnoreCase(user.getRole())) {
+
+                    TherapistAttendance therapistAttendance =
+                            therapistAttendanceRepo.findByTherapistIdAndDate(
+                                    user.getStaffId(),
+                                    date
+                            );
+
+                    if (therapistAttendance != null) {
+
+                        dto.setStatus(
+                                therapistAttendance.getStatus() != null
+                                        ? therapistAttendance.getStatus()
+                                        : "Not Logged In"
+                        );
+
+                        dto.setLogTime(therapistAttendance.getLogTime());
+
+                        dto.setWorkingHours(
+                                therapistAttendance.getWorkingHours() != null
+                                        ? therapistAttendance.getWorkingHours()
+                                        : "00:00"
+                        );
+
+                        dto.setIdleTime(
+                                therapistAttendance.getIdleTime() != null
+                                        ? therapistAttendance.getIdleTime()
+                                        : "00:00"
+                        );
+
+                        // LOGIN
+                        if (therapistAttendance.getLogin() != null) {
+
+                            TimeLocationDTO login = new TimeLocationDTO();
+
+                            login.setTime(
+                                    therapistAttendance.getLogin().getTime()
+                            );
+
+                            login.setLatitude(
+                                    therapistAttendance.getLogin().getLatitude()
+                            );
+
+                            login.setLongtitude(
+                                    therapistAttendance.getLogin().getLongtitude()
+                            );
+
+                            if (therapistAttendance.getLogin().getLatitude() != null
+                                    && therapistAttendance.getLogin().getLongtitude() != null) {
+
+                                login.setLocation(
+                                        getCityFromLatLong(
+                                                therapistAttendance.getLogin().getLatitude(),
+                                                therapistAttendance.getLogin().getLongtitude()
+                                        )
+                                );
+                            }
+
+                            dto.setLogin(login);
+                        }
+
+                        // LOGOUT
+                        if (therapistAttendance.getLogout() != null) {
+
+                            TimeLocationDTO logout = new TimeLocationDTO();
+
+                            logout.setTime(
+                                    therapistAttendance.getLogout().getTime()
+                            );
+
+                            logout.setLatitude(
+                                    therapistAttendance.getLogout().getLatitude()
+                            );
+
+                            logout.setLongtitude(
+                                    therapistAttendance.getLogout().getLongtitude()
+                            );
+
+                            if (therapistAttendance.getLogout().getLatitude() != null
+                                    && therapistAttendance.getLogout().getLongtitude() != null) {
+
+                                logout.setLocation(
+                                        getCityFromLatLong(
+                                                therapistAttendance.getLogout().getLatitude(),
+                                                therapistAttendance.getLogout().getLongtitude()
+                                        )
+                                );
+                            }
+
+                            dto.setLogout(logout);
+                        }
+                    }
+
+                    result.add(dto);
+                    continue;
+                } // =====================================================
+                // THERAPIST ATTENDANCE
+                // =====================================================
+                if ("physiotherapist".equalsIgnoreCase(user.getRole())) {
+
+                    TherapistAttendance therapistAttendance =
+                            therapistAttendanceRepo.findByTherapistIdAndDate(
+                                    user.getStaffId(),
+                                    date
+                            );
+
+                    if (therapistAttendance != null) {
+
+                        dto.setStatus(
+                                therapistAttendance.getStatus() != null
+                                        ? therapistAttendance.getStatus()
+                                        : "Not Logged In"
+                        );
+
+                        dto.setLogTime(therapistAttendance.getLogTime());
+
+                        dto.setWorkingHours(
+                                therapistAttendance.getWorkingHours() != null
+                                        ? therapistAttendance.getWorkingHours()
+                                        : "00:00"
+                        );
+
+                        dto.setIdleTime(
+                                therapistAttendance.getIdleTime() != null
+                                        ? therapistAttendance.getIdleTime()
+                                        : "00:00"
+                        );
+
+                        // LOGIN
+                        if (therapistAttendance.getLogin() != null) {
+
+                            TimeLocationDTO login = new TimeLocationDTO();
+
+                            login.setTime(
+                                    therapistAttendance.getLogin().getTime()
+                            );
+
+                            login.setLatitude(
+                                    therapistAttendance.getLogin().getLatitude()
+                            );
+
+                            login.setLongtitude(
+                                    therapistAttendance.getLogin().getLongtitude()
+                            );
+
+                            if (therapistAttendance.getLogin().getLatitude() != null
+                                    && therapistAttendance.getLogin().getLongtitude() != null) {
+
+                                login.setLocation(
+                                        getCityFromLatLong(
+                                                therapistAttendance.getLogin().getLatitude(),
+                                                therapistAttendance.getLogin().getLongtitude()
+                                        )
+                                );
+                            }
+
+                            dto.setLogin(login);
+                        }
+
+                        // LOGOUT
+                        if (therapistAttendance.getLogout() != null) {
+
+                            TimeLocationDTO logout = new TimeLocationDTO();
+
+                            logout.setTime(
+                                    therapistAttendance.getLogout().getTime()
+                            );
+
+                            logout.setLatitude(
+                                    therapistAttendance.getLogout().getLatitude()
+                            );
+
+                            logout.setLongtitude(
+                                    therapistAttendance.getLogout().getLongtitude()
+                            );
+
+                            if (therapistAttendance.getLogout().getLatitude() != null
+                                    && therapistAttendance.getLogout().getLongtitude() != null) {
+
+                                logout.setLocation(
+                                        getCityFromLatLong(
+                                                therapistAttendance.getLogout().getLatitude(),
+                                                therapistAttendance.getLogout().getLongtitude()
+                                        )
+                                );
+                            }
+
+                            dto.setLogout(logout);
+                        }
+                    }
+
+                    result.add(dto);
+                    continue;
+                }
 
                 // =====================================================
                 // STEP 1: TRY FULL QUERY — clinicId + branchId + userId + date
