@@ -97,11 +97,12 @@ public class PaymentServiceImpl implements PaymentService {
 		// ================= TOTAL =================
 		double total = calculateTotal(req.getTherapyWithSessions());
 		double discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : 0;
-		double finalAmount = total - discount;
+		double totalDiscount = calculateTotalDiscount(req.getTherapyWithSessions());
+		double finalAmount = total - totalDiscount; // ✅ correct
 
 		record.setTotalAmount(total);
-		record.setDiscountAmount(discount);
-		record.setFinalAmount(finalAmount);
+		record.setDiscountAmount(totalDiscount); // ✅ correct
+		record.setFinalAmount(finalAmount);      // ✅ correct
 		double amount = req.isPayAfterService() ? req.getAmount() : 0;
 
 		record.setPayAfterService(req.isPayAfterService());
@@ -204,6 +205,37 @@ public class PaymentServiceImpl implements PaymentService {
 		return mapToResponse(repo.save(record));
 	}
 
+	private double calculateTotalDiscount(List<TherapyWithSessions> data) {
+
+	    double totalDiscount = 0;
+
+	    for (var pkg : data) {
+	        for (var prog : pkg.getPrograms()) {
+	            for (var therapy : prog.getTherapyData()) {
+	                for (var ex : therapy.getExercises()) {
+
+	                    // Discount Amount
+	                    if (ex.getDiscountAmount() != 0) {
+	                        totalDiscount += ex.getDiscountAmount();
+	                    }
+
+	                    // OR Discount Percentage
+	                    else if (ex.getDiscountPercentage() != 0
+	                            && ex.getDiscountPercentage() > 0) {
+
+	                        double exPrice = ex.getPricePerSession()
+	                                * ex.getNoOfSessions();
+
+	                        totalDiscount += (exPrice
+	                                * ex.getDiscountPercentage() / 100);
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    return totalDiscount;
+	}
 	// ========================================================
 	// GET BY BOOKING ID
 	// ========================================================
