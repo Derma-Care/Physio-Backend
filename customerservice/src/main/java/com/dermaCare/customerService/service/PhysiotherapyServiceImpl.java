@@ -162,7 +162,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            for(QuestionsEntity q : incomingQuestions) {
 	                if (dto.getQuestionId() != 0 && q.getQuestionId() == dto.getQuestionId()) {
 	                    q.setQuestion(dto.getQuestion());
-	                    System.out.println("id");
+	                 //   System.out.println("id");
 	                    exist = true; 
 	                    break;}}
 	            if(!exist) {
@@ -172,9 +172,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            }}
 	            // Replace only that key
 	            existingMap.put(key,incomingQuestions );
-               System.out.println("key");
+              /// System.out.println("key");
 	            entity.setQuestionsByPart(existingMap);
-	            System.out.println("hmm");
+	          ////  System.out.println("hmm");
 	            return ResponseEntity.ok(
 	                    new Response("Updated key: " + key, 200, true, repository.save(entity))
 	            );
