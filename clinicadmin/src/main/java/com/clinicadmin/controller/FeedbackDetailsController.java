@@ -139,4 +139,15 @@ public class FeedbackDetailsController {
                     .body(response);
         }
     }
+    
+    @GetMapping("/getDoctorFeedbackSummaryByCinicIdAndDoctorId/{clinicId}/{doctorId}")
+    public ResponseEntity<Response> getDoctorFeedbackSummary(
+            @PathVariable String clinicId,
+            @PathVariable String doctorId) {
+
+        return ResponseEntity.ok(
+        		service.getDoctorFeedbackSummary(
+                        clinicId,
+                        doctorId));
+    }
 }

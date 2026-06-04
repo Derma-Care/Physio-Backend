@@ -3,6 +3,7 @@ package com.clinicadmin.entity;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.clinicadmin.dto.ServiceInfo;
 
@@ -11,6 +12,7 @@ import com.clinicadmin.dto.ServiceInfo;
 import lombok.Data;
 
 @Data
+@Document(collection = "Session_FeedBack")
 public class FeedbackDetails {
 
     @Id
