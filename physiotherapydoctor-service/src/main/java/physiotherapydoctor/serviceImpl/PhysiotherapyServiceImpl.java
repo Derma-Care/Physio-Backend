@@ -181,6 +181,16 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		List<Map<String, Object>> cleanSessions = transformTherapySessions(saved.getTherapySessions());
 
 		saved.setTherapySessions((List) cleanSessions);
+		
+		if (saved.getPrescriptionPdf() != null && !saved.getPrescriptionPdf().isEmpty()) {
+	        try {
+	            String presignedUrl = s3Service.generateSignedUrl(saved.getPrescriptionPdf());
+	            saved.setPrescriptionPdf(presignedUrl); // ← same field, DB untouched
+	        } catch (Exception e) {
+	            System.out.println("Presigned URL generation failed: " + e.getMessage());
+	        }
+	    }
+
 
 		response.setSuccess(true);
 		response.setData(saved);

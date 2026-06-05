@@ -63,14 +63,14 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (dto.getLogin() != null
                     && dto.getLogin().getLatitude() != null
                     && !dto.getLogin().getLatitude().isBlank()
-                    && dto.getLogin().getLongtitude() != null
-                    && !dto.getLogin().getLongtitude().isBlank()) {
+                    && dto.getLogin().getLongitude() != null
+                    && !dto.getLogin().getLongitude().isBlank()) {
 
                 validateLoginDistance(
                         dto.getClinicId(),
                         dto.getBranchId(),
                         dto.getLogin().getLatitude(),
-                        dto.getLogin().getLongtitude()
+                        dto.getLogin().getLongitude()
                 );
             }
 
@@ -201,7 +201,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (dto.getLoginTime() != null
                     || dto.getLoginLocation() != null
                     || dto.getLoginLatitude() != null
-                    || dto.getLoginLongtitude() != null) {
+                    || dto.getLoginLongitude() != null) {
 
                 if (entity.getLogin() == null) {
                     entity.setLogin(new TimeLocation());
@@ -217,17 +217,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                 }
 
                 // 🔥 SAVE LONGTITUDE
-                if (dto.getLoginLongtitude() != null) {
-                    entity.getLogin().setLongtitude(dto.getLoginLongtitude());
+                if (dto.getLoginLongitude() != null) {
+                    entity.getLogin().setLongitude(dto.getLoginLongitude());
                 }
 
                 // 🔥 AUTO LOCATION FROM LAT LONG
                 if (dto.getLoginLatitude() != null
-                        && dto.getLoginLongtitude() != null) {
+                        && dto.getLoginLongitude() != null) {
 
                     String location = getCityFromLatLong(
                             dto.getLoginLatitude(),
-                            dto.getLoginLongtitude()
+                            dto.getLoginLongitude()
                     );
 
                     entity.getLogin().setLocation(location);
@@ -244,7 +244,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (dto.getLogoutTime() != null
                     || dto.getLogoutLocation() != null
                     || dto.getLogoutLatitude() != null
-                    || dto.getLogoutLongtitude() != null) {
+                    || dto.getLogoutLongitude() != null) {
 
                 if (entity.getLogout() == null) {
                     entity.setLogout(new TimeLocation());
@@ -260,17 +260,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                 }
 
                 // 🔥 SAVE LONGTITUDE
-                if (dto.getLogoutLongtitude() != null) {
-                    entity.getLogout().setLongtitude(dto.getLogoutLongtitude());
+                if (dto.getLogoutLongitude() != null) {
+                    entity.getLogout().setLongitude(dto.getLogoutLongitude());
                 }
 
                 // 🔥 AUTO LOCATION FROM LAT LONG
                 if (dto.getLogoutLatitude() != null
-                        && dto.getLogoutLongtitude() != null) {
+                        && dto.getLogoutLongitude() != null) {
 
                     String location = getCityFromLatLong(
                             dto.getLogoutLatitude(),
-                            dto.getLogoutLongtitude()
+                            dto.getLogoutLongitude()
                     );
 
                     entity.getLogout().setLocation(location);
@@ -469,16 +469,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 // 🔥 LAT LONG
                 login.setLatitude(entity.getLogin().getLatitude());
-                login.setLongtitude(entity.getLogin().getLongtitude());
+                login.setLongitude(entity.getLogin().getLongitude());
 
                 // 🔥 AUTO LOCATION FROM LAT LONG
                 if (entity.getLogin().getLatitude() != null
-                        && entity.getLogin().getLongtitude() != null) {
+                        && entity.getLogin().getLongitude() != null) {
 
                     login.setLocation(
                             getCityFromLatLong(
                                     entity.getLogin().getLatitude(),
-                                    entity.getLogin().getLongtitude()
+                                    entity.getLogin().getLongitude()
                             )
                     );
 
@@ -499,16 +499,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 // 🔥 LAT LONG
                 logout.setLatitude(entity.getLogout().getLatitude());
-                logout.setLongtitude(entity.getLogout().getLongtitude());
+                logout.setLongitude(entity.getLogout().getLongitude());
 
                 // 🔥 AUTO LOCATION FROM LAT LONG
                 if (entity.getLogout().getLatitude() != null
-                        && entity.getLogout().getLongtitude() != null) {
+                        && entity.getLogout().getLongitude() != null) {
 
                     logout.setLocation(
                             getCityFromLatLong(
                                     entity.getLogout().getLatitude(),
-                                    entity.getLogout().getLongtitude()
+                                    entity.getLogout().getLongitude()
                             )
                     );
 
@@ -655,18 +655,18 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             // 🔥 SAVE LAT LONG
             login.setLatitude(dto.getLogin().getLatitude());
-            login.setLongtitude(dto.getLogin().getLongtitude());
+            login.setLongitude(dto.getLogin().getLongitude());
 
             // 🔥 AUTO LOCATION FROM LAT LONG
             if (dto.getLogin().getLatitude() != null
                     && !dto.getLogin().getLatitude().isBlank()
-                    && dto.getLogin().getLongtitude() != null
-                    && !dto.getLogin().getLongtitude().isBlank()) {
+                    && dto.getLogin().getLongitude() != null
+                    && !dto.getLogin().getLongitude().isBlank()) {
 
                 login.setLocation(
                         getCityFromLatLong(
                                 dto.getLogin().getLatitude(),
-                                dto.getLogin().getLongtitude()
+                                dto.getLogin().getLongitude()
                         )
                 );
 
@@ -687,18 +687,18 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             // 🔥 SAVE LAT LONG
             logout.setLatitude(dto.getLogout().getLatitude());
-            logout.setLongtitude(dto.getLogout().getLongtitude());
+            logout.setLongitude(dto.getLogout().getLongitude());
 
             // 🔥 AUTO LOCATION FROM LAT LONG
             if (dto.getLogout().getLatitude() != null
                     && !dto.getLogout().getLatitude().isBlank()
-                    && dto.getLogout().getLongtitude() != null
-                    && !dto.getLogout().getLongtitude().isBlank()) {
+                    && dto.getLogout().getLongitude() != null
+                    && !dto.getLogout().getLongitude().isBlank()) {
 
                 logout.setLocation(
                         getCityFromLatLong(
                                 dto.getLogout().getLatitude(),
-                                dto.getLogout().getLongtitude()
+                                dto.getLogout().getLongitude()
                         )
                 );
 
@@ -729,15 +729,15 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             // 🔥 AUTO CONVERT LOGIN LOCATION
             if (entity.getLogin().getLatitude() != null
-                    && entity.getLogin().getLongtitude() != null) {
+                    && entity.getLogin().getLongitude() != null) {
 
                 login.setLatitude(entity.getLogin().getLatitude());
-                login.setLongtitude(entity.getLogin().getLongtitude());
+                login.setLongitude(entity.getLogin().getLongitude());
 
                 login.setLocation(
                         getCityFromLatLong(
                                 entity.getLogin().getLatitude(),
-                                entity.getLogin().getLongtitude()
+                                entity.getLogin().getLongitude()
                         )
                 );
 
@@ -758,15 +758,15 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             // 🔥 AUTO CONVERT LOGOUT LOCATION
             if (entity.getLogout().getLatitude() != null
-                    && entity.getLogout().getLongtitude() != null) {
+                    && entity.getLogout().getLongitude() != null) {
 
                 logout.setLatitude(entity.getLogout().getLatitude());
-                logout.setLongtitude(entity.getLogout().getLongtitude());
+                logout.setLongitude(entity.getLogout().getLongitude());
 
                 logout.setLocation(
                         getCityFromLatLong(
                                 entity.getLogout().getLatitude(),
-                                entity.getLogout().getLongtitude()
+                                entity.getLogout().getLongitude()
                         )
                 );
 
@@ -1358,11 +1358,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                           TimeLocationDTO login = new TimeLocationDTO();
                           login.setTime(entity.getLogin().getTime());
                           login.setLatitude(entity.getLogin().getLatitude());
-                          login.setLongtitude(entity.getLogin().getLongtitude());
+                          login.setLongitude(entity.getLogin().getLongitude());
                           login.setLocation(
                                   getCityFromLatLong(
                                           entity.getLogin().getLatitude(),
-                                          entity.getLogin().getLongtitude()
+                                          entity.getLogin().getLongitude()
                                   )
                           );
                           branchDto.setLogin(login);
@@ -1374,11 +1374,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                           TimeLocationDTO logout = new TimeLocationDTO();
                           logout.setTime(entity.getLogout().getTime());
                           logout.setLatitude(entity.getLogout().getLatitude());
-                          logout.setLongtitude(entity.getLogout().getLongtitude());
+                          logout.setLongitude(entity.getLogout().getLongitude());
                           logout.setLocation(
                                   getCityFromLatLong(
                                           entity.getLogout().getLatitude(),
-                                          entity.getLogout().getLongtitude()
+                                          entity.getLogout().getLongitude()
                                   )
                           );
                           branchDto.setLogout(logout);
@@ -1469,17 +1469,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                                     therapistAttendance.getLogin().getLatitude()
                             );
 
-                            login.setLongtitude(
-                                    therapistAttendance.getLogin().getLongtitude()
+                            login.setLongitude(
+                                    therapistAttendance.getLogin().getLongitude()
                             );
 
                             if (therapistAttendance.getLogin().getLatitude() != null
-                                    && therapistAttendance.getLogin().getLongtitude() != null) {
+                                    && therapistAttendance.getLogin().getLongitude() != null) {
 
                                 login.setLocation(
                                         getCityFromLatLong(
                                                 therapistAttendance.getLogin().getLatitude(),
-                                                therapistAttendance.getLogin().getLongtitude()
+                                                therapistAttendance.getLogin().getLongitude()
                                         )
                                 );
                             }
@@ -1500,17 +1500,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                                     therapistAttendance.getLogout().getLatitude()
                             );
 
-                            logout.setLongtitude(
-                                    therapistAttendance.getLogout().getLongtitude()
+                            logout.setLongitude(
+                                    therapistAttendance.getLogout().getLongitude()
                             );
 
                             if (therapistAttendance.getLogout().getLatitude() != null
-                                    && therapistAttendance.getLogout().getLongtitude() != null) {
+                                    && therapistAttendance.getLogout().getLongitude() != null) {
 
                                 logout.setLocation(
                                         getCityFromLatLong(
                                                 therapistAttendance.getLogout().getLatitude(),
-                                                therapistAttendance.getLogout().getLongtitude()
+                                                therapistAttendance.getLogout().getLongitude()
                                         )
                                 );
                             }
@@ -1567,17 +1567,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                                     therapistAttendance.getLogin().getLatitude()
                             );
 
-                            login.setLongtitude(
-                                    therapistAttendance.getLogin().getLongtitude()
+                            login.setLongitude(
+                                    therapistAttendance.getLogin().getLongitude()
                             );
 
                             if (therapistAttendance.getLogin().getLatitude() != null
-                                    && therapistAttendance.getLogin().getLongtitude() != null) {
+                                    && therapistAttendance.getLogin().getLongitude() != null) {
 
                                 login.setLocation(
                                         getCityFromLatLong(
                                                 therapistAttendance.getLogin().getLatitude(),
-                                                therapistAttendance.getLogin().getLongtitude()
+                                                therapistAttendance.getLogin().getLongitude()
                                         )
                                 );
                             }
@@ -1598,17 +1598,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                                     therapistAttendance.getLogout().getLatitude()
                             );
 
-                            logout.setLongtitude(
-                                    therapistAttendance.getLogout().getLongtitude()
+                            logout.setLongitude(
+                                    therapistAttendance.getLogout().getLongitude()
                             );
 
                             if (therapistAttendance.getLogout().getLatitude() != null
-                                    && therapistAttendance.getLogout().getLongtitude() != null) {
+                                    && therapistAttendance.getLogout().getLongitude() != null) {
 
                                 logout.setLocation(
                                         getCityFromLatLong(
                                                 therapistAttendance.getLogout().getLatitude(),
-                                                therapistAttendance.getLogout().getLongtitude()
+                                                therapistAttendance.getLogout().getLongitude()
                                         )
                                 );
                             }
@@ -1684,18 +1684,18 @@ public class AttendanceServiceImpl implements AttendanceService {
                         TimeLocationDTO login = new TimeLocationDTO();
                         login.setTime(entity.getLogin().getTime());
                         login.setLatitude(entity.getLogin().getLatitude());
-                        login.setLongtitude(entity.getLogin().getLongtitude());
+                        login.setLongitude(entity.getLogin().getLongitude());
 
                         if (entity.getLogin().getLatitude() != null
                                 && !entity.getLogin().getLatitude().isBlank()
-                                && entity.getLogin().getLongtitude() != null
-                                && !entity.getLogin().getLongtitude().isBlank()) {
+                                && entity.getLogin().getLongitude() != null
+                                && !entity.getLogin().getLongitude().isBlank()) {
 
                             // ✅ Live resolve — always fresh location name
                             login.setLocation(
                                     getCityFromLatLong(
                                             entity.getLogin().getLatitude(),
-                                            entity.getLogin().getLongtitude()
+                                            entity.getLogin().getLongitude()
                                     )
                             );
 
@@ -1717,18 +1717,18 @@ public class AttendanceServiceImpl implements AttendanceService {
                         TimeLocationDTO logout = new TimeLocationDTO();
                         logout.setTime(entity.getLogout().getTime());
                         logout.setLatitude(entity.getLogout().getLatitude());
-                        logout.setLongtitude(entity.getLogout().getLongtitude());
+                        logout.setLongitude(entity.getLogout().getLongitude());
 
                         if (entity.getLogout().getLatitude() != null
                                 && !entity.getLogout().getLatitude().isBlank()
-                                && entity.getLogout().getLongtitude() != null
-                                && !entity.getLogout().getLongtitude().isBlank()) {
+                                && entity.getLogout().getLongitude() != null
+                                && !entity.getLogout().getLongitude().isBlank()) {
 
                             // ✅ Live resolve — always fresh location name
                             logout.setLocation(
                                     getCityFromLatLong(
                                             entity.getLogout().getLatitude(),
-                                            entity.getLogout().getLongtitude()
+                                            entity.getLogout().getLongitude()
                                     )
                             );
 

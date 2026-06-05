@@ -7,7 +7,7 @@ public class TimeLocation {
 
     private String time;
     private String latitude;
-    private String longtitude;
+    private String longitude;
     private String location;
 
 }
