@@ -818,65 +818,41 @@ public class PaymentServiceImpl implements PaymentService {
 	// ========================================================
 	// STATUS PROPAGATION
 	// ========================================================
-	private void updateStatuses(PaymentRecord record) {
-	    if (record.getTherapyWithSessions() == null) return;
+private void updateStatuses(PaymentRecord record) {
+    if (record.getTherapyWithSessions() == null) return;
 
-	    for (var pkg : record.getTherapyWithSessions()) {
-	        if (pkg.getPrograms() == null) continue;
-	        for (var prog : pkg.getPrograms()) {
-	            if (prog.getTherapyData() == null) continue;
-	            for (var therapy : prog.getTherapyData()) {
-	                if (therapy.getExercises() == null) continue;
-	                for (var ex : therapy.getExercises()) {
-	                    if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
-	                        ex.setPaymentStatus("Unpaid");
-	                        continue;
-	                    }
-	                    boolean allPaid = ex.getSessions().stream()
-	                            .allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
-	                    boolean anyPaid = ex.getSessions().stream()
-	                            .anyMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
+    for (var pkg : record.getTherapyWithSessions()) {
+        if (pkg.getPrograms() == null) continue;
+        for (var prog : pkg.getPrograms()) {
+            if (prog.getTherapyData() == null) continue;
+            for (var therapy : prog.getTherapyData()) {
+                if (therapy.getExercises() == null) continue;
+                for (var ex : therapy.getExercises()) {
+                    if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
+                        ex.setPaymentStatus("Unpaid");
+                        continue;
+                    }
+                    boolean allPaid = ex.getSessions().stream()
+                            .allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
+                    ex.setPaymentStatus(allPaid ? "Paid" : "Unpaid");
+                }
 
-	                    // ✅ Partial when some sessions paid, not all
-	                    if (allPaid) ex.setPaymentStatus("Paid");
-	                    else if (anyPaid) ex.setPaymentStatus("Partial");
-	                    else ex.setPaymentStatus("Unpaid");
-	                }
+                boolean allTherapyPaid = therapy.getExercises().stream()
+                        .allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
+                therapy.setPaymentStatus(allTherapyPaid ? "Paid" : "Unpaid");
+            }
 
-	                boolean allTherapyPaid = therapy.getExercises().stream()
-	                        .allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
-	                boolean anyTherapyPaid = therapy.getExercises().stream()
-	                        .anyMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus())
-	                                || "Partial".equalsIgnoreCase(e.getPaymentStatus()));
+            boolean allProgPaid = prog.getTherapyData().stream()
+                    .allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
+            prog.setPaymentStatus(allProgPaid ? "Paid" : "Unpaid");
+        }
 
-	                if (allTherapyPaid) therapy.setPaymentStatus("Paid");
-	                else if (anyTherapyPaid) therapy.setPaymentStatus("Partial");
-	                else therapy.setPaymentStatus("Unpaid");
-	            }
-
-	            boolean allProgPaid = prog.getTherapyData().stream()
-	                    .allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
-	            boolean anyProgPaid = prog.getTherapyData().stream()
-	                    .anyMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus())
-	                            || "Partial".equalsIgnoreCase(t.getPaymentStatus()));
-
-	            if (allProgPaid) prog.setPaymentStatus("Paid");
-	            else if (anyProgPaid) prog.setPaymentStatus("Partial");
-	            else prog.setPaymentStatus("Unpaid");
-	        }
-
-	        boolean allPkgPaid = pkg.getPrograms().stream()
-	                .allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
-	        boolean anyPkgPaid = pkg.getPrograms().stream()
-	                .anyMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus())
-	                        || "Partial".equalsIgnoreCase(p.getPaymentStatus()));
-
-	        if (allPkgPaid) pkg.setPaymentStatus("Paid");
-	        else if (anyPkgPaid) pkg.setPaymentStatus("Partial");
-	        else pkg.setPaymentStatus("Unpaid");
-	    }
-	}
-//	private void updateStatuses(PaymentRecord record) {
+        boolean allPkgPaid = pkg.getPrograms().stream()
+                .allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
+        pkg.setPaymentStatus(allPkgPaid ? "Paid" : "Unpaid");
+    }
+}
+	//	private void updateStatuses(PaymentRecord record) {
 //
 //		if (record.getTherapyWithSessions() == null)
 //			return;

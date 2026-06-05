@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 public class TimeLocationDTO {
     private String time;
     private String latitude;
-    private String longtitude;
+    private String longitude;
     private String location;
 	
 		
