@@ -931,6 +931,56 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	
 	@Override
+	public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId) {
+
+	    List<Booking> bookings = repository.findByCustomerId(customerId);
+
+	    if (bookings == null || bookings.isEmpty()) {
+	        return Collections.emptyList();
+	    }
+
+	    bookings = bookings.stream()
+	            .filter(booking -> "COMPLETED".equalsIgnoreCase(booking.getStatus()))
+	            .toList();
+
+	    List<BookingResponse> reversedBookings = toResponses(bookings);
+
+	    List<Map<String, Object>> list = new ArrayList<>();
+
+	    reversedBookings.forEach(n -> {
+	        Map<String, Object> map = new LinkedHashMap<>();
+
+	        map.put("bookingId", n.getBookingId());
+	        map.put("serviceDate", n.getServiceDate());
+	        map.put("servicetime", n.getServicetime());
+	        map.put("name", n.getName());
+	        map.put("mobileNumber",
+	                n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+	                        ? n.getPatientMobileNumber()
+	                        : n.getMobileNumber());
+	        map.put("doctorId", n.getDoctorId());
+	        map.put("doctorName", n.getDoctorName());
+	        map.put("paymentType", n.getPaymentType());
+	        map.put("visitType", n.getVisitType());
+	        map.put("status", n.getStatus());
+	        map.put("followupStatus", n.getFollowupStatus());
+	        map.put("patientId", n.getPatientId());
+	        map.put("clinicId", n.getClinicId());
+	        map.put("customerId", n.getCustomerId());
+	        map.put("branchId", n.getBranchId());
+	        map.put("age", n.getAge());
+	        map.put("gender", n.getGender());
+	        map.put("branchName", n.getBranchname());
+	        map.put("problem", n.getProblem());
+
+	        list.add(map);
+	    });
+
+	    return list;
+	}
+	
+	
+	@Override
 	public List<BookingResponse> bookingByPatientId(String patientId) {
 		List<Booking> bookings = repository.findByPatientId(patientId);
 		List<Booking> reversedBookings = new ArrayList<>();

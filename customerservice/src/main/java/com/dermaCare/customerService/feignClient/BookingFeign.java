@@ -90,6 +90,9 @@ public interface BookingFeign {
 	@PostMapping("/api/v1/bookPhysioAppointment")
 	public  ResponseEntity<?> bookPhysioAppointment(@RequestBody BookingRequset req);
 	
+	@GetMapping("/api/v1/booking/completed/customerId/{customerId}")
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getCompletedBookingByCustomerId(@PathVariable String customerId);
+
 	//FALLBACK METHODS
 	
 //		default ResponseEntity<?> bookingServiceFallBack(Exception e){		 

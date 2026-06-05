@@ -69,5 +69,8 @@ public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndSt
         String branchId,
         String doctorId,
         String status);
+
+public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId);
+
 	   	
 }

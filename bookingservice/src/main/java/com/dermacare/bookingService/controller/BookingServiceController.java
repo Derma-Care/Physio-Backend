@@ -177,6 +177,22 @@ public class BookingServiceController {
 				HttpStatus.OK);
 
 	}
+	
+	
+	@GetMapping("/booking/completed/customerId/{customerId}")
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getCompletedBookingByCustomerId(@PathVariable String customerId) {
+
+		List<Map<String,Object>> response = service.CompletedbookingByCustomerId(customerId);
+		if (response == null || response.isEmpty()) {
+			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+					"No completed bookings found on customerId" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
+					HttpStatus.OK);
+		}
+		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+				"Booking fetched sucessfully on clinicId" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
+				HttpStatus.OK);
+
+	}
 
 	
 	@GetMapping("/appointments/patientId/{patientId}")	

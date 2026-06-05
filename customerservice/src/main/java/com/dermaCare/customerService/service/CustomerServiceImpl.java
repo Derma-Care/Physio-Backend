@@ -2032,6 +2032,34 @@ public ResponseEntity<?> getBookingsByCustomerId(String customerId) {
     }
 }
 
+
+@Override
+public ResponseEntity<?> getCompletedBookingsByCustomerId(String customerId) {
+
+    log.info("GET_BOOKINGS_BY_CUSTOMER :: START :: customerId={}", customerId);
+
+    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+
+    try {
+         return bookingFeign.getCompletedBookingByCustomerId(customerId);
+
+    } catch (FeignException e) {
+
+        log.error("GET_BOOKINGS_BY_CUSTOMER :: FEIGN_ERROR :: customerId={}",
+                customerId, e);
+
+        res = new ResponseStructure<>(
+                null,
+                ExtractFeignMessage.clearMessage(e),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                e.status()
+        );
+
+        return ResponseEntity.status(res.getStatusCode()).body(res);
+    }
+}
+
+
 @Override
 public ResponseEntity<?> getInprogressBookingsByCustomerId(String customerId) {
 
