@@ -96,13 +96,25 @@ public class PaymentServiceImpl implements PaymentService {
 
 		// ================= TOTAL =================
 		double total = calculateTotal(req.getTherapyWithSessions());
-		double discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : 0;
-		double totalDiscount = calculateTotalDiscount(req.getTherapyWithSessions());
-		double finalAmount = total - totalDiscount; // ✅ correct
+
+		double exerciseDiscount =
+		        calculateTotalDiscount(req.getTherapyWithSessions());
+
+		// Create payment history first
+		record.setPaymentHistory(new ArrayList<>());
+		record.getPaymentHistory().add(buildHistory(req));
+
+		// Total discount from payment history
+		double paymentHistoryDiscount =
+		        calculatePaymentHistoryDiscount(record.getPaymentHistory());
+
+//		double totalDiscount = exerciseDiscount + paymentHistoryDiscount;
+
+		double finalAmount = total - paymentHistoryDiscount;
 
 		record.setTotalAmount(total);
-		record.setDiscountAmount(totalDiscount); // ✅ correct
-		record.setFinalAmount(finalAmount);      // ✅ correct
+		record.setDiscountAmount(paymentHistoryDiscount);
+		record.setFinalAmount(finalAmount);
 		double amount = req.isPayAfterService() ? req.getAmount() : 0;
 
 		record.setPayAfterService(req.isPayAfterService());
@@ -147,64 +159,140 @@ public class PaymentServiceImpl implements PaymentService {
 	@Override
 	public PaymentRecordResponse updatePayment(PaymentRequest req) {
 
-		PaymentRecord record = repo.findByBookingId(req.getBookingId())
-				.orElseThrow(() -> new RuntimeException("Payment not found"));
-		record.setPayAfterService(req.isPayAfterService());
-		if (req.getTherapyWithSessions() != null) {
-			throw new RuntimeException("Do not send therapyWithSessions in update");
-		}
+	    PaymentRecord record = repo.findByBookingId(req.getBookingId())
+	            .orElseThrow(() -> new RuntimeException("Payment not found"));
 
-		record.setPayAfterService(req.isPayAfterService());
+	    if (req.getTherapyWithSessions() != null) {
+	        throw new RuntimeException("Do not send therapyWithSessions in update");
+	    }
 
-		if (req.isPayAfterService()) {
+	    record.setPayAfterService(req.isPayAfterService());
 
-		    if (req.getAmount() == null || req.getAmount() <= 0) {
-		        throw new RuntimeException("Amount must be greater than 0");
-		    }
-		}
+	    if (req.isPayAfterService()) {
+	        if (req.getAmount() == null || req.getAmount() <= 0) {
+	            throw new RuntimeException("Amount must be greater than 0");
+	        }
+	    }
 
-		double amount = req.isPayAfterService()
-		        ? req.getAmount()
-		        : 0;
+	    double amount = req.isPayAfterService() ? req.getAmount() : 0;
 
-		double currentPaid = record.getTotalPaid();
-		double finalAmount = record.getFinalAmount();
-		double remaining = finalAmount - currentPaid;
+	    // ================= APPLY ADDITIONAL DISCOUNT =================
+	    double additionalDiscount = (req.getDiscountAmount() != null) ? req.getDiscountAmount() : 0;
+	    if (additionalDiscount > 0) {
+	        double newFinalAmount = record.getFinalAmount() - additionalDiscount;
+	        record.setDiscountAmount(record.getDiscountAmount() + additionalDiscount);
+	        record.setFinalAmount(newFinalAmount);
+	    }
 
-		// ================= OVERPAYMENT PREVENTION =================
-		double newPaid = currentPaid + amount;
+	    double currentPaid = record.getTotalPaid();
+	    double finalAmount = record.getFinalAmount(); // ✅ use updated finalAmount
+	    double remaining = finalAmount - currentPaid;
 
-		
+	    // ================= OVERPAYMENT PREVENTION =================
+	    double newPaid = currentPaid + amount;
 
-		if (newPaid > finalAmount) {
-			throw new RuntimeException("Payment exceeds final amount. Remaining payable: " + remaining);
-		}
+	    if (newPaid > finalAmount) {
+	        throw new RuntimeException("Payment exceeds final amount. Remaining payable: " + remaining);
+	    }
 
-		// ================= UPDATE AMOUNT =================
-		record.setTotalPaid(newPaid);
-		record.setBalanceAmount(finalAmount - newPaid);
-		record.setPaymentStatus(getStatus(record));
+	    // ================= UPDATE AMOUNT =================
+	    record.setTotalPaid(newPaid);
+	    record.setBalanceAmount(finalAmount - newPaid);
+	    record.setPaymentStatus(getStatus(record));
 
-		// ================= DISTRIBUTE =================
-		distributePaymentToSessions(record);
+	    // ================= DISTRIBUTE =================
+	    distributePaymentToSessions(record);
 
-		// ================= APPLY PAYMENT LEVEL =================
-		applyPaymentLevel(record, req);
+	    // ================= APPLY PAYMENT LEVEL =================
+	    applyPaymentLevel(record, req);
 
-		// ================= SESSION COMPLETION =================
-		int completed = countCompleted(record);
-		record.setNoOfSessionCompletedCount(completed);
-		record.setNoOfSessionCompletedStatus(completed >= record.getTotalSessionCount());
+	    // ================= SESSION COMPLETION =================
+	    int completed = countCompleted(record);
+	    record.setNoOfSessionCompletedCount(completed);
+	    record.setNoOfSessionCompletedStatus(completed >= record.getTotalSessionCount());
 
-		// ================= HISTORY =================
-		record.getPaymentHistory().add(buildHistory(req));
+	    // ================= HISTORY =================
+	    record.getPaymentHistory().add(buildHistory(req));
 
-		// ================= STATUS PROPAGATION =================
-		updateStatuses(record);
+	    // ================= STATUS PROPAGATION =================
+	    updateStatuses(record);
 
-		return mapToResponse(repo.save(record));
+	    return mapToResponse(repo.save(record));
 	}
+//	@Override
+//	public PaymentRecordResponse updatePayment(PaymentRequest req) {
+//
+//		PaymentRecord record = repo.findByBookingId(req.getBookingId())
+//				.orElseThrow(() -> new RuntimeException("Payment not found"));
+//		record.setPayAfterService(req.isPayAfterService());
+//		if (req.getTherapyWithSessions() != null) {
+//			throw new RuntimeException("Do not send therapyWithSessions in update");
+//		}
+//
+//		record.setPayAfterService(req.isPayAfterService());
+//
+//		if (req.isPayAfterService()) {
+//
+//		    if (req.getAmount() == null || req.getAmount() <= 0) {
+//		        throw new RuntimeException("Amount must be greater than 0");
+//		    }
+//		}
+//
+//		double amount = req.isPayAfterService()
+//		        ? req.getAmount()
+//		        : 0;
+//
+//		double currentPaid = record.getTotalPaid();
+//		double finalAmount = record.getFinalAmount();
+//		double remaining = finalAmount - currentPaid;
+//
+//		// ================= OVERPAYMENT PREVENTION =================
+//		double newPaid = currentPaid + amount;
+//
+//		
+//
+//		if (newPaid > finalAmount) {
+//			throw new RuntimeException("Payment exceeds final amount. Remaining payable: " + remaining);
+//		}
+//
+//		// ================= UPDATE AMOUNT =================
+//		record.setTotalPaid(newPaid);
+//		record.setBalanceAmount(finalAmount - newPaid);
+//		record.setPaymentStatus(getStatus(record));
+//
+//		// ================= DISTRIBUTE =================
+//		distributePaymentToSessions(record);
+//
+//		// ================= APPLY PAYMENT LEVEL =================
+//		applyPaymentLevel(record, req);
+//
+//		// ================= SESSION COMPLETION =================
+//		int completed = countCompleted(record);
+//		record.setNoOfSessionCompletedCount(completed);
+//		record.setNoOfSessionCompletedStatus(completed >= record.getTotalSessionCount());
+//
+//		// ================= HISTORY =================
+//		record.getPaymentHistory().add(buildHistory(req));
+//		
+//
+//		// ================= STATUS PROPAGATION =================
+//		updateStatuses(record);
+//
+//		return mapToResponse(repo.save(record));
+//	}
 
+	private double calculatePaymentHistoryDiscount(List<PaymentHistory> paymentHistory) {
+
+	    if (paymentHistory == null || paymentHistory.isEmpty()) {
+	        return 0;
+	    }
+
+	    return paymentHistory.stream()
+	            .mapToDouble(ph -> ph.getDiscountAmount() != null
+	                    ? ph.getDiscountAmount()
+	                    : 0)
+	            .sum();
+	}
 	private double calculateTotalDiscount(List<TherapyWithSessions> data) {
 
 	    double totalDiscount = 0;
@@ -731,46 +819,104 @@ public class PaymentServiceImpl implements PaymentService {
 	// STATUS PROPAGATION
 	// ========================================================
 	private void updateStatuses(PaymentRecord record) {
+	    if (record.getTherapyWithSessions() == null) return;
 
-		if (record.getTherapyWithSessions() == null)
-			return;
+	    for (var pkg : record.getTherapyWithSessions()) {
+	        if (pkg.getPrograms() == null) continue;
+	        for (var prog : pkg.getPrograms()) {
+	            if (prog.getTherapyData() == null) continue;
+	            for (var therapy : prog.getTherapyData()) {
+	                if (therapy.getExercises() == null) continue;
+	                for (var ex : therapy.getExercises()) {
+	                    if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
+	                        ex.setPaymentStatus("Unpaid");
+	                        continue;
+	                    }
+	                    boolean allPaid = ex.getSessions().stream()
+	                            .allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
+	                    boolean anyPaid = ex.getSessions().stream()
+	                            .anyMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
 
-		for (var pkg : record.getTherapyWithSessions()) {
-			if (pkg.getPrograms() == null)
-				continue;
-			for (var prog : pkg.getPrograms()) {
-				if (prog.getTherapyData() == null)
-					continue;
-				for (var therapy : prog.getTherapyData()) {
-					if (therapy.getExercises() == null)
-						continue;
-					for (var ex : therapy.getExercises()) {
+	                    // ✅ Partial when some sessions paid, not all
+	                    if (allPaid) ex.setPaymentStatus("Paid");
+	                    else if (anyPaid) ex.setPaymentStatus("Partial");
+	                    else ex.setPaymentStatus("Unpaid");
+	                }
 
-						if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
-							ex.setPaymentStatus("Unpaid");
-							continue;
-						}
+	                boolean allTherapyPaid = therapy.getExercises().stream()
+	                        .allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
+	                boolean anyTherapyPaid = therapy.getExercises().stream()
+	                        .anyMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus())
+	                                || "Partial".equalsIgnoreCase(e.getPaymentStatus()));
 
-						boolean allPaid = ex.getSessions().stream()
-								.allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
-						ex.setPaymentStatus(allPaid ? "Paid" : "Unpaid");
-					}
+	                if (allTherapyPaid) therapy.setPaymentStatus("Paid");
+	                else if (anyTherapyPaid) therapy.setPaymentStatus("Partial");
+	                else therapy.setPaymentStatus("Unpaid");
+	            }
 
-					boolean allTherapyPaid = therapy.getExercises().stream()
-							.allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
-					therapy.setPaymentStatus(allTherapyPaid ? "Paid" : "Unpaid");
-				}
+	            boolean allProgPaid = prog.getTherapyData().stream()
+	                    .allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
+	            boolean anyProgPaid = prog.getTherapyData().stream()
+	                    .anyMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus())
+	                            || "Partial".equalsIgnoreCase(t.getPaymentStatus()));
 
-				boolean allProgPaid = prog.getTherapyData().stream()
-						.allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
-				prog.setPaymentStatus(allProgPaid ? "Paid" : "Unpaid");
-			}
+	            if (allProgPaid) prog.setPaymentStatus("Paid");
+	            else if (anyProgPaid) prog.setPaymentStatus("Partial");
+	            else prog.setPaymentStatus("Unpaid");
+	        }
 
-			boolean allPkgPaid = pkg.getPrograms().stream()
-					.allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
-			pkg.setPaymentStatus(allPkgPaid ? "Paid" : "Unpaid");
-		}
+	        boolean allPkgPaid = pkg.getPrograms().stream()
+	                .allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
+	        boolean anyPkgPaid = pkg.getPrograms().stream()
+	                .anyMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus())
+	                        || "Partial".equalsIgnoreCase(p.getPaymentStatus()));
+
+	        if (allPkgPaid) pkg.setPaymentStatus("Paid");
+	        else if (anyPkgPaid) pkg.setPaymentStatus("Partial");
+	        else pkg.setPaymentStatus("Unpaid");
+	    }
 	}
+//	private void updateStatuses(PaymentRecord record) {
+//
+//		if (record.getTherapyWithSessions() == null)
+//			return;
+//
+//		for (var pkg : record.getTherapyWithSessions()) {
+//			if (pkg.getPrograms() == null)
+//				continue;
+//			for (var prog : pkg.getPrograms()) {
+//				if (prog.getTherapyData() == null)
+//					continue;
+//				for (var therapy : prog.getTherapyData()) {
+//					if (therapy.getExercises() == null)
+//						continue;
+//					for (var ex : therapy.getExercises()) {
+//
+//						if (ex.getSessions() == null || ex.getSessions().isEmpty()) {
+//							ex.setPaymentStatus("Unpaid");
+//							continue;
+//						}
+//
+//						boolean allPaid = ex.getSessions().stream()
+//								.allMatch(s -> "Paid".equalsIgnoreCase(s.getPaymentStatus()));
+//						ex.setPaymentStatus(allPaid ? "Paid" : "Unpaid");
+//					}
+//
+//					boolean allTherapyPaid = therapy.getExercises().stream()
+//							.allMatch(e -> "Paid".equalsIgnoreCase(e.getPaymentStatus()));
+//					therapy.setPaymentStatus(allTherapyPaid ? "Paid" : "Unpaid");
+//				}
+//
+//				boolean allProgPaid = prog.getTherapyData().stream()
+//						.allMatch(t -> "Paid".equalsIgnoreCase(t.getPaymentStatus()));
+//				prog.setPaymentStatus(allProgPaid ? "Paid" : "Unpaid");
+//			}
+//
+//			boolean allPkgPaid = pkg.getPrograms().stream()
+//					.allMatch(p -> "Paid".equalsIgnoreCase(p.getPaymentStatus()));
+//			pkg.setPaymentStatus(allPkgPaid ? "Paid" : "Unpaid");
+//		}
+//	}
 
 	// ========================================================
 	// CALCULATE OVERALL STATUS
