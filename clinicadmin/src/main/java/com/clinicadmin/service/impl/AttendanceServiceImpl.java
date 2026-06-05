@@ -122,16 +122,16 @@ public class AttendanceServiceImpl implements AttendanceService {
                     act.setDescription(a.getDescription());
                     // 🔥 SAVE LATITUDE & LONGTITUDE
                     act.setLatitude(a.getLatitude());
-                    act.setLongitude(a.getLongtitude());
+                    act.setLongitude(a.getLongitude());
                     // 🔥 AUTO LOCATION FROM LAT LONG
                     if (a.getLatitude() != null
                             && !a.getLatitude().isBlank()
-                            && a.getLongtitude() != null
-                            && !a.getLongtitude().isBlank()) {
+                            && a.getLongitude() != null
+                            && !a.getLongitude().isBlank()) {
 
                         String location = getCityFromLatLong(
                                 a.getLatitude(),
-                                a.getLongtitude()
+                                a.getLongitude()
                         );
 
                         act.setLocation(location);
@@ -536,7 +536,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                             // 🔥 LAT LONG
                             ad.setLatitude(a.getLatitude());
-                           ad.setLongtitude(a.getLongitude());
+                           ad.setLongitude(a.getLongitude());
 
                             // 🔥 AUTO LOCATION FROM LAT LONG
                             if (a.getLatitude() != null
@@ -791,7 +791,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 // 🔥 LAT LONG
                 act.setLatitude(a.getLatitude());
-                act.setLongtitude(a.getLongitude());
+                act.setLongitude(a.getLongitude());
 
                 // 🔥 AUTO CONVERT LOCATION
                 if (a.getLatitude() != null
