@@ -80,7 +80,7 @@ management:
 # AWS S3
 # ===============================
 aws:
-  accessKeyId: 
+  accessKeyId:  
   secretAccessKey: 
   region: ap-south-1
   s3:
