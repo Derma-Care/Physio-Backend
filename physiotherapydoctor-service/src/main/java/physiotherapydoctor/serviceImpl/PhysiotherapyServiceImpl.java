@@ -2177,13 +2177,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	                            record,
 	                            new TypeReference<Map<String, Object>>() {
 	                            }));
-	            visitHistory.add(result);}
+	            visitHistory.add(result);
+                     break;}}
 	        response.setSuccess(true);
 	        response.setData(visitHistory);
 	        response.setMessage("Visit history fetched successfully");
 	        response.setStatus(200);
-            break;
-	        }}catch (Exception e) {
+	        }catch (Exception e) {
 	        response.setSuccess(false);
 	        response.setData(null);
 	        response.setMessage("Something went wrong");
