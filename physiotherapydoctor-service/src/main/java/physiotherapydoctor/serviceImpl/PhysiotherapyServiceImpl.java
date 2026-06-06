@@ -2127,59 +2127,68 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	public Response getFirstVisitHistory(String doctorId, String patientId, String bookingId, String clinicId,
-			String branchId) {
+	        String branchId) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		try {
+	    try {
 
-			List<PhysiotherapyRecord> records = repository
-					.findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdAndClinicIdAndBranchId(doctorId,
-							patientId, bookingId, clinicId, branchId);
+	        List<PhysiotherapyRecord> records = repository
+	                .findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdAndClinicIdAndBranchId(
+	                        doctorId, patientId, bookingId, clinicId, branchId);
 
-			if (records == null || records.isEmpty()) {
+	        if (records == null || records.isEmpty()) {
 
-				response.setSuccess(true);
-				response.setData(null);
-				response.setMessage("No visit history found");
-				response.setStatus(200);
+	            response.setSuccess(true);
+	            response.setData(null);
+	            response.setMessage("No visit history found");
+	            response.setStatus(200);
 
-				return response;
-			}
+	            return response;
+	        }
 
-			// Getting only 0th index record
-			PhysiotherapyRecord record = records.get(0);
+	        ObjectMapper mapper = new ObjectMapper();
 
-			ObjectMapper mapper = new ObjectMapper();
+	        mapper.registerModule(new JavaTimeModule());
 
-			mapper.setDefaultPropertyInclusion(
-					JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+	        mapper.setDefaultPropertyInclusion(
+	                JsonInclude.Value.construct(
+	                        JsonInclude.Include.NON_NULL,
+	                        JsonInclude.Include.NON_NULL));
 
-			Map<String, Object> result = new LinkedHashMap<>();
+	        List<Map<String, Object>> visitHistory = new ArrayList<>();
 
-			result.put("visitNumber", "Visit 1");
-			result.put("visitDate", record.getCreatedAt());
-			result.put("visitTime", record.getCreatedTime());
+	        for (int i = 0; i < records.size(); i++) {
 
-			result.put("physiotherapyDoctorData", mapper.convertValue(record, new TypeReference<Map<String, Object>>() {
-			}));
+	            PhysiotherapyRecord record = records.get(i);
+	            
+	            if(record.getTreatmentPlan() == null) {
+	            	continue;}
+	            if(record.getTreatmentPlan() != null) {
+	            Map<String, Object> result = new LinkedHashMap<>();
 
-			response.setSuccess(true);
-			response.setData(result);
-			response.setMessage("First visit history fetched successfully");
-			response.setStatus(200);
+	            result.put("visitNumber", "Visit " + (i + 1));
+	            result.put("visitDate", record.getCreatedAt());
+	            result.put("visitTime", record.getCreatedTime());
 
-			return response;
-
-		} catch (Exception e) {
-
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Something went wrong");
-			response.setStatus(500);
-
-			return response;
-		}
+	            result.put(
+	                    "physiotherapyDoctorData",
+	                    mapper.convertValue(
+	                            record,
+	                            new TypeReference<Map<String, Object>>() {
+	                            }));
+	            visitHistory.add(result);}
+	        response.setSuccess(true);
+	        response.setData(visitHistory);
+	        response.setMessage("Visit history fetched successfully");
+	        response.setStatus(200);
+            break;
+	        }}catch (Exception e) {
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Something went wrong");
+	        response.setStatus(500);	        
+	    } return response;
 	}
 
 	public Response getVisitHistoryByDoctor(String doctorId, String patientId, String bookingId) {
