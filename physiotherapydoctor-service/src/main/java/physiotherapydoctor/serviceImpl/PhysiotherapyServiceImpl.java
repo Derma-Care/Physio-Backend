@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -764,7 +766,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		List<PhysiotherapyRecord> records = repository
 				.findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingId(clinicId, branchId, patientId, bookingId);
-System.out.println(records);
+///System.out.println(records);
 		if (records == null || records.isEmpty()) {
 			response.setSuccess(false);
 			response.setMessage("No records found");
@@ -1558,65 +1560,93 @@ System.out.println(records);
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId,
 			String bookingId) {
 		try {
-			Response fetchedResponse = getByWithoutTherapistRecordId(clinicId, branchId, patientId, bookingId);
+		    Response fetchedResponse = getByWithoutTherapistRecordId(
+		            clinicId, branchId, patientId, bookingId);
 
-			if (fetchedResponse == null || fetchedResponse.getData() == null) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(new Response(false, null, "Record not found", 404));
-			}
+		    if (fetchedResponse == null || fetchedResponse.getData() == null) {
+		        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+		                .body(new Response(false, null, "Record not found", 404));
+		    }
 
-			// ✅ SAFE CAST HANDLING
-			PhysiotherapyRecord record = extractRecord(fetchedResponse.getData());
+		    List<PhysiotherapyRecord> records =
+		            extractRecords(fetchedResponse.getData());
 
-			if (record == null || record.getTherapySessions() == null || record.getTherapySessions().isEmpty()) {
-				return ResponseEntity.status(HttpStatus.NO_CONTENT)
-						.body(new Response(false, null, "No therapy sessions found", 204));
-			}
+		    if (records == null || records.isEmpty()) {
+		        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+		                .body(new Response(false, null, "No records found", 204));
+		    }
 
-			List<Object> result = new ArrayList<>();
+		    List<Object> result = new ArrayList<>();
 
-			for (TherapySession session : record.getTherapySessions()) {
+		    for (PhysiotherapyRecord record : records) {
 
-				String serviceType = session.getServiceType();
-				if (serviceType == null)
-					continue;
+		        if (record.getTherapySessions() == null ||
+		            record.getTherapySessions().isEmpty()) {
+		            continue;
+		        }
 
-				switch (serviceType.toLowerCase()) {
+		        for (TherapySession session : record.getTherapySessions()) {
 
-				case "package":
-					result.add(handlePackage(record, session));
-					break;
+		            String serviceType = session.getServiceType();
 
-				case "program":
-					result.add(handleProgram(record, session));
-					break;
+		            if (serviceType == null || serviceType.isBlank()) {
+		                continue;
+		            }
 
-				case "therapy":
-					result.add(handleTherapy(record, session));
-					break;
+		            switch (serviceType.toLowerCase()) {
 
-				case "exercise":
-					result.add(handleExercise(record, session));
-					break;
+		            case "package":
+		                result.add(handlePackage(record, session));
+		                break;
 
-				default:
-					throw new RuntimeException("Invalid service type: " + serviceType);
-				}
-			}
+		            case "program":
+		                result.add(handleProgram(record, session));
+		                break;
 
-			return ResponseEntity.ok(new Response(true, result, "Calculations fetched successfully", 200));
+		            case "therapy":
+		                result.add(handleTherapy(record, session));
+		                break;
+
+		            case "exercise":
+		                result.add(handleExercise(record, session));
+		                break;
+
+		            default:
+		                throw new RuntimeException(
+		                        "Invalid service type: " + serviceType);
+		            }
+		        }
+		    }
+
+		    if (result.isEmpty()) {
+		        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+		                .body(new Response(false, null,
+		                        "No calculations available", 204));
+		    }
+
+		    return ResponseEntity.ok(
+		            new Response(true, result,
+		                    "Calculations fetched successfully", 200));
+
+		} catch (IllegalArgumentException ex) {
+
+		    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+		            .body(new Response(false, null,
+		                    ex.getMessage(), 400));
 
 		} catch (RuntimeException ex) {
 
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new Response(false, null, ex.getMessage(), 400));
+		    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+		            .body(new Response(false, null,
+		                    ex.getMessage(), 400));
 
 		} catch (Exception ex) {
 
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(new Response(false, null, "Something went wrong", 500));
-		}
-	}
-
+		    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+		            .body(new Response(false, null,
+		                    "Something went wrong", 500));
+		}}
+		
 	private PackageCalculation handlePackage(PhysiotherapyRecord record, TherapySession session) {
 
 		PackageCalculation dto = new PackageCalculation();
@@ -1805,22 +1835,19 @@ System.out.println(records);
 //    }
 //}
 
-	@SuppressWarnings("unchecked")
-	private PhysiotherapyRecord extractRecord(Object data) {
+	private List<PhysiotherapyRecord> extractRecords(Object data) {
 
-		if (data instanceof PhysiotherapyRecord) {
-			return (PhysiotherapyRecord) data;
-		}
-
-		if (data instanceof List<?>) {
-			List<?> list = (List<?>) data;
-
-			if (!list.isEmpty() && list.get(0) instanceof PhysiotherapyRecord) {
-				return (PhysiotherapyRecord) list.get(0);
-			}
-		}
-
-		throw new RuntimeException("Invalid data format: expected PhysiotherapyRecord");
+	    ObjectMapper objectMapper = new ObjectMapper();
+	    objectMapper.registerModule(new JavaTimeModule());
+	    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+	    try {
+	        return objectMapper.convertValue(
+	                data,
+	                new TypeReference<List<PhysiotherapyRecord>>() {
+	                });
+	    } catch (Exception e) {
+	        throw new RuntimeException("Unable to convert data to List<PhysiotherapyRecord>", e);
+	    }
 	}
 
 	@Override
