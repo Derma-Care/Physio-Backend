@@ -655,6 +655,11 @@ public class AttendanceServiceImpl implements AttendanceService {
         entity.setBranchId(dto.getBranchId());
         entity.setDate(dto.getDate());
 //        entity.setDescription(dto.getDescription());
+        entity.setRole(
+        	    dto.getRole() != null
+        	        ? dto.getRole().trim().toUpperCase()
+        	        : null
+        	);
 
         // 🔹 LOGIN
         if (dto.getLogin() != null) {
