@@ -19,7 +19,7 @@ public interface FeedbackDetailsServcie {
 
 	Response deleteFeedback(String id);
 
-	Response getDoctorFeedbackSummary(String clinicId, String doctorId);
+//	Response getDoctorFeedbackSummary(String clinicId, String doctorId);
 
 
 }

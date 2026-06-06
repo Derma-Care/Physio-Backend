@@ -13,6 +13,6 @@ public interface FeedbackDetailsRepository
 
 	List<FeedbackDetails> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
 
-	List<FeedbackDetails> findByClinicIdAndDoctorId(String clinicId, String doctorId);
+//	List<FeedbackDetails> findByClinicIdAndDoctorId(String clinicId, String doctorId);
 
 }

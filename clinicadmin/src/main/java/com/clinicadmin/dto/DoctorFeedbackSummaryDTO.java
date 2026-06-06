@@ -1,21 +1,13 @@
 package com.clinicadmin.dto;
 
-import java.util.List;
-
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class DoctorFeedbackSummaryDTO {
-
     private String doctorId;
-    private String doctorName;
     private String clinicId;
-
-    private long totalPatientsRated;
+    private int totalPatientsRated;
     private double averageRating;
-
-    private List<PatientRatingDTO> patients;
-
-
-
+    private List<DoctorPatientFeedbackDTO> patients;
 }

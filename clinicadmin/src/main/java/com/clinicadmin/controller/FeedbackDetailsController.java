@@ -140,14 +140,14 @@ public class FeedbackDetailsController {
         }
     }
     
-    @GetMapping("/getDoctorFeedbackSummaryByCinicIdAndDoctorId/{clinicId}/{doctorId}")
-    public ResponseEntity<Response> getDoctorFeedbackSummary(
-            @PathVariable String clinicId,
-            @PathVariable String doctorId) {
-
-        return ResponseEntity.ok(
-        		service.getDoctorFeedbackSummary(
-                        clinicId,
-                        doctorId));
-    }
+//    @GetMapping("/getDoctorFeedbackSummaryByCinicIdAndDoctorId/{clinicId}/{doctorId}")
+//    public ResponseEntity<Response> getDoctorFeedbackSummary(
+//            @PathVariable String clinicId,
+//            @PathVariable String doctorId) {
+//
+//        return ResponseEntity.ok(
+//        		service.getDoctorFeedbackSummary(
+//                        clinicId,
+//                        doctorId));
+//    }
 }

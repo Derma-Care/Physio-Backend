@@ -965,109 +965,109 @@ public class FeedbackDetailsServiceImpl
         return response;
     }
     
-    @Override
-    public Response getDoctorFeedbackSummary(
-            String clinicId,
-            String doctorId) {
-
-        Response response = new Response();
-
-        try {
-
-            List<FeedbackDetails> feedbacks =
-                    repository.findByClinicIdAndDoctorId(
-                            clinicId,
-                            doctorId);
-
-            if (feedbacks.isEmpty()) {
-
-                response.setSuccess(false);
-                response.setStatus(404);
-                response.setMessage("No feedback found");
-                return response;
-            }
-
-            DoctorFeedbackSummaryDTO dto =
-                    new DoctorFeedbackSummaryDTO();
-
-            FeedbackDetails first = feedbacks.get(0);
-
-            dto.setClinicId(clinicId);
-            dto.setDoctorId(first.getDoctorId());
-            dto.setDoctorName(first.getDoctorName());
-
-            // Total persons given rating
-            long totalRatedPersons =
-                    feedbacks.stream()
-                            .filter(f ->
-                                    f.getRating() != null
-                                    && !f.getRating().trim().isEmpty())
-                            .count();
-
-            dto.setTotalPatientsRated(totalRatedPersons);
-
-            // Average Rating
-            double avgRating =
-                    feedbacks.stream()
-                            .filter(f ->
-                                    f.getRating() != null
-                                    && !f.getRating().trim().isEmpty())
-                            .mapToDouble(f ->
-                                    Double.parseDouble(f.getRating()))
-                            .average()
-                            .orElse(0.0);
-
-            dto.setAverageRating(
-                    Math.round(avgRating * 100.0) / 100.0);
-
-            // Patients who gave ratings
-            List<PatientRatingDTO> patients =
-                    feedbacks.stream()
-                            .filter(f ->
-                                    f.getRating() != null
-                                    && !f.getRating().trim().isEmpty())
-                            .map(f -> {
-                                PatientRatingDTO patient =
-                                        new PatientRatingDTO();
-
-                                patient.setPatientId(
-                                        f.getPatientId());
-
-                                patient.setPatientName(
-                                        f.getPatientName());
-
-                                patient.setMobileNumber(
-                                        f.getMobileNumber());
-
-                                patient.setRating(
-                                        f.getRating());
-
-                                patient.setWhatWentWell(
-                                        f.getWhatWentWell());
-
-                                patient.setImprovements(
-                                        f.getImprovements());
-
-                                return patient;
-                            })
-                            .toList();
-
-            dto.setPatients(patients);
-
-            response.setSuccess(true);
-            response.setStatus(200);
-            response.setMessage(
-                    "Doctor feedback summary fetched successfully");
-            response.setData(dto);
-
-        } catch (Exception e) {
-
-            response.setSuccess(false);
-            response.setStatus(500);
-            response.setMessage(e.getMessage());
-            response.setData(null);
-        }
-
-        return response;
-    }
+//    @Override
+//    public Response getDoctorFeedbackSummary(
+//            String clinicId,
+//            String doctorId) {
+//
+//        Response response = new Response();
+//
+//        try {
+//
+//            List<FeedbackDetails> feedbacks =
+//                    repository.findByClinicIdAndDoctorId(
+//                            clinicId,
+//                            doctorId);
+//
+//            if (feedbacks.isEmpty()) {
+//
+//                response.setSuccess(false);
+//                response.setStatus(404);
+//                response.setMessage("No feedback found");
+//                return response;
+//            }
+//
+//            DoctorFeedbackSummaryDTO dto =
+//                    new DoctorFeedbackSummaryDTO();
+//
+//            FeedbackDetails first = feedbacks.get(0);
+//
+//            dto.setClinicId(clinicId);
+//            dto.setDoctorId(first.getDoctorId());
+//            dto.setDoctorName(first.getDoctorName());
+//
+//            // Total persons given rating
+//            long totalRatedPersons =
+//                    feedbacks.stream()
+//                            .filter(f ->
+//                                    f.getRating() != null
+//                                    && !f.getRating().trim().isEmpty())
+//                            .count();
+//
+//            dto.setTotalPatientsRated(totalRatedPersons);
+//
+//            // Average Rating
+//            double avgRating =
+//                    feedbacks.stream()
+//                            .filter(f ->
+//                                    f.getRating() != null
+//                                    && !f.getRating().trim().isEmpty())
+//                            .mapToDouble(f ->
+//                                    Double.parseDouble(f.getRating()))
+//                            .average()
+//                            .orElse(0.0);
+//
+//            dto.setAverageRating(
+//                    Math.round(avgRating * 100.0) / 100.0);
+//
+//            // Patients who gave ratings
+//            List<PatientRatingDTO> patients =
+//                    feedbacks.stream()
+//                            .filter(f ->
+//                                    f.getRating() != null
+//                                    && !f.getRating().trim().isEmpty())
+//                            .map(f -> {
+//                                PatientRatingDTO patient =
+//                                        new PatientRatingDTO();
+//
+//                                patient.setPatientId(
+//                                        f.getPatientId());
+//
+//                                patient.setPatientName(
+//                                        f.getPatientName());
+//
+//                                patient.setMobileNumber(
+//                                        f.getMobileNumber());
+//
+//                                patient.setRating(
+//                                        f.getRating());
+//
+//                                patient.setWhatWentWell(
+//                                        f.getWhatWentWell());
+//
+//                                patient.setImprovements(
+//                                        f.getImprovements());
+//
+//                                return patient;
+//                            })
+//                            .toList();
+//
+//            dto.setPatients(patients);
+//
+//            response.setSuccess(true);
+//            response.setStatus(200);
+//            response.setMessage(
+//                    "Doctor feedback summary fetched successfully");
+//            response.setData(dto);
+//
+//        } catch (Exception e) {
+//
+//            response.setSuccess(false);
+//            response.setStatus(500);
+//            response.setMessage(e.getMessage());
+//            response.setData(null);
+//        }
+//
+//        return response;
+//    }
 }

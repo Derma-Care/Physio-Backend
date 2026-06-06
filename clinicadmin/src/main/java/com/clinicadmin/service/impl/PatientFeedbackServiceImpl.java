@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.DoctorFeedbackDTO;
+import com.clinicadmin.dto.DoctorFeedbackSummaryDTO;
+import com.clinicadmin.dto.DoctorPatientFeedbackDTO;
 import com.clinicadmin.dto.HospitalFeedbackDTO;
 import com.clinicadmin.dto.PatientFeedbackDTO;
 import com.clinicadmin.dto.ReceptionistFeedbackDTO;
@@ -464,5 +466,49 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
         entity.setRating(dto.getRating());
 
         return entity;
+    }
+    
+    @Override
+    public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
+
+        List<PatientFeedback> feedbacks =
+                repository.findByClinicIdAndDoctorFeedbackTargetId(clinicId, doctorId);
+
+        List<DoctorPatientFeedbackDTO> patients = feedbacks.stream()
+                .map(f -> {
+                    DoctorPatientFeedbackDTO p = new DoctorPatientFeedbackDTO();
+                    p.setPatientId(f.getPatientId());
+                    p.setPatientName(f.getPatientName());
+                    p.setMobileNumber(f.getPatientPhone());
+                    p.setRating(f.getDoctorFeedback().getRating());
+                    p.setWhatWentWell(f.getDoctorFeedback().getFeedbackText());
+                    return p;
+                })
+                .collect(Collectors.toList());
+
+        double averageRating = patients.stream()
+                .mapToDouble(p -> {
+                    try { return Double.parseDouble(p.getRating()); }
+                    catch (NumberFormatException e) { return 0.0; }
+                })
+                .average()
+                .orElse(0.0);
+
+        averageRating = Math.round(averageRating * 10.0) / 10.0;
+
+        DoctorFeedbackSummaryDTO summary = new DoctorFeedbackSummaryDTO();
+        summary.setDoctorId(doctorId);
+        summary.setClinicId(clinicId);
+        summary.setTotalPatientsRated(patients.size());
+        summary.setAverageRating(averageRating);
+        summary.setPatients(patients);
+
+        Response response = new Response();
+        response.setSuccess(true);
+        response.setMessage("Doctor feedback summary fetched successfully");
+        response.setStatus(HttpStatus.OK.value());
+        response.setData(summary);
+
+        return response;
     }
 }

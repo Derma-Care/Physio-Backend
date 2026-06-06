@@ -79,4 +79,12 @@ public class PatientFeedbackController {
                 response,
                 HttpStatus.valueOf(response.getStatus()));
     }
+    
+    @GetMapping("/getDoctorFeedbackSummaryByCinicIdAndDoctorId/{clinicId}/{doctorId}")
+    public ResponseEntity<Response> getDoctorFeedbackSummary(
+            @PathVariable String doctorId,
+            @PathVariable String clinicId) {
+
+        return ResponseEntity.ok(service.getDoctorFeedbackSummary(doctorId, clinicId));
+    }
 }

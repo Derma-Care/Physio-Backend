@@ -60,20 +60,36 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (dto.getUserId() == null || dto.getDate() == null) {
                 throw new RuntimeException("userId and date are required");
             }
-            if (dto.getLogin() != null
-                    && dto.getLogin().getLatitude() != null
-                    && !dto.getLogin().getLatitude().isBlank()
-                    && dto.getLogin().getLongitude() != null
-                    && !dto.getLogin().getLongitude().isBlank()) {
+
+            // ✅ DOCTOR — only clinic check, skip branch & distance
+            if ("doctor".equalsIgnoreCase(dto.getRole())) {
 
                 validateLoginDistance(
                         dto.getClinicId(),
                         dto.getBranchId(),
-                        dto.getLogin().getLatitude(),
-                        dto.getLogin().getLongitude()
+                        dto.getRole(),
+                        null,
+                        null
                 );
-            }
 
+            } else {
+
+                // ✅ OTHERS — full validation (clinic + branch + distance)
+                if (dto.getLogin() != null
+                        && dto.getLogin().getLatitude() != null
+                        && !dto.getLogin().getLatitude().isBlank()
+                        && dto.getLogin().getLongitude() != null
+                        && !dto.getLogin().getLongitude().isBlank()) {
+
+                    validateLoginDistance(
+                            dto.getClinicId(),
+                            dto.getBranchId(),
+                            dto.getRole(),
+                            dto.getLogin().getLatitude(),
+                            dto.getLogin().getLongitude()
+                    );
+                }
+            }
 
             Optional<Attendance> existingOpt =
                     repo.findByUserIdAndDate(dto.getUserId(), dto.getDate());
@@ -98,12 +114,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 } else {
                     entity.setStatus(null);
                 }
-                
-                
-                
             }
-            
-         
 
             // 🔥 ACTIVITIES
             if (dto.getActivities() != null && !dto.getActivities().isEmpty()) {
@@ -120,7 +131,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     act.setActivity(a.getActivity());
                     act.setDuration(a.getDuration());
                     act.setDescription(a.getDescription());
-                    // 🔥 SAVE LATITUDE & LONGTITUDE
+                    // 🔥 SAVE LATITUDE & LONGITUDE
                     act.setLatitude(a.getLatitude());
                     act.setLongitude(a.getLongitude());
                     // 🔥 AUTO LOCATION FROM LAT LONG
@@ -158,14 +169,13 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         } catch (Exception e) {
 
-            response.setSuccess(true);
+            response.setSuccess(false);  
             response.setMessage(e.getMessage());
-            response.setStatus(200);
+            response.setStatus(400);     
         }
 
         return response;
     }
-
     @Override
     public Response updateActivity(AttendanceDTO dto) {
 
@@ -917,10 +927,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     private void validateLoginDistance(
             String clinicId,
             String branchId,
+            String role, 
             String userLatitude,
             String userLongitude) {
-
-        try {
+    	
+      
             // 🔥 Get complete clinic details
             ResponseEntity<Response> responseEntity =
                     adminServiceClient.getClinicById(clinicId);
@@ -930,6 +941,18 @@ public class AttendanceServiceImpl implements AttendanceService {
                     || responseEntity.getBody().getData() == null) {
                 throw new RuntimeException("Clinic location not found");
             }
+            
+            try {
+    	        // 🔥 DOCTOR — skip all distance validation
+    	       
+				if ("doctor".equalsIgnoreCase(role)) {
+    	            return;
+    	        }
+				
+				  // ✅ BRANCH ID CHECK — required for non-doctors
+		        if (branchId == null || branchId.isBlank()) {
+		            throw new RuntimeException("branchId is required");
+		        }
 
             // 🔥 Convert clinic data to Map
             Map<String, Object> clinic =
@@ -1016,6 +1039,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             );
         }
     }
+    
     private double calculateDistanceMeters(
             double lat1,
             double lon1,

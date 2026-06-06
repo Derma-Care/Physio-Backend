@@ -21,6 +21,8 @@ public interface PatientFeedbackService {
 
 	Response getByClinicIdAndBranchId(String clinicId, String branchId);
 
+	Response getDoctorFeedbackSummary(String doctorId, String clinicId);
+
 
 
     

@@ -13,4 +13,9 @@ public interface PatientFeedbackRepository extends MongoRepository<PatientFeedba
 
 	List<PatientFeedback> findByClinicIdAndBranchId(String clinicId, String branchId);
 
+    List<PatientFeedback> findByClinicIdAndDoctorFeedbackTargetId(
+            String clinicId,
+            String targetId);
+
+
 }
