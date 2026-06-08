@@ -256,4 +256,13 @@ public class PhysiotherapyController {
 	 		return service.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status);
 	 		   
 	 	 }
-}
+	    
+	    @GetMapping("/investigations/{bookingId}/{patientId}")
+	    public ResponseEntity<Response> getInvestigations(
+	            @PathVariable String bookingId,
+	            @PathVariable String patientId) {
+
+	        Response response = service.getInvestigations(bookingId, patientId);
+
+	        return ResponseEntity.status(response.getStatus()).body(response);
+	    }}

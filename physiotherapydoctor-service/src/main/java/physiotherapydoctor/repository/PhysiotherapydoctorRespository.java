@@ -61,4 +61,6 @@ public interface PhysiotherapydoctorRespository extends MongoRepository<Physioth
 
 	List<PhysiotherapyRecord> findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdOrderByCreatedAtAsc(
 			String doctorId, String patientId, String bookingId);
+
+	List<PhysiotherapyRecord> findByBookingIdAndPatientInfoPatientId(String bookingId, String patientId);
 }

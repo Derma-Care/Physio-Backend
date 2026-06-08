@@ -79,6 +79,9 @@ public interface PhysiotherapyService {
 	 
 	 public String getByBookingId(String id);
 
+	 public Response getInvestigations(String bookingId, String patientId);
+
+		   
 			
 
 

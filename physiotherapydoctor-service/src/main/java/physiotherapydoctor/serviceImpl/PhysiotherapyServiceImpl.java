@@ -33,6 +33,7 @@ import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.DoctorsDTO;
 import physiotherapydoctor.dto.Exercise;
 import physiotherapydoctor.dto.ExerciseCalculations;
+import physiotherapydoctor.dto.Investigation;
 import physiotherapydoctor.dto.PackageCalculation;
 import physiotherapydoctor.dto.PatientHistoryResponse;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
@@ -2539,4 +2540,42 @@ public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStat
               return ResponseEntity.status(ex.status()).body(res);
           }
       }
+	  
+	  
+	  
+	  public Response getInvestigations(String bookingId, String patientId) {
+
+		    Response response = new Response();
+
+		    try {
+
+		        List<PhysiotherapyRecord> records =
+		                repository.findByBookingIdAndPatientInfoPatientId(
+		                        bookingId, patientId);
+
+		        if (records == null || records.isEmpty()) {
+		            response.setSuccess(false);
+		            response.setStatus(404);
+		            response.setMessage("No records found");
+		            return response;
+		        }
+
+		        List<Investigation> investigations = records.stream()
+		                .map(PhysiotherapyRecord::getInvestigation)
+		                .filter(Objects::nonNull)
+		                .toList();
+
+		        response.setSuccess(true);
+		        response.setStatus(200);
+		        response.setMessage("Investigations fetched successfully");
+		        response.setData(investigations);
+
+		    } catch (Exception e) {
+		        response.setSuccess(false);
+		        response.setStatus(500);
+		        response.setMessage(e.getMessage());
+		    }
+
+		    return response;
+		}
 }
