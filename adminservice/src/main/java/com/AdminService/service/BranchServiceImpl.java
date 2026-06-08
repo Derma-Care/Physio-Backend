@@ -386,29 +386,74 @@ public class BranchServiceImpl implements BranchService {
     // ---------------------- UPDATE BRANCH ----------------------
     @Override
     public Response updateBranch(String branchId, BranchDTO branchDto) {
-        Response response = new Response();
-        try {
-            Optional<Branch> existingOpt = branchRepository.findByBranchId(branchId);
-            if (existingOpt.isPresent()) {
-                Branch branch = existingOpt.get();
-                branch.setClinicId(branchDto.getClinicId() != null ? branchDto.getClinicId() : branch.getClinicId());
-                branch.setBranchName(branchDto.getBranchName() != null ? branchDto.getBranchName() : branch.getBranchName());
-                branch.setAddress(branchDto.getAddress() != null ? branchDto.getAddress() : branch.getAddress());
-                branch.setCity(branchDto.getCity() != null ? branchDto.getCity() : branch.getCity());
-                branch.setContactNumber(branchDto.getContactNumber() != null ? branchDto.getContactNumber() : branch.getContactNumber());
-                branch.setEmail(branchDto.getEmail() != null ? branchDto.getEmail() : branch.getEmail());
-                branch.setLatitude(branchDto.getLatitude() != null ? branchDto.getLatitude() : branch.getLatitude());
-                branch.setLongitude(branchDto.getLongitude() != null ? branchDto.getLongitude() : branch.getLongitude());
-                branch.setVirtualClinicTour(branchDto.getVirtualClinicTour() != null ? branchDto.getVirtualClinicTour() : branch.getVirtualClinicTour());
-                branch.setBranchOverallRating(branchDto.getBranchOverallRating());
 
+        Response response = new Response();
+
+        try {
+
+            Optional<Branch> existingOpt = branchRepository.findByBranchId(branchId);
+
+            if (existingOpt.isPresent()) {
+
+                Branch branch = existingOpt.get();
+
+                if (branchDto.getClinicId() != null && !branchDto.getClinicId().isBlank()) {
+                    branch.setClinicId(branchDto.getClinicId());
+                }
+
+                if (branchDto.getBranchName() != null && !branchDto.getBranchName().isBlank()) {
+                    branch.setBranchName(branchDto.getBranchName());
+                }
+
+                if (branchDto.getAddress() != null && !branchDto.getAddress().isBlank()) {
+                    branch.setAddress(branchDto.getAddress());
+                }
+
+                if (branchDto.getCity() != null && !branchDto.getCity().isBlank()) {
+                    branch.setCity(branchDto.getCity());
+                }
+
+                if (branchDto.getContactNumber() != null && !branchDto.getContactNumber().isBlank()) {
+                    branch.setContactNumber(branchDto.getContactNumber());
+                }
+
+                if (branchDto.getEmail() != null && !branchDto.getEmail().isBlank()) {
+                    branch.setEmail(branchDto.getEmail());
+                }
+
+                if (branchDto.getLatitude() != null && !branchDto.getLatitude().isBlank()) {
+                    branch.setLatitude(branchDto.getLatitude());
+                }
+
+                if (branchDto.getLongitude() != null && !branchDto.getLongitude().isBlank()) {
+                    branch.setLongitude(branchDto.getLongitude());
+                }
+
+                if (branchDto.getVirtualClinicTour() != null
+                        && !branchDto.getVirtualClinicTour().isBlank()) {
+                    branch.setVirtualClinicTour(branchDto.getVirtualClinicTour());
+                }
+
+                // For primitive double
+                if (branchDto.getBranchOverallRating() != 0.0) {
+                    branch.setBranchOverallRating(branchDto.getBranchOverallRating());
+                }
+
+                // Save Branch Collection
                 Branch updatedBranch = branchRepository.save(branch);
 
-                // ------------------ Update branch in clinic ------------------
-                Clinic clinic = clinicRep.findByHospitalId(branch.getClinicId());
+                // Update embedded branch inside Clinic document
+                Clinic clinic = clinicRep.findByHospitalId(updatedBranch.getClinicId());
+
                 if (clinic != null && clinic.getBranches() != null) {
-                    for (Branch b : clinic.getBranches()) {
-                        if (b.getBranchId().equals(branchId)) {
+
+                    List<Branch> clinicBranches = clinic.getBranches();
+
+                    for (Branch b : clinicBranches) {
+
+                        if (branchId.equals(b.getBranchId())) {
+
+                            b.setClinicId(updatedBranch.getClinicId());
                             b.setBranchName(updatedBranch.getBranchName());
                             b.setAddress(updatedBranch.getAddress());
                             b.setCity(updatedBranch.getCity());
@@ -418,26 +463,34 @@ public class BranchServiceImpl implements BranchService {
                             b.setLongitude(updatedBranch.getLongitude());
                             b.setVirtualClinicTour(updatedBranch.getVirtualClinicTour());
                             b.setBranchOverallRating(updatedBranch.getBranchOverallRating());
+
                             break;
                         }
                     }
+
+                    clinic.setBranches(clinicBranches);
                     clinicRep.save(clinic);
                 }
 
-                response.setMessage("Branch updated successfully");
                 response.setSuccess(true);
                 response.setStatus(200);
+                response.setMessage("Branch updated successfully");
                 response.setData(convertEntityToDto(updatedBranch));
+
             } else {
-                response.setMessage("Branch not found");
+
                 response.setSuccess(false);
                 response.setStatus(404);
+                response.setMessage("Branch not found");
             }
+
         } catch (Exception e) {
-            response.setMessage("Error updating branch: " + e.getMessage());
+
             response.setSuccess(false);
             response.setStatus(500);
+            response.setMessage("Error updating branch: " + e.getMessage());
         }
+
         return response;
     }
     // ---------------------- DELETE BRANCH ----------------------
