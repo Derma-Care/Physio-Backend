@@ -40,6 +40,7 @@ import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.repository.TherapistRepository;
 import com.clinicadmin.service.EmailService;
+import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -78,6 +79,9 @@ public class TherapistServiceImpl implements TherapistService {
 	
 	@Autowired
 	private TherapistRecordRepository therapistRecordRepository;
+	
+	@Autowired
+	private S3Service s3Service;
     @Override
 
     public Response therapistOnboarding(TherapistDTO dto) {
@@ -344,7 +348,7 @@ public class TherapistServiceImpl implements TherapistService {
         return response;
     }
     
- // ================= UPDATE BY THERAPISTID=================
+    // ================= UPDATE BY THERAPISTID =================
     @Override
     public ResponseStructure<TherapistDTO> updateBytherapistId(
             String therapistId,
@@ -353,74 +357,54 @@ public class TherapistServiceImpl implements TherapistService {
         Therapist existing = repository.findByTherapistId(therapistId)
                 .orElseThrow(() -> new RuntimeException("Therapist not found"));
 
-        //  Basic Info
+        // Basic Info
         if (dto.getFullName() != null) existing.setFullName(dto.getFullName());
         if (dto.getContactNumber() != null) existing.setContactNumber(dto.getContactNumber());
         if (dto.getGender() != null) existing.setGender(dto.getGender());
         if (dto.getDateOfBirth() != null) existing.setDateOfBirth(dto.getDateOfBirth());
 
-        //  Clinic Info
+        // Clinic Info
         if (dto.getClinicId() != null) existing.setClinicId(dto.getClinicId());
         if (dto.getBranchId() != null) existing.setBranchId(dto.getBranchId());
 
-        //  Professional Info
+        // Professional Info
         if (dto.getQualification() != null) existing.setQualification(dto.getQualification());
         if (dto.getYearsOfExperience() != null) existing.setYearsOfExperience(dto.getYearsOfExperience());
 
-        //  Lists
+        // Lists
         if (dto.getServices() != null) existing.setServices(dto.getServices());
         if (dto.getSpecializations() != null) existing.setSpecializations(dto.getSpecializations());
         if (dto.getExpertiseAreas() != null) existing.setExpertiseAreas(dto.getExpertiseAreas());
         if (dto.getTreatmentTypes() != null) existing.setTreatmentTypes(dto.getTreatmentTypes());
 
         if (dto.getAvailability() != null) existing.setAvailability(dto.getAvailability());
-
         if (dto.getBio() != null) existing.setBio(dto.getBio());
 
-        // ================= BASE64 ENCODE =================
+        // ================= S3 FILE KEYS (SAVE) =================
+        // Frontend uploads files to S3 first via /api/s3/upload-url
+        // and sends back the returned fileKey — store it directly
         if (dto.getDocuments() != null) {
 
             Documents docs = new Documents();
 
-            if (dto.getDocuments().getLicenseCertificate() != null) {
-                docs.setLicenseCertificate(
-                        java.util.Base64.getEncoder().encodeToString(
-                                dto.getDocuments().getLicenseCertificate().getBytes()
-                        )
-                );
-            }
-
-            if (dto.getDocuments().getDegreeCertificate() != null) {
-                docs.setDegreeCertificate(
-                        java.util.Base64.getEncoder().encodeToString(
-                                dto.getDocuments().getDegreeCertificate().getBytes()
-                        )
-                );
-            }
-
-            if (dto.getDocuments().getProfilePhoto() != null) {
-                docs.setProfilePhoto(
-                        java.util.Base64.getEncoder().encodeToString(
-                                dto.getDocuments().getProfilePhoto().getBytes()
-                        )
-                );
-            }
+            docs.setLicenseCertificate(dto.getDocuments().getLicenseCertificate());
+            docs.setDegreeCertificate(dto.getDocuments().getDegreeCertificate());
+            docs.setProfilePhoto(dto.getDocuments().getProfilePhoto());
 
             existing.setDocuments(docs);
         }
 
         if (dto.getLanguages() != null) existing.setLanguages(dto.getLanguages());
-
         if (dto.getRole() != null) existing.setRole(dto.getRole());
         if (dto.getPhysioType() != null) existing.setPhysioType(dto.getPhysioType());
         if (dto.getAadharID() != null) existing.setAadharID(dto.getAadharID());
         if (dto.getDateofJoining() != null) existing.setDateofJoining(dto.getDateofJoining());
         if (dto.getEmergencyContact() != null) existing.setEmergencyContact(dto.getEmergencyContact());
 
-        //  Save
+        // Save
         Therapist updated = repository.save(existing);
 
-        // ================= RESPONSE (DECODE BASE64) =================
+        // ================= BUILD RESPONSE DTO =================
         TherapistDTO response = new TherapistDTO();
 
         response.setTherapistId(updated.getTherapistId());
@@ -439,32 +423,27 @@ public class TherapistServiceImpl implements TherapistService {
         response.setAvailability(updated.getAvailability());
         response.setBio(updated.getBio());
 
-        //  Decode documents before sending
+        // ================= S3 SIGNED URLS (RESPONSE) =================
+        // Generate 1-hour signed URLs from stored S3 file keys
         if (updated.getDocuments() != null) {
 
             Documents docs = new Documents();
 
             if (updated.getDocuments().getLicenseCertificate() != null) {
                 docs.setLicenseCertificate(
-                        new String(java.util.Base64.getDecoder().decode(
-                                updated.getDocuments().getLicenseCertificate()
-                        ))
+                    s3Service.generateSignedUrl(updated.getDocuments().getLicenseCertificate())
                 );
             }
 
             if (updated.getDocuments().getDegreeCertificate() != null) {
                 docs.setDegreeCertificate(
-                        new String(java.util.Base64.getDecoder().decode(
-                                updated.getDocuments().getDegreeCertificate()
-                        ))
+                    s3Service.generateSignedUrl(updated.getDocuments().getDegreeCertificate())
                 );
             }
 
             if (updated.getDocuments().getProfilePhoto() != null) {
                 docs.setProfilePhoto(
-                        new String(java.util.Base64.getDecoder().decode(
-                                updated.getDocuments().getProfilePhoto()
-                        ))
+                    s3Service.generateSignedUrl(updated.getDocuments().getProfilePhoto())
                 );
             }
 
@@ -520,34 +499,17 @@ public class TherapistServiceImpl implements TherapistService {
         entity.setDateofJoining(dto.getDateofJoining());
         entity.setEmergencyContact(dto.getEmergencyContact());
 
-        // ================= BASE64 ENCODE =================
+        // ================= S3 FILE KEYS =================
         if (dto.getDocuments() != null) {
 
             Documents docs = new Documents();
 
-            if (dto.getDocuments().getLicenseCertificate() != null) {
-                docs.setLicenseCertificate(
-                    java.util.Base64.getEncoder().encodeToString(
-                        dto.getDocuments().getLicenseCertificate().getBytes()
-                    )
-                );
-            }
-
-            if (dto.getDocuments().getDegreeCertificate() != null) {
-                docs.setDegreeCertificate(
-                    java.util.Base64.getEncoder().encodeToString(
-                        dto.getDocuments().getDegreeCertificate().getBytes()
-                    )
-                );
-            }
-
-            if (dto.getDocuments().getProfilePhoto() != null) {
-                docs.setProfilePhoto(
-                    java.util.Base64.getEncoder().encodeToString(
-                        dto.getDocuments().getProfilePhoto().getBytes()
-                    )
-                );
-            }
+            // Store S3 file keys directly as received from frontend
+            // Frontend must upload to S3 first via /api/s3/upload-url
+            // and pass back the returned fileKey here
+            docs.setLicenseCertificate(dto.getDocuments().getLicenseCertificate());
+            docs.setDegreeCertificate(dto.getDocuments().getDegreeCertificate());
+            docs.setProfilePhoto(dto.getDocuments().getProfilePhoto());
 
             entity.setDocuments(docs);
         }
@@ -584,38 +546,63 @@ public class TherapistServiceImpl implements TherapistService {
         dto.setDateofJoining(entity.getDateofJoining());
         dto.setEmergencyContact(entity.getEmergencyContact());
 
-        // ================= BASE64 DECODE =================
-        if (entity.getDocuments() != null) {
+     // ================= S3 SIGNED URLS (RESPONSE) =================
+     // Generate 1-hour signed URLs from stored S3 file keys
+     if (entity.getDocuments() != null) {
 
-            Documents docs = new Documents();
+         Documents docs = new Documents();
 
-            if (entity.getDocuments().getLicenseCertificate() != null) {
-                docs.setLicenseCertificate(
-                    new String(java.util.Base64.getDecoder().decode(
-                        entity.getDocuments().getLicenseCertificate()
-                    ))
-                );
-            }
+         if (entity.getDocuments().getLicenseCertificate() != null
+                 && !entity.getDocuments().getLicenseCertificate().trim().isEmpty()) {
 
-            if (entity.getDocuments().getDegreeCertificate() != null) {
-                docs.setDegreeCertificate(
-                    new String(java.util.Base64.getDecoder().decode(
-                        entity.getDocuments().getDegreeCertificate()
-                    ))
-                );
-            }
+             try {
+                 docs.setLicenseCertificate(
+                     s3Service.generateSignedUrl(
+                         entity.getDocuments().getLicenseCertificate().trim()
+                     )
+                 );
+             } catch (Exception e) {
+                 log.error("Failed to generate signed URL for licenseCertificate: {}",
+                         entity.getDocuments().getLicenseCertificate());
+                 docs.setLicenseCertificate(null);
+             }
+         }
 
-            if (entity.getDocuments().getProfilePhoto() != null) {
-                docs.setProfilePhoto(
-                    new String(java.util.Base64.getDecoder().decode(
-                        entity.getDocuments().getProfilePhoto()
-                    ))
-                );
-            }
+         if (entity.getDocuments().getDegreeCertificate() != null
+                 && !entity.getDocuments().getDegreeCertificate().trim().isEmpty()) {
 
-            dto.setDocuments(docs);
-        }
+             try {
+                 docs.setDegreeCertificate(
+                     s3Service.generateSignedUrl(
+                         entity.getDocuments().getDegreeCertificate().trim()
+                     )
+                 );
+             } catch (Exception e) {
+                 log.error("Failed to generate signed URL for degreeCertificate: {}",
+                         entity.getDocuments().getDegreeCertificate());
+                 docs.setDegreeCertificate(null);
+             }
+         }
 
+         if (entity.getDocuments().getProfilePhoto() != null
+                 && !entity.getDocuments().getProfilePhoto().trim().isEmpty()) {
+
+             try {
+                 docs.setProfilePhoto(
+                     s3Service.generateSignedUrl(
+                         entity.getDocuments().getProfilePhoto().trim()
+                     )
+                 );
+             } catch (Exception e) {
+                 log.error("Failed to generate signed URL for profilePhoto: {}",
+                         entity.getDocuments().getProfilePhoto());
+                 docs.setProfilePhoto(null);
+             }
+         }
+
+         dto.setDocuments(docs);
+     }
+        
         dto.setLanguages(entity.getLanguages());
         dto.setRole(entity.getRole());
         dto.setPhysioType(entity.getPhysioType());

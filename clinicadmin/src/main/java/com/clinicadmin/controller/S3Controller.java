@@ -26,10 +26,10 @@ public class S3Controller {
     // File size limits (in bytes)
     // ─────────────────────────────────────────────
     private static final long MB             = 1024 * 1024L;
-    private static final long MAX_IMAGE_SIZE =   5 * MB;   //   5 MB → images
-    private static final long MAX_VIDEO_SIZE = 100 * MB;   // 100 MB → videos
-    private static final long MAX_AUDIO_SIZE =  20 * MB;   //  20 MB → audio
-    private static final long MAX_PDF_SIZE   =  10 * MB;   //  10 MB → pdf / docs
+    private static final long MAX_IMAGE_SIZE =   5 * MB;
+    private static final long MAX_VIDEO_SIZE = 100 * MB;
+    private static final long MAX_AUDIO_SIZE =  20 * MB;
+    private static final long MAX_PDF_SIZE   =  10 * MB;
 
     // ─────────────────────────────────────────────
     // Allowed extensions per type
@@ -84,18 +84,46 @@ public class S3Controller {
                     Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
                           .collect(Collectors.toUnmodifiableSet())
             );
-            case "beforeImage"  -> new FieldConfig("before-images",  MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
-            case "afterImage"   -> new FieldConfig("after-images",   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
-            case "beforeVideo"  -> new FieldConfig("before-videos",  MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
-            case "afterVideo"   -> new FieldConfig("after-videos",   MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
-            case "voiceRecord"  -> new FieldConfig("voice-records",  MAX_AUDIO_SIZE, "20 MB",  AUDIO_EXTS, AUDIO_MIMES);
-            case "consentPdf"   -> new FieldConfig("consent-pdfs",   MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
-            case "patient"      -> new FieldConfig("patients",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
-            case "doctorPicture" -> new FieldConfig("doctors",        MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
-            case "doctorSignature"-> new FieldConfig("doctor-signatures", MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES); // ← ADDED
-            case "prescription" -> new FieldConfig("prescriptions",  MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
-            case "exercise"     -> new FieldConfig("exercises",      MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
-            case "branch"       -> new FieldConfig("branches",       MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "beforeImage"   -> new FieldConfig("before-images",              MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "afterImage"    -> new FieldConfig("after-images",               MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "beforeVideo"   -> new FieldConfig("before-videos",              MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
+            case "afterVideo"    -> new FieldConfig("after-videos",               MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
+            case "voiceRecord"   -> new FieldConfig("voice-records",              MAX_AUDIO_SIZE, "20 MB",  AUDIO_EXTS, AUDIO_MIMES);
+            case "consentPdf"    -> new FieldConfig("consent-pdfs",               MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
+            case "patient"       -> new FieldConfig("patients",                   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "doctorPicture" -> new FieldConfig("doctors",                    MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "doctorSignature"-> new FieldConfig("doctor-signatures",         MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "prescription"  -> new FieldConfig("prescriptions",              MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
+            case "exercise"      -> new FieldConfig("exercises",                  MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
+            case "branch"        -> new FieldConfig("branches",                   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+
+            // ── Therapist document fields ──────────────────────────────
+            case "therapistProfilePhoto" -> new FieldConfig(
+                    "therapist-profile-photos",
+                    MAX_IMAGE_SIZE,
+                    "5 MB",
+                    IMAGE_EXTS,
+                    IMAGE_MIMES
+            );
+            case "therapistLicenseCertificate" -> new FieldConfig(
+                    "therapist-license-certificates",
+                    MAX_PDF_SIZE,
+                    "10 MB",
+                    Stream.concat(IMAGE_EXTS.stream(), DOC_EXTS.stream())
+                          .collect(Collectors.toUnmodifiableSet()),
+                    Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
+                          .collect(Collectors.toUnmodifiableSet())
+            );
+            case "therapistDegreeCertificate" -> new FieldConfig(
+                    "therapist-degree-certificates",
+                    MAX_PDF_SIZE,
+                    "10 MB",
+                    Stream.concat(IMAGE_EXTS.stream(), DOC_EXTS.stream())
+                          .collect(Collectors.toUnmodifiableSet()),
+                    Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
+                          .collect(Collectors.toUnmodifiableSet())
+            );
+
             case "report" -> new FieldConfig(
                     "reports",
                     MAX_PDF_SIZE,
@@ -105,15 +133,15 @@ public class S3Controller {
                     Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
                           .collect(Collectors.toUnmodifiableSet())
             );
-            default             -> null;
+            default -> null;
         };
     }
 
     // ─────────────────────────────────────────────
     // GET /api/s3/upload-url
-    //   ?fieldName=certificate
-    //   &fileSize=2048000       ← bytes (optional)
-    //   &extension=png          ← file extension from frontend (optional)
+    //   ?fieldName=therapistProfilePhoto
+    //   &extension=jpg              ← REQUIRED
+    //   &fileSize=2048000           ← optional (bytes)
     //
     // Response: { uploadUrl, fileKey, contentType }
     // Frontend MUST use contentType value in the
@@ -135,37 +163,47 @@ public class S3Controller {
                             "error", "Unknown fieldName: '" + fieldName + "'."
                                    + " Allowed values: certificate, beforeImage, afterImage,"
                                    + " beforeVideo, afterVideo, voiceRecord, consentPdf,"
-                                   + " patient, doctor, prescription, exercise, branch, report"
+                                   + " patient, doctorPicture, doctorSignature, prescription,"
+                                   + " exercise, branch, report, therapistProfilePhoto,"
+                                   + " therapistLicenseCertificate, therapistDegreeCertificate"
                     ));
         }
 
-        // ── 1. Extension validation ───────────────
-        if (extension != null && !extension.isBlank()) {
-            String ext = extension.toLowerCase().trim();
-            if (!config.allowedExtensions().contains(ext)) {
-                return ResponseEntity
-                        .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)           // 415
-                        .body(Map.of(
-                                "valid",        false,
-                                "uploadedType", ext,
-                                "allowedTypes", config.allowedExtensions(),
-                                "error", String.format(
-                                        "Wrong file type '.%s' for '%s'. Accepted types: %s",
-                                        ext, fieldName, config.allowedExtensions()
-                                )
-                        ));
-            }
-            extension = ext;
-        } else {
-            // No extension provided — pick a safe default
-            extension = config.allowedExtensions().iterator().next();
+        // ── 1. Extension is REQUIRED — no random default ──
+        if (extension == null || extension.isBlank()) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "valid",        false,
+                            "allowedTypes", config.allowedExtensions(),
+                            "error",        "extension param is required."
+                                          + " Example: &extension=jpg"
+                                          + " Allowed for '" + fieldName + "': "
+                                          + config.allowedExtensions()
+                    ));
         }
 
-        // ── 2. File size validation ───────────────
+        // ── 2. Extension validation ───────────────
+        String ext = extension.toLowerCase().trim();
+        if (!config.allowedExtensions().contains(ext)) {
+            return ResponseEntity
+                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)           // 415
+                    .body(Map.of(
+                            "valid",        false,
+                            "uploadedType", ext,
+                            "allowedTypes", config.allowedExtensions(),
+                            "error", String.format(
+                                    "Wrong file type '.%s' for '%s'. Accepted types: %s",
+                                    ext, fieldName, config.allowedExtensions()
+                            )
+                    ));
+        }
+
+        // ── 3. File size validation ───────────────
         if (fileSize > 0 && fileSize > config.maxAllowedSize()) {
             String uploadedMB = String.format("%.2f MB", fileSize / (double) MB);
             return ResponseEntity
-                    .status(HttpStatus.PAYLOAD_TOO_LARGE)                    // 413
+                    .status(HttpStatus.PAYLOAD_TOO_LARGE)                // 413
                     .body(Map.of(
                             "valid",        false,
                             "uploadedSize", uploadedMB,
@@ -177,17 +215,18 @@ public class S3Controller {
                     ));
         }
 
-        // ── 3. Generate presigned PUT URL ─────────
+        // ── 4. Generate presigned PUT URL ─────────
+        // contentType is locked into the signature → content-type appears in X-Amz-SignedHeaders
         Map<String, String> response =
-                s3Service.generatePresignedPutUrl(config.folder(), extension);
+                s3Service.generatePresignedPutUrl(config.folder(), ext);
 
         return ResponseEntity.ok(response);
     }
 
     // ─────────────────────────────────────────────
     // GET /api/s3/validate-upload
-    //   ?fileKey=before-videos/uuid.mov
-    //   &fieldName=beforeVideo
+    //   ?fileKey=therapist-profile-photos/uuid.jpg
+    //   &fieldName=therapistProfilePhoto
     // ─────────────────────────────────────────────
     @GetMapping("/api/s3/validate-upload")
     public ResponseEntity<?> validateUpload(
@@ -221,7 +260,7 @@ public class S3Controller {
 
         if (!config.allowedExtensions().contains(uploadedExt)) {
             return ResponseEntity
-                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)               // 415
+                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)           // 415
                     .body(Map.of(
                             "valid",        false,
                             "uploadedType", uploadedExt,
@@ -261,7 +300,7 @@ public class S3Controller {
 
         if (!config.allowedMimes().contains(mimeOnly)) {
             return ResponseEntity
-                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)               // 415
+                    .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)           // 415
                     .body(Map.of(
                             "valid",        false,
                             "uploadedMime", mimeOnly,
@@ -306,7 +345,7 @@ public class S3Controller {
 
     // ─────────────────────────────────────────────
     // GET /api/s3/signed-url
-    //   ?fileKey=certificates/uuid.jpg
+    //   ?fileKey=therapist-profile-photos/uuid.jpg
     // ─────────────────────────────────────────────
     @GetMapping("/api/s3/signed-url")
     public ResponseEntity<String> getSignedUrl(

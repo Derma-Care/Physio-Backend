@@ -34,7 +34,7 @@ public class Therapist {
     private List<String> treatmentTypes;
 
     private Availability availability;
- private String emailId;
+    private String emailId;
     private String bio;
 
     private Documents documents;
