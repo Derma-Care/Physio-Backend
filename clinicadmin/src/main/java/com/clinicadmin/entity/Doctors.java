@@ -2,18 +2,17 @@ package com.clinicadmin.entity;
 
 import java.util.List;
 import java.util.Map;
-
+import com.clinicadmin.dto.*;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
+import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.DoctorBranches;
-import com.clinicadmin.dto.DoctorCategoryDTO;
-import com.clinicadmin.dto.DoctorServicesDTO;
-import com.clinicadmin.dto.DoctorSubServiceDTO;
+//import com.clinicadmin.dto.DoctorCategoryDTO;
+//import com.clinicadmin.dto.DoctorServicesDTO;
+//import com.clinicadmin.dto.DoctorSubServiceDTO;
 import com.clinicadmin.utils.ObjectIdSerializer;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -51,7 +50,7 @@ public class Doctors {
 	private List<String> focusAreas;
 	private List<String> languages;
 	private List<String> highlights;
-	private boolean doctorAvailabilityStatus = true;
+	private Boolean doctorAvailabilityStatus ;
 	private double doctorAverageRating;
 	private boolean recommendation;
 	private String doctorSignature;
@@ -60,6 +59,10 @@ public class Doctors {
 	private List<DoctorBranches> branches;
 //	private ConsultationType Consultation;
 	private Map<String, List<String>> permissions;
+	private String dateofJoining;
+	private String emergencyContact;
+    private String aadharID;
+    private String dateofBirth;
     private String createdBy;
     
     private String createdAt;
@@ -67,6 +70,7 @@ public class Doctors {
     private String updatedDate;
 
 	private String  Status;
+	private BankAccountDetails bankAccountDetails;
 		
 	}
 

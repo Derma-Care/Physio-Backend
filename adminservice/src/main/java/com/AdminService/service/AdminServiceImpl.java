@@ -20,11 +20,12 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
@@ -32,9 +33,9 @@ import com.AdminService.dto.DoctorsDTO;
 import com.AdminService.dto.DoctortInfo;
 import com.AdminService.dto.LabTestDTO;
 import com.AdminService.dto.ProbableDiagnosisDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.TreatmentDTO;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.entity.Admin;
@@ -46,7 +47,6 @@ import com.AdminService.entity.ClinicCredentials;
 import com.AdminService.entity.Counter;
 import com.AdminService.feign.BookingFeign;
 import com.AdminService.feign.ClinicAdminFeign;
-import com.AdminService.feign.CssFeign;
 import com.AdminService.feign.CustomerFeign;
 import com.AdminService.repository.AdminRepository;
 import com.AdminService.repository.BranchCredentialsRepository;
@@ -65,29 +65,22 @@ import feign.FeignException;
 @Service
 public class AdminServiceImpl implements AdminService {
 
-	@Autowired
-	private AdminRepository adminRepository;
-	@Autowired
 
+	@Autowired
 	private ClinicRep clinicRep;
+	
 	@Autowired
-
 	private ClinicCredentialsRepository clinicCredentialsRepository;
 
 	@Autowired
-
-	private CssFeign cssFeign;
+	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-
 	private CustomerFeign customerFeign;
 
 	@Autowired
 	private  ClinicAdminFeign clinicAdminFeign;
 
-	@Autowired
-
-	private BookingFeign bookingFeign;
 	
 	@Autowired
 	private BranchRepository branchRepository;
@@ -105,118 +98,6 @@ public class AdminServiceImpl implements AdminService {
 	//	@Autowired
 //	private QuetionsAndAnswerForAddClinicRepository quetionsAndAnswerForAddClinicRepository;
 
-	@Override
-
-	public Response adminRegister(AdminHelper helperAdmin) {
-
-		Response response = new Response();
-
-	try {
-
-		Optional<Admin> userName = adminRepository.findByUserName(helperAdmin.getUserName());
-
-		   Admin mobileNumber = adminRepository.findByMobileNumber(helperAdmin.getMobileNumber());
-
-		   if(mobileNumber != null ) {
-
-			   response.setMessage("MobileNumber is Already Exist");
-
-		        response.setStatus(409);
-
-		        response.setSuccess(false);
-
-		        return response;}
-
-		        if(userName.isPresent()) {
-
-		        	response.setMessage("UserName already exist");
-
-			        response.setStatus(409);
-
-			        response.setSuccess(false);
-
-			        return response;
-
-		        	}else {
-
-		        	Admin entityAdmin = new Admin();
-
-		 		    entityAdmin.setUserName(helperAdmin.getUserName());
-
-		 		    entityAdmin.setPassword(helperAdmin.getPassword());
-
-		 		    entityAdmin.setMobileNumber(helperAdmin.getMobileNumber());
-
-		        adminRepository.save(entityAdmin);
-
-		        response.setMessage("Credentials Are saved successfully");
-
-		        response.setStatus(200);
-
-		        response.setSuccess(true);
-
-		        return response;
-
-		}}catch(Exception e) {
-
-		response.setMessage(e.getMessage());
-
-        response.setStatus(500);
-
-        response.setSuccess(false);
-
-        return response;
-
-	}
-
-	}
-
-	
-
-	@Override
-	public Response adminLogin(String userName, String password) {
-	    Response response = new Response();
-
-	    try {
-	        Optional<Admin> userOptional = adminRepository.findByUserName(userName);
-
-	        if (userOptional.isPresent()) {
-	            Admin user = userOptional.get();
-
-	            // Check if password matches
-	            if (user.getPassword().equals(password)) {
-	                response.setMessage("Login Successful");
-	                response.setStatus(200);
-	                response.setSuccess(true);
-	            } else {
-	                response.setMessage("Incorrect Password");
-	                response.setStatus(401);
-	                response.setSuccess(false);
-	            }
-	        } else {
-	            // Check if password matches any other user
-	            List<Admin> allAdmins = adminRepository.findAll();
-	            boolean passwordExists = allAdmins.stream()
-	                    .anyMatch(admin -> admin.getPassword().equals(password));
-
-	            if (passwordExists) {
-	                response.setMessage("Incorrect UserName");
-	            } else {
-	                response.setMessage("Incorrect UserName and Password");
-	            }
-
-	            response.setStatus(401);
-	            response.setSuccess(false);
-	        }
-
-	    } catch (Exception e) {
-	        response.setMessage("Internal Server Error: " + e.getMessage());
-	        response.setStatus(500);
-	        response.setSuccess(false);
-	    }
-
-	    return response;
-	}
 
 	@Override
 	public Response createClinic(ClinicDTO clinic) {
@@ -272,7 +153,7 @@ public class AdminServiceImpl implements AdminService {
 
 	        // ---------------- NGK CORE ----------------
 	        savedClinic.setStatus("PENDING");
-	        savedClinic.setRole("ADMIN");
+	        savedClinic.setRole("ROLE_ADMIN");
 	        savedClinic.setPermissions(PermissionsUtil.getAdminPermissions());
 	        savedClinic.setCreatedAt(String.valueOf(Instant.now())); // FIXED
 
@@ -317,7 +198,7 @@ public class AdminServiceImpl implements AdminService {
 	        branch.setCity(saved.getCity());
 	        branch.setContactNumber(saved.getContactNumber());
 	        branch.setEmail(saved.getEmailAddress());
-	        branch.setRole("ADMIN");
+	        branch.setRole("ROLE_ADMIN");
 	        branch.setLatitude(String.valueOf(saved.getLatitude()));	
 	        branch.setLongitude(String.valueOf(saved.getLongitude()));
 	        branch.setPermissions(PermissionsUtil.getAdminPermissions());
@@ -360,10 +241,108 @@ public class AdminServiceImpl implements AdminService {
 	}
 
 
-
 	private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
-		// TODO Auto-generated method stub
-		
+
+	    if (clinic.getHospitalLogo() != null &&
+	            !clinic.getHospitalLogo().isEmpty()) {
+
+	        savedClinic.setHospitalLogo(
+	                Base64.getDecoder().decode(clinic.getHospitalLogo()));
+	    }
+
+	    if (clinic.getContractorDocuments() != null &&
+	            !clinic.getContractorDocuments().isEmpty()) {
+
+	        savedClinic.setContractorDocuments(
+	                Base64.getDecoder().decode(clinic.getContractorDocuments()));
+	    }
+
+	    if (clinic.getHospitalDocuments() != null &&
+	            !clinic.getHospitalDocuments().isEmpty()) {
+
+	        savedClinic.setHospitalDocuments(
+	                Base64.getDecoder().decode(clinic.getHospitalDocuments()));
+	    }
+
+	    if (clinic.getClinicalEstablishmentCertificate() != null &&
+	            !clinic.getClinicalEstablishmentCertificate().isEmpty()) {
+
+	        savedClinic.setClinicalEstablishmentCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getClinicalEstablishmentCertificate()));
+	    }
+
+	    if (clinic.getBusinessRegistrationCertificate() != null &&
+	            !clinic.getBusinessRegistrationCertificate().isEmpty()) {
+
+	        savedClinic.setBusinessRegistrationCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getBusinessRegistrationCertificate()));
+	    }
+
+	    if (clinic.getDrugLicenseCertificate() != null &&
+	            !clinic.getDrugLicenseCertificate().isEmpty()) {
+
+	        savedClinic.setDrugLicenseCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getDrugLicenseCertificate()));
+	    }
+
+	    if (clinic.getDrugLicenseFormType() != null &&
+	            !clinic.getDrugLicenseFormType().isEmpty()) {
+
+	        savedClinic.setDrugLicenseFormType(
+	                Base64.getDecoder().decode(
+	                        clinic.getDrugLicenseFormType()));
+	    }
+
+	    if (clinic.getPharmacistCertificate() != null &&
+	            !clinic.getPharmacistCertificate().isEmpty()) {
+
+	        savedClinic.setPharmacistCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getPharmacistCertificate()));
+	    }
+
+	    if (clinic.getBiomedicalWasteManagementAuth() != null &&
+	            !clinic.getBiomedicalWasteManagementAuth().isEmpty()) {
+
+	        savedClinic.setBiomedicalWasteManagementAuth(
+	                Base64.getDecoder().decode(
+	                        clinic.getBiomedicalWasteManagementAuth()));
+	    }
+
+	    if (clinic.getTradeLicense() != null &&
+	            !clinic.getTradeLicense().isEmpty()) {
+
+	        savedClinic.setTradeLicense(
+	                Base64.getDecoder().decode(
+	                        clinic.getTradeLicense()));
+	    }
+
+	    if (clinic.getFireSafetyCertificate() != null &&
+	            !clinic.getFireSafetyCertificate().isEmpty()) {
+
+	        savedClinic.setFireSafetyCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getFireSafetyCertificate()));
+	    }
+
+	    if (clinic.getProfessionalIndemnityInsurance() != null &&
+	            !clinic.getProfessionalIndemnityInsurance().isEmpty()) {
+
+	        savedClinic.setProfessionalIndemnityInsurance(
+	                Base64.getDecoder().decode(
+	                        clinic.getProfessionalIndemnityInsurance()));
+	    }
+
+	    if (clinic.getGstRegistrationCertificate() != null &&
+	            !clinic.getGstRegistrationCertificate().isEmpty()) {
+
+	        savedClinic.setGstRegistrationCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getGstRegistrationCertificate()));
+	    }
 	}
 
 	@Override
@@ -438,8 +417,8 @@ public class AdminServiceImpl implements AdminService {
 	        ClinicCredentials credentials = new ClinicCredentials();
 	        credentials.setHospitalName(clinic.getName());
 	        credentials.setUserName(clinic.getHospitalId());
-	        credentials.setPassword(tempPassword);
-	        credentials.setRole("ADMIN");
+	        credentials.setPassword(passwordEncoder.encode(tempPassword));
+	        credentials.setRoles(Collections.singletonList("ROLE_ADMIN"));
 
 	        // 🔧 FIX: permissions type mismatch
 	        Map<String, Map<String, List<String>>> permissionWrapper = new HashMap<>();
@@ -472,7 +451,7 @@ public class AdminServiceImpl implements AdminService {
 	        response.setStatus(200);
 	        response.setMessage("Clinic verified successfully");
 	        response.setHospitalId(clinic.getHospitalId());
-	        response.setRole("ADMIN");
+	       // response.setRole("ADMIN");
 	        response.setPermissions(PermissionsUtil.getAdminPermissions());
 
 	        return response;
@@ -1418,22 +1397,6 @@ public class AdminServiceImpl implements AdminService {
 	                branchesDeleted = false;
 	            }
 
-	            // Delete sub-services
-	            boolean subServicesDeleted = true;
-	            try {
-	                ResponseEntity<ResponseStructure<List<SubServicesDto>>> subServicesResponse =
-	                        cssFeign.getSubServiceByHospitalId(clinicId);
-
-	                if (subServicesResponse.getStatusCode().is2xxSuccessful()) {
-	                    List<SubServicesDto> subServices = subServicesResponse.getBody().getData();
-	                    for (SubServicesDto subService : subServices) {
-	                        cssFeign.deleteSubService(clinicId, subService.getSubServiceId());
-	                    }
-	                }
-	            } catch (Exception e) {
-	                subServicesDeleted = e.getMessage().contains("404");
-	            }
-
 	            // Delete diseases
 	            boolean diseasesDeleted = true;
 	            try {
@@ -1483,7 +1446,7 @@ public class AdminServiceImpl implements AdminService {
 	            }
 
 	            // Final response logic
-	            if (doctorsDeleted && branchesDeleted && subServicesDeleted &&
+	            if (doctorsDeleted && branchesDeleted  &&
 	                diseasesDeleted && labTestsDeleted && treatmentsDeleted) {
 	                response.setMessage("Clinic and all linked entities deleted successfully");
 	                response.setSuccess(true);
@@ -1823,753 +1786,7 @@ public class AdminServiceImpl implements AdminService {
 
     }
 
-    @Override
-    public Response login(ClinicCredentialsDTO credentials) {
-        Response response = new Response();
-
-        try {
-            String userName = credentials.getUserName();
-            String password = credentials.getPassword();
-
-            if (userName == null || userName.isBlank()) {
-                response.setSuccess(false);
-                response.setMessage("Username is required");
-                response.setStatus(400);
-                return response;
-            }
-
-            if (password == null || password.isBlank()) {
-                response.setSuccess(false);
-                response.setMessage("Password is required");
-                response.setStatus(400);
-                return response;
-            }
-
-            // 1) Clinic login
-            ClinicCredentials clinicCredentials =
-                    clinicCredentialsRepository.findByUserNameAndPassword(userName, password);
-
-            if (clinicCredentials != null) {
-                Clinic clinicEntity = clinicRep.findByHospitalId(clinicCredentials.getUserName());
-
-                // Default branch for this clinic
-                Branch defaultBranch = branchRepository.findFirstByClinicId(clinicCredentials.getUserName());
-
-                response.setSuccess(true);
-                response.setMessage("Clinic login successful");
-                response.setStatus(200);
-
-                // ✅ Hospital and branch name
-                response.setHospitalId(clinicCredentials.getUserName());
-                response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : clinicCredentials.getHospitalName());
-                response.setBranchId(defaultBranch != null ? defaultBranch.getBranchId() : null);
-                response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
-
-                // ✅ Role
-                String role = (clinicEntity != null && clinicEntity.getRole() != null)
-                        ? clinicEntity.getRole()
-                        : "admin";
-                response.setRole(role);
-
-                // ✅ Permissions
-                Map<String, List<String>> permissions =
-                        (clinicEntity != null && clinicEntity.getPermissions() != null)
-                                ? clinicEntity.getPermissions()
-                                : PermissionsUtil.getAdminPermissions();
-                response.setPermissions(permissions);
-
-                return response;
-            }
-
-            // 2) Branch login
-            BranchCredentials branchCredentials =
-                    branchCredentialsRepository.findByUserNameAndPassword(userName, password);
-
-            if (branchCredentials != null) {
-                String branchId = branchCredentials.getBranchId();
-
-                Optional<Branch> branchOpt = branchRepository.findByBranchId(branchId);
-                Branch branchEntity = branchOpt.orElse(null);
-
-                String clinicId;
-                if (branchEntity != null && branchEntity.getClinicId() != null) {
-                    clinicId = branchEntity.getClinicId();
-                } else {
-                    clinicId = branchId.length() >= 4 ? branchId.substring(0, 4) : branchId;
-                }
-
-                Clinic clinicEntity = clinicRep.findByHospitalId(clinicId);
-
-                response.setSuccess(true);
-                response.setMessage("Branch login successful");
-                response.setStatus(200);
-
-                // ✅ Hospital and branch name
-                response.setHospitalId(clinicId);
-                response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : "Unknown Clinic");
-                response.setBranchId(branchId);
-                response.setBranchName(branchEntity != null ? branchEntity.getBranchName() : branchCredentials.getBranchName());
-
-                // ✅ Role
-                String role = (branchEntity != null && branchEntity.getRole() != null)
-                        ? branchEntity.getRole()
-                        : "admin";
-                response.setRole(role);
-
-                // ✅ Permissions
-                Map<String, List<String>> permissions =
-                        (branchEntity != null && branchEntity.getPermissions() != null)
-                                ? branchEntity.getPermissions()
-                                : PermissionsUtil.getAdminPermissions();
-                response.setPermissions(permissions);
-
-                return response;
-            }
-
-            // 3) Invalid credentials
-            response.setSuccess(false);
-            response.setMessage("Invalid username or password");
-            response.setStatus(401);
-            return response;
-
-        } catch (Exception e) {
-            response.setSuccess(false);
-            response.setMessage("Error during login: " + e.getMessage());
-            response.setStatus(500);
-            return response;
-        }
-    }
-
-
-    @Override
-
-    public Response addNewCategory(CategoryDto dto){
-
-    	 Response response = new  Response();
-
-    	 try {
-
-	    		ResponseEntity<ResponseStructure<CategoryDto>> res = cssFeign.addNewCategory(dto);
-
-	    		  if(res.hasBody()) {
-
-		    		    ResponseStructure<CategoryDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }}catch(FeignException e) {
-
-	                    	            response.setStatus(e.status());
-
-	                	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	                	    			response.setSuccess(false);}
-
-    	                              return response;} 
-
-    
-
-    @Override                                
-
-	   public Response getAllCategory() {
-
-	             Response response = new  Response();
-
-	    	     try {
-
-	    		 ResponseEntity<ResponseStructure<List<CategoryDto>>> res =  cssFeign.getAllCategory();
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<List<CategoryDto>> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-        	            response.setStatus(e.status());
-
-    	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-    	    			response.setSuccess(false);
-
-        	        }
-
-                        return response;
-
-        	    } 
-
-	
-
-    @Override                
-
-	public Response getCategoryById(String CategoryId){
-
-		 Response response = new  Response();
-
-		try {
-
-			ResponseEntity<ResponseStructure<CategoryDto>> res =  cssFeign.getCategoryById(CategoryId);
-
-			 if(res.hasBody()) {
-
-	    		    ResponseStructure<CategoryDto> rs = res.getBody();
-
-	    			response.setData(rs);
-
-	    			response.setStatus(rs.getHttpStatus().value());
-
-                 }
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(e.status());
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-    	        }
-
-                    return response;
-
-    	    } 
-
-    
-
-    @Override
-
-	public Response deleteCategoryById(
-
-			 String categoryId) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<String>> res =  cssFeign.deleteCategory(new ObjectId(categoryId));
-
-	    			if(res.hasBody()) {
-
-	    		    ResponseStructure<String> rs = res.getBody();
-
-	    			response.setData(rs);
-
-	    			response.setStatus(rs.getHttpStatus().value());
-
-                    }
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(e.status());
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-    	        }
-
-                    return response;
-
-    	    } 
-
-    
-
-    @Override
-
-	public Response updateCategory(String categoryId,CategoryDto updatedCategory){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<CategoryDto>> res =  cssFeign.updateCategory(new ObjectId(categoryId), updatedCategory);
-
-	    		  if(res.hasBody()) {
-
-		    		    ResponseStructure<CategoryDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	 
-
-	
-
-	
-
-	// SERVICES MANAGEMENT
-
-	
-
-    @Override
-
-	public Response addService( ServicesDto dto){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<ServicesDto>>  res =  cssFeign.addService(dto);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<ServicesDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getServiceById( String categoryId){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		 ResponseEntity<ResponseStructure<List<ServicesDto>>>  res =  cssFeign.getServiceById(categoryId);
-
-	    		  if(res.getBody()!=null) {
-
-	    			  ResponseStructure<List<ServicesDto>> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getServiceByServiceId( String serviceId){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    	ResponseEntity<ResponseStructure<ServicesDto>>  res =  cssFeign.getServiceByServiceId(serviceId);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<ServicesDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-    @Override
-
-	public Response deleteService( String serviceId) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    	ResponseEntity<ResponseStructure<String>>  res =  cssFeign.deleteService(serviceId);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<String> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-	
-
-    @Override
-
-	public Response updateByServiceId( String serviceId,
-
-			@RequestBody ServicesDto domainServices) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    	ResponseEntity<ResponseStructure<ServicesDto>>  res =  cssFeign.
-
-	    			updateByServiceId(serviceId, domainServices);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<ServicesDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-    @Override
-
-	public Response getAllServices() {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<List<ServicesDto>>> res =  cssFeign.getAllServices();
-
-	    	
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<List<ServicesDto>> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-	
-
-	
-
-	//SUBSERVICE MANAGEMENT
-
-	
-
-    @Override
-
-	public  Response addSubService( SubServicesInfoDto dto){
-
-		Response response = new Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = cssFeign.addSubService(dto);
-
-	    		return res.getBody();
-
-	    	 
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(500);
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-		    			return response;
-
-	    	        }
-
-	                    
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getSubServiceByIdCategory(String categoryId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getSubServiceInfoByIdCategory(categoryId);
-
-    		return res.getBody();
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getSubServicesByServiceId(String serviceId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getSubServicesInfoByServiceId(serviceId);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	    	    } 	
-
-		
-
-    @Override
-
-	public Response getSubServiceBySubServiceId(String subServiceId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getSubServiceBySubServiceId(subServiceId);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	    	    } 	
-
-	
-
-    @Override
-
-	public Response deleteSubService(String subServiceId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.deleteSubService(subServiceId);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	}
-
-    @Override
-
-	public Response updateBySubServiceId(String subServiceId, SubServicesInfoDto domainServices) {
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.updateBySubServiceId(subServiceId, domainServices);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	}
-
-    @Override
-
-	public Response getAllSubServices(){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getAllSubServicesInfo();
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                     } 
-
-	
-
-	
-
-	
-
 	// CUSTOMER MANAGEMENT
-
-    
 
     @Override
 
@@ -2779,39 +1996,39 @@ public class AdminServiceImpl implements AdminService {
 
     
 
-    @Override
-
-   	public Response getAllSubServicesFromClincAdmin(){
-
-   		 Response response = new  Response();
-
-   	    	try {
-
-   	    		ResponseEntity<ResponseStructure<List<SubServicesDto>>> res = clinicAdminFeign.getAllSubServices();
-
-   	    		  if(res.getBody().getData() != null ) {
-
-   	    			 response.setStatus(res.getBody().getHttpStatus().value());
-
-   	    			response.setData(res.getBody());
-
-   	    			  return response;
-
-   	    		  }}catch(FeignException e) {
-
-   	    	            response.setStatus(e.status());
-
-   		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-   		    			response.setSuccess(false);
-
-   	    	        }
-
-   	                    return response;	
-
-   }
-
- 
+//    @Override
+//
+//   	public Response getAllSubServicesFromClincAdmin(){
+//
+//   		 Response response = new  Response();
+//
+//   	    	try {
+//
+//   	    		ResponseEntity<ResponseStructure<List<SubServicesDto>>> res = clinicAdminFeign.getAllSubServices();
+//
+//   	    		  if(res.getBody().getData() != null ) {
+//
+//   	    			 response.setStatus(res.getBody().getHttpStatus().value());
+//
+//   	    			response.setData(res.getBody());
+//
+//   	    			  return response;
+//
+//   	    		  }}catch(FeignException e) {
+//
+//   	    	            response.setStatus(e.status());
+//
+//   		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//   		    			response.setSuccess(false);
+//
+//   	    	        }
+//
+//   	                    return response;	
+//
+//   }
+//
+// 
 
     ///GETDOCTORINFO
 
@@ -3042,103 +2259,25 @@ public class AdminServiceImpl implements AdminService {
   	}
   	
   	
-  	///PROCEDURE CRUD
-  	
-  	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> addService(String subServiceId, SubServicesDto dto) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign.addService(subServiceId, dto);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());
 
-		}catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e),e.status());
-		}
-	}
-
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId(String subServiceId) {
-
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign
-					.getSubServiceByServiceId(subServiceId);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());}
-
-		catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e),e.status());
-		}
-
-	}
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> deleteSubService(String hospitalId, String subServiceId) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign.deleteSubService(hospitalId,
-					subServiceId);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());}
-
-		catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e), e.status());
-		}
-	}
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> updateBySubServiceId(String hospitalId, String serviceId,
-			SubServicesDto domainServices) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign.updateBySubServiceId(hospitalId,
-					serviceId, domainServices);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());
-
-		}catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e), e.status());
-		}
-	}
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId(String hospitalId,
-			String subServiceId) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign
-					.getSubServiceByServiceId(hospitalId, subServiceId);
-
-			return ResponseEntity.status(HttpStatus.OK).body(response.getBody());
-
-		} catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e), e.status());
-		}
-	}
-	
-	@Override
-	public ResponseEntity<ResponseStructure<List<SubServicesDto>>> getSubServiceByHospitalId(String hospitalId) {
-	    try {
-	        ResponseEntity<ResponseStructure<List<SubServicesDto>>> response =
-	        		cssFeign.getSubServiceByHospitalId(hospitalId); // ✅ FIXED here
-
-	        return ResponseEntity.status(HttpStatus.OK).body(response.getBody());
-
-	    } catch (FeignException e) {
-	        return buildErrorResponseList(ExtractFeignMessage.clearMessage(e),e.status());
-	    }
-	}
 
 	// === Helper methods ===
 
-	private ResponseEntity<ResponseStructure<SubServicesDto>> buildErrorResponse(String message, int statusCode) {
-		ResponseStructure<SubServicesDto> errorResponse = ResponseStructure.<SubServicesDto>builder().data(null)
-				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
-				.build();
-		return ResponseEntity.status(statusCode).body(errorResponse);
-	}
+//	private ResponseEntity<ResponseStructure<SubServicesDto>> buildErrorResponse(String message, int statusCode) {
+//		ResponseStructure<SubServicesDto> errorResponse = ResponseStructure.<SubServicesDto>builder().data(null)
+//				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
+//				.build();
+//		return ResponseEntity.status(statusCode).body(errorResponse);
+//	}
 
-	private ResponseEntity<ResponseStructure<List<SubServicesDto>>> buildErrorResponseList(String message,
-			int statusCode) {
-		ResponseStructure<List<SubServicesDto>> errorResponse = ResponseStructure.<List<SubServicesDto>>builder()
-				.data(null) // <-- changed from null to empty list
-				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
-				.build();
-		return ResponseEntity.status(statusCode).body(errorResponse);
-	}
+//	private ResponseEntity<ResponseStructure<List<SubServicesDto>>> buildErrorResponseList(String message,
+//			int statusCode) {
+//		ResponseStructure<List<SubServicesDto>> errorResponse = ResponseStructure.<List<SubServicesDto>>builder()
+//				.data(null) // <-- changed from null to empty list
+//				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
+//				.build();
+//		return ResponseEntity.status(statusCode).body(errorResponse);
+//	}
 
 	private String extractCleanMessage(String rawMessage) {
 		// Try to extract the "message" value from JSON string if included
@@ -3153,7 +2292,13 @@ public class AdminServiceImpl implements AdminService {
 		}
 		return rawMessage;
 	}
-	
+
+
+
+
+
+
+
 	
 	}
 

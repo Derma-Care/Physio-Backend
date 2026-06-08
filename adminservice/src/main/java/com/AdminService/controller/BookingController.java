@@ -1,6 +1,7 @@
 package com.AdminService.controller;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,18 +23,19 @@ import com.AdminService.util.ResponseStructure;
 @RequestMapping("/admin")
 //@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
 public class BookingController {
+
     @Autowired
     private BookingServiceImpl serviceImpl;
+
     @PostMapping("/bookService")
     public ResponseEntity<?> bookService(@RequestBody BookingRequset req) {
-        Response response = serviceImpl.bookService(req);
-        return ResponseEntity.status(response.getStatus()).body(response);
+        return serviceImpl.physioAppointment(req);
     }
-    @GetMapping("/getAllBookedServices")
-    public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedServices() {
-        ResponseStructure<List<BookingResponse>> response = serviceImpl.getAllBookedServices();
-        HttpStatus status = response.getHttpStatus() != null ? response.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-        return ResponseEntity.status(status).body(response);
+
+    @GetMapping("/getAllBookedServices/{page}")
+    public  ResponseEntity<Page<BookingResponse>> getAllBookedServices(@PathVariable int page ) {
+        ResponseEntity<Page<BookingResponse>> response = serviceImpl.getAllBookedServices(page);
+        return response;
     }
 
     @DeleteMapping("/deleteServiceByBookingId/{id}")
@@ -43,10 +45,9 @@ public class BookingController {
     }
 
     @GetMapping("/getBookingByDoctorId/{doctorId}")
-    public ResponseEntity<Object> getBookingByDoctorId(@PathVariable String doctorId) {
-        Response response = serviceImpl.getBookingByDoctorId(doctorId);
-        return ResponseEntity.status(response.getStatus()).body(response.getData() != null ? response.getData() : response);
-    }
+    public ResponseEntity<?> getBookingByDoctorId(	@PathVariable String doctorId,
+                                                           @PathVariable int page) {
+        return serviceImpl.getBookingByDoctorId(doctorId, page, 10);}
 
     @GetMapping("/getBookedServiceById/{bookingId}")
     public ResponseEntity<Object> getBookedServiceById(@PathVariable String bookingId) {
@@ -54,9 +55,9 @@ public class BookingController {
         return ResponseEntity.status(response.getStatus()).body(response.getData() != null ? response.getData() : response);
     }
 
-    @GetMapping("/getAppointmentsByPatientId/{patientId}")
-    public ResponseEntity<Object> getAppointmentsByPatientId(@PathVariable String patientId) {
-        Response response = serviceImpl.getAppointmentsByPatientId(patientId);
+    @GetMapping("/getAppointmentsByPatientId/{clinicId}/{patientId}/{page}")
+    public ResponseEntity<Object> getAppointmentsByPatientId(@PathVariable String clinicId,@PathVariable String patientId,@PathVariable int page) {
+        Response response = serviceImpl.getAppointmentsByPatientId(clinicId,patientId,page);
         return ResponseEntity.status(response.getStatus()).body(response.getData() != null ? response.getData() : response);
     }
 

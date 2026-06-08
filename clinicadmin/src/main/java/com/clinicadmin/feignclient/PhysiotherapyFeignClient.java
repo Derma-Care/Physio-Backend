@@ -29,4 +29,10 @@ public interface PhysiotherapyFeignClient {
             @PathVariable("bookingId") String bookingId,
             @PathVariable("therapistRecordId") String therapistRecordId
     );
+    
+    @GetMapping("/api/physiotherapy-doctor/getPayments/{clinicId}/{branchId}")
+    Response getPayments(
+            @PathVariable String clinicId,
+            @PathVariable String branchId);
+
 }

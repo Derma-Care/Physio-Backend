@@ -3,6 +3,7 @@ package com.AdminService.util;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL) 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Response {
     
     private boolean success;
@@ -19,13 +21,13 @@ public class Response {
     private String message;
     private int status;
 
-    private String hospitalName;
-    private String hospitalId; 
+   private String hospitalName;
+   private String hospitalId; 
     private String branchId;
-
-
-    private String branchName;
-
-    private String role; 
+//
+//
+//    private String branchName;
+//
+//    private String role; 
     private Map<String, List<String>> permissions;
 }

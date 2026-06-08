@@ -157,7 +157,7 @@ public class DoctorController {
 	 */
 	@PutMapping("/updateDoctor/{doctorId}")
 	public ResponseEntity<Response> updateDoctorById(@PathVariable String doctorId,
-			@Validated(RequiredChecks.class) @RequestBody DoctorsDTO dto) {
+			 @RequestBody DoctorsDTO dto) {
 		dto.trimAllDoctorFields();
 		Response response = doctorService.upDateDoctorById(doctorId, dto);
 		return ResponseEntity.status(response.getStatus()).body(response);
@@ -188,11 +188,11 @@ public class DoctorController {
 
 	// ----------------------------Doctor
 	// Login----------------------------------------------------------
-	@PostMapping("/doctorLogin")
-	public ResponseEntity<Response> doctorLogin(@Valid @RequestBody DoctorLoginDTO loginDTO) {
-		Response response = doctorService.login(loginDTO);
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+//	@PostMapping("/doctorLogin")
+//	public ResponseEntity<Response> doctorLogin(@Valid @RequestBody DoctorLoginDTO loginDTO) {
+//		Response response = doctorService.login(loginDTO);
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
 
 	// -------------------------Change
 	// Password----------------------------------------------------------

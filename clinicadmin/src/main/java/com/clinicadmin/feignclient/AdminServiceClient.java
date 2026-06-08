@@ -17,9 +17,9 @@ import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
 @FeignClient(name = "adminservice")
 public interface AdminServiceClient {
 
-	@PostMapping("/admin/login")
-    public Response login(@RequestBody ClinicLoginRequestDTO credentials);
-
+	@PostMapping("/admin/clinicLogin/{userName}")
+	 public Response clinicLogin(@PathVariable String userName);
+	 
 	// Update clinic credentials
 	@PutMapping("/admin/updateClinicCredentials/{userName}")
 	public Response updateClinicCredentials(@RequestBody UpdateClinicLoginCredentialsDTO updatedCredentials,
@@ -28,6 +28,9 @@ public interface AdminServiceClient {
 	// Get Clinic by ID
 	@GetMapping("/admin/getClinicById/{clinicId}")
 	 public ResponseEntity<Response> getClinicById(@PathVariable String clinicId);
+	
+	 @GetMapping("/admin/getAllClinics")
+	    public ResponseEntity<Response> getAllClinics();
 
 	// Update Clinic
 	@PutMapping("/admin/updateClinic/{clinicId}")
@@ -52,6 +55,9 @@ public interface AdminServiceClient {
 	                                                      @PathVariable String branchId);
 	@GetMapping("/admin/getBranchById/{branchId}")
 	public ResponseEntity<Response> getBranchById(@PathVariable String branchId);
+	
+	  @GetMapping("/admin/getAllBranches")
+	    public ResponseEntity<Response> getAllBranches();
 
 	 @GetMapping("/admin/getDefaultAdminPermissions")
 	    ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions();

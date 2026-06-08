@@ -14,6 +14,8 @@ public interface DoctorsRepository extends MongoRepository<Doctors, ObjectId> {
     boolean existsByDoctorMobileNumber(String mobileNumber);
 
     Optional<Doctors> findByDoctorId(String doctorId);
+    
+    Optional<Doctors> findByDoctorName(String doctorName);
 
     List<Doctors> findByHospitalId(String hospitalId);
 

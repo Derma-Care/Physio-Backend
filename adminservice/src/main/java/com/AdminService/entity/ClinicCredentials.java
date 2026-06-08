@@ -20,7 +20,7 @@ public class ClinicCredentials {
     private String hospitalName;
     private String userName;
     private String password;
-    private String role;
+    private List<String> roles;
     private Map<String, Map<String, List<String>>> permissions;
 
 

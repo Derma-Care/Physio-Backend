@@ -12,9 +12,11 @@ public class TheraphyProgramWithTheraphyNamesDto {
 	
 	private String id;
 	private String programName;
+	private double totalProgramAmount;
 	private List<TheraphyNamesDTO> therophy;
 	private String clinicId;
 	private String branchId;
 	private long theraphyCount;
+	
 
 }

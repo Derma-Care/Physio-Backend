@@ -1,6 +1,7 @@
 package com.clinicadmin.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Response;
@@ -25,22 +25,22 @@ public class BookingServiceController {
 	@Autowired
 	BookingService bookingService; 
 	
-	@GetMapping("/getAllbookingsDetailsByBranchId/{branchId}")
-	public ResponseEntity<Response> getAllbookingsDetailsByBranchId(@PathVariable String branchId) {
-		Response response = bookingService.getAllBookedServicesDetailsByBranchId(branchId);
-		return ResponseEntity.status(response.getStatus()).body(response);
+	@GetMapping("/getAllbookingsDetailsByBranchId/{branchId}/{page}")
+	public ResponseEntity<?> getAllbookingsDetailsByBranchId(@PathVariable String branchId,@PathVariable int page) {
+		return bookingService.getAllBookedServicesDetailsByBranchId(branchId,page);
+		
 	}
 	
-	@GetMapping("/getAllbookingsDetailsByClinicAndBranchId/{clinicId}/{branchId}")
-	public ResponseEntity<?> getAllbookingsDetailsByClinicAndBranchId(@PathVariable String clinicId,@PathVariable String branchId) {
-		return bookingService.getBookingsByClinicIdWithBranchId(clinicId,branchId);
+	@GetMapping("/getAllbookingsDetailsByClinicAndBranchId/{clinicId}/{branchId}/{page}")
+	public ResponseEntity<?> getAllbookingsDetailsByClinicAndBranchId(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable int page) {
+		return bookingService.getBookingsByClinicIdWithBranchId(clinicId,branchId,page);
 		
 	}
 	
 	
-	@GetMapping("/appointments/byIds/{clinicId}/{branchId}")
-	public ResponseEntity<?> retrieveOneWeekAppointments(@PathVariable String clinicId,@PathVariable String branchId) {
-		return bookingService.retrieveOneWeekAppointments(clinicId, branchId);
+	@GetMapping("/appointments/byIds/{clinicId}/{branchId}/{page}")
+	public ResponseEntity<?> retrieveOneWeekAppointments(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable int page) {
+		return bookingService.retrieveOneWeekAppointments(clinicId, branchId,page);
 	
 	}
 	
@@ -57,16 +57,12 @@ public class BookingServiceController {
 		
 	}
 	
-	@GetMapping("/bookings/byInput/{input}/{clinicId}")
-	   public ResponseEntity<?> getInprogressBookingsByInput(
-				 @PathVariable String input, @PathVariable String clinicId){
-		   return bookingService.retrieveAppointnmentsByInput(input,clinicId);
-	 }
 	
-	   @GetMapping("/bookings/byPatientId/{patientId}")
+	
+	   @GetMapping("/bookings/byPatientId/{patientId}/{page}")
 	   public ResponseEntity<?> getInprogressBookingsByPatientId(
-				 @PathVariable String patientId){
-		   return bookingService.retrieveAppointnmentsByPatientId(patientId);
+				 @PathVariable String patientId, @PathVariable int page){
+		   return bookingService.retrieveAppointnmentsByPatientId(patientId,page);
 		   
 	 }
 	   
@@ -82,7 +78,7 @@ public class BookingServiceController {
 	    return bookingService.getReportsByPatientId(patientId);}
 	   
 	   @PostMapping("/bookService")
-	   public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws JsonProcessingException  {
+	   public ResponseEntity<Object> bookService(@RequestBody BookingResponse req)throws JsonProcessingException  {
 	   	Response response = bookingService.bookService(req);
 	   	if(response != null && response.getData() == null) {
 	   		 return ResponseEntity.status(response.getStatus()).body(response);
@@ -158,11 +154,11 @@ public class BookingServiceController {
 	        return bookingService.getBookingById(bookingId);
 	    }
 	   
-	   @GetMapping("/getTodayBookingsByClinicIdAndBranchId/{clinicId}/{branchId}")
+	   @GetMapping("/getTodayBookingsByClinicIdAndBranchId/{clinicId}/{branchId}/{page}")
 	    public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(
-	            @PathVariable String clinicId, @PathVariable String branchId) {
+	            @PathVariable String clinicId, @PathVariable String branchId, @PathVariable int page) {
 
-	        return bookingService.getTodayBookingsByClinicIdAndBranchId(clinicId, branchId);
+	        return bookingService.getTodayBookingsByClinicIdAndBranchId(clinicId, branchId,page);
 	    }
 	    
 	    /**
@@ -188,5 +184,13 @@ public class BookingServiceController {
 
 	        return bookingService.getUpcomingBookings(clinicId, branchId, option);
 	    }
+	    
+	    
+	    @GetMapping("/getBookedServiceById/{id}")
+		public ResponseEntity<?> getBookedService(@PathVariable String id) {
+			return bookingService.getBookedServiceById(id);
+		
+		}
+
 	   
 }

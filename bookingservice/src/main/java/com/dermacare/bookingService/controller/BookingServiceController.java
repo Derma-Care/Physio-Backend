@@ -1,8 +1,10 @@
 package com.dermacare.bookingService.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -35,7 +37,7 @@ public class BookingServiceController {
 
 
 	@PostMapping("/bookService")
-	public  ResponseEntity<?> bookService(@RequestBody BookingRequset req) {
+	public  ResponseEntity<?> bookService(@RequestBody BookingResponse req) {
 		return service.addService(req);}
 		
 
@@ -50,20 +52,27 @@ public class BookingServiceController {
 						HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}}
 	
 	
-	@GetMapping("/getTodayBookings/{clincId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
-		List<BookingResponse> response = service.getTodayBookings(clincId, branchId);
-		if(response != null || !response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
-					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
-			else {
-				return new ResponseEntity<>(ResponseStructure.buildResponse(null, "Booked Service Not Found",
-						HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}}
+	///modified 
+	@GetMapping("/todayBookings/{clinicId}/{branchId}/{page}/{size}")
+	public ResponseEntity<?> getTodayBookings(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+
+	    return service.getTodayBookings(
+	            clinicId,
+	            branchId,
+	            page,
+	            size
+	    );
+	}
 	
 	
 
 	@GetMapping("/getBookedServiceById/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id) {
+		//System.out.println("hii"); 
 		BookingResponse response = service.getBookedService(id);
 		if(response != null) {
 		return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
@@ -73,98 +82,174 @@ public class BookingServiceController {
 					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
 	}
 
-	
-	@GetMapping("/getBookedServicesByMobileNumber/{mobileNumber}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getCustomerBookedServices(
-			@PathVariable String mobileNumber) {
-		List<BookingResponse> response = service.getBookedServices(mobileNumber);
+	////modified
+	@GetMapping("/bookings/{mobileNumber}/{page}/{size}")
+	public ResponseEntity<?> getBookedServices(
+	        @PathVariable String mobileNumber,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+		 Page<BookingResponse>  response = service.getBookedServices(mobileNumber,page,size);
 		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null, "Customer does not have any booking",
-					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+			return ResponseEntity.status(200).body(null);
 		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
-				HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+		return ResponseEntity.status(200).body(response);
 	}
 
-	
-	@GetMapping("/getAllBookedServices")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedService() {
-		List<BookingResponse> response = service.getAllBookedServices();
+	///modified
+	@GetMapping("/getAllBookedServices/{page}/{size}")
+	public ResponseEntity<Page<BookingResponse>> getAllBookings(
+			@PathVariable int page,
+			@PathVariable int size) {
+		 Page<BookingResponse> response = service.getAllBookedServices(page, size);
 		if (response == null || response.isEmpty() ) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null, "Customer does not have any booking",
-					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+			return ResponseEntity.status(200).body(null);
 		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
-				HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+		return ResponseEntity.status(200).body(response);
 	}
 
-	@GetMapping("/getAllBookedServices/{doctorId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByDoctorId(@PathVariable String doctorId) {
+	
+	@GetMapping("/doctor/{doctorId}/{page}/{size}")
+	public ResponseEntity<?> bookingByDoctorId(
+	        @PathVariable String doctorId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
 
-		List<BookingResponse> response = service.bookingByDoctorId(doctorId);
+	    Page<BookingResponse> bookings =
+	            service.bookingByDoctorId(
+	                    doctorId,
+	                    page,
+	                    size);
+
+	    Response response = new Response();
+
+	    // ================= EMPTY CHECK =================
+
+	    if (bookings.isEmpty()) {
+
+	        response.setMessage("No Bookings Found");
+	        response.setStatus(HttpStatus.NOT_FOUND.value());
+	        response.setSuccess(false);
+	        response.setData(null);
+
+	        return new ResponseEntity<>(
+	                response,
+	                HttpStatus.NOT_FOUND);
+	    }
+
+	    // ================= SUCCESS =================
+
+	    response.setMessage(
+	            "Bookings Retrieved Successfully");
+	    response.setStatus(HttpStatus.OK.value());
+	    response.setSuccess(true);
+	    response.setData(bookings);
+
+	    return new ResponseEntity<>(
+	            response,
+	            HttpStatus.OK);
+	}
+	
+	
+	@GetMapping("/branch/{branchId}/{page}/{size}")
+	public ResponseEntity<?> bookingByBranchId(
+	        @PathVariable String branchId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+
+	    Page<BookingResponse> bookings =
+	            service.bookingByBranchId(
+	                    branchId,
+	                    page,
+	                    size);
+
+	    Response response = new Response();
+
+	    // ================= EMPTY CHECK =================
+
+	    if (bookings.isEmpty()) {
+
+	        response.setMessage("No Bookings Found");
+	        response.setStatus(HttpStatus.NOT_FOUND.value());
+	        response.setSuccess(false);
+	        response.setData(null);
+
+	        return new ResponseEntity<>(
+	                response,
+	                HttpStatus.NOT_FOUND);
+	    }
+
+	    // ================= SUCCESS =================
+
+	    response.setMessage(
+	            "Bookings Retrieved Successfully");
+	    response.setStatus(HttpStatus.OK.value());
+	    response.setSuccess(true);
+	    response.setData(bookings);
+
+	    return new ResponseEntity<>(
+	            response,
+	            HttpStatus.OK);
+	}
+
+	// @GetMapping("/getBookedServicesByServiceId/{serviceId}")
+	// public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId) {
+
+	// 	List<BookingResponse> response = service.bookingByServiceId(serviceId);
+	// 	if (response == null || response.isEmpty()) {
+	// 		return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+	// 				"Service Does not Booked by AnyOne" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
+	// 				HttpStatus.OK);
+	// 	}
+	// 	return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+	// 			"Booking fetched sucessfully on ServiceId" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
+	// 			HttpStatus.OK);
+
+	// }
+	
+	
+	@GetMapping("/clinic/{clinicId}/{page}/{size}")
+	public ResponseEntity<?> bookingByClinicId(
+	        @PathVariable String clinicId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+
+	    return service.bookingByClinicId(
+	            clinicId,
+	            page,
+	            size);
+	}
+	
+	@GetMapping("/booking/completed/customerId/{customerId}")
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getCompletedBookingByCustomerId(@PathVariable String customerId) {
+
+		List<Map<String,Object>> response = service.CompletedbookingByCustomerId(customerId);
 		if (response == null || response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"Docotor Does not involved in any Booking yet ", HttpStatus.OK, HttpStatus.OK.value()),
+					"No completed bookings found on customerId" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
 					HttpStatus.OK);
 		}
 		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booked Service Fetched Sucessfully on DoctorId" + doctorId, HttpStatus.OK, HttpStatus.OK.value()),
+				"Booking fetched sucessfully on clinicId" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
 				HttpStatus.OK);
 
 	}
 	
-	
-	@GetMapping("/getAllBookedServicesByBranchId/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedServicesByBranchId(@PathVariable String branchId) {
 
-		List<BookingResponse> response = service.bookingByBranchId(branchId);
-		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"unable to find any Bookings yet ", HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);
-		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booked Service Fetched Sucessfully on branchId : " + branchId, HttpStatus.OK, HttpStatus.OK.value()),
-				HttpStatus.OK);
-
-	}
-
-	@GetMapping("/getBookedServicesByServiceId/{serviceId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId) {
-
-		List<BookingResponse> response = service.bookingByServiceId(serviceId);
-		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"Service Does not Booked by AnyOne" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);
-		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booking fetched sucessfully on ServiceId" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
-				HttpStatus.OK);
-
-	}
-	
-	
-	@GetMapping("/getBookedServicesByClinicId/{clinicId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByClinicId(@PathVariable String clinicId) {
-
-		List<BookingResponse> response = service.bookingByClinicId(clinicId);
-		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"Clinic  Does not have any booking yet" + clinicId, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);
-		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booking fetched sucessfully on clinicId" + clinicId, HttpStatus.OK, HttpStatus.OK.value()),
-				HttpStatus.OK);
-
-	}
-	
+//	@GetMapping("/customer/{customerId}/{page}/{size}")
+//	public ResponseEntity<?> bookingByCustomerId(
+//	        @PathVariable String customerId,
+//	        @PathVariable int page,
+//	        @PathVariable int size) {
+//	    return service.bookingByCustomerId(
+//	            customerId,
+//	            page,
+//	            size);
+//	}
 	
 	@GetMapping("/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByCustomerId(@PathVariable String customerId) {
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId) {
 
-		List<BookingResponse> response = service.bookingByCustomerId(customerId);
+		List<Map<String,Object>> response = service.bookingByCustomerId(customerId);
 		if (response == null || response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
 					"Clinic  Does not have any booking yet" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
@@ -175,38 +260,33 @@ public class BookingServiceController {
 				HttpStatus.OK);
 
 	}
-
 	
-	@GetMapping("/appointments/patientId/{patientId}")	
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByPatientId(@PathVariable String patientId) {
 
-		List<BookingResponse> response = service.bookingByPatientId(patientId);
-		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"Clinic  Does not have any booking yet" + patientId, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);
-		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booking fetched sucessfully on clinicId" + patientId, HttpStatus.OK, HttpStatus.OK.value()),
-				HttpStatus.OK);
-
+	@GetMapping("/patient/{clinicId}/{patientId}/{page}/{size}")
+	public ResponseEntity<Page<BookingResponse>> bookingByPatientId(
+			@PathVariable String clinicId,
+			@PathVariable String patientId,
+			@PathVariable int page,
+			@PathVariable int size) {
+		return ResponseEntity.ok(
+				service.bookingByPatientId(clinicId,patientId, page, size)
+		);
 	}
-	
-	@GetMapping("/getBookedServicesByClinicIdWithBranchId/{clinicId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookedServicesByClinicIdWithBranchId(
+
+	///modified
+	@GetMapping("/clinicBookings/{clinicId}/{branchId}/{page}/{size}")
+	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(
 	        @PathVariable String clinicId,
-	        @PathVariable String branchId) {
+	        @PathVariable String branchId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
 
-	    List<BookingResponse> response = service.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
-	    if (response == null || response.isEmpty()) {
-	        return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-	                "No bookings found for clinicId: " + clinicId + " and branchId: " + branchId,
-	                HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
-	    }
-
-	    return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-	            "Bookings fetched successfully for clinicId: " + clinicId + " and branchId: " + branchId,
-	            HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
+	    return service.getBookedServicesByClinicIdWithBranchId(
+	            clinicId,
+	            branchId,
+	            page,
+	            size
+	    );
 	}
 
 //	@PutMapping("/updateAppointment")
@@ -215,16 +295,24 @@ public class BookingServiceController {
 //	
 //	}
 	
-	
-	@GetMapping("/getAppointmentByPatientId/{patientId}")
-	public ResponseEntity<?> getAppointmentByPatientId(@PathVariable String patientId){
-		return service.getAppointsByPatientId(patientId);
-	
+///modified	
+	@GetMapping("/appointments/{patientId}/{page}/{size}")
+	public ResponseEntity<?> getAppointmentsByPatientId(
+	        @PathVariable String patientId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+
+	    return service.getAppointsByPatientId(patientId, page, size);
 	}
 	
-	@GetMapping("/in-progress/appointments/{patientId}/{bookingId}")
-	public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId){
-		  List<BookingResponse> response = service.bookingByPatientIdAndBookingId(patientId,bookingId);
+	///mofdified
+	@GetMapping("/booking/{patientId}/{bookingId}/{page}/{size}")
+	public ResponseEntity<?> bookingByPatientIdAndBookingId(
+	        @PathVariable String patientId,
+	        @PathVariable String bookingId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+	Page<BookingResponse> response = service.bookingByPatientIdAndBookingId(patientId,bookingId,page,size);
 		    if (response == null || response.isEmpty()) {
 		        return new ResponseEntity<>(ResponseStructure.buildResponse(null,
 		                "No bookings found",
@@ -236,18 +324,31 @@ public class BookingServiceController {
 		            HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);
 	}
 	
-	
-	@GetMapping("/getAppointsByInput/{input}")
-	public ResponseEntity<?> getAppointsByInput(@PathVariable String input){
-		return service.getAppointsByInput(input);
-	
+	///modified
+	@GetMapping("/appointments/search/{input}/{page}/{size}")
+	public ResponseEntity<?> getAppointmentsByInput(
+	        @PathVariable String input,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+
+	    return service.getAppointsByInput(input, page, size);
 	}
 	
 	
-	@GetMapping("/getTodayDoctorAppointmentsByDoctorId/{clinicId}/{doctorId}")
-	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(@PathVariable String clinicId,@PathVariable String doctorId){
-		return service.getTodayDoctorAppointmentsByDoctorId(clinicId, doctorId);
-	
+	///modified
+	@GetMapping("/todayAppointments/{clinicId}/{doctorId}/{page}/{size}")
+	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(
+	        @PathVariable String clinicId,
+	        @PathVariable String doctorId,
+	        @PathVariable int page,
+	        @PathVariable int size) {
+
+	    return service.getTodayDoctorAppointmentsByDoctorId(
+	            clinicId,
+	            doctorId,
+	            page,
+	            size
+	    );
 	}
 	
 	@GetMapping("/filterDoctorAppointmentsByDoctorId/{clinicId}/{doctorId}/{number}")
@@ -275,24 +376,47 @@ public class BookingServiceController {
 			return  ResponseEntity.status(response.getStatus()).body(response);
 	}
 		
-		@GetMapping("/getInProgressAppointments/{mobilenumber}")
-		public ResponseEntity<?> inProgressAppointments(@PathVariable String mobilenumber)
-		{
-			return service.getInProgressAppointments(mobilenumber);
+		///modified
+		@GetMapping("/inprogress/{number}/{page}/{size}")
+		public ResponseEntity<?> getInProgressAppointments(
+		        @PathVariable String number,
+		        @PathVariable int page,
+		        @PathVariable int size) {
+
+		    return service.getInProgressAppointments(
+		            number,
+		            page,
+		            size
+		    );
+		}
+		
+		///modified
+		@GetMapping("/futureAppointments/{doctorId}/{page}/{size}")
+		public ResponseEntity<?> getDoctorFutureAppointments(
+		        @PathVariable String doctorId,
+		        @PathVariable int page,
+		        @PathVariable int size) {
+
+		    return service.getDoctorFutureAppointments(
+		            doctorId,
+		            page,
+		            size
+		    );
 		}
 		
 		
-		@GetMapping("/getDoctorFutureAppointments/{doctorId}")
-		public ResponseEntity<?> getDoctorFutureAppointments(@PathVariable String doctorId)
-		{
-			return service.getDoctorFutureAppointments(doctorId);
-		}	
-		
-		
-		@GetMapping("/appointments/byIds/{clinicId}/{branchId}")
-		public ResponseEntity<?> retrieveOneWeekAppointments(@PathVariable String clinicId,@PathVariable String branchId)
-		{
-			return service.retrieveOneWeekAppointments(clinicId, branchId);
+		@GetMapping("/retrieve-one-week-appointments/{clinicId}/{branchId}/{page}/{size}")
+		public ResponseEntity<?> retrieveOneWeekAppointments(
+		        @PathVariable String clinicId,
+		        @PathVariable String branchId,
+		        @PathVariable int page,
+		        @PathVariable int size) {
+
+		    return service.retrieveOneWeekAppointments(
+		            clinicId,
+		            branchId,
+		            page,
+		            size);
 		}
 		
 		@GetMapping("/appointments/Inprogress/{customerId}")
@@ -315,7 +439,7 @@ public class BookingServiceController {
 		
 		
 		@PutMapping("/update/bookingId")
-		public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse ){
+		public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse ){
 			return service.updateAppointmentBasedOnBookingId(bookingResponse);
 		}
 		
@@ -324,19 +448,7 @@ public class BookingServiceController {
 		{
 			return service.getRelationsByCustomerId(customerId);
 		}
-	
-			
-		@GetMapping("/appointments/byInput/{input}/{clinicId}")	
-		public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId){
-			BookingInfoByInput response = service.bookingByInput(input,clinicId);
-			if (response == null) {
-				return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-						"No booking yet" + input, HttpStatus.OK, HttpStatus.OK.value()),
-						HttpStatus.OK);}
-			return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-					"Booking fetched sucessfully on clinicId" + input, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);}
-	
+
 		
 		@PostMapping("/appointments/serviceDate/serviceTime/DoctorId")
 		public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp)
@@ -362,24 +474,42 @@ public class BookingServiceController {
 		
 		
 		  // ✅ API 1
-	    @GetMapping("/today/{clinicId}/{branchId}")
-	    public ResponseEntity<Response> getTodayPhysioBookings(
-	            @PathVariable String clinicId,
-	            @PathVariable String branchId) {
+		///modified
+		@GetMapping("/todayAllBookings/{clinicId}/{branchId}/{page}/{size}")
+		public ResponseEntity<Response> getTodayAllBookings(
+		        @PathVariable String clinicId,
+		        @PathVariable String branchId,
+		        @PathVariable int page,
+		        @PathVariable int size) {
 
-	        return service.getTodayAllBookings(clinicId, branchId);
-	    }
+		    return service.getTodayAllBookings(
+		            clinicId,
+		            branchId,
+		            page,
+		            size
+		    );
+		}
 
 	    // ✅ API 2
-	    @GetMapping("/upcoming/{clinicId}/{branchId}/{option}")
-	    public ResponseEntity<Response> getUpcomingBookings(
-	    		  @PathVariable String clinicId,
-	    		  @PathVariable String branchId,
-	    		  @PathVariable int option) {
+		///modified
+		@GetMapping("/upcomingBookings/{clinicId}/{branchId}/{option}/{page}/{size}")
+		public ResponseEntity<Response> getUpcomingBookings(
+		        @PathVariable String clinicId,
+		        @PathVariable String branchId,
+		        @PathVariable int option,
+		        @PathVariable int page,
+		        @PathVariable int size) {
 
-	        return service.getUpcomingBookings(clinicId, branchId, option);
-	    }
-	    
+		    return service.getUpcomingBookings(
+		            clinicId,
+		            branchId,
+		            option,
+		            page,
+		            size
+		    );
+		} 
+		
+		
 	    @GetMapping("/basedOnDate/{clinicId}/{branchId}/{date}")
 	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
 	            @PathVariable String clinicId,
@@ -389,14 +519,24 @@ public class BookingServiceController {
 	        return service.getBookingByDate(clinicId, branchId, date);
 	    }
 	    
-	    @GetMapping("/customeRange/{clinicId}/{branchId}/{start}/{end}")
-	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(
+	    ///modified
+	    @GetMapping("/customBookings/{clinicId}/{branchId}/{start}/{end}/{page}/{size}")
+	    public ResponseEntity<Response> getBookingByCustomRange(
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId,
 	            @PathVariable String start,
-	            @PathVariable String end) {
+	            @PathVariable String end,
+	            @PathVariable int page,
+	            @PathVariable int size) {
 
-	        return service.getBookingByCustomRange(clinicId, branchId,start, end);
+	        return service.getBookingByCustomRange(
+	                clinicId,
+	                branchId,
+	                start,
+	                end,
+	                page,
+	                size
+	        );
 	    }
 	    
 	    @GetMapping("/getBookingById/{bookingId}")
@@ -404,6 +544,10 @@ public class BookingServiceController {
 	        return service.getBookingById(bookingId);
 	    }
 	    
+	    @GetMapping("/deleteReport/{bookingId}/{index}")
+	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index) {
+	        service.deleteBookedServiceReports(bookingId,index);
+	    } 
 	    
 	    @GetMapping("/reports/patientId/{patientId}")
 	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId) {
@@ -429,6 +573,25 @@ public class BookingServiceController {
 
 	        return ResponseEntity.ok(response);
 	    }
-			
-		}
+	  ///modified	
+	    @GetMapping("/appointments/{clinicId}/{branchId}/{doctorId}/{status}/{page}/{size}")
+	    public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String doctorId,
+	            @PathVariable String status,
+	            @PathVariable int page,
+	            @PathVariable int size) {
 
+	        return service
+	                .getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
+	                        clinicId,
+	                        branchId,
+	                        doctorId,
+	                        status,
+	                        page,
+	                        size
+	                );
+	    }
+	    
+  }

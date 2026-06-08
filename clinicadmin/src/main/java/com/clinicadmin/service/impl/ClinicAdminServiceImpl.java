@@ -4,36 +4,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.ClinicDTO;
-import com.clinicadmin.dto.ClinicLoginRequestDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
+import com.clinicadmin.entity.ClinicAdminDeviceTokenEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
+import com.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
 import com.clinicadmin.service.ClinicAdminService;
 import com.clinicadmin.utils.ExtractFeignMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 @Service
 public class ClinicAdminServiceImpl implements ClinicAdminService {
-    @Autowired
+    
+	@Autowired
     private AdminServiceClient adminServiceClient;
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ClinicAdminWebFcmTokenRepository deviceIdRepo;
   
-
-    @Override
-    public Response login(ClinicLoginRequestDTO credentials) {
-    	try {
-    	Response response=adminServiceClient.login(credentials);
-    	return response;
-    	}catch(FeignException e) {
-    	Response res = new Response();
-    	res.setStatus(e.status());
-    	res.setMessage(ExtractFeignMessage.clearMessage(e));
-    	res.setSuccess(false);
-       return res;
-       }
-    }
 
     @Override
     public Response updateClinicCredentials(UpdateClinicLoginCredentialsDTO updatedCredentials, String userName) {
@@ -92,6 +83,26 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
         	}
         }
 
+    
+    @Override
+    public ResponseEntity<?> getDeviceId(String username) {
+    	 Response fallback = new Response();
+    	try {
+          
+        	ClinicAdminDeviceTokenEntity obj =  deviceIdRepo.findByUsername(username);
+        	 fallback.setSuccess(true);
+             fallback.setMessage("successful");
+             fallback.setStatus(HttpStatus.OK.value());
+             return ResponseEntity.status(HttpStatus.OK).body(fallback);         
+        } catch (Exception e) {
+                fallback.setSuccess(false);
+                fallback.setMessage(e.getMessage());
+                fallback.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(fallback);
+            }
+        }
+    
+    
 
     @Override
     public ResponseEntity<?> getBranchesByClinicId(String clinicId) {

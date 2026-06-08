@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import com.dermacare.bookingService.dto.TreatmentResponseDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,12 +15,13 @@ import lombok.NoArgsConstructor;
 @Document(collection = "Appointments")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Booking  {
-    
-	@Id
+
+    @Id
     private String bookingId;
     private String bookingFor;
     private String relation;
     private String patientMobileNumber;
+    private String dob;
     private String patientAddress;
     private String patientId;
     private Integer freeFollowUpsLeft;
@@ -43,68 +43,69 @@ public class Booking  {
     private String clinicDeviceId;
     private String doctorId;
     private String doctorName;
+    private String focReason;
     private String doctorDeviceId;
     private String doctorWebDeviceId;
-    private String subServiceId;
-    private String subServiceName;
+//    private String subServiceId;
+//    private String subServiceName;
     private String serviceDate;
     private String servicetime;
     private String consultationType;
     private List<ConsultationFees> listOfConsultationFee;
-    private double consultationFee;
+    private Double consultationFee;
     private String reasonForCancel;
-    private String notes;
+   // private String notes;
     private List<Status> currentStatus;
-	private String status;
+    private String status;
     private List<ReportsList> reports;
     private String channelId;
     private String bookedAt;
     private Integer visitCount;
-    private List<byte[]> attachments;
-    private byte[] consentFormPdf;
+    private List<String> attachments;
+    private String consentFormPdf;
     private List<byte[]> prescriptionPdf;
     private double totalFee;
-	private String paymentType;
+    private String paymentType;
     private String doctorRefCode;
     private String consultationExpiration;
     private String followupStatus;
-    private Integer sittings;
-    private Integer totalSittings;
-    private Integer pendingSittings;
-    private Integer takenSittings;
-    private Integer currentSitting;
+//    private Integer sittings;
+//    private Integer totalSittings;
+//    private Integer pendingSittings;
+//    private Integer takenSittings;
+//    private Integer currentSitting;
     private String foc;
     // ------------------- NEW: Treatments and dates -------------------
-    private TreatmentResponseDTO treatments; // treatmentName -> treatment details
+    ///private TreatmentResponseDTO treatments; // treatmentName -> treatment details
     private String bodyPartId;
-   	private String bodyPartName;
-   	private byte[] partImage;
-   	private Map<String,List<TheraphyAnswersEntity>> theraphyAnswers;
-   	private List<String> parts;
-   	private double partAmount;
-   	private double dueAmount;
-   	private String referredByType;
-	private String referredByName;
-	private String paymentStatus;
-	private String previousInjuries;
-	private String currentMedications;
-	private String allergies;
-	private String occupation;
-	private String insuranceProvider;
-	private String policyNumber;
-	private List<String> activityLevels;
-	private String reasonforVisit;
-	private boolean isFollowupStatus;
-	private List<FollowupBooking> follwupBookings;
-	
-	public void setIsFollowupStatus(boolean followupStatus) {
-	    isFollowupStatus = followupStatus;
-	}
-	
-	public boolean getIsFollowupStatus() {
-	    return isFollowupStatus;
-	}
-   	
+    private String bodyPartName;
+    private String partImage;
+    private Map<String,List<TheraphyAnswersEntity>> theraphyAnswers;
+    private List<String> parts;
+    private double partAmount;
+    private double dueAmount;
+    private String referredByType;
+    private String referredByName;
+    private String paymentStatus;
+    private String previousInjuries;
+    private String currentMedications;
+    private String allergies;
+    private String occupation;
+    private String insuranceProvider;
+    private String policyNumber;
+    private List<String> activityLevels;
+    private String reasonforVisit;
+    private boolean isFollowupStatus;
+    private List<FollowupBooking> follwupBookings;
+
+    public void setIsFollowupStatus(boolean followupStatus) {
+        isFollowupStatus = followupStatus;
+    }
+
+    public boolean getIsFollowupStatus() {
+        return isFollowupStatus;
+    }
+
 
     public Booking(Booking booking) {
         this.bookingId = booking.getBookingId();
@@ -134,14 +135,14 @@ public class Booking  {
         this.doctorName = booking.getDoctorName();
         this.doctorDeviceId = booking.getDoctorDeviceId();
         this.doctorWebDeviceId = booking.getDoctorWebDeviceId();
-        this.subServiceId = booking.getSubServiceId();
-        this.subServiceName = booking.getSubServiceName();
+//        this.subServiceId = booking.getSubServiceId();
+//        this.subServiceName = booking.getSubServiceName();
         this.serviceDate = booking.getServiceDate();
         this.servicetime = booking.getServicetime();
         this.consultationType = booking.getConsultationType();
         this.consultationFee = booking.getConsultationFee();
         this.reasonForCancel = booking.getReasonForCancel();
-        this.notes = booking.getNotes();
+//        this.notes = booking.getNotes();
         this.reports = booking.getReports();
         this.channelId = booking.getChannelId();
         this.bookedAt = booking.getBookedAt();
@@ -154,10 +155,10 @@ public class Booking  {
         this.doctorRefCode = booking.getDoctorRefCode();
         this.consultationExpiration = booking.getConsultationExpiration();
         this.followupStatus = booking.getFollowupStatus();
-        this.totalSittings = booking.getTotalSittings();
-        this.pendingSittings = booking.getPendingSittings();
-        this.takenSittings = booking.getTakenSittings();
-        this.currentSitting = booking.getCurrentSitting();
-        this.treatments = booking.getTreatments();
+//        this.totalSittings = booking.getTotalSittings();
+//        this.pendingSittings = booking.getPendingSittings();
+//        this.takenSittings = booking.getTakenSittings();
+//        this.currentSitting = booking.getCurrentSitting();
+       /// this.treatments = booking.getTreatments();
     }
 }

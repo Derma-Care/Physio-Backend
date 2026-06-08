@@ -6,6 +6,7 @@ import lombok.Data;
 public class Diagnosis {
 
     private String physioDiagnosis;
+    private String differentialDiagnosis;
     private String affectedArea;
     private String severity;
     private String stage;

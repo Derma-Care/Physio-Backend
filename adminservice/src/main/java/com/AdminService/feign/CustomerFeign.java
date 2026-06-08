@@ -1,5 +1,6 @@
 package com.AdminService.feign;
 
+import com.AdminService.entity.QuestionsByPartEntity;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,9 @@ public interface CustomerFeign {
 	//FALLBACK METHOD
 	
 	default ResponseEntity<?> customerServiceFallBack(Throwable e){		 
-		return ResponseEntity.status(503).body(new Response(false,null,"CUSTOMER SERVICE NOT AVAILABLE",503,null,null, null, null, null, null));}
+		return ResponseEntity.status(503).body(new Response(false,null,"CUSTOMER SERVICE NOT AVAILABLE",503,null,null,null, null));}
 
+	@GetMapping("/api/customer/getByKey/{key}")
+	public ResponseEntity<QuestionsByPartEntity> getByKey(@PathVariable String key);
 
 }

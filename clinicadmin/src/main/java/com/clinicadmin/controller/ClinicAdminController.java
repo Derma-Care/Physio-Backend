@@ -32,14 +32,14 @@ public class ClinicAdminController {
 	AdminServiceClient adminServiceClient;
 
 //------------------------------login Clinic--------------------------------------------------------------------
-	@PostMapping("/clinicLogin")
-	public ResponseEntity<Response> clinicLogin(@Valid @RequestBody ClinicLoginRequestDTO clinicLoginRequestDTO) {
-		Response res = clinicAdminService.login(clinicLoginRequestDTO);
-		if (res != null) {
-			return ResponseEntity.status(res.getStatus()).body(res);
-		}
-		return null;
-	}
+//	@PostMapping("/clinicLogin")
+//	public ResponseEntity<Response> clinicLogin(@Valid @RequestBody ClinicLoginRequestDTO clinicLoginRequestDTO) {
+//		Response res = clinicAdminService.login(clinicLoginRequestDTO);
+//		if (res != null) {
+//			return ResponseEntity.status(res.getStatus()).body(res);
+//		}
+//		return null;
+//	}
 
 //------------------------------Update Clinic --------------------------------------------------------------------
 	@PutMapping("/updatePassword/{userName}")
@@ -75,6 +75,11 @@ public class ClinicAdminController {
 	@GetMapping("/getBranchesByClinicId/{clinicId}")
 	public ResponseEntity<?> getBranchesByClinicId(@PathVariable String clinicId) {
 		return clinicAdminService.getBranchesByClinicId(clinicId);
+	}
+	
+	@GetMapping("/deviceId/{username}")
+	public ResponseEntity<?> getDeviceId(@PathVariable String username) {
+		return clinicAdminService.getDeviceId(username);
 	}
 
 }

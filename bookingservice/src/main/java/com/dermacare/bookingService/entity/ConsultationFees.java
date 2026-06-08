@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConsultationFees {
 	
-	private double consulationFee;
+	private Double consulationFee;
 	private LocalDateTime DATE_TIME;
 
 }

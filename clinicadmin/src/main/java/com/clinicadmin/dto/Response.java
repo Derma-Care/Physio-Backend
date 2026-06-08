@@ -3,6 +3,7 @@ package com.clinicadmin.dto;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -15,9 +16,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL) 
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Response {
 	private boolean success;
 	private Object data;
+	private Map<String, Map<String, List<String>>> permissions;
 	private Map<String,Object> counts;
 	private String message;
 	private int status;
@@ -25,8 +28,6 @@ public class Response {
 	private String hospitalId;
 	private String branchId;
     private String branchName;
-	private String role;
-	private Map<String, List<String>> permissions;
+	//private String role;
 	
-
 }

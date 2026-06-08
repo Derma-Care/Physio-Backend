@@ -13,4 +13,5 @@ public class HomeExercise {
     private String instructions;
     private String videoUrl;
     private String thumbnail;
+    private String session;
 }

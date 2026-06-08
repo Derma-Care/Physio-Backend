@@ -1,7 +1,6 @@
 package physiotherapydoctor.controller;
 
 import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,11 +10,16 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import physiotherapydoctor.dto.FirstVisitHistoryRequest;
+import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
+import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
+import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.Session;
+import physiotherapydoctor.dto.VisitHistoryRequest;
 import physiotherapydoctor.service.PhysiotherapyService;
 
 @RestController
@@ -39,6 +43,13 @@ public class PhysiotherapyController {
 
 		Response response = service.getById(id);
 		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+	
+	@GetMapping("/prescription/{BookingId}")
+	public String getByBookingId(@PathVariable String BookingId) {
+
+		String response = service.getByBookingId(BookingId);
+		return response;
 	}
 
 	// ✅ GET ALL
@@ -151,9 +162,11 @@ public class PhysiotherapyController {
 	 @GetMapping("/getTodaysAppointmentsByUsingClinicIdAndDoctorId/{clinicId}/{doctorId}")
 	    public ResponseEntity<?> getTodaysAppointments(
 	            @PathVariable String clinicId,
-	            @PathVariable String doctorId) {
-	        return service.getTodaysAppointments(clinicId, doctorId);
+	            @PathVariable String doctorId,
+	            @PathVariable int page ) {
+	        return service.getTodaysAppointments(clinicId, doctorId,page);
 	    }
+	 
 	 @GetMapping("/visitHistoryByUsingPatientIdAndBooking/{patientId}/{bookingId}")
 	 public ResponseEntity<Response> getVisitHistory(
 	         @PathVariable String patientId,
@@ -176,4 +189,82 @@ public class PhysiotherapyController {
 	             .status(response.getStatus())
 	             .body(response);
 	 }
-}
+	 
+
+	  @GetMapping("/followups/today/booking-ids")
+	    public List<String> getTodayFollowUpBookingIds() {
+
+	        List<String> bookingIds = service.getTodayFollowUpBookingIds();
+
+	        return bookingIds;
+	    }
+	  
+	  @PostMapping("/visit-history")
+	    public ResponseEntity<Response> getVisitHistoryByDoctor(
+	            @RequestBody VisitHistoryRequest request) {
+
+	        Response response = service.getVisitHistoryByDoctor(
+	                request.getDoctorId(),
+	                request.getPatientId(),
+	                request.getBookingId()
+	        );
+
+	        return ResponseEntity.status(response.getStatus()).body(response);
+	    }
+
+
+	    @PostMapping("/first-visit-history")
+	    public ResponseEntity<Response> getFirstVisitHistory(
+	            @RequestBody FirstVisitHistoryRequest request) {
+
+	        Response response = service.getFirstVisitHistory(
+	                request.getDoctorId(),
+	                request.getPatientId(),
+	                request.getBookingId(),
+	                request.getClinicId(),
+	                request.getBranchId()
+	        );
+
+	        return ResponseEntity.status(response.getStatus()).body(response);}
+
+//-----------------------------------------Doctor Apis-------------------------------------------	 
+	 
+	    @PutMapping("/update-PhysioDoctorpassword/{username}")
+	    public Response updatePassword(@PathVariable String username,
+	            @RequestBody ChangeDoctorPasswordDTO updatePasswordDTO) {       
+	    	Response response = service.changePassword(username, updatePasswordDTO);
+	        return response;
+	   }
+	    
+//	    @PostMapping("/PhysioDoctorlogin")
+//	    public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
+//			Response res = service.login(dto);
+//			 if(res!=null) {
+//				 return ResponseEntity.status(res.getStatus()).body(res);
+//			 }
+//			return null;}
+	    
+	    @PutMapping("/update-PhysioDoctorAvailability/{doctorId}")
+	    
+	    public Response updateDoctorAvailability(@PathVariable String doctorId,@RequestBody  DoctorAvailabilityStatusDTO availabilityDTO) {
+	    	 
+	    	return service.updateDoctorAvailability(doctorId, availabilityDTO);
+	    	
+	    }
+	    
+	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
+	 	public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
+	 		@PathVariable String doctorId,@PathVariable String status,@PathVariable int page){
+	 		return service.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status,page);
+	 		   
+	 	 }
+	    
+	    @GetMapping("/investigations/{bookingId}/{patientId}")
+	    public ResponseEntity<Response> getInvestigations(
+	            @PathVariable String bookingId,
+	            @PathVariable String patientId) {
+
+	        Response response = service.getInvestigations(bookingId, patientId);
+
+	        return ResponseEntity.status(response.getStatus()).body(response);
+	    }}

@@ -21,7 +21,7 @@ public interface DoctorService {
 
 	public Response upDateDoctorById(String doctorId, DoctorsDTO dto);
 
-	public Response login(DoctorLoginDTO loginDTO);
+	///public Response login(DoctorLoginDTO loginDTO);
 
 	public Response changePassword(ChangeDoctorPasswordDTO updateDTO);
 

@@ -1,8 +1,10 @@
 package com.clinicadmin.feignclient;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +27,11 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id);
 	
 	
-	@GetMapping("/api/v1/getAppointmentByPatientId/{patientId}")
-	public ResponseEntity<?> getAppointmentByPatientId(@PathVariable String patientId);
-	
+	@GetMapping("/api/v1/appointments/{patientId}/{page}/{size}")
+	public ResponseEntity<?> getAppointmentsByPatientId(
+	        @PathVariable String patientId,
+	        @PathVariable int page,
+	        @PathVariable int size);
 	//---------------------------to get patientdetails by bookingId,pateintId,mobileNumber---------------------------
 	@GetMapping("/api/v1/getPatientDetailsForConsetForm/{bookingId}/{patientId}/{mobileNumber}")
 	public ResponseEntity<Response> getPatientDetailsForConsentForm(@PathVariable String bookingId,@PathVariable String patientId,@PathVariable String mobileNumber);
@@ -43,42 +47,59 @@ public interface BookingFeign {
 	//@CircuitBreaker(name = "circuitBreaker", fallbackMethod = "deleteBookedServiceFallBack")
 	public ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(@PathVariable String id);
 	
-	@GetMapping("/api/v1/getBookedServicesByMobileNumber/{mobileNumber}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getCustomerBookedServices(
-			@PathVariable String mobileNumber);
+	@GetMapping("/api/v1/bookings/{mobileNumber}/{page}/{size}")
+	public ResponseEntity<?> getBookedServices(
+	        @PathVariable String mobileNumber,
+	        @PathVariable int page,
+	        @PathVariable int size);
 	
-	@GetMapping("/api/v1/getAllBookedServices")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedService();
+	@GetMapping("/api/v1/getAllBookedServices/{page}/{size}")
+	public ResponseEntity<Page<BookingResponse>> getAllBookings(
+			@PathVariable int page,
+			@PathVariable int size);
 	
-	@GetMapping("/api/v1/getAllBookedServices/{doctorId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByDoctorId(@PathVariable String doctorId);
+	@GetMapping("/api/v1/doctor/{doctorId}/{page}/{size}")
+	public ResponseEntity<?> bookingByDoctorId(
+	        @PathVariable String doctorId,
+	        @PathVariable int page,
+	        @PathVariable int size);
 
 	@GetMapping("/api/v1/getBookedServicesByServiceId/{serviceId}")
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId);
 	
-	@GetMapping("/api/v1/getBookedServicesByClinicId/{clinicId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByClinicId(@PathVariable String clinicId);
-
+	@GetMapping("/api/v1/clinic/{clinicId}/{page}/{size}")
+	public ResponseEntity<?> bookingByClinicId(
+	        @PathVariable String clinicId,
+	        @PathVariable int page,
+	        @PathVariable int size);
 	
 	@GetMapping("/api/v1/getInProgressAppointments/{mobilenumber}")
 	public ResponseEntity<?> inProgressAppointments(@PathVariable String mobilenumber);
 	
-	@GetMapping("/api/v1/getAllBookedServicesByBranchId/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedServicesByBranchId(@PathVariable String branchId);
-	
-	@GetMapping("/api/v1/getBookedServicesByClinicIdWithBranchId/{clinicId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookedServicesByClinicIdWithBranchId(
+	@GetMapping("/api/v1/branch/{branchId}/{page}/{size}")
+	public ResponseEntity<?> bookingByBranchId(
+	        @PathVariable String branchId,
+	        @PathVariable int page,
+	        @PathVariable int size);
+	@GetMapping("/api/v1/clinicBookings/{clinicId}/{branchId}/{page}/{size}")
+	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(
 	        @PathVariable String clinicId,
-	        @PathVariable String branchId);
+	        @PathVariable String branchId,
+	        @PathVariable int page,
+	        @PathVariable int size) ;
 	
-	@GetMapping("/api/v1/appointments/byIds/{clinicId}/{branchId}")
-	public ResponseEntity<?> retrieveOneWeekAppointments(@PathVariable String clinicId,@PathVariable String branchId);
+	@GetMapping("/api/v1/retrieve-one-week-appointments/{clinicId}/{branchId}/{page}/{size}")
+	public ResponseEntity<?> retrieveOneWeekAppointments(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId,
+	        @PathVariable int page,
+	        @PathVariable int size);
 	
 	@GetMapping("/api/v1/appointments/byIdsAndDate/{clinicId}/{branchId}/{date}")
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String date);
 	
 	@PutMapping("/api/v1/update/bookingId")
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
+	public ResponseEntity<ResponseStructure<BookingResponse>>  updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
 	
 	@PostMapping("/api/v1/appointments/serviceDate/serviceTime/DoctorId")
 	public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp);
@@ -90,7 +111,7 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByPatientId(@PathVariable String patientId);
 	
 	@PostMapping("/api/v1/bookService")
-	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestBody BookingRequset req);
+	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestBody BookingResponse req);
 	
 	@GetMapping("/api/v1/appointments/Inprogress/patientId/{patientId}")
 	public ResponseEntity<?> getInprogressAppointmentsByPatientId(@PathVariable String patientId);
@@ -138,16 +159,20 @@ public interface BookingFeign {
 	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId);
 	    
 	  
-	  @GetMapping("/api/v1/getTodayBookings/{clincId}/{branchId}")
-		public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
-		
+		@GetMapping("/api/v1/todayBookings/{clinicId}/{branchId}/{page}/{size}")
+		public ResponseEntity<?> getTodayBookings(
+		        @PathVariable String clinicId,
+		        @PathVariable String branchId,
+		        @PathVariable int page,
+		        @PathVariable int size);
 	  
 	  @GetMapping("/api/v1/in-progress/appointments/{patientId}/{bookingId}")
 		public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId);
 		
 	  @GetMapping("/api/v1/reports/patientId/{patientId}")
 	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId);
-
-	      
-
+	 
+	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
+	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index);
+	   	  
 }

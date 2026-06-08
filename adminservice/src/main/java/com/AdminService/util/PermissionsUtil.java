@@ -27,14 +27,17 @@ public final class PermissionsUtil {
         adminPermissions.put("Tests", List.of("create", "read", "update", "delete"));
 //        adminPermissions.put("Treatments", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Therapy Management", List.of("create", "read", "update", "delete"));
-        adminPermissions.put("Reports Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("LabReport Management", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Payouts", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Help", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Customer Management", List.of("create", "read", "update", "delete"));
         adminPermissions.put("ConsentForms", List.of("create", "read", "update", "delete"));
-        adminPermissions.put("Exercise Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Activity Library", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Program Management", List.of("create", "read", "update", "delete"));
         adminPermissions.put("Package Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Patient Management", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Patient FeedBack", List.of("create", "read", "update", "delete"));
+        adminPermissions.put("Equipment Management", List.of("create", "read", "update", "delete"));
        
         adminPermissions.put("Vendor Management", List.of("create", "read", "update", "delete"));
 //        adminPermissions.put("Pharmacy Management", List.of("create", "read", "update", "delete"));

@@ -88,23 +88,32 @@ public class ServiceImpl implements ServiceInterface{
 	 
 	 
 	@Override
-	public void createNotification(BookingResponse bookingDTO) {
-		if(!bookings.contains(bookingDTO.getBookingId())) {
-		bookings.add(bookingDTO.getBookingId());
-		convertToNotification(bookingDTO);
-	    sendNotification(bookingDTO);}
+	public ResponseEntity<Response> createNotification(BookingResponse bookingDTO) {
+		Response res = new Response();
+		try {
+		convertToNotification(bookingDTO);	  
+		String title=buildTitle(bookingDTO);
+		String body =buildBody(bookingDTO);
+		if(bookingDTO.getClinicDeviceId()!= null || !bookingDTO.getClinicDeviceId().isEmpty()) {
+		appNotification.sendPushNotification(bookingDTO.getClinicDeviceId(),title,body, "BOOKING",
+			    "BookingScreen","default");
+        res.setMessage("notification sent");
+        res.setStatus(200);
+        res.setSuccess(true);}
+		else {
+			res.setMessage("notification not sent");
+	        res.setStatus(404);
+	        res.setSuccess(false);	
+		}}catch (Exception e) {
+			res.setMessage(e.getMessage());
+	        res.setStatus(500);
+	        res.setSuccess(false);
+		}
+		System.out.println(res);
+		return ResponseEntity.status(res.getStatus()).body(res);
 	}
 		
-		
-	public void sendNotification(BookingResponse booking) {
-		String title=buildTitle(booking);
-		String body =buildBody(booking);
-		if(booking.getClinicDeviceId() != null) {
-		appNotification.sendPushNotification(booking.getClinicDeviceId(),title,body, "BOOKING",
-			    "BookingScreen","default");}
-	}
-	
-	
+			
 	private void convertToNotification(BookingResponse booking) {	
 			NotificationEntity notificationEntity = new NotificationEntity();
 			notificationEntity.setMessage("New Service Appointment Request For: " + booking.getSubServiceName());

@@ -3,7 +3,6 @@ package com.dermacare.bookingService.dto;
 import java.util.List;
 import java.util.Map;
 import com.dermacare.bookingService.entity.ConsultationFees;
-import com.dermacare.bookingService.entity.FollowupBooking;
 import com.dermacare.bookingService.entity.ReportsList;
 import com.dermacare.bookingService.entity.Status;
 import com.dermacare.bookingService.entity.TheraphyAnswersEntity;
@@ -60,9 +59,9 @@ public class FollowupBookingDto {
 	    private String channelId;
 	    private String bookedAt;
 	    private Integer visitCount;
-	    private List<byte[]> attachments;
-	    private byte[] consentFormPdf;
-	    private List<byte[]> prescriptionPdf;
+	    private String attachments;
+	    private String consentFormPdf;
+	    private List<String> prescriptionPdf;
 	    private double totalFee;
 		private String paymentType;
 	    private String doctorRefCode;
@@ -75,10 +74,10 @@ public class FollowupBookingDto {
 	    private Integer currentSitting;
 	    private String foc;
 	    // ------------------- NEW: Treatments and dates -------------------
-	    private TreatmentResponseDTO treatments; // treatmentName -> treatment details
+	    ///private TreatmentResponseDTO treatments; // treatmentName -> treatment details
 	    private String bodyPartId;
 	   	private String bodyPartName;
-	   	private byte[] partImage;
+	   	private String partImage;
 	   	private Map<String,List<TheraphyAnswersEntity>> theraphyAnswers;
 	   	private List<String> parts;
 	   	private double partAmount;

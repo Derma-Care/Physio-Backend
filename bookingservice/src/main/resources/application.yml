@@ -1,49 +1,144 @@
-# Conversion to YAML from Properties formar report
-# Warnings:
-# - The yaml file had comments which are lost in the refactoring!
-
 spring:
+
   application:
     name: bookingservice
+
   data:
     mongodb:
-      uri: mongodb://localhost:27017/customerAppointments
-  kafka:
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-    bootstrap-servers: kafka:9092
+      uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
+#  config:
+#    import: optional:classpath:application-secrets.yml
+##  kafka:
+#    bootstrap-servers: kafka:9092
+#
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      retries: 3
+#      acks: all
+#      properties:
+#        delivery.timeout.ms: 120000
+#        request.timeout.ms: 30000
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 30000
+            readTimeout: 60000
 
 server:
+
   port: 9900
+
   servlet:
     context-path: /api
 
+  shutdown: graceful
+
+  compression:
+    enabled: true
+    mime-types:
+      - application/json
+      - text/html
+      - text/plain
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
+
+# =========================================================
+# AWS S3
+# =========================================================
+
+aws:
+  region: ap-south-1
+  s3:
+    bucket: physiocare-prod-storage
+
+# =========================================================
+# EUREKA
+# =========================================================
+
 eureka:
+
   client:
     register-with-eureka: true
     fetch-registry: true
+
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
   instance:
     prefer-ip-address: true
 
+# =========================================================
+# RESILIENCE4J
+# =========================================================
+
+resilience4j:
+
+  circuitbreaker:
+
+    instances:
+
+      bookingService:
+
+        register-health-indicator: true
+
+        sliding-window-size: 10
+
+        minimum-number-of-calls: 5
+
+        permitted-number-of-calls-in-half-open-state: 3
+
+        wait-duration-in-open-state: 10s
+
+        failure-rate-threshold: 50
+
+  timelimiter:
+
+    instances:
+
+      bookingService:
+        timeout-duration: 60s
+
+# =========================================================
+# ACTUATOR — FIXED
+# =========================================================
+
 management:
-  endpoint:
-    shutdown:
-      enabled: true
-  info:
-    env:
-      enabled: true
+  server:
+    base-path: /              # ← FIXED: moves actuator out of /api context-path
+
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info,metrics
+
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true         # ← enables liveness & readiness probes
+
+# =========================================================
+# INFO
+# =========================================================
+
 info:
+
   app:
     name: bookingservice
     description: Service responsible for booking appointments
     version: 1.0.0
 
+# =========================================================
+# LOGGING
+# =========================================================
 
-        
+logging:
+
+  level:
+    root: INFO
+    org.springframework.kafka: INFO

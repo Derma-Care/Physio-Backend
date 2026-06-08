@@ -21,7 +21,7 @@ import com.AdminService.dto.PharmacistDTO;
 import com.AdminService.dto.ProbableDiagnosisDTO;
 import com.AdminService.dto.ReceptionistRequestDTO;
 import com.AdminService.dto.SecurityStaffDTO;
-import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesDto;
 import com.AdminService.dto.TreatmentDTO;
 import com.AdminService.dto.UpdateSlotRequestDTO;
 import com.AdminService.dto.WardBoyDTO;
@@ -32,9 +32,9 @@ import com.AdminService.util.ResponseStructure;
 @FeignClient(value = "clinicadmin")
 public interface ClinicAdminFeign {
 
-    // ---------------------- Sub-Service APIs ----------------------
-    @GetMapping("/clinic-admin/subService/getAllSubServies")
-    ResponseEntity<ResponseStructure<List<SubServicesDto>>> getAllSubServices();
+//    // ---------------------- Sub-Service APIs ----------------------
+//    @GetMapping("/clinic-admin/subService/getAllSubServies")
+//    ResponseEntity<ResponseStructure<List<SubServicesDto>>> getAllSubServices();
 
     // ---------------- Doctor CRUD ---------------- //
     @PostMapping("/clinic-admin/addDoctor")
@@ -143,7 +143,7 @@ public interface ClinicAdminFeign {
     // ---------------------- Fallback Method ----------------------
     default ResponseEntity<?> clinicAdminServiceFallBack(Exception e) {
         return ResponseEntity.status(503).body(
-                new Response(false, null, "CLINIC ADMIN SERVICE NOT AVAILABLE", 503, null, null, null, null, null, null)
+                new Response(false, null, "CLINIC ADMIN SERVICE NOT AVAILABLE", 503,null,null,null, null)
         );
     }
 
@@ -465,6 +465,11 @@ ResponseStructure<String> deleteAdministratorUsingClinicBranchAndAdminId(@PathVa
 @PostMapping("clinic-admin/doctorId/{doctorId}/availability")
 public ResponseEntity<Response> doctorAvailabilityStatus(@PathVariable String doctorId,
 	@RequestBody DoctorAvailabilityStatusDTO status);
+
+
+//    @PutMapping("/clinic-admin/updateDoctorSlotWhileBooking/{doctorId}/{branchId}/{date}/{time}")
+//    public boolean updateDoctorSlotWhileBooking(@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
+//                                                @PathVariable String time);
 }
  
  

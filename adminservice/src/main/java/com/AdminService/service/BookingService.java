@@ -7,18 +7,23 @@ import com.AdminService.dto.BookingResponse;
 import com.AdminService.dto.BookingResponseDTO;
 import com.AdminService.util.Response;
 import com.AdminService.util.ResponseStructure;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 
 public interface BookingService {
 
-    ResponseStructure<List<BookingResponse>> getAllBookedServices();
+
+    ResponseEntity<Page<BookingResponse>>  getAllBookedServices(int page) ;
 
     Response deleteBookedService(String id);
 
-    Response getBookingByDoctorId(String doctorId);
+    public ResponseEntity<?> getBookingByDoctorId(String doctorId,
+                                                  int page,
+                                                  int size);
 
     Response getBookedServiceById(String bookingId);
 
-    Response getAppointmentsByPatientId(String patientId);
+    Response getAppointmentsByPatientId(String clinicId,String patientId,int page);
 
     Response updateAppointment(BookingResponseDTO bookingResponseDTO);
 
@@ -26,5 +31,6 @@ public interface BookingService {
 
     Response getInProgressAppointments(String mobileNumber);
 
-	Response bookService(BookingRequset req);
-}
+    public ResponseEntity<?> physioAppointment(BookingRequset req);
+
+    }

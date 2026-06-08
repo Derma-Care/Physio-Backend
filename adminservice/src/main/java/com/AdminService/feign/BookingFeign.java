@@ -3,6 +3,7 @@ package com.AdminService.feign;
 import java.util.List;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -25,19 +26,23 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 @CrossOrigin
 public interface BookingFeign {
 	
-	@PostMapping("/api/v1//bookService")
+	@PostMapping("/api/v1/bookService")
 	public  ResponseEntity<?> bookService(@RequestBody BookingRequset req);
-	
-	@GetMapping("/api/v1/getAllBookedServices")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedService();
-	
+
+	@GetMapping("/api/v1/getAllBookedServices/{page}/{size}")
+	public ResponseEntity<Page<BookingResponse>> getAllBookings(
+			@PathVariable int page,
+			@PathVariable int size);
+
 	@DeleteMapping("/api/v1/deleteService/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(@PathVariable("id") String id);
-	
-	@GetMapping("/api/v1/getAllBookedServices/{doctorId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByDoctorId(@PathVariable("doctorId") String doctorId);
 
-	
+	@GetMapping("/api/v1/doctor/{doctorId}/{page}/{size}")
+	public ResponseEntity<?> bookingByDoctorId(
+			@PathVariable String doctorId,
+			@PathVariable int page,
+			@PathVariable int size);
+
 	///FALLBACK METHOD
 	
 	default ResponseEntity<?> bookServiceFallBack(Exception e){		 
@@ -45,20 +50,22 @@ public interface BookingFeign {
 		}
 	@GetMapping("/api/v1/getBookedServiceById/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponseDTO>> getBookedService(@PathVariable String id);
-	
-	
-	@GetMapping("/api/v1/getAppointmentByPatientId/{patientId}")
-	public ResponseEntity<?> getAppointmentByPatientId(@PathVariable String patientId);
-	
-	@PutMapping("/api/v1/updateAppointment")
-	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponseDTO res );
-	
-	//---------------------------to get patientdetails by bookingId,pateintId,mobileNumber---------------------------
+
+
+	@GetMapping("/api/v1/patient/{clinicId}/{patientId}/{page}/{size}")
+	public ResponseEntity<Page<BookingResponse>> bookingByPatientId(
+			@PathVariable String clinicId,
+			@PathVariable String patientId,
+			@PathVariable int page,
+			@PathVariable int size);
+
+	@PutMapping("/update/bookingId")
+	public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponseDTO bookingResponse );
+
+		//---------------------------to get patientdetails by bookingId,pateintId,mobileNumber---------------------------
 	@GetMapping("/api/v1/getPatientDetailsForConsetForm/{bookingId}/{patientId}/{mobileNumber}")
 	public ResponseEntity<Response> getPatientDetailsForConsentForm(@PathVariable String bookingId,@PathVariable String patientId,@PathVariable String mobileNumber);
 
-	
-	
 	@PutMapping("/api/v1/updateAppointment")
 	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse );
 	
@@ -68,10 +75,12 @@ public interface BookingFeign {
 //	@DeleteMapping("/api/v1/deleteService/{id}")
 //	//@CircuitBreaker(name = "circuitBreaker", fallbackMethod = "deleteBookedServiceFallBack")
 //	public ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(@PathVariable String id);
-	
-	@GetMapping("/api/v1/getBookedServicesByMobileNumber/{mobileNumber}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getCustomerBookedServices(
-			@PathVariable String mobileNumber);
+
+	@GetMapping("/api/v1/bookings/{mobileNumber}/{page}/{size}")
+	public ResponseEntity<?> getBookedServices(
+			@PathVariable String mobileNumber,
+			@PathVariable int page,
+			@PathVariable int size);
 	
 //	@GetMapping("/api/v1/getAllBookedServices")
 //	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedService();
@@ -81,13 +90,18 @@ public interface BookingFeign {
 
 	@GetMapping("/api/v1/getBookedServicesByServiceId/{serviceId}")
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId);
-	
-	@GetMapping("/api/v1/getBookedServicesByClinicId/{clinicId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByClinicId(@PathVariable String clinicId);
 
-	
+	@GetMapping("/api/v1/clinic/{clinicId}/{page}/{size}")
+	public ResponseEntity<?> bookingByClinicId(
+			@PathVariable String clinicId,
+			@PathVariable int page,
+			@PathVariable int size);
+
 	@GetMapping("/api/v1/getInProgressAppointments/{mobilenumber}")
 	public ResponseEntity<?> inProgressAppointments(@PathVariable String mobilenumber);
+
+	@PostMapping("/api/v1/bookPhysioAppointment")
+	public  ResponseEntity<Response> bookPhysioAppointment(@RequestBody BookingRequset req);
 
 
 }

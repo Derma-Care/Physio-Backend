@@ -34,7 +34,7 @@ public class Therapist {
     private List<String> treatmentTypes;
 
     private Availability availability;
- private String emailId;
+    private String emailId;
     private String bio;
 
     private Documents documents;
@@ -43,7 +43,9 @@ public class Therapist {
 
     private String role;
     private String physioType;
-
+	private String dateofJoining;
+	private String emergencyContact;
+    private String aadharID;
     
     private String userName;
     private String password;

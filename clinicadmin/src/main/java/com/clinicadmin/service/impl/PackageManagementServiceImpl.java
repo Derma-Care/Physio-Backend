@@ -245,7 +245,10 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         entity.setClinicId(dto.getClinicId());
         entity.setBranchId(dto.getBranchId());       
         entity.setProgramIds(dto.getProgramIds());
-
+        entity.setPackageAmount(dto.getPackageAmount());
+        entity.setDiscountAmount(dto.getDiscountAmount());
+        String finalAmount = String.valueOf(Integer.valueOf(dto.getPackageAmount()) - Integer.valueOf(dto.getDiscountAmount()));
+        entity.setFinalAmount(finalAmount);
         // ✅ Apply discount logic
         double finalDiscount = applyDiscountLogic(
                 dto.getStartOfferDate(),
@@ -270,8 +273,10 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         dto.setClinicId(entity.getClinicId());
         dto.setBranchId(entity.getBranchId());
         dto.setPackageName(entity.getPackageName());
+        dto.setDiscountAmount(entity.getDiscountAmount());
+        dto.setPackageAmount(entity.getPackageAmount());
+        dto.setFinalAmount(entity.getFinalAmount());
         dto.setProgramIds(entity.getProgramIds());
-
         dto.setNoOfPrograms(
         	    entity.getProgramIds() != null ? entity.getProgramIds().size() : 0
         	);
@@ -284,21 +289,54 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         return dto;
     }
 
-    // ================= BUSINESS LOGIC =================
-
     private double applyDiscountLogic(String startDate, String endDate, double discount) {
 
-        LocalDate start = parseDate(startDate);
-        LocalDate end = parseDate(endDate);
         LocalDate today = LocalDate.now();
 
-        if (today.isBefore(start) || today.isAfter(end)) {
+        // ✅ No dates -> no discount
+        if ((startDate == null || startDate.trim().isEmpty()) &&
+            (endDate == null || endDate.trim().isEmpty())) {
+
             return 0.0;
         }
 
-        return discount;
-    }
+        // ✅ Only start date given -> apply discount from start date
+        if (startDate != null && !startDate.trim().isEmpty() &&
+            (endDate == null || endDate.trim().isEmpty())) {
 
+            LocalDate start = parseDate(startDate);
+
+            if (!today.isBefore(start)) {
+                return discount;
+            }
+
+            return 0.0;
+        }
+
+        // ✅ Only end date given -> no discount
+        if ((startDate == null || startDate.trim().isEmpty()) &&
+            endDate != null && !endDate.trim().isEmpty()) {
+
+            return 0.0;
+        }
+
+        // ✅ Both dates given
+        LocalDate start = parseDate(startDate);
+        LocalDate end = parseDate(endDate);
+
+        // ✅ Invalid range
+        if (end.isBefore(start)) {
+            return 0.0;
+        }
+
+        // ✅ Apply discount only within date range
+        if (!today.isBefore(start) && !today.isAfter(end)) {
+            return discount;
+        }
+
+        // ✅ Offer expired automatically
+        return 0.0;
+    }
     private LocalDate parseDate(String dateStr) {
 
         String[] formats = {
@@ -333,9 +371,21 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         if (dto.getProgramIds() != null) {
             entity.setProgramIds(dto.getProgramIds());
         }
+        
+        if (dto.getFinalAmount() != null) {
+            entity.setFinalAmount(dto.getFinalAmount());;
+        }
 
         if (dto.getStartOfferDate() != null) {
             entity.setStartOfferDate(dto.getStartOfferDate());
+        }
+        
+        if (dto.getDiscountAmount()!= null) {
+            entity.setDiscountAmount(dto.getDiscountAmount());
+        }
+        
+        if (dto.getPackageAmount() != null) {
+            entity.setPackageAmount(dto.getPackageAmount());
         }
 
         if (dto.getEndOfferDate() != null) {

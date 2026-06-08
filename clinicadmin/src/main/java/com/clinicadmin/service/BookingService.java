@@ -1,6 +1,7 @@
 package com.clinicadmin.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 
@@ -13,20 +14,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 public interface BookingService {
 	public Response deleteBookedService(String id);
 
-	Response getAllBookedServicesDetailsByBranchId(String branchId);
-	
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByClinicIdWithBranchId(String clinicId, String branchId);
-	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId);
+	public ResponseEntity<?> getAllBookedServicesDetailsByBranchId(String branchId,int page);
 
+	public ResponseEntity<?> getBookingsByClinicIdWithBranchId(String clinicId, String branchId,int page);
+	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId,int page);
+		
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(String clinicId, String branchId,String date);
 	
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse bookingResponse);
+	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse response);
  
-	public ResponseEntity<?> retrieveAppointnmentsByInput(String input, String clinicId);
+	//public ResponseEntity<?> retrieveAppointnmentsByInput(String input, String clinicId);
 
-	ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId);
+	ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId,int page);
 
-	Response bookService(BookingRequset req) throws JsonProcessingException;
+	Response bookService(BookingResponse req) throws JsonProcessingException;
 
 	ResponseEntity<?> getInprogressBookingsByPatientId(String patientId);
 	
@@ -49,9 +50,11 @@ public interface BookingService {
 	public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 			String branchId,String start, String end);
 	public ResponseEntity<?> getBookingById(String bookingId);
-	public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId);
+	public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId,int page);
 	public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 			String bookingId);
 	public ResponseEntity<?> getReportsByPatientId(String patientId);
+	public ResponseEntity<?> getBookedServiceById(String bookingId);
+
 
 }

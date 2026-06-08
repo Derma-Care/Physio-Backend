@@ -4,9 +4,9 @@ import com.clinicadmin.dto.CustomConsentFormDTO;
 import com.clinicadmin.dto.Response;
 
 public interface CustomConsentFormService {
-	public Response addCustomConsentForm(String hospitalId, String consentFormType, CustomConsentFormDTO dto);
+//	public Response addCustomConsentForm(String hospitalId, String consentFormType, CustomConsentFormDTO dto);
 
-	Response updateCustomConsentForm(String hospitalId, String consentFormType, CustomConsentFormDTO dto);
+//	Response updateCustomConsentForm(String hospitalId, String consentFormType, CustomConsentFormDTO dto);
 
 	Response getProcedureConsentForm(String hospitalId, String subServiceId);
 

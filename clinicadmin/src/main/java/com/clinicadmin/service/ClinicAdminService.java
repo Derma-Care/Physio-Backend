@@ -9,10 +9,12 @@ import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
 
 public interface ClinicAdminService {
 
-	public Response login(ClinicLoginRequestDTO credentials);
+	///public Response login(ClinicLoginRequestDTO credentials);
 	public Response updateClinicCredentials(UpdateClinicLoginCredentialsDTO updatedCredentials,String userName);
 	public Response getClinicById(String hospitalId);
 	public Response updateClinic(String hospitalId, ClinicDTO dto);
 	public Response deleteClinic(String hospitalId);
 	ResponseEntity<?> getBranchesByClinicId(String clinicId);
+	 public ResponseEntity<?> getDeviceId(String username);
+		   
 }
