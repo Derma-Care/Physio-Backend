@@ -22,6 +22,7 @@ import com.clinicadmin.dto.DailyAllUsersResponseDTO;
 import com.clinicadmin.dto.DailyAttendanceResponseDTO;
 import com.clinicadmin.dto.MonthlyAttendanceResponseDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.Session;
 import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
@@ -45,6 +46,8 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AdminServiceClient adminServiceClient;
     
     private final TherapistAttendanceRepository therapistAttendanceRepo;
+    
+    
     
 
     @Autowired
@@ -155,10 +158,47 @@ public class AttendanceServiceImpl implements AttendanceService {
                     entity.getActivities().add(act);
                 }
             }
+            if ("PHYSIOTHERAPIST".equalsIgnoreCase(dto.getRole())) {
 
+                TherapistAttendance attendance =
+                        therapistAttendanceRepo.findByTherapistIdAndDate(
+                                entity.getUserId(),
+                                entity.getDate()
+                        );
+
+                if (attendance == null) {
+
+                    attendance = new TherapistAttendance();
+                    attendance.setTherapistId(entity.getUserId());
+                    attendance.setDate(entity.getDate());
+                }
+
+                // ✅ Clinic & Branch
+                attendance.setClinicId(entity.getClinicId());
+                attendance.setBranchId(entity.getBranchId());
+
+                // ✅ Login / Logout
+                attendance.setStatus(entity.getStatus());
+                attendance.setLogin(entity.getLogin());
+                attendance.setLogout(entity.getLogout());
+
+                attendance.setLogTime(entity.getLogTime());
+                attendance.setWorkingHours(entity.getWorkingHours());
+                attendance.setIdleTime(entity.getIdleTime());
+
+                TherapistAttendance savedAttendance =
+                        therapistAttendanceRepo.save(attendance);
+
+                response.setSuccess(true);
+                response.setMessage("Therapist attendance saved successfully");
+                response.setData(savedAttendance);
+                response.setStatus(201);
+
+                return response;
+            }
             repo.save(entity);
-
             response.setSuccess(true);
+            
             response.setMessage(
                     existingOpt.isPresent()
                             ? "Activity added to existing attendance"
@@ -171,7 +211,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             response.setSuccess(false);  
             response.setMessage(e.getMessage());
-            response.setStatus(400);     
+            response.setStatus(200);     
         }
 
         return response;
@@ -1921,6 +1961,42 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
 
         return response;
+    }
+    private void saveTherapistAttendance(Attendance attendance) {
+
+        if (attendance == null
+                || attendance.getRole() == null
+                || !"PHYSIOTHERAPIST".equalsIgnoreCase(attendance.getRole())) {
+            return;
+        }
+
+        TherapistAttendance therapistAttendance =
+                therapistAttendanceRepo.findByTherapistIdAndDate(
+                        attendance.getUserId(),
+                        attendance.getDate()
+                );
+
+        if (therapistAttendance == null) {
+
+            therapistAttendance = new TherapistAttendance();
+            therapistAttendance.setTherapistId(attendance.getUserId());
+            therapistAttendance.setDate(attendance.getDate());
+        }
+
+        therapistAttendance.setStatus(attendance.getStatus());
+        therapistAttendance.setLogTime(attendance.getLogTime());
+        therapistAttendance.setWorkingHours(attendance.getWorkingHours());
+        therapistAttendance.setIdleTime(attendance.getIdleTime());
+
+        if (attendance.getLogin() != null) {
+            therapistAttendance.setLogin(attendance.getLogin());
+        }
+
+        if (attendance.getLogout() != null) {
+            therapistAttendance.setLogout(attendance.getLogout());
+        }
+
+        therapistAttendanceRepo.save(therapistAttendance);
     }
    
 }
