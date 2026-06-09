@@ -207,47 +207,6 @@ public class DoctorServiceImpl implements DoctorService {
 				response.setStatus(HttpStatus.NOT_FOUND.value());
 				return response;
 			}
-//			// Validate categories
-//			if (dto.getCategory() != null) {
-//				for (DoctorCategoryDTO DoctorCatDTO : dto.getCategory()) {
-//					log.debug("Validating categoryId={}", DoctorCatDTO.getCategoryId());
-//					if (!serviceFeignClient.isCategoryExists(DoctorCatDTO.getCategoryId())) {
-//						log.warn("Invalid categoryId detected :{}", DoctorCatDTO.getCategoryId());
-//						response.setSuccess(false);
-//						response.setMessage("Category does not exist: " + DoctorCatDTO.getCategoryId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-//			
-//			// Validate services
-//			if (dto.getService() != null) {
-//				for (DoctorServicesDTO DoctorSerDTO : dto.getService()) {
-//					log.debug("Validating serviceId={}", DoctorSerDTO.getServiceId());
-//					if (!serviceFeignClient.isServiceExists(DoctorSerDTO.getServiceId())) {
-//						log.warn("Invalid serviceId={}", DoctorSerDTO.getServiceId());
-//						response.setSuccess(false);
-//						response.setMessage("Service does not exist: " + DoctorSerDTO.getServiceId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-//
-//			// Validate sub-services
-//			if (dto.getSubServices() != null) {
-//				for (DoctorSubServiceDTO DoctorSubSerDTO : dto.getSubServices()) {
-//					log.debug("Validating subServieId={}", DoctorSubSerDTO.getSubServiceId());
-//					if (!serviceFeignClient.isSubServiceExists(DoctorSubSerDTO.getSubServiceId())) {
-//						log.warn("Invalid subServicId={}", DoctorSubSerDTO.getSubServiceId());
-//						response.setSuccess(false);
-//						response.setMessage("SubService does not exist: " + DoctorSubSerDTO.getSubServiceId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
 
 			Branch branchDTO = objectMapper.convertValue(branchRes.getBody().getData(), Branch.class);
 			log.debug("After Mapping branch details branchName={}, branchId={}, clinicId={}", branchDTO.getBranchName(),
@@ -296,28 +255,29 @@ public class DoctorServiceImpl implements DoctorService {
 
 			credentialsRepository.save(credentials);
 			log.info("Logib credentials created successfully for doctorId={}", savedDoctor.getDoctorId());
+	
 			// -------------------- Send Email to Doctor --------------------
-						try {
-						    Map<String, String> mailData = new HashMap<>();
-						    mailData.put("subject", "Doctor Onboarding Successful");
-						    mailData.put("message",
-						            "Welcome to CCMS Kinetix!\n\n" +
-						            "Your account has been created successfully.\n" +
-						            "Please use the below credentials to login.\n\n" +
-						            "Doctor ID: " + savedDoctor.getDoctorId()
-						    );
+			try {
+			    Map<String, String> mailData = new HashMap<>();
+			    mailData.put("subject", "Doctor Onboarding Successful");
+			    mailData.put("message",
+			            "Welcome to CCMS Kinetix!\n\n" +
+			            "Your account has been created successfully.\n" +
+			            "Please use the below credentials to login.\n\n" +
+			            "Doctor ID: " + savedDoctor.getDoctorId()
+			    );
 
-						    // Send login credentials
-						    mailData.put("username", username);
-						    mailData.put("password", rawPassword);
+			    mailData.put("username", username);
+			    mailData.put("password", rawPassword);
+			    mailData.put("role", dto.getRole());   // ✅ ADD THIS
 
-						    emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
+			    emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
 
-						    log.info("Doctor onboarding email sent to {}", savedDoctor.getDoctorEmail());
+			    log.info("Doctor onboarding email sent to {}", savedDoctor.getDoctorEmail());
 
-						} catch (Exception e) {
-						    log.error("Failed to send doctor onboarding email: {}", e.getMessage());
-						}
+			} catch (Exception e) {
+			    log.error("Failed to send doctor onboarding email: {}", e.getMessage());
+			}
 
 			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(savedDoctor,s3Service);
 			Map<String, Object> data = new HashMap<>();

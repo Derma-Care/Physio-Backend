@@ -158,12 +158,12 @@ public class TherapistServiceImpl implements TherapistService {
 
             log.info("Login credentials created for therapistId: {}", savedTherapist.getTherapistId());
 
-            // -------------------- Send Email (SAME TEMPLATE) --------------------
+         // -------------------- Send Email --------------------
             try {
                 Map<String, String> mailData = new HashMap<>();
                 mailData.put("subject", "Therapist Onboarding Successful");
                 mailData.put("message",
-                        "Welcome to CCMS!\n\n" +
+                        "Welcome to CCMS KINETIX!\n\n" +
                         "Your account has been created successfully.\n" +
                         "Please use the below credentials to login.\n\n" +
                         "Therapist ID: " + savedTherapist.getTherapistId()
@@ -171,6 +171,7 @@ public class TherapistServiceImpl implements TherapistService {
 
                 mailData.put("username", username);
                 mailData.put("password", rawPassword);
+                mailData.put("role", dto.getRole());   // ✅ ADD THIS
 
                 emailService.sendEmail(savedTherapist.getEmailId(), mailData);
 
@@ -179,7 +180,7 @@ public class TherapistServiceImpl implements TherapistService {
             } catch (Exception e) {
                 log.error("Failed to send therapist onboarding email: {}", e.getMessage());
             }
-
+            
             // -------------------- Response --------------------
             TherapistDTO savedDTO = mapToDTO(savedTherapist);
             savedDTO.setUserName(username);
@@ -205,7 +206,9 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     
-    }    // ================= LOGIN =================
+    }  
+    
+    // ================= LOGIN =================
 //    @Override
 //    public ResponseStructure<TherapistLoginResponseDTO> login(TherapistLoginDTO dto) {
 //
