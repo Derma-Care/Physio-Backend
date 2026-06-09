@@ -49,8 +49,10 @@ public class CustomerController {
 
 	@Autowired
 	private CustomerService customerService;
+	
 	@Autowired
 	private GetByKey getByKey;
+	
 	@Autowired
 	private PhysiotherapyService service;
 	
@@ -648,6 +650,13 @@ public ResponseEntity<Response> getAverageRatingByDoctorId( @PathVariable String
    @PostMapping("/getExerciseSessionsWithRecords")
    public ResponseEntity<Response> getExerciseSessionsWithRecords(@RequestBody ExerciseSessionsWithRecords  dto) {
        return service.getExerciseSessionsWithRecords(dto.getClinicId(), dto.getBranchId(), dto.getBookingId(), dto.getPatientId(), dto.getTherapistId(), dto.getTherapistRecordId());
+   }
+   
+   @GetMapping("/clinic-admin/staff-info/{hospitalId}/{branchId}")
+   public ResponseEntity<Response> getStaffInfo(
+	        @PathVariable String hospitalId,
+	        @PathVariable String branchId){
+   return customerService.getStaffInfo(hospitalId, branchId);
    }
 
    

@@ -74,6 +74,12 @@ public interface ClinicAdminFeign {
 	    public ResponseEntity<Response> getTherapistSessionDetails(
 	            @RequestBody TherapistRecordRequest request);
 	 
+	 
+	 @GetMapping("/clinic-admin/staff-info/{hospitalId}/{branchId}")
+		public ResponseEntity<Response> getStaffInfo(
+		        @PathVariable String hospitalId,
+		        @PathVariable String branchId);
+	 
 //	 @PostMapping("/clinic-admin/customers/login")
 //	    public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto);
 //	    

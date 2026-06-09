@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.dermaCare.customerService.dto.BookingRequset;
 import com.dermaCare.customerService.dto.BookingResponse;
@@ -2250,6 +2251,9 @@ public ResponseEntity<Response> getTherapistSessionDetails(TherapistRecordReques
         response.setSuccess(false);
     } return ResponseEntity.status(response.getStatus()).body(response);}
 
+
+
+
 @Override
 public ResponseEntity<Response> getVisitHistoryByDoctor(VisitHistoryRequest request) {
     Response response = new Response();
@@ -2358,6 +2362,20 @@ public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCusto
         return ResponseEntity.status(e.status()).body(res);
     }
 }
+
+
+@Override
+public ResponseEntity<Response> getStaffInfo(
+       String hospitalId,
+        String branchId){
+    Response response = new Response();
+    try {
+    	return clinicAdminFeign.getStaffInfo(hospitalId, branchId);  
+    } catch (FeignException e) {      
+        response.setStatus(e.status());
+        response.setMessage(ExtractFeignMessage.clearMessage(e));
+        response.setSuccess(false);
+    } return ResponseEntity.status(response.getStatus()).body(response);}
 
 
 }
