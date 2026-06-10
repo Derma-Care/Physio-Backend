@@ -130,8 +130,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		            String bookingStatus =
 		                    bookingRes.getBody().getData().getStatus();
 
-		            if ("doneForInvestigation".equalsIgnoreCase(bookingStatus)
-		                    || "dueForInvestigation".equalsIgnoreCase(bookingStatus)) {
+		            if ("Due for Investigation".equalsIgnoreCase(bookingStatus)
+		                    || "Investigation Done".equalsIgnoreCase(bookingStatus)) {
 
 		                entity.setUptoInvestigation(true);
 		            }
@@ -631,8 +631,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		                    bookingRes.getBody().getData().getStatus();
 
 		            existing.setUptoInvestigation(
-		                    "doneForInvestigation".equalsIgnoreCase(bookingStatus)
-		                    || "dueForInvestigation".equalsIgnoreCase(bookingStatus)
+		                    "Investigation Done".equalsIgnoreCase(bookingStatus)
+		                    || "Due for Investigation".equalsIgnoreCase(bookingStatus)
 		            );
 		        }
 
