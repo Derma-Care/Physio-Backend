@@ -1,6 +1,6 @@
 package com.clinicadmin.service;
 
-
+import java.util.List;
 import com.clinicadmin.dto.PatientFeedbackDTO;
 import com.clinicadmin.dto.Response;
 
@@ -23,10 +23,6 @@ public interface PatientFeedbackService {
 	
 	 public Response getByClinicIdAndBranchIdAndPatientId(String clinicId,
              String branchId,String patientId);
-
-
-
-
-    
+  
  
 }

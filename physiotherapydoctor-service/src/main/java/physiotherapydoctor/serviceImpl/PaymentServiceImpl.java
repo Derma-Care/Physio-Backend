@@ -1565,6 +1565,7 @@ private void updateStatuses(PaymentRecord record) {
 						}
 					}
 				}
+
 				response.setSuccess(true);
 				response.setStatus(200);
 				response.setMessage("All exercises fetched successfully");

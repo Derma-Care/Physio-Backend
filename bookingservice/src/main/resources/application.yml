@@ -6,8 +6,10 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
+
 #  config:
 #    import: optional:classpath:application-secrets.yml
+
 ##  kafka:
 #    bootstrap-servers: kafka:9092
 #
@@ -19,6 +21,7 @@ spring:
 #      properties:
 #        delivery.timeout.ms: 120000
 #        request.timeout.ms: 30000
+
 
   cloud:
     openfeign:

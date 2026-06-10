@@ -67,7 +67,7 @@ public class PatientFeedbackController {
 
         return service.deleteFeedback(id);
     }
-    
+
     @GetMapping("/getByPatientFeedbackClinicIdAndBranchId/{clinicId}/{branchId}")
     public ResponseEntity<Response> getByClinicIdAndBranchId(
             @PathVariable String clinicId,
@@ -81,6 +81,7 @@ public class PatientFeedbackController {
                 HttpStatus.valueOf(response.getStatus()));
     }
     
+
     @GetMapping("/getByPatientFeedbackClinicIdAndBranchId/{clinicId}/{branchId}/{patientId}")
     public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntId(
             @PathVariable String clinicId,

@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 import com.dermaCare.customerService.dto.BookingRequset;
 import com.dermaCare.customerService.dto.BookingResponse;
 import com.dermaCare.customerService.dto.BranchDTO;
@@ -2381,6 +2380,7 @@ public ResponseEntity<Response> getStaffInfo(
     } return ResponseEntity.status(response.getStatus()).body(response);}
 
 
+
 @Override
 public Response createFeedback(
         PatientFeedbackDTO dto){
@@ -2407,6 +2407,5 @@ public ResponseEntity<Response> getByClinicIdAndBranchId(
         res.setMessage(ExtractFeignMessage.clearMessage(e));
         res.setSuccess(false);
     } return ResponseEntity.status(res.getStatus()).body(res);}
-
 
 }

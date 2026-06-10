@@ -16,6 +16,7 @@ spring:
         config:
           default:
             connectTimeout: 30000
+
             readTimeout: 60000          
 #  config:
 #   import: optional:classpath:application-secrets.yml  
@@ -89,8 +90,9 @@ aws:
 # ===============================
 # Firebase
 # ===============================
-#app:
-#  firebase-configuration-file: firebase-key.json
+
+app:
+  firebase-configuration-file: firebase-key.json
 
 # ===============================
 # Logging
