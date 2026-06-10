@@ -31,4 +31,5 @@ public class PhysiotherapyRecordDTO {
     private RadiationNeuro radiationNeuro;
     private Psychosocial psychosocial;
     private SpecialSymptoms specialSymptoms;
+    private boolean uptoInvestigation = false;	
 }

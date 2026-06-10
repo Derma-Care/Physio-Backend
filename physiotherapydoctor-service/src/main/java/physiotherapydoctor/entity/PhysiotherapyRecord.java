@@ -55,6 +55,7 @@ public class PhysiotherapyRecord {
     private String prescriptionPdf;
 	private String createdTime;
 	
+	private boolean uptoInvestigation = false;	
 		
 	}
     

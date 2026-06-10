@@ -115,6 +115,33 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		entity.setCreatedAt(createdDate);
 		entity.setCreatedTime(createdTime);
 		entity.setUpdatedAt(createdDate);
+		
+		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
+
+		    try {
+
+		        ResponseEntity<ResponseStructure<BookingResponse>> bookingRes =
+		                bookingFeign.getBookedService(dto.getBookingId());
+
+		        if (bookingRes != null
+		                && bookingRes.getBody() != null
+		                && bookingRes.getBody().getData() != null) {
+
+		            String bookingStatus =
+		                    bookingRes.getBody().getData().getStatus();
+
+		            if ("doneForInvestigation".equalsIgnoreCase(bookingStatus)
+		                    || "dueForInvestigation".equalsIgnoreCase(bookingStatus)) {
+
+		                entity.setUptoInvestigation(true);
+		            }
+		        }
+
+		    } catch (Exception e) {
+		        System.out.println("Error while fetching booking status : "
+		                + e.getMessage());
+		    }
+		}
 
 		PhysiotherapyRecord saved = repository.save(entity);
 
@@ -588,8 +615,35 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		// existing.setOverallStatus(dto.getOverallStatus());
 		// }
 
+		// Fetch booking status and update uptoInvestigation flag
+		if (existing.getBookingId() != null && !existing.getBookingId().isEmpty()) {
+
+		    try {
+
+		        ResponseEntity<ResponseStructure<BookingResponse>> bookingRes =
+		                bookingFeign.getBookedService(existing.getBookingId());
+
+		        if (bookingRes != null
+		                && bookingRes.getBody() != null
+		                && bookingRes.getBody().getData() != null) {
+
+		            String bookingStatus =
+		                    bookingRes.getBody().getData().getStatus();
+
+		            existing.setUptoInvestigation(
+		                    "doneForInvestigation".equalsIgnoreCase(bookingStatus)
+		                    || "dueForInvestigation".equalsIgnoreCase(bookingStatus)
+		            );
+		        }
+
+		    } catch (Exception e) {
+		        System.out.println("Error fetching booking status: "
+		                + e.getMessage());
+		    }
+		}
 		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
 		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+		
 
 		existing.setUpdatedAt(now);
 
