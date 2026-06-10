@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class Reports {
-	
+	private String id;
 	private String bookingId;
 	private String patientId;
 	private String customerMobileNumber;
@@ -20,6 +20,11 @@ public class Reports {
 	private String reportDate;
 	private String reportStatus;
 	private String reportType;
-	private List<byte[]>reportFile; 
+
+	private List<String>reportFile;
+	 
+
+
+
 
 }

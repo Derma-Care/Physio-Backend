@@ -7,10 +7,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 import com.dermaCare.customerService.dto.CustomerLoginDTO;
 import com.dermaCare.customerService.dto.DoctorsDTO;
+import com.dermaCare.customerService.dto.PatientFeedbackDTO;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
+import com.dermaCare.customerService.dto.TherapistRecordRequest;
 import com.dermaCare.customerService.util.Response;
 
 
@@ -69,6 +70,31 @@ public interface ClinicAdminFeign {
 
 	 @PostMapping("/clinic-admin/block/slot")
 	  public boolean blockSlot(@RequestBody TempBlockingSlot tempBlockingSlot);
+	 
+	 @PostMapping("/clinic-admin/therapist-session-details")
+	    public ResponseEntity<Response> getTherapistSessionDetails(
+	            @RequestBody TherapistRecordRequest request);
+	 
+	 
+	 @GetMapping("/clinic-admin/staff-info/{hospitalId}/{branchId}")
+		public ResponseEntity<Response> getStaffInfo(
+		        @PathVariable String hospitalId,
+		        @PathVariable String branchId);
+	 
+	 @PostMapping("/clinic-admin/createPatientFeedback")
+	    public Response createFeedback(
+	            @RequestBody PatientFeedbackDTO dto);
+	 
+	   @GetMapping("/clinic-admin/getByPatientFeedbackClinicIdAndBranchId/{clinicId}/{branchId}/{patientId}")
+	    public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntId(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String patientId );
+
+//	 @PostMapping("/clinic-admin/customers/login")
+//	    public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto);
+//	    
+
 	 
 //	//FALLBACK METHODS
 //	

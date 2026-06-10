@@ -27,22 +27,22 @@ public class CustomConsentFormController {
 	// -------------------------------
 	// Add Consent Form
 	// -------------------------------
-	@PostMapping("/consent-form/{hospitalId}/{consentFormType}")
-	public ResponseEntity<Response> addConsentForm(@PathVariable String hospitalId, @PathVariable String consentFormType,
-			@RequestBody CustomConsentFormDTO dto) {
-		Response response = consentFormService.addCustomConsentForm(hospitalId, consentFormType, dto);
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+//	@PostMapping("/consent-form/{hospitalId}/{consentFormType}")
+//	public ResponseEntity<Response> addConsentForm(@PathVariable String hospitalId, @PathVariable String consentFormType,
+//			@RequestBody CustomConsentFormDTO dto) {
+//		Response response = consentFormService.addCustomConsentForm(hospitalId, consentFormType, dto);
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
 
 	// -------------------------------
 	// Update Consent Form
 	// -------------------------------
-	@PutMapping("/consent-form/{hospitalId}/{consentFormType}")
-	public ResponseEntity<Response> updateConsentForm(@PathVariable String hospitalId, @PathVariable String consentFormType,
-			@RequestBody CustomConsentFormDTO dto) {
-		Response response = consentFormService.updateCustomConsentForm(hospitalId, consentFormType, dto);
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+//	@PutMapping("/consent-form/{hospitalId}/{consentFormType}")
+//	public ResponseEntity<Response> updateConsentForm(@PathVariable String hospitalId, @PathVariable String consentFormType,
+//			@RequestBody CustomConsentFormDTO dto) {
+//		Response response = consentFormService.updateCustomConsentForm(hospitalId, consentFormType, dto);
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
 
 	// -------------------------------
 	// Get Generic Consent Form

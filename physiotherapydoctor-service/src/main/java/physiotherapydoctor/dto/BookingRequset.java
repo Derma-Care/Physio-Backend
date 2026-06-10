@@ -19,6 +19,7 @@ public class BookingRequset {
 	private String bookingFor;
 	private String relation;
 	private String patientMobileNumber;
+	private String dob;
 	private String visitType;
 	private Integer freeFollowUps;
 	private String patientAddress;

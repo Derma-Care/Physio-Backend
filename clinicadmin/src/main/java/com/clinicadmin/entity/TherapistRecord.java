@@ -57,5 +57,19 @@ public class TherapistRecord {
     private String setsDone;
     private String repetationDone;
     private String serviceType;
+	private String loginTime;
+	private String logoutTime;
+	private String latitude;
+	private String longitude;
+	private String location;
+	private String consentPdfUrl;
+	public String description;
+
+
+
+	
+
+	
+	
 
 }

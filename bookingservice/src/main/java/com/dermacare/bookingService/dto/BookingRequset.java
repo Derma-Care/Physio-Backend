@@ -17,6 +17,7 @@ public class BookingRequset {
 	private String bookingFor;
 	private String relation;
 	private String patientMobileNumber;
+	private String dob;
 	private String visitType;
 	private Integer freeFollowUps;
 	private String patientAddress;
@@ -46,7 +47,7 @@ public class BookingRequset {
 	private String followupDate;
 	private String consultationType;
 	private List<ConsultationFeesDTO> listOfConsultationFee;	
-	private double consultationFee;
+	private Double consultationFee;
 	private double totalFee;    ///theraphy fee
 	private String paymentType;
 	private List<String> attachments;

@@ -1,6 +1,7 @@
 package com.clinicadmin.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 
@@ -15,18 +16,18 @@ public interface BookingService {
 
 	Response getAllBookedServicesDetailsByBranchId(String branchId);
 	
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByClinicIdWithBranchId(String clinicId, String branchId);
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingsByClinicIdWithBranchId(String clinicId, String branchId);
 	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId);
 
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(String clinicId, String branchId,String date);
 	
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse bookingResponse);
+	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse response);
  
-	public ResponseEntity<?> retrieveAppointnmentsByInput(String input, String clinicId);
+	//public ResponseEntity<?> retrieveAppointnmentsByInput(String input, String clinicId);
 
 	ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId);
 
-	Response bookService(BookingRequset req) throws JsonProcessingException;
+	Response bookService(BookingResponse req) throws JsonProcessingException;
 
 	ResponseEntity<?> getInprogressBookingsByPatientId(String patientId);
 	
@@ -53,5 +54,7 @@ public interface BookingService {
 	public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 			String bookingId);
 	public ResponseEntity<?> getReportsByPatientId(String patientId);
+	public ResponseEntity<?> getBookedServiceById(String bookingId);
+
 
 }

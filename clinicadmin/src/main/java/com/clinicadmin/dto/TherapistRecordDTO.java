@@ -1,11 +1,14 @@
 package com.clinicadmin.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TherapistRecordDTO {
 
 	private String id;
@@ -18,14 +21,14 @@ public class TherapistRecordDTO {
     private String therapistId;
 
     private String patientName;
-    private String therapy;
+//    private String therapy;
 
-    private String date;
+//    private String date;
     private String completedDate;
     private String completedTime;
 
     private String duration;
-    private String exercises;
+//    private String exercises;
 
     private String painBefore;
     private String painAfter;
@@ -46,5 +49,13 @@ public class TherapistRecordDTO {
     private String setsDone;
     private String repetationDone;
     private String serviceType;
+	private String latitude;
+	private String longitude;
+	private String location;
+	private String consentPdfUrl;
+		
+	
+		
+	
     
 }

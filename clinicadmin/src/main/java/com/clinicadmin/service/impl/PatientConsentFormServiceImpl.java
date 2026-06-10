@@ -91,7 +91,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 		formdata.setDateOfBirth(bookingDto.getAge());
 		formdata.setContactNumber(bookingDto.getMobileNumber());
 		formdata.setAddress(bookingDto.getPatientAddress());
-		formdata.setProcedureName(bookingDto.getSubServiceName());
+		formdata.setProcedureName(null);
 		formdata.setProcedureDate(bookingDto.getServiceDate());
 		formdata.setPhysicianName(bookingDto.getDoctorName());
 		formdata.setInformedAboutProcedure(true);

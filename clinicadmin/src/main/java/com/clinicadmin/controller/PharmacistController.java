@@ -97,71 +97,71 @@ public class PharmacistController {
 	
 	// ---------------- PRESCRIPTION APIs ----------------
 
-    @PostMapping("/createPrescription")
-    public ResponseEntity<Response> createPrescription(@RequestBody DoctorPrescriptionDTO dto) {
-        return pharmacistService.createPrescription(dto);
-    }
-
-    @GetMapping("/getAllPrescriptions")
-    public ResponseEntity<Response> getAllPrescriptions() {
-        return pharmacistService.getAllPrescriptions();
-    }
-
-    @GetMapping("/getPrescriptionById/{id}")
-    public ResponseEntity<Response> getPrescriptionById(@PathVariable String id) {
-        return pharmacistService.getPrescriptionById(id);
-    }
-
-    @GetMapping("/getMedicineById/{medicineId}")
-    public ResponseEntity<Response> getMedicineById(@PathVariable String medicineId) {
-        return pharmacistService.getMedicineById(medicineId);
-    }
-
-    @GetMapping("/searchMedicines/{keyword}")
-    public ResponseEntity<Response> searchMedicines(@PathVariable String keyword) {
-        return pharmacistService.searchMedicines(keyword);
-    }
-
-    @DeleteMapping("/deletePrescription/{id}")
-    public ResponseEntity<Response> deletePrescription(@PathVariable String id) {
-        return pharmacistService.deletePrescription(id);
-    }
-
-    @DeleteMapping("/deleteMedicine/{medicineId}")
-    public ResponseEntity<Response> deleteMedicine(@PathVariable String medicineId) {
-        return pharmacistService.deleteMedicine(medicineId);
-    }
-
-    @GetMapping("/getPrescriptionsByClinicId/{clinicId}")
-    public ResponseEntity<Response> getPrescriptionsByClinicId(@PathVariable String clinicId) {
-        return pharmacistService.getPrescriptionsByClinicId(clinicId);
-    }
-    
-    @PutMapping("/updateMedicine/{medicineId}")
-    public ResponseEntity<Response> updateMedicine(@PathVariable String medicineId,
-                                                   @RequestBody MedicineDTO dto) {
-        return pharmacistService.updateMedicine(medicineId, dto);
-    }
-
-    
-    // ---------------- MEDICINE TYPE APIs ----------------
-    @PostMapping("/search-or-add")
-    public ResponseEntity<Response> searchOrAddMedicineType(@RequestBody MedicineTypeDTO dto) {
-        return pharmacistService.searchOrAddMedicineType(dto);
-    }
-
-    @GetMapping("/getMedicineTypes/{clinicId}")
-    public ResponseEntity<Response> getMedicineType(@PathVariable String clinicId) {
-        return pharmacistService.getMedicineTypes(clinicId);
-    }
-    
-    @GetMapping("/getMedicineTypesById/{Id}")
-    public ResponseEntity<Response> getMedicineTypes(@PathVariable String Id) {
-        return pharmacistService.getMedicineType(Id);
-    }
-    
-    @GetMapping("/getAllMedicineTypes")
-    public ResponseEntity<Response> getAllMedicineTypes() {
-        return pharmacistService.getAllMedicineTypes();
-    }
+//    @PostMapping("/createPrescription")
+//    public ResponseEntity<Response> createPrescription(@RequestBody DoctorPrescriptionDTO dto) {
+//        return pharmacistService.createPrescription(dto);
+//    }
+//
+//    @GetMapping("/getAllPrescriptions")
+//    public ResponseEntity<Response> getAllPrescriptions() {
+//        return pharmacistService.getAllPrescriptions();
+//    }
+//
+//    @GetMapping("/getPrescriptionById/{id}")
+//    public ResponseEntity<Response> getPrescriptionById(@PathVariable String id) {
+//        return pharmacistService.getPrescriptionById(id);
+//    }
+//
+//    @GetMapping("/getMedicineById/{medicineId}")
+//    public ResponseEntity<Response> getMedicineById(@PathVariable String medicineId) {
+//        return pharmacistService.getMedicineById(medicineId);
+//    }
+//
+//    @GetMapping("/searchMedicines/{keyword}")
+//    public ResponseEntity<Response> searchMedicines(@PathVariable String keyword) {
+//        return pharmacistService.searchMedicines(keyword);
+//    }
+//
+//    @DeleteMapping("/deletePrescription/{id}")
+//    public ResponseEntity<Response> deletePrescription(@PathVariable String id) {
+//        return pharmacistService.deletePrescription(id);
+//    }
+//
+//    @DeleteMapping("/deleteMedicine/{medicineId}")
+//    public ResponseEntity<Response> deleteMedicine(@PathVariable String medicineId) {
+//        return pharmacistService.deleteMedicine(medicineId);
+//    }
+//
+//    @GetMapping("/getPrescriptionsByClinicId/{clinicId}")
+//    public ResponseEntity<Response> getPrescriptionsByClinicId(@PathVariable String clinicId) {
+//        return pharmacistService.getPrescriptionsByClinicId(clinicId);
+//    }
+//    
+//    @PutMapping("/updateMedicine/{medicineId}")
+//    public ResponseEntity<Response> updateMedicine(@PathVariable String medicineId,
+//                                                   @RequestBody MedicineDTO dto) {
+//        return pharmacistService.updateMedicine(medicineId, dto);
+//    }
+//
+//    
+//    // ---------------- MEDICINE TYPE APIs ----------------
+//    @PostMapping("/search-or-add")
+//    public ResponseEntity<Response> searchOrAddMedicineType(@RequestBody MedicineTypeDTO dto) {
+//        return pharmacistService.searchOrAddMedicineType(dto);
+//    }
+//
+//    @GetMapping("/getMedicineTypes/{clinicId}")
+//    public ResponseEntity<Response> getMedicineType(@PathVariable String clinicId) {
+//        return pharmacistService.getMedicineTypes(clinicId);
+//    }
+//    
+//    @GetMapping("/getMedicineTypesById/{Id}")
+//    public ResponseEntity<Response> getMedicineTypes(@PathVariable String Id) {
+//        return pharmacistService.getMedicineType(Id);
+//    }
+//    
+//    @GetMapping("/getAllMedicineTypes")
+//    public ResponseEntity<Response> getAllMedicineTypes() {
+//        return pharmacistService.getAllMedicineTypes();
+//    }
 }

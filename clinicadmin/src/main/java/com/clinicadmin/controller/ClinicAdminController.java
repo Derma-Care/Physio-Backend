@@ -76,5 +76,17 @@ public class ClinicAdminController {
 	public ResponseEntity<?> getBranchesByClinicId(@PathVariable String clinicId) {
 		return clinicAdminService.getBranchesByClinicId(clinicId);
 	}
+	
+	@GetMapping("/staff-info/{hospitalId}/{branchId}")
+	public ResponseEntity<Response> getStaffInfo(
+	        @PathVariable String hospitalId,
+	        @PathVariable String branchId) {
+
+	    Response response = clinicAdminService.getStaffInfo(hospitalId, branchId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+	}
 
 }

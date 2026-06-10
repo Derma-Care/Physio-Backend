@@ -10,11 +10,12 @@ import com.dermacare.notification_service.dto.NotificationResponse;
 import com.dermacare.notification_service.dto.NotificationToCustomer;
 import com.dermacare.notification_service.dto.PriceDropAlertDto;
 import com.dermacare.notification_service.dto.ResBody;
+import com.dermacare.notification_service.dto.Response;
 
 
 public interface ServiceInterface {
 
-	public void createNotification(BookingResponse booking);
+	public ResponseEntity<Response> createNotification(BookingResponse booking);
 
 	public ResBody<List<NotificationDTO>> notificationtodoctor( String hospitalId,
 			 String doctorId);
@@ -46,5 +47,7 @@ public interface ServiceInterface {
 	         String clinicId,
 	        String branchId,
 	        String id);
+    
+    
     	
 }

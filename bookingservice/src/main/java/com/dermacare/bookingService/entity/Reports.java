@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Reports {
-
+//   private String id;
 	private String bookingId;
 	private String customerMobileNumber;
 	private String reportName;
 	private String reportDate;
 	private String reportStatus;
 	private String reportType;
-	private List<byte[]> reportFile; 
+	private List<String> reportFile; 
 
 }

@@ -20,5 +20,9 @@ public interface PhysiotherapyService {
     public ResponseEntity<Response> updateByKey(String key, QuestionsDTO dto);
 	    
     public ResponseEntity<Response> getByKeys(MutiplePartsDto keys);
+    
+    public ResponseEntity<Response> getExerciseSessionsWithRecords(String clinicId,
+			String branchId,  String bookingId,  String patientId,String therapistId,
+			String therapistRecordId);
 	             	   
 }

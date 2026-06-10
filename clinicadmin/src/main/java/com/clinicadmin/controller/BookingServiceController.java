@@ -1,6 +1,7 @@
 package com.clinicadmin.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Response;
@@ -57,11 +57,7 @@ public class BookingServiceController {
 		
 	}
 	
-	@GetMapping("/bookings/byInput/{input}/{clinicId}")
-	   public ResponseEntity<?> getInprogressBookingsByInput(
-				 @PathVariable String input, @PathVariable String clinicId){
-		   return bookingService.retrieveAppointnmentsByInput(input,clinicId);
-	 }
+	
 	
 	   @GetMapping("/bookings/byPatientId/{patientId}")
 	   public ResponseEntity<?> getInprogressBookingsByPatientId(
@@ -82,7 +78,7 @@ public class BookingServiceController {
 	    return bookingService.getReportsByPatientId(patientId);}
 	   
 	   @PostMapping("/bookService")
-	   public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws JsonProcessingException  {
+	   public ResponseEntity<Object> bookService(@RequestBody BookingResponse req)throws JsonProcessingException  {
 	   	Response response = bookingService.bookService(req);
 	   	if(response != null && response.getData() == null) {
 	   		 return ResponseEntity.status(response.getStatus()).body(response);
@@ -188,5 +184,13 @@ public class BookingServiceController {
 
 	        return bookingService.getUpcomingBookings(clinicId, branchId, option);
 	    }
+	    
+	    
+	    @GetMapping("/getBookedServiceById/{id}")
+		public ResponseEntity<?> getBookedService(@PathVariable String id) {
+			return bookingService.getBookedServiceById(id);
+		
+		}
+
 	   
 }

@@ -11,9 +11,13 @@ import com.dermaCare.customerService.dto.CustomerDTO;
 import com.dermaCare.customerService.dto.CustomerLoginDTO;
 import com.dermaCare.customerService.dto.CustomerRatingDomain;
 import com.dermaCare.customerService.dto.FavouriteDoctorsDTO;
+import com.dermaCare.customerService.dto.FirstVisitHistoryRequest;
 import com.dermaCare.customerService.dto.LoginDTO;
 import com.dermaCare.customerService.dto.NotificationToCustomer;
+import com.dermaCare.customerService.dto.PatientFeedbackDTO;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
+import com.dermaCare.customerService.dto.TherapistRecordRequest;
+import com.dermaCare.customerService.dto.VisitHistoryRequest;
 import com.dermaCare.customerService.util.ResBody;
 import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.ResponseStructure;
@@ -87,7 +91,7 @@ public interface CustomerService {
     public Response getAverageRating(String branchId, String doctorId);
     
     // SUBSERVICE
-    public Response getSubServiceInfoBySubServiceId(String subServiceId) throws JsonProcessingException ;
+//    public Response getSubServiceInfoBySubServiceId(String subServiceId) throws JsonProcessingException ;
     
     //DOCTORINFOBYSUBSERVICEID
     public Response getDoctorsandHospitalDetails(String hospitalId, String subServiceId)throws JsonProcessingException;
@@ -96,9 +100,9 @@ public interface CustomerService {
     public Response getHospitalsAndDoctorsDetailsBySubServiceId(String subServiceId);
     
     //Services
-    public Response getServiceById( String categoryId);
-	public Response getSubServicesByServiceId(String serviceId);
-	public Response getAllCategory();
+//    public Response getServiceById( String categoryId);
+//	public Response getSubServicesByServiceId(String serviceId);
+//	public Response getAllCategory();
 	
 	//NOTIFICATION
 	public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
@@ -106,7 +110,7 @@ public interface CustomerService {
 
 	public ResponseEntity<?> getInProgressAppointments( String mnumber);
 	
-	public Response getBranchesInfoBySubServiceId(String clinicId,String subServiceId,String latitude,String longtitude) throws JsonProcessingException;
+//	public Response getBranchesInfoBySubServiceId(String clinicId,String subServiceId,String latitude,String longtitude) throws JsonProcessingException;
 	
 	public Response getReportsAndDoctorSaveDetails(String customerId);
 	
@@ -125,7 +129,7 @@ public interface CustomerService {
 
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByClinicIdWithBranchId(String clinicId, String branchId);
 
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByCustomerId(String customerId);
+	public ResponseEntity<?> getBookingsByCustomerId(String customerId);
 
 	public ResponseEntity<?> retrieveAppointnmentsByRelation(String customerId);
 	public ResponseEntity<?> getInprogressBookingsByCustomerId(String customerId);
@@ -137,4 +141,25 @@ public interface CustomerService {
 
 	Response getDoctorsByHospitalBranchAndSubService(String hospitalId, String branchId, String subServiceId,
 			int consultationType) throws JsonProcessingException;
+	
+	public ResponseEntity<Response> getTherapistSessionDetails(TherapistRecordRequest request);
+
+	public ResponseEntity<Response> getVisitHistoryByDoctor(VisitHistoryRequest request);
+	
+	public ResponseEntity<Response> getFirstVisitHistory(FirstVisitHistoryRequest request);
+	public ResponseEntity<?> bookPhysioAppointment(BookingRequset req);
+	public ResponseEntity<?> getCompletedBookingsByCustomerId(String customerId);
+	public ResponseEntity<Response> getStaffInfo(
+		       String hospitalId,
+		        String branchId);
+
+	public Response createFeedback(
+	        PatientFeedbackDTO dto);
+	
+	public ResponseEntity<Response> getByClinicIdAndBranchId(
+		      String clinicId,
+		      String branchId,
+		      String patientId);
+
+
 }

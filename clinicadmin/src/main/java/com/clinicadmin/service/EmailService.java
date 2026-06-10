@@ -1,6 +1,5 @@
 package com.clinicadmin.service;
 
-
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -19,7 +18,8 @@ public class EmailService {
     private final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final String fromAddress;
-    private final String clinicLoginUrl;
+    private final String doctorLoginUrl;       // ✅ renamed from clinicLoginUrl
+    private final String therapistLoginUrl;
 
     public EmailService(JavaMailSender mailSender, Environment env) {
         this.mailSender = mailSender;
@@ -27,12 +27,28 @@ public class EmailService {
                 "notification.default-from-email",
                 "no-reply@glowkart.com"
         );
-        this.clinicLoginUrl = env.getProperty(
-                "notification.clinic-login-url",
-                "http://3.111.28.174:5000/doctor"
+        this.doctorLoginUrl = env.getProperty(
+                "notification.doctor-login-url",
+                "https://doctor.ccmstestserver.online"      // ✅ updated
+        );
+        this.therapistLoginUrl = env.getProperty(
+                "notification.therapist-login-url",
+                "https://therapist.ccmstestserver.online"   // ✅ updated
         );
     }
 
+    // ===================== RESOLVE LOGIN URL BY ROLE =====================
+    private String resolveLoginUrl(String role) {
+        if (role == null || role.isBlank()) return doctorLoginUrl;
+        return switch (role.toLowerCase()) {
+            case "doctor"          -> doctorLoginUrl;      // ✅ renamed
+            case "physiotherapist" -> therapistLoginUrl;
+            // case "receptionist" -> receptionistLoginUrl;
+            default                -> doctorLoginUrl;      // ✅ renamed
+        };
+    }
+
+    // ===================== MAIN SEND METHOD =====================
     public void sendEmail(String to, Map<String, String> data) {
         try {
             if (to == null || to.isBlank()) {
@@ -40,14 +56,15 @@ public class EmailService {
                 return;
             }
 
-            String subject = data.getOrDefault("subject", "CCMS Notification");
+            String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
+            String role    = data.getOrDefault("role", "doctor");
 
             String emoji = "";
-            if (subject.contains("Verified")) emoji = "🎉";
-            else if (subject.contains("Pending")) emoji = "⏳";
-            else if (subject.contains("Review")) emoji = "🔍";
-            else if (subject.contains("Rejected")) emoji = "❌";
-            else if (subject.contains("OTP")) emoji = "🔒";
+            if (subject.contains("Verified"))       emoji = "🎉";
+            else if (subject.contains("Pending"))   emoji = "⏳";
+            else if (subject.contains("Review"))    emoji = "🔍";
+            else if (subject.contains("Rejected"))  emoji = "❌";
+            else if (subject.contains("OTP"))       emoji = "🔒";
 
             String subjectWithEmoji = emoji.isEmpty() ? subject : emoji + " " + subject;
 
@@ -63,39 +80,43 @@ public class EmailService {
             } else if (subject.contains("Rejected")) {
                 helper.setText(buildRejectionMessageBody(data, emoji), true);
             } else {
-                helper.setText(buildMessageBody(data, emoji), true);
+                helper.setText(buildMessageBody(data, emoji, resolveLoginUrl(role)), true);
             }
 
             mailSender.send(mimeMessage);
-            logger.info("Email sent successfully to {}", to);
+            logger.info("Email sent successfully to {} with role={}", to, role);
 
         } catch (Exception e) {
             logger.error("Failed to send email to {}: {}", to, e.getMessage(), e);
         }
     }
 
-    // ===================== UPDATED MODERN UI =====================
-    private String buildMessageBody(Map<String, String> data, String emoji) {
+    // ===================== GENERAL EMAIL BODY =====================
+    private String buildMessageBody(Map<String, String> data, String emoji, String loginUrl) {
 
         String bodyMessage = data.getOrDefault("message", "");
-        String username = data.get("username");
-        String password = data.get("password");
+        String username    = data.get("username");
+        String password    = data.get("password");
+
+        if (bodyMessage != null && !bodyMessage.toLowerCase().contains("welcome to ccms kinetix")) {
+            bodyMessage = "Welcome to CCMS Kinetix!\n\n" + bodyMessage;
+        }
 
         return """
             <html>
             <body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fa;">
-            
-            <div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px; 
+
+            <div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px;
                         border:1px solid #e0e0e0; overflow:hidden;">
-                
+
                 <!-- Header -->
                 <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-                    <h2 style="color:#ffffff; margin:0;">CCMS Notification</h2>
+                    <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
                 </div>
 
                 <!-- Body -->
                 <div style="padding:20px; color:#333;">
-                    
+
                     <p>👋 Hello,</p>
 
                     <p style="line-height:1.6;">
@@ -105,6 +126,11 @@ public class EmailService {
                     %s
 
                     %s
+
+                    <p style="margin-top:20px;">
+                        Regards,<br>
+                        CCMS Team
+                    </p>
 
                 </div>
 
@@ -121,7 +147,7 @@ public class EmailService {
 
                 bodyMessage.replace("\n", "<br>"),
 
-                // Credentials Box
+                // ✅ Credentials Box
                 (username != null && password != null)
                         ? """
                         <div style="background:#e8f0fe; padding:15px; border-radius:6px; margin-top:15px;">
@@ -132,22 +158,22 @@ public class EmailService {
                         """.formatted(username, password)
                         : "",
 
-                // Login Button
+                // ✅ Login Button — resolved by role
                 (username != null && password != null)
                         ? """
                         <div style="text-align:center; margin-top:20px;">
                             <a href="%s"
-                               style="background:#28a745; color:white; padding:10px 22px; 
+                               style="background:#28a745; color:white; padding:10px 22px;
                                       border-radius:6px; text-decoration:none; font-weight:bold;">
                                Login Now
                             </a>
                         </div>
-                        """.formatted(clinicLoginUrl)
+                        """.formatted(loginUrl)
                         : ""
         );
     }
 
-    // ================= OTP EMAIL =================
+    // ===================== OTP EMAIL BODY =====================
     private String buildOtpMessageBody(Map<String, String> data, String emoji) {
         String bodyMessage = data.getOrDefault("message", "");
 
@@ -165,10 +191,10 @@ public class EmailService {
             """.formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
     }
 
-    // ================= REJECTION EMAIL =================
+    // ===================== REJECTION EMAIL BODY =====================
     private String buildRejectionMessageBody(Map<String, String> data, String emoji) {
         String bodyMessage = data.getOrDefault("message", "");
-        String reason = data.getOrDefault("reason", "Not specified");
+        String reason      = data.getOrDefault("reason", "Not specified");
 
         return """
             <html>

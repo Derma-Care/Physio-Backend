@@ -1,6 +1,7 @@
 package com.clinicadmin.feignclient;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -67,7 +68,7 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getAllBookedServicesByBranchId(@PathVariable String branchId);
 	
 	@GetMapping("/api/v1/getBookedServicesByClinicIdWithBranchId/{clinicId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookedServicesByClinicIdWithBranchId(
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookedServicesByClinicIdWithBranchId(
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId);
 	
@@ -78,7 +79,7 @@ public interface BookingFeign {
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String date);
 	
 	@PutMapping("/api/v1/update/bookingId")
-	public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
+	public ResponseEntity<ResponseStructure<BookingResponse>>  updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
 	
 	@PostMapping("/api/v1/appointments/serviceDate/serviceTime/DoctorId")
 	public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp);
@@ -90,7 +91,7 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByPatientId(@PathVariable String patientId);
 	
 	@PostMapping("/api/v1/bookService")
-	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestBody BookingRequset req);
+	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestBody BookingResponse req);
 	
 	@GetMapping("/api/v1/appointments/Inprogress/patientId/{patientId}")
 	public ResponseEntity<?> getInprogressAppointmentsByPatientId(@PathVariable String patientId);
@@ -139,7 +140,7 @@ public interface BookingFeign {
 	    
 	  
 	  @GetMapping("/api/v1/getTodayBookings/{clincId}/{branchId}")
-		public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
+		public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId);
 		
 	  
 	  @GetMapping("/api/v1/in-progress/appointments/{patientId}/{bookingId}")
@@ -147,7 +148,8 @@ public interface BookingFeign {
 		
 	  @GetMapping("/api/v1/reports/patientId/{patientId}")
 	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId);
-
-	      
-
+	 
+	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
+	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index);
+	   	  
 }

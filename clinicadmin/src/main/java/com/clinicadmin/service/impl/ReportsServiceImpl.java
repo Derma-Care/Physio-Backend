@@ -1,12 +1,10 @@
 package com.clinicadmin.service.impl;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.Optional;
-
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,8 +21,7 @@ import com.clinicadmin.entity.ReportsList;
 import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.ReportsRepository;
 import com.clinicadmin.service.ReportsService;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.clinicadmin.service.S3Service;
 
 import feign.FeignException;
 
@@ -37,7 +34,108 @@ public class ReportsServiceImpl implements ReportsService {
     @Autowired
     private BookingFeign bookingFeign;
 
-    // ----------------------------------------- Add Reports -----------------------------------------------------
+    @Autowired
+    private S3Service s3Service;
+
+    // ─────────────────────────────────────────────────────────────────
+    // HELPER: Reports entity → ReportsDTO with fresh signed URLs
+    // Stored reportFile has S3 keys → convert to signed GET URLs
+    // ─────────────────────────────────────────────────────────────────
+    private ReportsDTO toResponseDTO(Reports report) {
+        List<String> signedUrls = new ArrayList<>();
+
+        if (report.getReportFile() != null) {
+            for (String key : report.getReportFile()) {
+                if (key != null && !key.isBlank()) {
+                    signedUrls.add(s3Service.generateSignedUrl(key));
+                }
+            }
+        }
+
+        ReportsDTO dto = new ReportsDTO();
+        dto.setBookingId(report.getBookingId());
+        dto.setPatientId(report.getPatientId());
+        dto.setCustomerMobileNumber(report.getCustomerMobileNumber());
+        dto.setReportName(report.getReportName());
+        dto.setReportDate(report.getReportDate());
+        dto.setReportStatus(report.getReportStatus());
+        dto.setReportType(report.getReportType());
+        dto.setReportFile(signedUrls);
+        return dto;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // HELPER: ReportsList entity → ReportsDtoList with signed URLs
+    // ─────────────────────────────────────────────────────────────────
+    private ReportsDtoList toResponseDtoList(ReportsList entity) {
+        List<ReportsDTO> dtos = new ArrayList<>();
+
+        if (entity.getReportsList() != null) {
+            for (Reports r : entity.getReportsList()) {
+                dtos.add(toResponseDTO(r));
+            }
+        }
+
+        ReportsDtoList dtoList = new ReportsDtoList();
+        dtoList.setId(entity.getId());
+        dtoList.setCustomerId(entity.getCustomerId());
+        dtoList.setPatientId(entity.getPatientId());
+        dtoList.setReportsList(dtos);
+        return dtoList;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // HELPER: Validate S3 keys sent by frontend
+    // Returns error message string if invalid, null if all good
+    // ─────────────────────────────────────────────────────────────────
+    private String validateS3Keys(List<String> fileKeys) {
+        if (fileKeys == null || fileKeys.isEmpty()) return null;
+
+        for (String key : fileKeys) {
+            if (key == null || key.isBlank()) {
+                return "File key cannot be null or blank";
+            }
+            var meta = s3Service.getUploadedFileMeta(key);
+            if (meta == null) {
+                return "File not found in S3 for key: " + key
+                        + ". Please upload via presigned URL first.";
+            }
+        }
+        return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // HELPER: Convert raw S3 keys inside BookingResponse.reports
+    // to fresh 7-day signed URLs before returning to frontend.
+    // Booking Service stores raw keys — it has no S3Service,
+    // so signing must happen here on the Clinic Admin side.
+    // ─────────────────────────────────────────────────────────────────
+    private BookingResponse signReportUrlsInBookingResponse(BookingResponse bookingData) {
+        if (bookingData == null || bookingData.getReports() == null) return bookingData;
+
+        for (ReportsDtoList reportsDtoList : bookingData.getReports()) {
+            if (reportsDtoList.getReportsList() == null) continue;
+
+            for (ReportsDTO report : reportsDtoList.getReportsList()) {
+                if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
+
+                List<String> signedUrls = report.getReportFile().stream()
+                        .filter(key -> key != null && !key.isBlank())
+                        .map(s3Service::generateSignedUrl) // ✅ raw key → signed URL
+                        .collect(Collectors.toList());
+
+                report.setReportFile(signedUrls);
+            }
+        }
+        return bookingData;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // ADD REPORTS
+    // Flow: Frontend → GET /api/s3/upload-url (fieldName=report)
+    //              → PUT file to S3 presigned URL
+    //              → POST here with fileKeys in reportFile field
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response saveReports(ReportsDtoList dto) {
         try {
@@ -54,8 +152,8 @@ public class ReportsServiceImpl implements ReportsService {
             List<Reports> reports = new ArrayList<>();
             String bookingId = null;
 
-            // ✅ Convert DTO to Entity and decode Base64 files
             for (ReportsDTO reportDTO : dto.getReportsList()) {
+
                 if (reportDTO.getBookingId() == null || reportDTO.getBookingId().isEmpty()) {
                     return Response.builder()
                             .success(false)
@@ -66,12 +164,15 @@ public class ReportsServiceImpl implements ReportsService {
                 }
 
                 bookingId = reportDTO.getBookingId();
-                List<byte[]> decodedFiles = new ArrayList<>();
 
-                if (reportDTO.getReportFile() != null) {
-                    for (String encoded : reportDTO.getReportFile()) {
-                        decodedFiles.add(Base64.getDecoder().decode(encoded));
-                    }
+                String keyError = validateS3Keys(reportDTO.getReportFile());
+                if (keyError != null) {
+                    return Response.builder()
+                            .success(false)
+                            .message(keyError)
+                            .status(HttpStatus.BAD_REQUEST.value())
+                            .data(null)
+                            .build();
                 }
 
                 Reports report = Reports.builder()
@@ -82,32 +183,35 @@ public class ReportsServiceImpl implements ReportsService {
                         .reportStatus(reportDTO.getReportStatus())
                         .reportType(reportDTO.getReportType())
                         .customerMobileNumber(reportDTO.getCustomerMobileNumber())
-                        .reportFile(decodedFiles)
+                        .reportFile(reportDTO.getReportFile()) // ✅ S3 keys stored as-is
                         .build();
 
                 reports.add(report);
             }
 
-            // ✅ Fetch booking details via Feign Client
-            ResponseEntity<ResponseStructure<BookingResponse>> response = bookingFeign.getBookedService(bookingId);
-            BookingResponse bookingData = response.getBody() != null ? response.getBody().getData() : null;
+            // ── Fetch booking & sync ────────────────────────────────
+            ResponseEntity<ResponseStructure<BookingResponse>> response =
+                    bookingFeign.getBookedService(bookingId);
+
+            BookingResponse bookingData =
+                    response.getBody() != null ? response.getBody().getData() : null;
 
             if (bookingData != null) {
-                // Update booking with new reports
                 List<ReportsDtoList> existingReports = bookingData.getReports();
                 if (existingReports == null) existingReports = new ArrayList<>();
                 existingReports.add(dto);
                 bookingData.setReports(existingReports);
 
-                // Set IDs from booking service
+                bookingData.setCurrentStatus(null);
+                bookingData.setListOfConsultationFee(null);
+
                 dto.setCustomerId(bookingData.getCustomerId());
                 dto.setPatientId(bookingData.getPatientId());
 
-                // Update booking service record
                 bookingFeign.updateAppointmentBasedOnBookingId(bookingData);
             }
 
-            // ✅ Save report in MongoDB
+            // ── Save to MongoDB ─────────────────────────────────────
             reportsList.setCustomerId(dto.getCustomerId());
             reportsList.setPatientId(dto.getPatientId());
             reportsList.setReportsList(reports);
@@ -116,7 +220,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             return Response.builder()
                     .success(true)
-                    .data(saved)
+                    .data(toResponseDtoList(saved)) // ✅ signed URLs returned
                     .message("Report uploaded successfully")
                     .status(HttpStatus.CREATED.value())
                     .build();
@@ -128,7 +232,6 @@ public class ReportsServiceImpl implements ReportsService {
                     .message("Error communicating with Booking Service: " + e.getMessage())
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                     .build();
-
         } catch (Exception e) {
             return Response.builder()
                     .success(false)
@@ -139,20 +242,25 @@ public class ReportsServiceImpl implements ReportsService {
         }
     }
 
-    // --------------------------------------- Get Reports By BookingId --------------------------------------------
+    // ─────────────────────────────────────────────────────────────────
+    // GET REPORTS BY BOOKING ID
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response getReportsByBookingId(String bookingId) {
         Response res = new Response();
         try {
-            List<ReportsList> reportsListData = reportsRepository.findByReportsListBookingId(bookingId);
-            List<ReportsDtoList> toDTO = new ObjectMapper().convertValue(
-                    reportsListData, new TypeReference<List<ReportsDtoList>>() {});
+            List<ReportsList> reportsListData =
+                    reportsRepository.findByReportsListBookingId(bookingId);
 
-            if (toDTO != null && !toDTO.isEmpty()) {
+            if (reportsListData != null && !reportsListData.isEmpty()) {
+                List<ReportsDtoList> result = reportsListData.stream()
+                        .map(this::toResponseDtoList)
+                        .collect(Collectors.toList());
+
                 res.setSuccess(true);
                 res.setStatus(HttpStatus.OK.value());
                 res.setMessage("Reports fetched successfully for given bookingId");
-                res.setData(toDTO);
+                res.setData(result);
             } else {
                 res.setSuccess(true);
                 res.setStatus(HttpStatus.OK.value());
@@ -169,20 +277,24 @@ public class ReportsServiceImpl implements ReportsService {
         return res;
     }
 
-    // ---------------------------------------- Get All Reports -------------------------------------------------------
+    // ─────────────────────────────────────────────────────────────────
+    // GET ALL REPORTS
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response getAllReports() {
         Response res = new Response();
         try {
             List<ReportsList> reportList = reportsRepository.findAll();
-            List<ReportsDtoList> toDTO = new ObjectMapper().convertValue(
-                    reportList, new TypeReference<List<ReportsDtoList>>() {});
 
-            if (toDTO != null && !toDTO.isEmpty()) {
+            if (reportList != null && !reportList.isEmpty()) {
+                List<ReportsDtoList> result = reportList.stream()
+                        .map(this::toResponseDtoList)
+                        .collect(Collectors.toList());
+
                 res.setSuccess(true);
                 res.setStatus(HttpStatus.OK.value());
                 res.setMessage("All reports fetched successfully");
-                res.setData(toDTO);
+                res.setData(result);
             } else {
                 res.setSuccess(true);
                 res.setStatus(HttpStatus.OK.value());
@@ -199,20 +311,25 @@ public class ReportsServiceImpl implements ReportsService {
         return res;
     }
 
-    // --------------------------------------- Get Reports By CustomerId --------------------------------------------
+    // ─────────────────────────────────────────────────────────────────
+    // GET REPORTS BY CUSTOMER ID
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response getReportsByCustomerId(String customerId) {
         Response res = new Response();
         try {
-            List<ReportsList> reportsListData = reportsRepository.findByCustomerId(customerId);
-            List<ReportsDtoList> toDTO = new ObjectMapper().convertValue(
-                    reportsListData, new TypeReference<List<ReportsDtoList>>() {});
+            List<ReportsList> reportsListData =
+                    reportsRepository.findByCustomerId(customerId);
 
-            if (toDTO != null && !toDTO.isEmpty()) {
+            if (reportsListData != null && !reportsListData.isEmpty()) {
+                List<ReportsDtoList> result = reportsListData.stream()
+                        .map(this::toResponseDtoList)
+                        .collect(Collectors.toList());
+
                 res.setSuccess(true);
                 res.setStatus(HttpStatus.OK.value());
                 res.setMessage("Reports fetched successfully for given customerId");
-                res.setData(toDTO);
+                res.setData(result);
             } else {
                 res.setSuccess(true);
                 res.setStatus(HttpStatus.OK.value());
@@ -228,7 +345,46 @@ public class ReportsServiceImpl implements ReportsService {
         }
         return res;
     }
-    
+
+    // ─────────────────────────────────────────────────────────────────
+    // GET REPORTS BY PATIENT ID + BOOKING ID
+    // ─────────────────────────────────────────────────────────────────
+    @Override
+    public Response getReportsByPatientIdAndBookingId(String patientId, String bookingId) {
+        Response res = new Response();
+        try {
+            List<ReportsList> reportsListData =
+                    reportsRepository.findByReportsListPatientIdAndReportsListBookingId(
+                            patientId, bookingId);
+
+            if (reportsListData != null && !reportsListData.isEmpty()) {
+                List<ReportsDtoList> result = reportsListData.stream()
+                        .map(this::toResponseDtoList)
+                        .collect(Collectors.toList());
+
+                res.setSuccess(true);
+                res.setStatus(HttpStatus.OK.value());
+                res.setMessage("Reports fetched successfully for given patient and booking");
+                res.setData(result);
+            } else {
+                res.setSuccess(true);
+                res.setStatus(HttpStatus.OK.value());
+                res.setMessage("No reports found for given patient and booking");
+                res.setData(Collections.emptyList());
+            }
+
+        } catch (Exception e) {
+            res.setSuccess(false);
+            res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            res.setMessage("Error fetching reports: " + e.getMessage());
+            res.setData(null);
+        }
+        return res;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // UPDATE REPORT
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response updateReport(String reportId, ReportsDtoList dto) {
         try {
@@ -244,16 +400,14 @@ public class ReportsServiceImpl implements ReportsService {
 
             ReportsList existing = optional.get();
 
-            // Update top-level fields if provided
-            if (dto.getPatientId() != null) existing.setPatientId(dto.getPatientId());
+            if (dto.getPatientId() != null)  existing.setPatientId(dto.getPatientId());
             if (dto.getCustomerId() != null) existing.setCustomerId(dto.getCustomerId());
 
-            // If no nested list provided, just save top-level changes
             if (dto.getReportsList() == null || dto.getReportsList().isEmpty()) {
                 ReportsList savedNoNested = reportsRepository.save(existing);
                 return Response.builder()
                         .success(true)
-                        .data(savedNoNested)
+                        .data(toResponseDtoList(savedNoNested))
                         .message("Report updated successfully (top-level only)")
                         .status(HttpStatus.OK.value())
                         .build();
@@ -262,24 +416,29 @@ public class ReportsServiceImpl implements ReportsService {
             List<Reports> existingReports = existing.getReportsList();
             if (existingReports == null) existingReports = new ArrayList<>();
 
-            // For each incoming ReportsDTO, update or add
             for (ReportsDTO incoming : dto.getReportsList()) {
-                boolean updated = false;
 
-                // Decode Base64 files if present
-                List<byte[]> decodedFiles = null;
-                if (incoming.getReportFile() != null) {
-                    decodedFiles = new ArrayList<>();
-                    for (String enc : incoming.getReportFile()) {
-                        decodedFiles.add(Base64.getDecoder().decode(enc));
+                if (incoming.getReportFile() != null && !incoming.getReportFile().isEmpty()) {
+                    String keyError = validateS3Keys(incoming.getReportFile());
+                    if (keyError != null) {
+                        return Response.builder()
+                                .success(false)
+                                .message(keyError)
+                                .status(HttpStatus.BAD_REQUEST.value())
+                                .data(null)
+                                .build();
                     }
                 }
+
+                boolean updated = false;
 
                 for (int i = 0; i < existingReports.size(); i++) {
                     Reports r = existingReports.get(i);
 
-                    boolean bookingMatches = incoming.getBookingId() != null && incoming.getBookingId().equals(r.getBookingId());
-                    boolean patientMatches = incoming.getPatientId() != null && incoming.getPatientId().equals(r.getPatientId());
+                    boolean bookingMatches = incoming.getBookingId() != null
+                            && incoming.getBookingId().equals(r.getBookingId());
+                    boolean patientMatches = incoming.getPatientId() != null
+                            && incoming.getPatientId().equals(r.getPatientId());
 
                     boolean isMatch = false;
                     if (incoming.getBookingId() != null && incoming.getPatientId() != null) {
@@ -291,7 +450,6 @@ public class ReportsServiceImpl implements ReportsService {
                     }
 
                     if (isMatch) {
-                        // Update only non-null fields
                         if (incoming.getCustomerMobileNumber() != null)
                             r.setCustomerMobileNumber(incoming.getCustomerMobileNumber());
                         if (incoming.getReportName() != null)
@@ -302,8 +460,8 @@ public class ReportsServiceImpl implements ReportsService {
                             r.setReportStatus(incoming.getReportStatus());
                         if (incoming.getReportType() != null)
                             r.setReportType(incoming.getReportType());
-                        if (decodedFiles != null)
-                            r.setReportFile(decodedFiles);
+                        if (incoming.getReportFile() != null && !incoming.getReportFile().isEmpty())
+                            r.setReportFile(incoming.getReportFile());
 
                         existingReports.set(i, r);
                         updated = true;
@@ -311,7 +469,6 @@ public class ReportsServiceImpl implements ReportsService {
                     }
                 }
 
-                // Add new report if not matched
                 if (!updated) {
                     Reports newReport = Reports.builder()
                             .bookingId(incoming.getBookingId())
@@ -321,19 +478,18 @@ public class ReportsServiceImpl implements ReportsService {
                             .reportDate(incoming.getReportDate())
                             .reportStatus(incoming.getReportStatus())
                             .reportType(incoming.getReportType())
-                            .reportFile(decodedFiles)
+                            .reportFile(incoming.getReportFile())
                             .build();
-
                     existingReports.add(newReport);
                 }
             }
 
             existing.setReportsList(existingReports);
-            ReportsList updated = reportsRepository.save(existing);
+            ReportsList updatedEntity = reportsRepository.save(existing);
 
             return Response.builder()
                     .success(true)
-                    .data(updated)
+                    .data(toResponseDtoList(updatedEntity))
                     .message("Report updated successfully")
                     .status(HttpStatus.OK.value())
                     .build();
@@ -348,46 +504,15 @@ public class ReportsServiceImpl implements ReportsService {
         }
     }
 
-
-
-    // --------------------------------------- Get Reports By PatientId + BookingId -----------------------------------
-    @Override
-    public Response getReportsByPatientIdAndBookingId(String patientId, String bookingId) {
-        Response res = new Response();
-        try {
-            List<ReportsList> reportsListData =
-                    reportsRepository.findByReportsListPatientIdAndReportsListBookingId(patientId, bookingId);
-
-            List<ReportsDtoList> toDTO = new ObjectMapper().convertValue(
-                    reportsListData, new TypeReference<List<ReportsDtoList>>() {});
-
-            if (toDTO != null && !toDTO.isEmpty()) {
-                res.setSuccess(true);
-                res.setStatus(HttpStatus.OK.value());
-                res.setMessage("Reports fetched successfully for given patient and booking");
-                res.setData(toDTO);
-            } else {
-                res.setSuccess(true);
-                res.setStatus(HttpStatus.OK.value());
-                res.setMessage("No reports found for given patient and booking");
-                res.setData(Collections.emptyList());
-            }
-
-        } catch (Exception e) {
-            res.setSuccess(false);
-            res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            res.setMessage("Error fetching reports: " + e.getMessage());
-            res.setData(null);
-        }
-
-        return res;
-    }
-    
+    // ─────────────────────────────────────────────────────────────────
+    // DELETE FULL REPORT DOCUMENT
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response deleteReport(String reportId) {
         try {
-            boolean exists = reportsRepository.existsById(reportId);
-            if (!exists) {
+            Optional<ReportsList> optional = reportsRepository.findById(reportId);
+
+            if (optional.isEmpty()) {
                 return Response.builder()
                         .success(false)
                         .message("Report not found")
@@ -396,13 +521,23 @@ public class ReportsServiceImpl implements ReportsService {
                         .build();
             }
 
+            ReportsList reportsList = optional.get();
+
+            if (reportsList.getReportsList() != null
+                    && !reportsList.getReportsList().isEmpty()) {
+                Reports reports = reportsList.getReportsList().get(0);
+                bookingFeign.deleteReport(reports.getBookingId(), "null");
+            }
+
             reportsRepository.deleteById(reportId);
+
             return Response.builder()
                     .success(true)
                     .message("Report deleted successfully")
                     .status(HttpStatus.OK.value())
                     .data("Deleted ID: " + reportId)
                     .build();
+
         } catch (Exception e) {
             return Response.builder()
                     .success(false)
@@ -412,7 +547,10 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
         }
     }
-    
+
+    // ─────────────────────────────────────────────────────────────────
+    // DELETE SINGLE REPORT FILE BY INDEX
+    // ─────────────────────────────────────────────────────────────────
     @Override
     public Response deleteReportFile(String reportId, String bookingId, int fileIndex) {
         try {
@@ -427,18 +565,16 @@ public class ReportsServiceImpl implements ReportsService {
             }
 
             ReportsList reportsList = optional.get();
-
             List<Reports> reportEntries = reportsList.getReportsList();
             boolean updated = false;
 
-            // iterate through the reports list
             for (int i = 0; i < reportEntries.size(); i++) {
                 Reports report = reportEntries.get(i);
 
                 if (report.getBookingId().equals(bookingId)) {
-                    List<byte[]> files = report.getReportFile();
+                    List<String> fileKeys = report.getReportFile();
 
-                    if (files == null || fileIndex < 0 || fileIndex >= files.size()) {
+                    if (fileKeys == null || fileIndex < 0 || fileIndex >= fileKeys.size()) {
                         return Response.builder()
                                 .success(false)
                                 .message("Invalid file index: " + fileIndex)
@@ -447,16 +583,15 @@ public class ReportsServiceImpl implements ReportsService {
                                 .build();
                     }
 
-              
-                    files.remove(fileIndex);
+                    fileKeys.remove(fileIndex);
+                    bookingFeign.deleteReport(bookingId, String.valueOf(fileIndex));
 
-               
-                    if (files.isEmpty()) {
+                    if (fileKeys.isEmpty()) {
                         reportEntries.remove(i);
                         updated = true;
                         break;
                     } else {
-                        report.setReportFile(files);
+                        report.setReportFile(fileKeys);
                         reportEntries.set(i, report);
                         updated = true;
                         break;
@@ -473,7 +608,6 @@ public class ReportsServiceImpl implements ReportsService {
                         .build();
             }
 
-      
             if (reportEntries.isEmpty()) {
                 reportsRepository.deleteById(reportId);
                 return Response.builder()
@@ -491,7 +625,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .success(true)
                     .message("Report file deleted successfully for bookingId: " + bookingId)
                     .status(HttpStatus.OK.value())
-                    .data(updatedList)
+                    .data(toResponseDtoList(updatedList))
                     .build();
 
         } catch (Exception e) {
@@ -503,6 +637,4 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
         }
     }
-
-
 }

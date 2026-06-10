@@ -3,13 +3,13 @@ package com.AdminService.service;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.util.Response;
 import com.AdminService.util.ResponseStructure;
@@ -49,34 +49,6 @@ public Response deleteClinicCredentials(String userName );
 
 public Response login(ClinicCredentialsDTO credentials);
 
-//category
-public Response addNewCategory(CategoryDto dto);
-
-public Response getAllCategory();
-
-public Response deleteCategoryById(
-		 String categoryId);
-
-public Response updateCategory(String categoryId,CategoryDto updatedCategory);
-public Response getCategoryById(String CategoryId);
-
-//SERVICE MANAGEMENT
-public Response addService( ServicesDto dto);
-public Response getServiceById( String categoryId);
-public Response getServiceByServiceId( String serviceId);
-public Response deleteService( String serviceId);
-public Response updateByServiceId( String serviceId,
-	 ServicesDto domainServices);
-public Response getAllServices();
-
-//SUBSERVICE MANAGEMENT
-public  Response addSubService( SubServicesInfoDto dto);
-public Response getSubServiceByIdCategory(String categoryId);
-public Response getSubServicesByServiceId(String serviceId);
-public Response getSubServiceBySubServiceId(String subServiceId);
-public Response deleteSubService(String subServiceId);
-public Response updateBySubServiceId(String subServiceId, SubServicesInfoDto domainServices);
-public Response getAllSubServices();
 
 //CUSTOMER MANAGEMENT
 public Response saveCustomerBasicDetails(CustomerDTO customerDTO );
@@ -87,7 +59,7 @@ public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobile
 public Response deleteCustomerBasicDetails(String mobileNumber);
 
 //SUBSERVICES
-public Response getAllSubServicesFromClincAdmin();
+//public Response getAllSubServicesFromClincAdmin();
 
 //BOOKINGS
 
@@ -99,20 +71,6 @@ public Response getClinicsByRecommondation();
 
 Response getAllRecommendClinicThenAnotherClincs();
 
-//SUBSERVICES DETAILS
-
-ResponseEntity<ResponseStructure<SubServicesDto>> addService(String subServiceId, SubServicesDto dto);
-
-
-ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId(String subServiceId);
-
-ResponseEntity<ResponseStructure<SubServicesDto>> deleteSubService(String hospitalId, String subServiceId);
-
-ResponseEntity<ResponseStructure<SubServicesDto>> updateBySubServiceId(String hospitalId, String serviceId,
-		SubServicesDto domainServices);
-ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId( String hospitalId, String subServiceId);
-
-ResponseEntity<ResponseStructure<List<SubServicesDto>>> getSubServiceByHospitalId(String hospitalId);
 
 Response rejectClinic(String clinicId, String reason);
 

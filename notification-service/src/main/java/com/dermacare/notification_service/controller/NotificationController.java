@@ -2,6 +2,7 @@ package com.dermacare.notification_service.controller;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,11 +13,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.dermacare.notification_service.dto.BookingResponse;
 import com.dermacare.notification_service.dto.NotificationDTO;
 import com.dermacare.notification_service.dto.NotificationResponse;
 import com.dermacare.notification_service.dto.NotificationToCustomer;
 import com.dermacare.notification_service.dto.PriceDropAlertDto;
 import com.dermacare.notification_service.dto.ResBody;
+import com.dermacare.notification_service.dto.Response;
 import com.dermacare.notification_service.service.ServiceInterface;
 
 
@@ -105,6 +109,10 @@ public class NotificationController {
 	public ResponseEntity<?> deletePriceDropNotification(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String id ){
 		return notificationService.deletePriceDropAlerts(clinicId, branchId,id);
 }	
-		
+	@PostMapping("/notifications")
+	public ResponseEntity<Response> createNotification(@RequestBody BookingResponse booking) {
+		return notificationService.createNotification(booking);
+	     
+	}
 	
 }

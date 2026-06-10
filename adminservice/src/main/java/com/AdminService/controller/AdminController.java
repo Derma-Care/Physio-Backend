@@ -15,13 +15,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.service.AdminService;
 import com.AdminService.util.PermissionsUtil;
@@ -241,443 +241,7 @@ public class AdminController {
     }
 
 
-
-     
-
-    /// Category Management
-
-   
-
-    @PostMapping("/addCategory")
-
-	public ResponseEntity<?> addNewCategory(@RequestBody CategoryDto dto) {
-
-    	Response response = serviceImpl.addNewCategory(dto);
-
-		if(response != null && response.getData() == null) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response);
-
-		 }else if(response != null && response.getData() != null ) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-		 }
-
-		else {
-
-				return null;}
-
-    }
-
-    
-
-    @GetMapping("/getCategories")
-
-	public ResponseEntity<?> getAllCategory() {
-
-    	Response response = serviceImpl.getAllCategory();
-
-    	if(response != null && response.getData() == null) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response);
-
-		 }else if(response != null && response.getData() != null ) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-		 }
-
-		else {
-
-				return null;}
-
-    
-
-    }
-
-    
-
-    
-
-    @GetMapping("/getcategoryById/{categoryId}")
-
-    public ResponseEntity<?> getCategoryById(@PathVariable (value= "categoryId") String categoryId){
-
-    	Response response = serviceImpl.getCategoryById(categoryId);
-
-    	if(response != null && response.getData() == null) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response);
-
-		 }else if(response != null && response.getData() != null ) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-		 }
-
-		else {
-
-				return null;}
-
  
-
-    }
-
-    
-
-    @DeleteMapping("/deleteCategory/{categoryId}")
-
-	public ResponseEntity<?> deleteCategoryById(
-
-			@PathVariable(value = "categoryId") String categoryId){
-
-    	Response response = serviceImpl.deleteCategoryById(categoryId); 
-
-    	if(response != null && response.getData() == null) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response);
-
-		 }else if(response != null && response.getData() != null ) {
-
-			 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-		 }
-
-		else {
-
-				return null;}
-
-    }
-
-    
-
-    
-
-    	
-
-@PutMapping("updateCategory/{categoryId}")
-
-public ResponseEntity<?> updateCategory(@PathVariable String categoryId,
-
-		@RequestBody CategoryDto updatedCategory){
-
-
-
-	Response response = serviceImpl.updateCategory(categoryId, updatedCategory);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-
-
-//SERVICE MANAGEMENT
-
-
-
-@PostMapping("/addService")
-
-public ResponseEntity<?> addService(@RequestBody ServicesDto dto) {
-
-	Response response = serviceImpl.addService(dto);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-@GetMapping("/getServiceById/{categoryId}")
-
-public ResponseEntity<Object> getServiceById(@PathVariable String categoryId) {
-
-	Response response = serviceImpl.getServiceById(categoryId);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-
-
-@GetMapping("/getServiceByServiceId/{serviceId}")
-
-public ResponseEntity<?> getServiceByServiceId(@PathVariable String serviceId) {
-
-	Response response = serviceImpl.getServiceByServiceId(serviceId);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-
-
-@PutMapping("/updateByServiceId/{serviceId}")
-
-public ResponseEntity<?> updateByServiceId(@PathVariable String serviceId,
-
-		@RequestBody ServicesDto domainServices){
-
-	Response response = serviceImpl.updateByServiceId(serviceId, domainServices);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-
-
-@GetMapping("/getAllServices")
-
-public ResponseEntity<?> getAllServices(){
-
-	Response response = serviceImpl.getAllServices();
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-
-
-@DeleteMapping("/deleteService/{serviceId}")
-
-public ResponseEntity<?> deleteService(@PathVariable String serviceId){
-
-	Response response = serviceImpl.deleteService(serviceId);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-//SUBSERVICE MANAGEMENT
-
-
-
-@PostMapping("/addSubService")
-
-public ResponseEntity<?> addSubService(@RequestBody SubServicesInfoDto dto) {
-
-	Response response = serviceImpl.addSubService(dto);
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-}
-
-
-
-@GetMapping("/getSubServiceByIdCategory/{categoryId}")
-
-public ResponseEntity<?> getSubServiceByIdCategory(@PathVariable String categoryId) {
-
-	Response response = serviceImpl.getSubServiceByIdCategory(categoryId);
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-    }
-
-
-
-@GetMapping("/getSubServicesByServiceId/{serviceId}")
-
-public ResponseEntity<?> getSubServicesByServiceId(@PathVariable String serviceId){
-
-	Response response = serviceImpl.getSubServicesByServiceId(serviceId);
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-    }
-
-
-
-
-
-@GetMapping("/getSubServiceBySubServiceId/{subServiceId}")
-
-public ResponseEntity<?> getSubServiceBySubServiceId(@PathVariable String subServiceId){
-
-	Response response = serviceImpl.getSubServiceBySubServiceId(subServiceId);
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-    }
-
-
-
-@GetMapping("/getAllSubServices")
-
-public ResponseEntity<?> getAllSubServices(){
-
-	Response response = serviceImpl.getAllSubServices();
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-    }
-
-
-
-@PutMapping("/updateBySubServiceId/{subServiceId}")
-
-public ResponseEntity<?> updateBySubServiceId(@PathVariable String subServiceId,
-
-		@RequestBody SubServicesInfoDto domainServices){
-
-	Response response = serviceImpl.updateBySubServiceId(subServiceId, domainServices);
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-    }
-
-
-
-
-
-@DeleteMapping("/deleteSubService/{subServiceId}")
-
-public ResponseEntity<?> deleteSubService(@PathVariable String subServiceId){
-
-	Response response = serviceImpl.deleteSubService(subServiceId);
-
-	 if(response != null && response.getStatus() != 0) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else {
-
-			return null;}
-
-    }
-
 /// CUSTOMER MANAGEMENT
 
 @PostMapping("/saveBasicDetails")
@@ -814,27 +378,27 @@ public ResponseEntity<Response> deleteCustomerBasicDetails(@PathVariable String 
 
 //GETALLSUBSERVICES
 
-@GetMapping("/getAllSubservicesByClinicAdmin")
-
-public ResponseEntity<Object> getAllSubservicesByClinicAdmin(){
-
-	Response response = serviceImpl.getAllSubServicesFromClincAdmin();
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());
-
-	 }
-
-	else {
-
-	     return null;}
-
-}
+//@GetMapping("/getAllSubservicesByClinicAdmin")
+//
+//public ResponseEntity<Object> getAllSubservicesByClinicAdmin(){
+//
+//	Response response = serviceImpl.getAllSubServicesFromClincAdmin();
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response.getData());
+//
+//	 }
+//
+//	else {
+//
+//	     return null;}
+//
+//}
 
 
 
@@ -880,33 +444,7 @@ public ResponseEntity<Object> getDoctorInfoByDoctorId(@PathVariable String docto
 	}
 
 	
-	//PROCEDURE CRUD
 	
-	@PostMapping("/addSubService/{subServiceId}")
-    public ResponseEntity<ResponseStructure<SubServicesDto>> addSubService(@PathVariable String subServiceId, @RequestBody SubServicesDto dto) {
-        return serviceImpl.addService(subServiceId,dto);
-    }
-
-
-    @DeleteMapping("/deleteSubService/{hospitalId}/{subServiceId}")
-    public ResponseEntity<ResponseStructure<SubServicesDto>> deleteSubService(@PathVariable String hospitalId,@PathVariable String subServiceId) {
-        return serviceImpl.deleteSubService(hospitalId,subServiceId);
-    }
-
-    @PutMapping("/updateSubService/{hospitalId}/{subServiceId}")
-    public ResponseEntity<ResponseStructure<SubServicesDto>> updateSubService(@PathVariable String hospitalId,@PathVariable String subServiceId, @RequestBody SubServicesDto dto) {
-        return serviceImpl.updateBySubServiceId(hospitalId,subServiceId, dto);
-        
-    }
-    @GetMapping("/getSubService/{hospitalId}/{subServiceId}")
-	public ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId(@PathVariable String hospitalId, @PathVariable String subServiceId){
-    	 return serviceImpl.getSubServiceByServiceId(hospitalId, subServiceId);
-    }
-    
-    @GetMapping("/getSubServiceByHospitalId/{hospitalId}")
-   	public ResponseEntity<ResponseStructure<List<SubServicesDto>>> getSubServiceByHospitalId(@PathVariable String hospitalId){
-       	 return serviceImpl.getSubServiceByHospitalId(hospitalId);
-    }
     // ✅ API to fetch default Admin permissions
     @GetMapping("/getDefaultAdminPermissions")
     public ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions() {

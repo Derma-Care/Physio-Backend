@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.AdminService.dto.AdminHelper;
-import com.AdminService.dto.CategoryDto;
+//import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
@@ -32,9 +32,9 @@ import com.AdminService.dto.DoctorsDTO;
 import com.AdminService.dto.DoctortInfo;
 import com.AdminService.dto.LabTestDTO;
 import com.AdminService.dto.ProbableDiagnosisDTO;
-import com.AdminService.dto.ServicesDto;
-import com.AdminService.dto.SubServicesDto;
-import com.AdminService.dto.SubServicesInfoDto;
+//import com.AdminService.dto.ServicesDto;
+//import com.AdminService.dto.SubServicesDto;
+//import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.TreatmentDTO;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.entity.Admin;
@@ -46,7 +46,6 @@ import com.AdminService.entity.ClinicCredentials;
 import com.AdminService.entity.Counter;
 import com.AdminService.feign.BookingFeign;
 import com.AdminService.feign.ClinicAdminFeign;
-import com.AdminService.feign.CssFeign;
 import com.AdminService.feign.CustomerFeign;
 import com.AdminService.repository.AdminRepository;
 import com.AdminService.repository.BranchCredentialsRepository;
@@ -74,9 +73,7 @@ public class AdminServiceImpl implements AdminService {
 
 	private ClinicCredentialsRepository clinicCredentialsRepository;
 
-	@Autowired
-
-	private CssFeign cssFeign;
+	
 
 	@Autowired
 
@@ -360,10 +357,108 @@ public class AdminServiceImpl implements AdminService {
 	}
 
 
-
 	private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
-		// TODO Auto-generated method stub
-		
+
+	    if (clinic.getHospitalLogo() != null &&
+	            !clinic.getHospitalLogo().isEmpty()) {
+
+	        savedClinic.setHospitalLogo(
+	                Base64.getDecoder().decode(clinic.getHospitalLogo()));
+	    }
+
+	    if (clinic.getContractorDocuments() != null &&
+	            !clinic.getContractorDocuments().isEmpty()) {
+
+	        savedClinic.setContractorDocuments(
+	                Base64.getDecoder().decode(clinic.getContractorDocuments()));
+	    }
+
+	    if (clinic.getHospitalDocuments() != null &&
+	            !clinic.getHospitalDocuments().isEmpty()) {
+
+	        savedClinic.setHospitalDocuments(
+	                Base64.getDecoder().decode(clinic.getHospitalDocuments()));
+	    }
+
+	    if (clinic.getClinicalEstablishmentCertificate() != null &&
+	            !clinic.getClinicalEstablishmentCertificate().isEmpty()) {
+
+	        savedClinic.setClinicalEstablishmentCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getClinicalEstablishmentCertificate()));
+	    }
+
+	    if (clinic.getBusinessRegistrationCertificate() != null &&
+	            !clinic.getBusinessRegistrationCertificate().isEmpty()) {
+
+	        savedClinic.setBusinessRegistrationCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getBusinessRegistrationCertificate()));
+	    }
+
+	    if (clinic.getDrugLicenseCertificate() != null &&
+	            !clinic.getDrugLicenseCertificate().isEmpty()) {
+
+	        savedClinic.setDrugLicenseCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getDrugLicenseCertificate()));
+	    }
+
+	    if (clinic.getDrugLicenseFormType() != null &&
+	            !clinic.getDrugLicenseFormType().isEmpty()) {
+
+	        savedClinic.setDrugLicenseFormType(
+	                Base64.getDecoder().decode(
+	                        clinic.getDrugLicenseFormType()));
+	    }
+
+	    if (clinic.getPharmacistCertificate() != null &&
+	            !clinic.getPharmacistCertificate().isEmpty()) {
+
+	        savedClinic.setPharmacistCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getPharmacistCertificate()));
+	    }
+
+	    if (clinic.getBiomedicalWasteManagementAuth() != null &&
+	            !clinic.getBiomedicalWasteManagementAuth().isEmpty()) {
+
+	        savedClinic.setBiomedicalWasteManagementAuth(
+	                Base64.getDecoder().decode(
+	                        clinic.getBiomedicalWasteManagementAuth()));
+	    }
+
+	    if (clinic.getTradeLicense() != null &&
+	            !clinic.getTradeLicense().isEmpty()) {
+
+	        savedClinic.setTradeLicense(
+	                Base64.getDecoder().decode(
+	                        clinic.getTradeLicense()));
+	    }
+
+	    if (clinic.getFireSafetyCertificate() != null &&
+	            !clinic.getFireSafetyCertificate().isEmpty()) {
+
+	        savedClinic.setFireSafetyCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getFireSafetyCertificate()));
+	    }
+
+	    if (clinic.getProfessionalIndemnityInsurance() != null &&
+	            !clinic.getProfessionalIndemnityInsurance().isEmpty()) {
+
+	        savedClinic.setProfessionalIndemnityInsurance(
+	                Base64.getDecoder().decode(
+	                        clinic.getProfessionalIndemnityInsurance()));
+	    }
+
+	    if (clinic.getGstRegistrationCertificate() != null &&
+	            !clinic.getGstRegistrationCertificate().isEmpty()) {
+
+	        savedClinic.setGstRegistrationCertificate(
+	                Base64.getDecoder().decode(
+	                        clinic.getGstRegistrationCertificate()));
+	    }
 	}
 
 	@Override
@@ -1418,22 +1513,6 @@ public class AdminServiceImpl implements AdminService {
 	                branchesDeleted = false;
 	            }
 
-	            // Delete sub-services
-	            boolean subServicesDeleted = true;
-	            try {
-	                ResponseEntity<ResponseStructure<List<SubServicesDto>>> subServicesResponse =
-	                        cssFeign.getSubServiceByHospitalId(clinicId);
-
-	                if (subServicesResponse.getStatusCode().is2xxSuccessful()) {
-	                    List<SubServicesDto> subServices = subServicesResponse.getBody().getData();
-	                    for (SubServicesDto subService : subServices) {
-	                        cssFeign.deleteSubService(clinicId, subService.getSubServiceId());
-	                    }
-	                }
-	            } catch (Exception e) {
-	                subServicesDeleted = e.getMessage().contains("404");
-	            }
-
 	            // Delete diseases
 	            boolean diseasesDeleted = true;
 	            try {
@@ -1483,7 +1562,7 @@ public class AdminServiceImpl implements AdminService {
 	            }
 
 	            // Final response logic
-	            if (doctorsDeleted && branchesDeleted && subServicesDeleted &&
+	            if (doctorsDeleted && branchesDeleted  &&
 	                diseasesDeleted && labTestsDeleted && treatmentsDeleted) {
 	                response.setMessage("Clinic and all linked entities deleted successfully");
 	                response.setSuccess(true);
@@ -1941,627 +2020,6 @@ public class AdminServiceImpl implements AdminService {
     }
 
 
-    @Override
-
-    public Response addNewCategory(CategoryDto dto){
-
-    	 Response response = new  Response();
-
-    	 try {
-
-	    		ResponseEntity<ResponseStructure<CategoryDto>> res = cssFeign.addNewCategory(dto);
-
-	    		  if(res.hasBody()) {
-
-		    		    ResponseStructure<CategoryDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }}catch(FeignException e) {
-
-	                    	            response.setStatus(e.status());
-
-	                	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	                	    			response.setSuccess(false);}
-
-    	                              return response;} 
-
-    
-
-    @Override                                
-
-	   public Response getAllCategory() {
-
-	             Response response = new  Response();
-
-	    	     try {
-
-	    		 ResponseEntity<ResponseStructure<List<CategoryDto>>> res =  cssFeign.getAllCategory();
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<List<CategoryDto>> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-        	            response.setStatus(e.status());
-
-    	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-    	    			response.setSuccess(false);
-
-        	        }
-
-                        return response;
-
-        	    } 
-
-	
-
-    @Override                
-
-	public Response getCategoryById(String CategoryId){
-
-		 Response response = new  Response();
-
-		try {
-
-			ResponseEntity<ResponseStructure<CategoryDto>> res =  cssFeign.getCategoryById(CategoryId);
-
-			 if(res.hasBody()) {
-
-	    		    ResponseStructure<CategoryDto> rs = res.getBody();
-
-	    			response.setData(rs);
-
-	    			response.setStatus(rs.getHttpStatus().value());
-
-                 }
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(e.status());
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-    	        }
-
-                    return response;
-
-    	    } 
-
-    
-
-    @Override
-
-	public Response deleteCategoryById(
-
-			 String categoryId) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<String>> res =  cssFeign.deleteCategory(new ObjectId(categoryId));
-
-	    			if(res.hasBody()) {
-
-	    		    ResponseStructure<String> rs = res.getBody();
-
-	    			response.setData(rs);
-
-	    			response.setStatus(rs.getHttpStatus().value());
-
-                    }
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(e.status());
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-    	        }
-
-                    return response;
-
-    	    } 
-
-    
-
-    @Override
-
-	public Response updateCategory(String categoryId,CategoryDto updatedCategory){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<CategoryDto>> res =  cssFeign.updateCategory(new ObjectId(categoryId), updatedCategory);
-
-	    		  if(res.hasBody()) {
-
-		    		    ResponseStructure<CategoryDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	 
-
-	
-
-	
-
-	// SERVICES MANAGEMENT
-
-	
-
-    @Override
-
-	public Response addService( ServicesDto dto){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<ServicesDto>>  res =  cssFeign.addService(dto);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<ServicesDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getServiceById( String categoryId){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		 ResponseEntity<ResponseStructure<List<ServicesDto>>>  res =  cssFeign.getServiceById(categoryId);
-
-	    		  if(res.getBody()!=null) {
-
-	    			  ResponseStructure<List<ServicesDto>> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getServiceByServiceId( String serviceId){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    	ResponseEntity<ResponseStructure<ServicesDto>>  res =  cssFeign.getServiceByServiceId(serviceId);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<ServicesDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-    @Override
-
-	public Response deleteService( String serviceId) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    	ResponseEntity<ResponseStructure<String>>  res =  cssFeign.deleteService(serviceId);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<String> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-	
-
-    @Override
-
-	public Response updateByServiceId( String serviceId,
-
-			@RequestBody ServicesDto domainServices) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    	ResponseEntity<ResponseStructure<ServicesDto>>  res =  cssFeign.
-
-	    			updateByServiceId(serviceId, domainServices);
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<ServicesDto> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-    @Override
-
-	public Response getAllServices() {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<ResponseStructure<List<ServicesDto>>> res =  cssFeign.getAllServices();
-
-	    	
-
-	    		  if(res.hasBody()) {
-
-	    			  ResponseStructure<List<ServicesDto>> rs = res.getBody();
-
-		    			response.setData(rs);
-
-		    			response.setStatus(rs.getHttpStatus().value());
-
-	                    }
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;
-
-	    	    } 	
-
-	
-
-	
-
-	//SUBSERVICE MANAGEMENT
-
-	
-
-    @Override
-
-	public  Response addSubService( SubServicesInfoDto dto){
-
-		Response response = new Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = cssFeign.addSubService(dto);
-
-	    		return res.getBody();
-
-	    	 
-
-		    		}catch(FeignException e) {
-
-	    	            response.setStatus(500);
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-		    			return response;
-
-	    	        }
-
-	                    
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getSubServiceByIdCategory(String categoryId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getSubServiceInfoByIdCategory(categoryId);
-
-    		return res.getBody();
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	    	    } 	 
-
-	
-
-    @Override
-
-	public Response getSubServicesByServiceId(String serviceId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getSubServicesInfoByServiceId(serviceId);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	    	    } 	
-
-		
-
-    @Override
-
-	public Response getSubServiceBySubServiceId(String subServiceId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getSubServiceBySubServiceId(subServiceId);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	    	    } 	
-
-	
-
-    @Override
-
-	public Response deleteSubService(String subServiceId){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.deleteSubService(subServiceId);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	}
-
-    @Override
-
-	public Response updateBySubServiceId(String subServiceId, SubServicesInfoDto domainServices) {
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.updateBySubServiceId(subServiceId, domainServices);
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                    
-
-	}
-
-    @Override
-
-	public Response getAllSubServices(){
-
-		Response response = new Response();
-
-    	try {
-
-    		ResponseEntity<Response> res = cssFeign.getAllSubServicesInfo();
-
-    		return res.getBody();
-
-    	 
-
-	    		}catch(FeignException e) {
-
-    	            response.setStatus(500);
-
-	    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-	    			response.setSuccess(false);
-
-	    			return response;
-
-    	        }
-
-                     } 
-
-	
 
 	
 
@@ -2779,39 +2237,39 @@ public class AdminServiceImpl implements AdminService {
 
     
 
-    @Override
-
-   	public Response getAllSubServicesFromClincAdmin(){
-
-   		 Response response = new  Response();
-
-   	    	try {
-
-   	    		ResponseEntity<ResponseStructure<List<SubServicesDto>>> res = clinicAdminFeign.getAllSubServices();
-
-   	    		  if(res.getBody().getData() != null ) {
-
-   	    			 response.setStatus(res.getBody().getHttpStatus().value());
-
-   	    			response.setData(res.getBody());
-
-   	    			  return response;
-
-   	    		  }}catch(FeignException e) {
-
-   	    	            response.setStatus(e.status());
-
-   		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-   		    			response.setSuccess(false);
-
-   	    	        }
-
-   	                    return response;	
-
-   }
-
- 
+//    @Override
+//
+//   	public Response getAllSubServicesFromClincAdmin(){
+//
+//   		 Response response = new  Response();
+//
+//   	    	try {
+//
+//   	    		ResponseEntity<ResponseStructure<List<SubServicesDto>>> res = clinicAdminFeign.getAllSubServices();
+//
+//   	    		  if(res.getBody().getData() != null ) {
+//
+//   	    			 response.setStatus(res.getBody().getHttpStatus().value());
+//
+//   	    			response.setData(res.getBody());
+//
+//   	    			  return response;
+//
+//   	    		  }}catch(FeignException e) {
+//
+//   	    	            response.setStatus(e.status());
+//
+//   		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//   		    			response.setSuccess(false);
+//
+//   	    	        }
+//
+//   	                    return response;	
+//
+//   }
+//
+// 
 
     ///GETDOCTORINFO
 
@@ -3042,103 +2500,25 @@ public class AdminServiceImpl implements AdminService {
   	}
   	
   	
-  	///PROCEDURE CRUD
-  	
-  	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> addService(String subServiceId, SubServicesDto dto) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign.addService(subServiceId, dto);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());
 
-		}catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e),e.status());
-		}
-	}
-
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId(String subServiceId) {
-
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign
-					.getSubServiceByServiceId(subServiceId);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());}
-
-		catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e),e.status());
-		}
-
-	}
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> deleteSubService(String hospitalId, String subServiceId) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign.deleteSubService(hospitalId,
-					subServiceId);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());}
-
-		catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e), e.status());
-		}
-	}
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> updateBySubServiceId(String hospitalId, String serviceId,
-			SubServicesDto domainServices) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign.updateBySubServiceId(hospitalId,
-					serviceId, domainServices);
-			return ResponseEntity.status(response.getBody().getStatusCode()).body(response.getBody());
-
-		}catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e), e.status());
-		}
-	}
-
-	@Override
-	public ResponseEntity<ResponseStructure<SubServicesDto>> getSubServiceByServiceId(String hospitalId,
-			String subServiceId) {
-		try {
-			ResponseEntity<ResponseStructure<SubServicesDto>> response = cssFeign
-					.getSubServiceByServiceId(hospitalId, subServiceId);
-
-			return ResponseEntity.status(HttpStatus.OK).body(response.getBody());
-
-		} catch (FeignException e) {
-			return buildErrorResponse(ExtractFeignMessage.clearMessage(e), e.status());
-		}
-	}
-	
-	@Override
-	public ResponseEntity<ResponseStructure<List<SubServicesDto>>> getSubServiceByHospitalId(String hospitalId) {
-	    try {
-	        ResponseEntity<ResponseStructure<List<SubServicesDto>>> response =
-	        		cssFeign.getSubServiceByHospitalId(hospitalId); // ✅ FIXED here
-
-	        return ResponseEntity.status(HttpStatus.OK).body(response.getBody());
-
-	    } catch (FeignException e) {
-	        return buildErrorResponseList(ExtractFeignMessage.clearMessage(e),e.status());
-	    }
-	}
 
 	// === Helper methods ===
 
-	private ResponseEntity<ResponseStructure<SubServicesDto>> buildErrorResponse(String message, int statusCode) {
-		ResponseStructure<SubServicesDto> errorResponse = ResponseStructure.<SubServicesDto>builder().data(null)
-				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
-				.build();
-		return ResponseEntity.status(statusCode).body(errorResponse);
-	}
+//	private ResponseEntity<ResponseStructure<SubServicesDto>> buildErrorResponse(String message, int statusCode) {
+//		ResponseStructure<SubServicesDto> errorResponse = ResponseStructure.<SubServicesDto>builder().data(null)
+//				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
+//				.build();
+//		return ResponseEntity.status(statusCode).body(errorResponse);
+//	}
 
-	private ResponseEntity<ResponseStructure<List<SubServicesDto>>> buildErrorResponseList(String message,
-			int statusCode) {
-		ResponseStructure<List<SubServicesDto>> errorResponse = ResponseStructure.<List<SubServicesDto>>builder()
-				.data(null) // <-- changed from null to empty list
-				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
-				.build();
-		return ResponseEntity.status(statusCode).body(errorResponse);
-	}
+//	private ResponseEntity<ResponseStructure<List<SubServicesDto>>> buildErrorResponseList(String message,
+//			int statusCode) {
+//		ResponseStructure<List<SubServicesDto>> errorResponse = ResponseStructure.<List<SubServicesDto>>builder()
+//				.data(null) // <-- changed from null to empty list
+//				.message(extractCleanMessage(message)).httpStatus(HttpStatus.valueOf(statusCode)).statusCode(statusCode)
+//				.build();
+//		return ResponseEntity.status(statusCode).body(errorResponse);
+//	}
 
 	private String extractCleanMessage(String rawMessage) {
 		// Try to extract the "message" value from JSON string if included
@@ -3153,7 +2533,13 @@ public class AdminServiceImpl implements AdminService {
 		}
 		return rawMessage;
 	}
-	
+
+
+
+
+
+
+
 	
 	}
 

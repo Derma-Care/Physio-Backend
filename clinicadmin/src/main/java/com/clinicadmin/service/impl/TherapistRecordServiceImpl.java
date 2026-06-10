@@ -1,32 +1,47 @@
 package com.clinicadmin.service.impl;
 
-import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
+import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
+import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Autowired
     private TherapistRecordRepository repository;
-    
+
     @Autowired
     private PhysiotherapyFeignClient physiotherapyFeignClient;
+
+    @Autowired
+    private S3Service s3Service;
 
     @Override
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
 
-        // ✅ Basic validation
         if (dto == null) {
             return ResponseStructure.buildResponse(
                     null,
@@ -37,85 +52,60 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         TherapistRecord record = mapToEntity(dto);
-
-        // ✅ TherapistRecord status
         record.setStatus("COMPLETED");
 
-        // ================= ENCODE =================
-
-        if (dto.getBeforeImage() != null) {
-            record.setBeforeImage(
-                    Base64.getEncoder().encodeToString(dto.getBeforeImage().getBytes())
-            );
+        // ✅ Store raw file keys in DB
+        if (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) {
+            record.setBeforeImage(dto.getBeforeImage());
+        }
+        if (dto.getAfterImage() != null && !dto.getAfterImage().isBlank()) {
+            record.setAfterImage(dto.getAfterImage());
+        }
+        if (dto.getBeforeVideo() != null && !dto.getBeforeVideo().isBlank()) {
+            record.setBeforeVideo(dto.getBeforeVideo());
+        }
+        if (dto.getAfterVideo() != null && !dto.getAfterVideo().isBlank()) {
+            record.setAfterVideo(dto.getAfterVideo());
+        }
+        if (dto.getVoiceRecord() != null && !dto.getVoiceRecord().isBlank()) {
+            record.setVoiceRecord(dto.getVoiceRecord());
+        }
+        if (dto.getConsentPdfUrl() != null && !dto.getConsentPdfUrl().isBlank()) {
+            record.setConsentPdfUrl(dto.getConsentPdfUrl());
         }
 
-        if (dto.getAfterImage() != null) {
-            record.setAfterImage(
-                    Base64.getEncoder().encodeToString(dto.getAfterImage().getBytes())
-            );
-        }
-
-        if (dto.getBeforeVideo() != null) {
-            record.setBeforeVideo(
-                    Base64.getEncoder().encodeToString(dto.getBeforeVideo().getBytes())
-            );
-        }
-
-        if (dto.getAfterVideo() != null) {
-            record.setAfterVideo(
-                    Base64.getEncoder().encodeToString(dto.getAfterVideo().getBytes())
-            );
-        }
-
-        if (dto.getVoiceRecord() != null) {
-            record.setVoiceRecord(
-                    Base64.getEncoder().encodeToString(dto.getVoiceRecord().getBytes())
-            );
-        }
-
-        // ✅ Ensure IDs
         record.setTherapistRecordId(dto.getTherapistRecordId());
         record.setSessionId(dto.getSessionId());
 
-        // ✅ Save therapist record
         TherapistRecord saved = repository.save(record);
 
-        // 🔥 Call Physiotherapy Service
+        // Call Physiotherapy Service
         try {
-
             if (dto.getTherapistRecordId() != null
                     && !dto.getTherapistRecordId().trim().isEmpty()
                     && dto.getSessionId() != null
                     && !dto.getSessionId().trim().isEmpty()) {
 
-                String therapistRecordId = dto.getTherapistRecordId().trim();
-                String sessionId = dto.getSessionId().trim();
-
-                System.out.println("Calling Physio API => "
-                        + therapistRecordId + " | " + sessionId);
-
                 physiotherapyFeignClient.updateSessionStatus(
-                        therapistRecordId,
-                        sessionId
+                        dto.getTherapistRecordId().trim(),
+                        dto.getSessionId().trim()
                 );
 
-                System.out.println("Physio session status updated successfully");
-            } else {
-                System.out.println("TherapistRecordId or SessionId is empty");
             }
-
         } catch (Exception e) {
             System.out.println("Physio update failed");
             e.printStackTrace();
         }
 
+        // ✅ Return signed URLs in response (not raw keys)
         return ResponseStructure.buildResponse(
-                mapToDTO(saved),
+                mapToDTOWithSignedUrls(saved),
                 "Record saved successfully",
                 HttpStatus.CREATED,
                 201
         );
     }
+
     // ================= GET =================
     @Override
     public ResponseStructure<TherapistRecordDTO> getByIds(
@@ -127,7 +117,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         		.orElseThrow(() -> new RuntimeException("Record not found"));
 
         return ResponseStructure.buildResponse(
-                mapToDTO(record),
+        		 mapToDTOWithSignedUrls(record), // ✅
                 "Record fetched successfully",
                 HttpStatus.OK,
                 200
@@ -170,11 +160,30 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         record.setRepetationDone(dto.getRepetationDone());
         record.setSetsDone(dto.getSetsDone());
         record.setServiceType(dto.getServiceType());
-        
+
+
+        record.setLatitude(dto.getLatitude());
+        record.setLongitude(dto.getLongitude());
+
+        // ✔ 1. If frontend sends location → use it
+        if (dto.getLocation() != null && !dto.getLocation().isEmpty()) {
+
+            record.setLocation(dto.getLocation());
+
+        } 
+        // ✔ 2. Else generate automatically
+        else if (dto.getLatitude() != null && dto.getLongitude() != null) {
+
+            String city = getCityFromLatLong(
+                    dto.getLatitude(),
+                    dto.getLongitude()
+            );
+
+            record.setLocation(city);
+        }
 
         return record;
     }
-
     private TherapistRecordDTO mapToDTO(TherapistRecord record) {
 
         TherapistRecordDTO dto = new TherapistRecordDTO();
@@ -213,40 +222,18 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setRepetationDone(record.getRepetationDone());
         dto.setSetsDone(record.getSetsDone());
         dto.setServiceType(record.getServiceType());
+        dto.setLatitude(record.getLatitude());
+        dto.setLongitude(record.getLongitude());
+        dto.setLocation(record.getLocation());
         
         
         
-
-        // ================= DECODE =================
-
-        if (record.getBeforeImage() != null) {
-            dto.setBeforeImage(
-                    new String(Base64.getDecoder().decode(record.getBeforeImage()))
-            );
-        }
-
-        if (record.getAfterImage() != null) {
-            dto.setAfterImage(
-                    new String(Base64.getDecoder().decode(record.getAfterImage()))
-            );
-        }
-
-        if (record.getBeforeVideo() != null) {
-            dto.setBeforeVideo(
-                    new String(Base64.getDecoder().decode(record.getBeforeVideo()))
-            );
-        }
-
-        if (record.getAfterVideo() != null) {
-            dto.setAfterVideo(
-                    new String(Base64.getDecoder().decode(record.getAfterVideo()))
-            );
-        }
-        if (record.getVoiceRecord() != null) {
-            dto.setVoiceRecord(
-                new String(Base64.getDecoder().decode(record.getVoiceRecord()))
-            );
-        }
+        dto.setBeforeImage(record.getBeforeImage());
+        dto.setAfterImage(record.getAfterImage());
+        dto.setBeforeVideo(record.getBeforeVideo());
+        dto.setAfterVideo(record.getAfterVideo());
+        dto.setVoiceRecord(record.getVoiceRecord());
+        dto.setConsentPdfUrl(record.getConsentPdfUrl());
 
         return dto;
     }
@@ -266,7 +253,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         List<TherapistRecordDTO> dtoList = records.stream()
-                .map(this::mapToDTO)
+                .map(this::mapToDTOWithSignedUrls) // ✅
                 .toList();
 
         return ResponseStructure.buildResponse(
@@ -306,10 +293,172 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
 
         return ResponseStructure.buildResponse(
-                mapToDTO(record),
+                mapToDTOWithSignedUrls(record), // ✅
                 "Therapist record fetched successfully",
                 HttpStatus.OK,
                 200
         );
+    }
+    private String getCityFromLatLong(String lat, String lon) {
+
+        try {
+
+            String url = "https://nominatim.openstreetmap.org/reverse?lat="
+                    + lat + "&lon=" + lon + "&format=json";
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "clinic-admin-app");
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) return "Unknown";
+
+            Map<String, Object> address = (Map<String, Object>) body.get("address");
+            if (address == null) return "Unknown";
+
+            // 🔥 Extract exact fields
+            String road = (String) address.getOrDefault("road", "");
+            String area = (String) address.getOrDefault("suburb",
+                            address.getOrDefault("neighbourhood", ""));
+            String city = (String) address.getOrDefault("city",
+                            address.getOrDefault("town",
+                            address.getOrDefault("village", "")));
+            String state = (String) address.getOrDefault("state", "");
+            String country = (String) address.getOrDefault("country", "");
+
+            // 🔥 Build clean format (no nulls, no extra commas)
+            return Stream.of(road, area, city, state, country)
+                    .filter(s -> s != null && !s.isBlank())
+                    .collect(Collectors.joining(", "));
+
+        } catch (Exception e) {
+            return "Unknown";
+        }
+    }
+    
+   
+    public Response getTherapistSessionDetails(
+            TherapistRecordRequest request) {
+
+        Response response = new Response();
+
+        try {
+
+            Optional<TherapistRecord> optional =
+                    repository
+                    .findByClinicIdAndBranchIdAndPatientIdAndBookingIdAndTherapistIdAndTherapistRecordId(
+                            request.getClinicId(),
+                            request.getBranchId(),
+                            request.getPatientId(),
+                            request.getBookingId(),
+                            request.getTherapistId(),
+                            request.getTherapistRecordId()
+                    );
+
+            if (!optional.isPresent()) {
+
+                response.setSuccess(true);
+                response.setData(null);
+                response.setMessage("Record not found");
+                response.setStatus(200);
+
+                return response;
+            }
+
+            TherapistRecord record = optional.get();
+
+            Map<String, Object> map = new LinkedHashMap<>();
+
+            map.put("therapistNotes", record.getTherapistNotes());
+            map.put("sessionId", record.getSessionId());
+            map.put("setsDone", record.getSetsDone());
+            map.put("repetationDone", record.getRepetationDone());
+            map.put("serviceType", record.getServiceType());
+
+            response.setSuccess(true);
+            response.setData(map);
+            response.setMessage("Therapist session details fetched successfully");
+            response.setStatus(200);
+
+            return response;
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage("Something went wrong");
+            response.setStatus(500);
+
+            return response;
+        }
+    }
+    
+    @Override
+    public ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecord(
+            String clinicId,
+            String branchId,
+            String therapistRecordId,
+            String sessionId) {
+
+        TherapistRecord record = repository
+                .findByClinicIdAndBranchIdAndTherapistRecordIdAndSessionId(
+                        clinicId,
+                        branchId,
+                        therapistRecordId,
+                        sessionId)
+                .orElseThrow(() -> new RuntimeException("Record not found"));
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        TherapistRecordDTO dto =
+                mapper.convertValue(record, TherapistRecordDTO.class);
+
+        ResponseStructure<TherapistRecordDTO> response =
+                new ResponseStructure<>();
+
+        response.setStatusCode(200);
+        response.setMessage("Record fetched successfully");
+        response.setData(mapToDTOWithSignedUrls(record)); // ✅ signed URLs
+
+
+        return response;
+    }
+    
+    private TherapistRecordDTO mapToDTOWithSignedUrls(TherapistRecord record) {
+
+        // ✅ First map normally
+        TherapistRecordDTO dto = mapToDTO(record);
+
+        // ✅ Then replace raw keys with fresh signed URLs
+        if (dto.getBeforeImage() != null && !dto.getBeforeImage().isBlank()) {
+            dto.setBeforeImage(s3Service.generateSignedUrl(dto.getBeforeImage()));
+        }
+        if (dto.getAfterImage() != null && !dto.getAfterImage().isBlank()) {
+            dto.setAfterImage(s3Service.generateSignedUrl(dto.getAfterImage()));
+        }
+        if (dto.getBeforeVideo() != null && !dto.getBeforeVideo().isBlank()) {
+            dto.setBeforeVideo(s3Service.generateSignedUrl(dto.getBeforeVideo()));
+        }
+        if (dto.getAfterVideo() != null && !dto.getAfterVideo().isBlank()) {
+            dto.setAfterVideo(s3Service.generateSignedUrl(dto.getAfterVideo()));
+        }
+        if (dto.getVoiceRecord() != null && !dto.getVoiceRecord().isBlank()) {
+            dto.setVoiceRecord(s3Service.generateSignedUrl(dto.getVoiceRecord()));
+        }
+        if (dto.getConsentPdfUrl() != null && !dto.getConsentPdfUrl().isBlank()) {
+            dto.setConsentPdfUrl(s3Service.generateSignedUrl(dto.getConsentPdfUrl()));
+        }
+
+        return dto;
     }
 }

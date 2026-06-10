@@ -140,25 +140,48 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         return mapToDTO(optional.get()); 
     }
 
- //  UPDATE BY ID ONLY
     @Override
     public Response updateTherapyById(String id, TherapyServiceDTO dto) {
 
-        Optional<TherapyService> optional = repository.findById(id);
-
         Response response = new Response();
+
+        Optional<TherapyService> optional = repository.findById(id);
 
         if (optional.isEmpty()) {
             response.setSuccess(false);
-            response.setMessage("Data not found");
+            response.setMessage("Therapy Service not found");
             response.setStatus(HttpStatus.NOT_FOUND.value());
             return response;
         }
 
         TherapyService existing = optional.get();
 
-        // reuse update logic
-        updateEntityFromDTO(existing, dto);
+        // Update fields only if they are provided
+
+        if (dto.getTherapyName() != null && !dto.getTherapyName().trim().isEmpty()) {
+            existing.setTherapyName(dto.getTherapyName());
+        }
+
+        if (dto.getClinicId() != null && !dto.getClinicId().trim().isEmpty()) {
+            existing.setClinicId(dto.getClinicId());
+        }
+
+        if (dto.getBranchId() != null && !dto.getBranchId().trim().isEmpty()) {
+            existing.setBranchId(dto.getBranchId());
+        }
+
+        if (dto.getConsentType() != 0) {
+            existing.setConsentType(dto.getConsentType());
+        }
+
+        if (dto.getExerciseIds() != null) {
+            existing.setExerciseIds(dto.getExerciseIds());
+            existing.setNoExerciseIdCount(dto.getExerciseIds().size());
+        }
+
+        if (dto.getExercises() != null) {
+            existing.setExercises(dto.getExercises());
+        }
 
         TherapyService updated = repository.save(existing);
 
@@ -199,13 +222,19 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     // ================== MAPPERS ==================
 
     private TherapyService mapToEntity(TherapyServiceDTO dto) {
+
         TherapyService therapy = new TherapyService();
+
         therapy.setId(dto.getId());
         therapy.setConsentType(dto.getConsentType());
         therapy.setExerciseIds(dto.getExerciseIds());
         therapy.setTherapyName(dto.getTherapyName());
         therapy.setClinicId(dto.getClinicId());
         therapy.setBranchId(dto.getBranchId());
+
+        // Missing Fields
+        therapy.setNoExerciseIdCount(dto.getNoExerciseIdCount());
+         therapy.setExercises(dto.getExercises());
 
         return therapy;
     }
@@ -218,6 +247,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         dto.setTherapyName(therapy.getTherapyName());
         dto.setClinicId(therapy.getClinicId());
         dto.setBranchId(therapy.getBranchId());
+        dto.setExercises(therapy.getExercises());
 
         // ✅ AUTO COUNT LOGIC
         if (therapy.getExerciseIds() != null) {
@@ -242,6 +272,9 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
         if (dto.getTherapyName() != null) {
             entity.setTherapyName(dto.getTherapyName());
+        }
+        if (dto.getExercises() != null || !dto.getExercises().isEmpty()) {
+            entity.setExercises(dto.getExercises());;
         }
     }
     @Override

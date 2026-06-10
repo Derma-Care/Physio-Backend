@@ -24,7 +24,7 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Pharmacist;
 import com.clinicadmin.feignclient.AdminServiceClient;
-import com.clinicadmin.feignclient.DoctorServiceFeign;
+//import com.clinicadmin.feignclient.DoctorServiceFeign;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.PharmacistRepository;
 import com.clinicadmin.service.PharmacistService;
@@ -50,8 +50,8 @@ public class PharmacistServiceImpl implements PharmacistService {
 	@Autowired
 	ObjectMapper objectMapper;
 	
-	@Autowired
-	private DoctorServiceFeign doctorServiceFeign;
+//	@Autowired
+//	private DoctorServiceFeign doctorServiceFeign;
 	
 	private final ObjectMapper mapper = new ObjectMapper();
 
@@ -445,245 +445,247 @@ public class PharmacistServiceImpl implements PharmacistService {
 	
 
 // ---------------- PRESCRIPTION APIs ----------------
-	@Override
-	public ResponseEntity<Response> createPrescription(DoctorPrescriptionDTO dto) {
-	    try {
-	        return doctorServiceFeign.createPrescription(dto);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> createPrescription(DoctorPrescriptionDTO dto) {
+//	    try {
+//	        return doctorServiceFeign.createPrescription(dto);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> getAllPrescriptions() {
-	    try {
-	        return doctorServiceFeign.getAllPrescriptions();
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> getAllPrescriptions() {
+//	    try {
+//	        return doctorServiceFeign.getAllPrescriptions();
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> getPrescriptionById(String id) {
-	    try {
-	        return doctorServiceFeign.getPrescriptionById(id);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> getPrescriptionById(String id) {
+//	    try {
+//	        return doctorServiceFeign.getPrescriptionById(id);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> getMedicineById(String medicineId) {
-	    try {
-	        return doctorServiceFeign.getMedicineById(medicineId);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> getMedicineById(String medicineId) {
+//	    try {
+//	        return doctorServiceFeign.getMedicineById(medicineId);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> searchMedicines(String keyword) {
-	    try {
-	        return doctorServiceFeign.searchMedicines(keyword);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> searchMedicines(String keyword) {
+//	    try {
+//	        return doctorServiceFeign.searchMedicines(keyword);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> deletePrescription(String id) {
-	    try {
-	        return doctorServiceFeign.deletePrescription(id);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> deletePrescription(String id) {
+//	    try {
+//	        return doctorServiceFeign.deletePrescription(id);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> deleteMedicine(String medicineId) {
-	    try {
-	        return doctorServiceFeign.deleteMedicine(medicineId);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> deleteMedicine(String medicineId) {
+//	    try {
+//	        return doctorServiceFeign.deleteMedicine(medicineId);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> getPrescriptionsByClinicId(String clinicId) {
-	    try {
-	        return doctorServiceFeign.getPrescriptionsByClinicId(clinicId);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	    
-	    
-
-	}
+//	@Override
+//	public ResponseEntity<Response> getPrescriptionsByClinicId(String clinicId) {
+//	    try {
+//	        return doctorServiceFeign.getPrescriptionsByClinicId(clinicId);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	    
+//	    
+//
+//	}
 	
-	@Override
-	public ResponseEntity<Response> updateMedicine(String medicineId, MedicineDTO dto) {
-	    try {
-	        return doctorServiceFeign.updateMedicine(medicineId, dto);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
-	
+//	@Override
+//	public ResponseEntity<Response> updateMedicine(String medicineId, MedicineDTO dto) {
+//	    try {
+//	        return doctorServiceFeign.updateMedicine(medicineId, dto);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
+//	
 	
 	
 	// ---------------- MEDICINE TYPE APIs (NEW) ----------------
 
-	@Override
-	public ResponseEntity<Response> searchOrAddMedicineType(MedicineTypeDTO dto) {
-	    try {
-	        return doctorServiceFeign.searchOrAddMedicineType(dto);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
+//	@Override
+//	public ResponseEntity<Response> searchOrAddMedicineType(MedicineTypeDTO dto) {
+//	    try {
+//	        return doctorServiceFeign.searchOrAddMedicineType(dto);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
 
-	@Override
-	public ResponseEntity<Response> getMedicineTypes(String clinicId) {
-	    try {
-	        return doctorServiceFeign.getMedicineTypes(clinicId);
-	    } catch (FeignException ex) {
-	        try {
-	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-	            return ResponseEntity.status(ex.status()).body(doctorResponse);
-	        } catch (Exception e) {
-	            Response fallback = new Response();
-	            fallback.setSuccess(false);
-	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-	            fallback.setStatus(ex.status());
-	            return ResponseEntity.status(ex.status()).body(fallback);
-	        }
-	    }
-	}
-		@Override
-		public ResponseEntity<Response> getMedicineType(String Id) {
-		    try {
-		        return doctorServiceFeign.getMedicineType(Id);
-		    } catch (FeignException ex) {
-		        try {
-		            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-		            return ResponseEntity.status(ex.status()).body(doctorResponse);
-		        } catch (Exception e) {
-		            Response fallback = new Response();
-		            fallback.setSuccess(false);
-		            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-		            fallback.setStatus(ex.status());
-		            return ResponseEntity.status(ex.status()).body(fallback);
-		        }
-		    }
-	}
+//	@Override
+//	public ResponseEntity<Response> getMedicineTypes(String clinicId) {
+//	    try {
+//	        return doctorServiceFeign.getMedicineTypes(clinicId);
+//	    } catch (FeignException ex) {
+//	        try {
+//	            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//	            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//	        } catch (Exception e) {
+//	            Response fallback = new Response();
+//	            fallback.setSuccess(false);
+//	            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//	            fallback.setStatus(ex.status());
+//	            return ResponseEntity.status(ex.status()).body(fallback);
+//	        }
+//	    }
+//	}
+	
+	
+//		@Override
+//		public ResponseEntity<Response> getMedicineType(String Id) {
+//		    try {
+//		        return doctorServiceFeign.getMedicineType(Id);
+//		    } catch (FeignException ex) {
+//		        try {
+//		            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//		            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//		        } catch (Exception e) {
+//		            Response fallback = new Response();
+//		            fallback.setSuccess(false);
+//		            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//		            fallback.setStatus(ex.status());
+//		            return ResponseEntity.status(ex.status()).body(fallback);
+//		        }
+//		    }
+//	}
 		
-		@Override
-		public ResponseEntity<Response> getAllMedicineTypes() {
-		    try {
-		        return doctorServiceFeign.getAllMedicineTypes();
-		    } catch (FeignException ex) {
-		        try {
-		            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
-		            return ResponseEntity.status(ex.status()).body(doctorResponse);
-		        } catch (Exception e) {
-		            Response fallback = new Response();
-		            fallback.setSuccess(false);
-		            fallback.setMessage("Doctor Service error: " + ex.getMessage());
-		            fallback.setStatus(ex.status());
-		            return ResponseEntity.status(ex.status()).body(fallback);
-		        }
-		    }
-	}
+//		@Override
+//		public ResponseEntity<Response> getAllMedicineTypes() {
+//		    try {
+//		        return doctorServiceFeign.getAllMedicineTypes();
+//		    } catch (FeignException ex) {
+//		        try {
+//		            Response doctorResponse = mapper.readValue(ex.contentUTF8(), Response.class);
+//		            return ResponseEntity.status(ex.status()).body(doctorResponse);
+//		        } catch (Exception e) {
+//		            Response fallback = new Response();
+//		            fallback.setSuccess(false);
+//		            fallback.setMessage("Doctor Service error: " + ex.getMessage());
+//		            fallback.setStatus(ex.status());
+//		            return ResponseEntity.status(ex.status()).body(fallback);
+//		        }
+//		    }
+//	}
 
 
 

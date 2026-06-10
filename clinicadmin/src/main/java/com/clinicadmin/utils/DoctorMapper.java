@@ -5,12 +5,12 @@ import java.time.ZoneId;
 
 import org.bson.types.ObjectId;
 
-import com.clinicadmin.dto.ConsultationTypeDTO;
+import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.DoctorFeeDTO;
 import com.clinicadmin.dto.DoctorsDTO;
-import com.clinicadmin.entity.ConsultationType;
 import com.clinicadmin.entity.DoctorFee;
 import com.clinicadmin.entity.Doctors;
+import com.clinicadmin.service.S3Service;
 
 public class DoctorMapper {
 
@@ -21,9 +21,8 @@ public class DoctorMapper {
 			doctor.setId(new ObjectId(dto.getId()));
 		}
 
-		// 🔹 Fix: check DTO instead of doctor
 		if (dto.getDoctorPicture() != null && !dto.getDoctorPicture().isBlank()) {
-			doctor.setDoctorPicture(Base64CompressionUtil.compressBase64(dto.getDoctorPicture()));
+		    doctor.setDoctorPicture(dto.getDoctorPicture()); // S3 key stored as-is
 		}
 
 		doctor.setDoctorId(dto.getDoctorId());
@@ -50,14 +49,17 @@ public class DoctorMapper {
 		doctor.setFocusAreas(dto.getFocusAreas());
 		doctor.setLanguages(dto.getLanguages());
 		doctor.setHighlights(dto.getHighlights());
-		doctor.setDoctorAvailabilityStatus(dto.isDoctorAvailabilityStatus());
+		doctor.setDoctorAvailabilityStatus(true);
 		doctor.setRecommendation(dto.isRecommendation());
+		doctor.setAadharID(dto.getAadharID());
+		doctor.setDateofJoining(dto.getDateofJoining());
+		doctor.setDateofBirth(dto.getDateofBirth());
+		doctor.setEmergencyContact(dto.getEmergencyContact());
 		doctor.setCreatedBy(dto.getCreatedBy());
 		doctor.setCreatedBy(LocalDateTime.now(ZoneId.of("Asia/Kolkata")).toString());
 
-		// 🔹 Check null before compress
 		if (dto.getDoctorSignature() != null && !dto.getDoctorSignature().isBlank()) {
-			doctor.setDoctorSignature(Base64CompressionUtil.compressBase64(dto.getDoctorSignature()));
+		    doctor.setDoctorSignature(dto.getDoctorSignature()); // S3 key stored as-is
 		}
 
 		doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
@@ -75,7 +77,29 @@ public class DoctorMapper {
 //			consultation.setVideoOrOnline(dto.getConsultation().getVideoOrOnline());
 //			doctor.setConsultation(consultation);
 //		}
+		if (dto.getBankAccountDetails() != null) {
 
+		    BankAccountDetails bankDetails = new BankAccountDetails();
+
+		    bankDetails.setAccountHolderName(
+		            dto.getBankAccountDetails().getAccountHolderName());
+
+		    bankDetails.setAccountNumber(
+		            dto.getBankAccountDetails().getAccountNumber());
+
+		    bankDetails.setBankName(
+		            dto.getBankAccountDetails().getBankName());
+
+		    bankDetails.setBranchName(
+		            dto.getBankAccountDetails().getBranchName());
+
+		    bankDetails.setIfscCode(
+		            dto.getBankAccountDetails().getIfscCode());	
+		    
+		    bankDetails.setPanCardNumber(dto.getBankAccountDetails().getPanCardNumber());
+		    
+		    doctor.setBankAccountDetails(bankDetails);
+		}
 		return doctor;
 	}
 
@@ -93,9 +117,8 @@ public class DoctorMapper {
 		dto.setPermissions(dto.getPermissions());
 		dto.setRole(doctor.getRole());
 
-		// 🔹 Null checks before decompress
 		if (doctor.getDoctorPicture() != null && !doctor.getDoctorPicture().isBlank()) {
-			dto.setDoctorPicture(Base64CompressionUtil.decompressBase64(doctor.getDoctorPicture()));
+		    dto.setDoctorPicture(doctor.getDoctorPicture()); // S3 key passed through as-is
 		}
 
 		dto.setDoctorLicence(doctor.getDoctorLicence());
@@ -117,12 +140,16 @@ public class DoctorMapper {
 		dto.setFocusAreas(doctor.getFocusAreas());
 		dto.setLanguages(doctor.getLanguages());
 		dto.setHighlights(doctor.getHighlights());
-		dto.setDoctorAvailabilityStatus(doctor.isDoctorAvailabilityStatus());
+		dto.setDoctorAvailabilityStatus(doctor.getDoctorAvailabilityStatus());
 		dto.setRecommendation(doctor.isRecommendation());
+		dto.setAadharID(doctor.getAadharID());
+		dto.setDateofBirth(doctor.getDateofBirth());
+		dto.setDateofJoining(doctor.getDateofJoining());
+		dto.setEmergencyContact(doctor.getEmergencyContact());
 
 
 		if (doctor.getDoctorSignature() != null && !doctor.getDoctorSignature().isBlank()) {
-			dto.setDoctorSignature(Base64CompressionUtil.decompressBase64(doctor.getDoctorSignature()));
+		    dto.setDoctorSignature(doctor.getDoctorSignature()); // S3 key passed through as-is
 		}
 
 		dto.setAssociatedWithIADVC(doctor.isAssociatedWithIADVC());
@@ -143,6 +170,30 @@ public class DoctorMapper {
 //			consultationDTO.setVideoOrOnline(doctor.getConsultation().getVideoOrOnline());
 //			dto.setConsultation(consultationDTO);
 //		}
+		
+		if (doctor.getBankAccountDetails() != null) {
+
+		    BankAccountDetails bankDetails = new BankAccountDetails();
+
+		    bankDetails.setAccountHolderName(
+		            doctor.getBankAccountDetails().getAccountHolderName());
+
+		    bankDetails.setAccountNumber(
+		            doctor.getBankAccountDetails().getAccountNumber());
+
+		    bankDetails.setBankName(
+		            doctor.getBankAccountDetails().getBankName());
+
+		    bankDetails.setBranchName(
+		            doctor.getBankAccountDetails().getBranchName());
+
+		    bankDetails.setIfscCode(
+		            doctor.getBankAccountDetails().getIfscCode());
+		    
+		    bankDetails.setPanCardNumber(doctor.getBankAccountDetails().getPanCardNumber());
+		           		    
+		    dto.setBankAccountDetails(bankDetails);
+		}
 
 		return dto;
 	}
@@ -159,5 +210,15 @@ public class DoctorMapper {
 		dto.setInClinicFee(fee.getInClinicFee());
 		dto.setVedioConsultationFee(fee.getVedioConsultationFee());
 		return dto;
+	}
+	
+	// ── Overloaded: maps entity to DTO AND resolves S3 signed URLs ─
+	public static DoctorsDTO mapDoctorEntityToDoctorDTO(Doctors doctor, S3Service s3Service) {
+	    DoctorsDTO dto = mapDoctorEntityToDoctorDTO(doctor); // reuse existing mapper
+	    if (dto.getDoctorPicture() != null && !dto.getDoctorPicture().isBlank())
+	        dto.setDoctorPicture(s3Service.generateSignedUrl(dto.getDoctorPicture()));
+	    if (dto.getDoctorSignature() != null && !dto.getDoctorSignature().isBlank())
+	        dto.setDoctorSignature(s3Service.generateSignedUrl(dto.getDoctorSignature()));
+	    return dto;
 	}
 }

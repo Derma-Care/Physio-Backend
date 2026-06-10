@@ -1,6 +1,7 @@
 package com.dermacare.bookingService.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class BookingServiceController {
 
 
 	@PostMapping("/bookService")
-	public  ResponseEntity<?> bookService(@RequestBody BookingRequset req) {
+	public  ResponseEntity<?> bookService(@RequestBody BookingResponse req) {
 		return service.addService(req);}
 		
 
@@ -51,8 +52,8 @@ public class BookingServiceController {
 	
 	
 	@GetMapping("/getTodayBookings/{clincId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
-		List<BookingResponse> response = service.getTodayBookings(clincId, branchId);
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
+		List<Map<String,Object>> response = service.getTodayBookings(clincId, branchId);
 		if(response != null || !response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
 					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
@@ -64,6 +65,7 @@ public class BookingServiceController {
 
 	@GetMapping("/getBookedServiceById/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id) {
+		//System.out.println("hii"); 
 		BookingResponse response = service.getBookedService(id);
 		if(response != null) {
 		return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
@@ -129,20 +131,20 @@ public class BookingServiceController {
 
 	}
 
-	@GetMapping("/getBookedServicesByServiceId/{serviceId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId) {
+	// @GetMapping("/getBookedServicesByServiceId/{serviceId}")
+	// public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId) {
 
-		List<BookingResponse> response = service.bookingByServiceId(serviceId);
-		if (response == null || response.isEmpty()) {
-			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-					"Service Does not Booked by AnyOne" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);
-		}
-		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-				"Booking fetched sucessfully on ServiceId" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
-				HttpStatus.OK);
+	// 	List<BookingResponse> response = service.bookingByServiceId(serviceId);
+	// 	if (response == null || response.isEmpty()) {
+	// 		return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+	// 				"Service Does not Booked by AnyOne" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
+	// 				HttpStatus.OK);
+	// 	}
+	// 	return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+	// 			"Booking fetched sucessfully on ServiceId" + serviceId, HttpStatus.OK, HttpStatus.OK.value()),
+	// 			HttpStatus.OK);
 
-	}
+	// }
 	
 	
 	@GetMapping("/getBookedServicesByClinicId/{clinicId}")
@@ -162,12 +164,28 @@ public class BookingServiceController {
 	
 	
 	@GetMapping("/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByCustomerId(@PathVariable String customerId) {
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId) {
 
-		List<BookingResponse> response = service.bookingByCustomerId(customerId);
+		List<Map<String,Object>> response = service.bookingByCustomerId(customerId);
 		if (response == null || response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
 					"Clinic  Does not have any booking yet" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
+					HttpStatus.OK);
+		}
+		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
+				"Booking fetched sucessfully on clinicId" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
+				HttpStatus.OK);
+
+	}
+	
+	
+	@GetMapping("/booking/completed/customerId/{customerId}")
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getCompletedBookingByCustomerId(@PathVariable String customerId) {
+
+		List<Map<String,Object>> response = service.CompletedbookingByCustomerId(customerId);
+		if (response == null || response.isEmpty()) {
+			return new ResponseEntity<>(ResponseStructure.buildResponse(null,
+					"No completed bookings found on customerId" + customerId, HttpStatus.OK, HttpStatus.OK.value()),
 					HttpStatus.OK);
 		}
 		return new ResponseEntity<>(ResponseStructure.buildResponse(response,
@@ -193,11 +211,11 @@ public class BookingServiceController {
 	}
 	
 	@GetMapping("/getBookedServicesByClinicIdWithBranchId/{clinicId}/{branchId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookedServicesByClinicIdWithBranchId(
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookedServicesByClinicIdWithBranchId(
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId) {
 
-	    List<BookingResponse> response = service.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
+		 List<Map<String,Object>> response = service.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
 	    if (response == null || response.isEmpty()) {
 	        return new ResponseEntity<>(ResponseStructure.buildResponse(null,
 	                "No bookings found for clinicId: " + clinicId + " and branchId: " + branchId,
@@ -315,7 +333,7 @@ public class BookingServiceController {
 		
 		
 		@PutMapping("/update/bookingId")
-		public ResponseEntity<?> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse ){
+		public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse ){
 			return service.updateAppointmentBasedOnBookingId(bookingResponse);
 		}
 		
@@ -324,19 +342,7 @@ public class BookingServiceController {
 		{
 			return service.getRelationsByCustomerId(customerId);
 		}
-	
-			
-		@GetMapping("/appointments/byInput/{input}/{clinicId}")	
-		public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId){
-			BookingInfoByInput response = service.bookingByInput(input,clinicId);
-			if (response == null) {
-				return new ResponseEntity<>(ResponseStructure.buildResponse(null,
-						"No booking yet" + input, HttpStatus.OK, HttpStatus.OK.value()),
-						HttpStatus.OK);}
-			return new ResponseEntity<>(ResponseStructure.buildResponse(response,
-					"Booking fetched sucessfully on clinicId" + input, HttpStatus.OK, HttpStatus.OK.value()),
-					HttpStatus.OK);}
-	
+
 		
 		@PostMapping("/appointments/serviceDate/serviceTime/DoctorId")
 		public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp)
@@ -404,6 +410,10 @@ public class BookingServiceController {
 	        return service.getBookingById(bookingId);
 	    }
 	    
+	    @GetMapping("/deleteReport/{bookingId}/{index}")
+	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index) {
+	        service.deleteBookedServiceReports(bookingId,index);
+	    } 
 	    
 	    @GetMapping("/reports/patientId/{patientId}")
 	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId) {
@@ -430,5 +440,11 @@ public class BookingServiceController {
 	        return ResponseEntity.ok(response);
 	    }
 			
-		}
-
+	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
+		public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
+			@PathVariable String doctorId,@PathVariable String status)
+		{
+			return service.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, branchId, doctorId, status);
+		}	
+	    
+  }

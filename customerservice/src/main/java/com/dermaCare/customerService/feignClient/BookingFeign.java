@@ -1,6 +1,7 @@
 package com.dermaCare.customerService.feignClient;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.HttpStatus;
@@ -72,7 +73,7 @@ public interface BookingFeign {
 	        @PathVariable String branchId);
 	
 	@GetMapping("/api/v1/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByCustomerId(@PathVariable String customerId);
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId);
 
 	@GetMapping("/api/v1/appointments/Inprogress/{customerId}")
 	public ResponseEntity<?> getInprogressAppointmentsByCustomerId(@PathVariable String customerId);
@@ -86,6 +87,12 @@ public interface BookingFeign {
 	@GetMapping("/api/v1/appointments/Inprogress/patientId/{patientId}/{clinicId}")
 	public ResponseEntity<?> getInprogressAppointmentsByPatientId(@PathVariable String patientId,@PathVariable String clinicId );
 	
+	@PostMapping("/api/v1/bookPhysioAppointment")
+	public  ResponseEntity<?> bookPhysioAppointment(@RequestBody BookingRequset req);
+	
+	@GetMapping("/api/v1/booking/completed/customerId/{customerId}")
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getCompletedBookingByCustomerId(@PathVariable String customerId);
+
 	//FALLBACK METHODS
 	
 //		default ResponseEntity<?> bookingServiceFallBack(Exception e){		 
