@@ -77,4 +77,6 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public List<Booking> findByCustomerId(String customerId);
 	public Page<Booking> findByCustomerId(String customerId, Pageable pageable);
 	public Optional<Booking> findByBookingIdIgnoreCase(String bookingId);
+	public List<Booking> findByBookingIdInAndClinicIdAndBranchId(List<String> followupIds, String clinicId,
+			String branchId);
 	}
