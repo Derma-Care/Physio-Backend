@@ -133,6 +133,13 @@ public class S3Controller {
                     Stream.concat(IMAGE_MIMES.stream(), DOC_MIMES.stream())
                           .collect(Collectors.toUnmodifiableSet())
             );
+            case "recoverySupportImage" -> new FieldConfig(
+                    "recovery-support-images",
+                    MAX_IMAGE_SIZE,
+                    "5 MB",
+                    IMAGE_EXTS,
+                    IMAGE_MIMES
+            );
             default -> null;
         };
     }
