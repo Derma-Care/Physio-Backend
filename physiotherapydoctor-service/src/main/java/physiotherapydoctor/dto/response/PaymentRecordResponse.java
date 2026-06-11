@@ -20,7 +20,7 @@ public class PaymentRecordResponse {
     private String therapistId;
     private String therapistName;
     private String therapistRecordId;
-
+    private String treatmentName;
     private String serviceType;
     private String overallStatus;
 
