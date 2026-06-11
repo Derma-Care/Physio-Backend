@@ -1,5 +1,6 @@
 package com.dermacare.bookingService.service.Impl;
 
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -58,7 +59,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Autowired
@@ -89,6 +93,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private S3Service s3Service;
 	
+	 @Autowired
+	    private WhatsAppService whatsAppService;
 	
 	 @Override
 	 public ResponseEntity<?> addService(BookingResponse request) {
@@ -475,36 +481,53 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				        throw new RuntimeException("Service Time is mandatory");
 			    }
 	     Booking entity = toEntity(request);
-	     //System.out.println(entity);
-	     Booking updatedBooking = repository.save(entity);   
-	     if(updatedBooking != null) {
-	     int status = 0;
-	    	  try {
-	          Response respnse =  notificationFeign.createNotification(mapper.convertValue(updatedBooking,BookingResponse.class )).getBody();
-	          status = respnse.getStatus();
-	    	  }catch (Exception e) {}	    	  
-	    	 /// res.setData(mapper.convertValue(updatedBooking,BookingResponse.class ) );
-	    	  if(status == 200) {
-	    	  res.setMessage("Appointment Booked Successfully and notification sent");}
-	    	  else {
-	    		  res.setMessage("Appointment Booked Successfully but notification not sent");}}
-	    	  res.setStatus(200);
-	    	  res.setSuccess(true);
-	    	 // BookingResponse bookingResponse = toResponse(updatedBooking);
-	    	  //Map<String,Object> map = new LinkedHashMap<>();
-//	    	  map.put("DoctorId",updatedBooking.getDoctorId() );
-//	    	  map.put("BranchId", updatedBooking.getBranchId());
-//	    	  map.put("ServiceDate", updatedBooking.getServiceDate());
-//	    	  map.put("ServiceTime", updatedBooking.getServicetime());
-	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);
-		     }catch (Exception e) {
-	    		  res.setMessage(e.getMessage());
-    	    	  res.setStatus(500);
-    	    	  res.setSuccess(false);
-    	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);
-			}
-		 return repnse;
-	     }
+	     Booking updatedBooking = repository.save(entity);
+
+         if (updatedBooking != null) {
+
+             // existing notification feign
+             int status = 0;
+             try {
+                 Response respnse = notificationFeign
+                     .createNotification(mapper.convertValue(updatedBooking, BookingResponse.class))
+                     .getBody();
+                 status = respnse.getStatus();
+             } catch (Exception e) {
+                 log.warn("Notification feign failed: {}", e.getMessage());
+             }
+
+             // ✅ WHATSAPP NOTIFICATION — won't break booking if fails
+             try {
+                 // pass original request (has all fields)
+                 request.setBookingId(updatedBooking.getBookingId());
+                 whatsAppService.sendBookingConfirmation(request);
+                 log.info("WhatsApp sent for booking: {}", updatedBooking.getBookingId());
+             } catch (Exception e) {
+                 log.warn("WhatsApp notification failed for booking {}: {}",
+                     updatedBooking.getBookingId(), e.getMessage());
+                 // ✅ booking still succeeds even if WhatsApp fails
+             }
+
+             if (status == 200) {
+                 res.setMessage("Appointment Booked Successfully and notification sent");
+             } else {
+                 res.setMessage("Appointment Booked Successfully but notification not sent");
+             }
+         }
+
+         res.setStatus(200);
+         res.setSuccess(true);
+         repnse = ResponseEntity.status(res.getStatus()).body(res);
+
+     } catch (Exception e) {
+         res.setMessage(e.getMessage());
+         res.setStatus(500);
+         res.setSuccess(false);
+         repnse = ResponseEntity.status(res.getStatus()).body(res);
+     }
+
+     return repnse;
+ }
 	
 	     
 	public ResponseEntity<?> getAppointsByPatientId(String patientId) {

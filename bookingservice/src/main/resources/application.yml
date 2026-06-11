@@ -7,22 +7,6 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
 
-#  config:
-#    import: optional:classpath:application-secrets.yml
-
-##  kafka:
-#    bootstrap-servers: kafka:9092
-#
-#    producer:
-#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      retries: 3
-#      acks: all
-#      properties:
-#        delivery.timeout.ms: 120000
-#        request.timeout.ms: 30000
-
-
   cloud:
     openfeign:
       client:
@@ -49,6 +33,15 @@ server:
 
 spring.lifecycle:
   timeout-per-shutdown-phase: 30s
+
+
+# =========================================================
+# WHATSAPP
+# =========================================================
+whatsapp:
+  auth-key: ${WHATSAPP_AUTH_KEY}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID}
+  message-id: ${WHATSAPP_MESSAGE_ID}
 
 # =========================================================
 # AWS S3
