@@ -111,9 +111,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Autowired 
     private AdminFeign adminFeign;
     
-    @Autowired
-    private FirebaseMessagingService firebaseMessagingService;
-    
+//    @Autowired
+//    private FirebaseMessagingService firebaseMessagingService;
+//    
     @Autowired
     private NotificationFeign notificationFeign;
     
@@ -132,134 +132,134 @@ public class CustomerServiceImpl implements CustomerService {
     private static final long OTP_EXPIRY_MILLIS = 1 * 60 * 1000;
    
 
-   @Override
-    public ResponseEntity<Response> verifyUserCredentialsAndGenerateAndSendOtp(LoginDTO loginDTO) {
-	   Response response = new Response();
-     try {
-    	 if(!isIndianMobileNumber(loginDTO.getMobileNumber())) {
-    		 response.setMessage("Please Enter Valid MobileNumber");
- 	    	response.setStatus(400);
- 	    	response.setSuccess(false);}
-   	    Optional<Customer> custmer = customerRepository.findByMobileNumber(loginDTO.getMobileNumber());
-   	    log.info("customer found with mobilenumber",custmer.get().getMobileNumber());
-	    if(custmer.isPresent()) {
-	    	custmer.get().setDeviceId(loginDTO.getDeviceId());
-	    	customerRepository.save(custmer.get());}
-	    	String otp = randomNumber();
-	    	if(loginDTO.getDeviceId() != null) {
-	    		firebaseMessagingService.sendPushNotification(
-	    			    loginDTO.getDeviceId(),
-	    			    "🔐 Hello,Here’s your OTP!",
-	    			    "Use " + otp + " to verify your login. Expires in 1 minute.",
-	    			    "OTP",
-	    			    "OTPVerificationScreen",
-	    			    "default"
-	    			);
-	    	log.info("OTP sent successfully {}", loginDTO.getMobileNumber());
-	    	generatedOtps.put(loginDTO.getMobileNumber(),otp);
-	    	session.put(loginDTO.getMobileNumber(),System.currentTimeMillis());
-	    	log.info("OTP successfully stored locally {}", loginDTO.getMobileNumber());
-	    	response.setMessage("OTP Sent Successfully");
-	    	response.setStatus(200);
-	    	response.setSuccess(true);}
-	    	else {
-	    		response.setMessage("Please Provide DeviceId");
-		    	response.setStatus(400);
-		    	response.setSuccess(false);
-		    	log.warn("Device ID not found {}", loginDTO.getMobileNumber());
-		    	}
-	    }catch(Exception e) {
-	    	response.setMessage(e.getMessage());
-	    	response.setStatus(500);
-	    	response.setSuccess(false);
-	    	log.error("Exception occured {}", e.getMessage());}
-     return ResponseEntity.status(response.getStatus()).body(response);
-}
-   
-   
-     
-    private boolean isIndianMobileNumber(String mobileNumber) {
-        mobileNumber = mobileNumber.replaceAll("[\\s\\-()]", "");
-        String regex = "^(\\+91|91|0)?[6-9]\\d{9}$";
-        return mobileNumber.matches(regex);
-    }
- 
-     private String randomNumber() {
-         Random random = new Random();    
-         int sixDigitNumber = 100000 + random.nextInt(900000); // Generates number from 100000 to 999999
-         return String.valueOf(sixDigitNumber);
-     }
-     
-     
-    
-   public ResponseEntity<Response> verifyOtp(LoginDTO loginDTO){
-	   Response response = new Response();
-	   try {
-		   String otp = generatedOtps.get(loginDTO.getMobileNumber());
-           log.info("OTP found",loginDTO.getMobileNumber() );
-		   long createdTime = session.get(loginDTO.getMobileNumber());
-		   log.info("otpCreatedAt time successfully found",loginDTO.getMobileNumber() );
-		   if(!isExpired(createdTime)) {
-			   if(loginDTO.getOtp().equals(otp)) {
-			   response.setMessage("OTP Successfully Verified");
-			   response.setStatus(200);
-				response.setSuccess(true);
-			   return ResponseEntity.status(response.getStatus()).body(response);
-			   }else {
-				   response.setMessage("Invalid OTP Please Enter Correct OTP");
-				   response.setStatus(400);
-				   return ResponseEntity.status(response.getStatus()).body(response);}
-		   }else {
-			   response.setMessage("OTP Expired Please Click On Resend OTP");
-			   response.setStatus(410);
-			   return ResponseEntity.status(response.getStatus()).body(response);
-		   }}catch(Exception e) {
-			   response.setMessage(e.getMessage());
-			   response.setStatus(500);
-			   log.error("Exception occured", e.getMessage());
-			   return ResponseEntity.status(response.getStatus()).body(response);}
-  }
-
-   
-   private boolean isExpired(long createdAt) {
-       return System.currentTimeMillis() - createdAt > OTP_EXPIRY_MILLIS;
-   }
-   
- 
-   
-   public  ResponseEntity<Response> resendOtp(LoginDTO loginDTO){
-	   Response response = new Response();
-	   try {
-		   if(!isIndianMobileNumber(loginDTO.getMobileNumber())) {
-	    		response.setMessage("Please Enter Valid MobileNumber");
-	 	    	response.setStatus(400);
-	 	    	response.setSuccess(false);
-	 	    	return ResponseEntity.status(response.getStatus()).body(response);}		   
-		    String otp = randomNumber();
-		    log.info("OTP generated successfully", loginDTO.getMobileNumber());
-		    if(loginDTO.getDeviceId() != null) {
-		    	firebaseMessagingService.sendPushNotification(
-	    			    loginDTO.getDeviceId(),
-	    			    "🔐 Hello,Here’s your ResendOTP!",
-	    			    "Use " + otp + " to verify your login. Expires in 1 minute.",
-	    			    "OTP",
-	    			    "OTPVerificationScreen",
-	    			    "default"
-	    			);
-		    	log.info("notification for OTP sent",  loginDTO.getMobileNumber());
-	    	generatedOtps.put(loginDTO.getMobileNumber(),otp);
-	    	session.put(loginDTO.getMobileNumber(),System.currentTimeMillis());
-	    	response.setMessage("OTP Sent Successfully");
-			response.setStatus(200);
-			response.setSuccess(true);
-	    	}else{
-		    	response.setMessage("Please Provide DeviceId");
-				response.setStatus(400);}
-	        }catch(Exception e) {
-		    response.setMessage(e.getMessage());
-		    response.setStatus(500);}
-	        return ResponseEntity.status(response.getStatus()).body(response);
-   }
+//   @Override
+//    public ResponseEntity<Response> verifyUserCredentialsAndGenerateAndSendOtp(LoginDTO loginDTO) {
+//	   Response response = new Response();
+//     try {
+//    	 if(!isIndianMobileNumber(loginDTO.getMobileNumber())) {
+//    		 response.setMessage("Please Enter Valid MobileNumber");
+// 	    	response.setStatus(400);
+// 	    	response.setSuccess(false);}
+//   	    Optional<Customer> custmer = customerRepository.findByMobileNumber(loginDTO.getMobileNumber());
+//   	    log.info("customer found with mobilenumber",custmer.get().getMobileNumber());
+//	    if(custmer.isPresent()) {
+//	    	custmer.get().setDeviceId(loginDTO.getDeviceId());
+//	    	customerRepository.save(custmer.get());}
+//	    	String otp = randomNumber();
+//	    	if(loginDTO.getDeviceId() != null) {
+//	    		firebaseMessagingService.sendPushNotification(
+//	    			    loginDTO.getDeviceId(),
+//	    			    "🔐 Hello,Here’s your OTP!",
+//	    			    "Use " + otp + " to verify your login. Expires in 1 minute.",
+//	    			    "OTP",
+//	    			    "OTPVerificationScreen",
+//	    			    "default"
+//	    			);
+//	    	log.info("OTP sent successfully {}", loginDTO.getMobileNumber());
+//	    	generatedOtps.put(loginDTO.getMobileNumber(),otp);
+//	    	session.put(loginDTO.getMobileNumber(),System.currentTimeMillis());
+//	    	log.info("OTP successfully stored locally {}", loginDTO.getMobileNumber());
+//	    	response.setMessage("OTP Sent Successfully");
+//	    	response.setStatus(200);
+//	    	response.setSuccess(true);}
+//	    	else {
+//	    		response.setMessage("Please Provide DeviceId");
+//		    	response.setStatus(400);
+//		    	response.setSuccess(false);
+//		    	log.warn("Device ID not found {}", loginDTO.getMobileNumber());
+//		    	}
+//	    }catch(Exception e) {
+//	    	response.setMessage(e.getMessage());
+//	    	response.setStatus(500);
+//	    	response.setSuccess(false);
+//	    	log.error("Exception occured {}", e.getMessage());}
+//     return ResponseEntity.status(response.getStatus()).body(response);
+//}
+//   
+//   
+//     
+//    private boolean isIndianMobileNumber(String mobileNumber) {
+//        mobileNumber = mobileNumber.replaceAll("[\\s\\-()]", "");
+//        String regex = "^(\\+91|91|0)?[6-9]\\d{9}$";
+//        return mobileNumber.matches(regex);
+//    }
+// 
+//     private String randomNumber() {
+//         Random random = new Random();    
+//         int sixDigitNumber = 100000 + random.nextInt(900000); // Generates number from 100000 to 999999
+//         return String.valueOf(sixDigitNumber);
+//     }
+//     
+//     
+//    
+//   public ResponseEntity<Response> verifyOtp(LoginDTO loginDTO){
+//	   Response response = new Response();
+//	   try {
+//		   String otp = generatedOtps.get(loginDTO.getMobileNumber());
+//           log.info("OTP found",loginDTO.getMobileNumber() );
+//		   long createdTime = session.get(loginDTO.getMobileNumber());
+//		   log.info("otpCreatedAt time successfully found",loginDTO.getMobileNumber() );
+//		   if(!isExpired(createdTime)) {
+//			   if(loginDTO.getOtp().equals(otp)) {
+//			   response.setMessage("OTP Successfully Verified");
+//			   response.setStatus(200);
+//				response.setSuccess(true);
+//			   return ResponseEntity.status(response.getStatus()).body(response);
+//			   }else {
+//				   response.setMessage("Invalid OTP Please Enter Correct OTP");
+//				   response.setStatus(400);
+//				   return ResponseEntity.status(response.getStatus()).body(response);}
+//		   }else {
+//			   response.setMessage("OTP Expired Please Click On Resend OTP");
+//			   response.setStatus(410);
+//			   return ResponseEntity.status(response.getStatus()).body(response);
+//		   }}catch(Exception e) {
+//			   response.setMessage(e.getMessage());
+//			   response.setStatus(500);
+//			   log.error("Exception occured", e.getMessage());
+//			   return ResponseEntity.status(response.getStatus()).body(response);}
+//  }
+//
+//   
+//   private boolean isExpired(long createdAt) {
+//       return System.currentTimeMillis() - createdAt > OTP_EXPIRY_MILLIS;
+//   }
+//   
+// 
+//   
+//   public  ResponseEntity<Response> resendOtp(LoginDTO loginDTO){
+//	   Response response = new Response();
+//	   try {
+//		   if(!isIndianMobileNumber(loginDTO.getMobileNumber())) {
+//	    		response.setMessage("Please Enter Valid MobileNumber");
+//	 	    	response.setStatus(400);
+//	 	    	response.setSuccess(false);
+//	 	    	return ResponseEntity.status(response.getStatus()).body(response);}		   
+//		    String otp = randomNumber();
+//		    log.info("OTP generated successfully", loginDTO.getMobileNumber());
+//		    if(loginDTO.getDeviceId() != null) {
+//		    	firebaseMessagingService.sendPushNotification(
+//	    			    loginDTO.getDeviceId(),
+//	    			    "🔐 Hello,Here’s your ResendOTP!",
+//	    			    "Use " + otp + " to verify your login. Expires in 1 minute.",
+//	    			    "OTP",
+//	    			    "OTPVerificationScreen",
+//	    			    "default"
+//	    			);
+//		    	log.info("notification for OTP sent",  loginDTO.getMobileNumber());
+//	    	generatedOtps.put(loginDTO.getMobileNumber(),otp);
+//	    	session.put(loginDTO.getMobileNumber(),System.currentTimeMillis());
+//	    	response.setMessage("OTP Sent Successfully");
+//			response.setStatus(200);
+//			response.setSuccess(true);
+//	    	}else{
+//		    	response.setMessage("Please Provide DeviceId");
+//				response.setStatus(400);}
+//	        }catch(Exception e) {
+//		    response.setMessage(e.getMessage());
+//		    response.setStatus(500);}
+//	        return ResponseEntity.status(response.getStatus()).body(response);
+//   }
    
    
 

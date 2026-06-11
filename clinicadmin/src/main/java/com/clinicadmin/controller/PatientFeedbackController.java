@@ -89,7 +89,7 @@ public class PatientFeedbackController {
             @PathVariable String patientId ) {
 
         Response response = service
-                .getByClinicIdAndBranchId(clinicId, branchId);
+                .getByClinicIdAndBranchIdAndPatientId(clinicId, branchId,patientId);
 
         return new ResponseEntity<>(
                 response,

@@ -60,23 +60,23 @@ public class CustomerController {
 	private static final Logger log = LoggerFactory.getLogger(CustomerController.class);
 		
 	
-	@PostMapping("/VerifyUserCredentialsAndGenerateAndSendOtp")
-	public ResponseEntity<Response> verifyUserCredentialsAndGenerateAndSendOtp(@RequestBody LoginDTO loginDTO) {
-		log.debug("credentials verified successfully", loginDTO.getMobileNumber() );
-		return customerService.verifyUserCredentialsAndGenerateAndSendOtp(loginDTO);
-	}
-
-	
-	@PostMapping("/verifyOtp")
-	public ResponseEntity<Response> verifyOtp(@RequestBody LoginDTO loginDTO) {
-		return customerService.verifyOtp(loginDTO);
-	}
-
-	
-	@PostMapping("/resendOtp")
-	public ResponseEntity<Response> resendOtp(@RequestBody LoginDTO loginDTO) {
-		return customerService.resendOtp(loginDTO);
-	}
+//	@PostMapping("/VerifyUserCredentialsAndGenerateAndSendOtp")
+//	public ResponseEntity<Response> verifyUserCredentialsAndGenerateAndSendOtp(@RequestBody LoginDTO loginDTO) {
+//		log.debug("credentials verified successfully", loginDTO.getMobileNumber() );
+//		return customerService.verifyUserCredentialsAndGenerateAndSendOtp(loginDTO);
+//	}
+//
+//	
+//	@PostMapping("/verifyOtp")
+//	public ResponseEntity<Response> verifyOtp(@RequestBody LoginDTO loginDTO) {
+//		return customerService.verifyOtp(loginDTO);
+//	}
+//
+//	
+//	@PostMapping("/resendOtp")
+//	public ResponseEntity<Response> resendOtp(@RequestBody LoginDTO loginDTO) {
+//		return customerService.resendOtp(loginDTO);
+//	}
 
 	
 	//CUSTOMER CRUD APIS

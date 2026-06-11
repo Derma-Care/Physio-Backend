@@ -26,12 +26,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface CustomerService {
 
-	 public ResponseEntity<Response> verifyUserCredentialsAndGenerateAndSendOtp(LoginDTO loginDTO);
-		
-	 public ResponseEntity<Response> verifyOtp(LoginDTO loginDTO);
-	
-	 public  ResponseEntity<Response> resendOtp(LoginDTO loginDTO);
-	 	 
+//	 public ResponseEntity<Response> verifyUserCredentialsAndGenerateAndSendOtp(LoginDTO loginDTO);
+//		
+//	 public ResponseEntity<Response> verifyOtp(LoginDTO loginDTO);
+//	
+//	 public  ResponseEntity<Response> resendOtp(LoginDTO loginDTO);
+//	 	 
 	  public Response saveCustomerBasicDetails(CustomerDTO customerDTO);
 	 
 	  public Response getCustomerByMobileNumber(String mblnumber);
