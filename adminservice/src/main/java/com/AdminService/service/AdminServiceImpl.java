@@ -304,6 +304,7 @@ public class AdminServiceImpl implements AdminService {
 
 	        Branch branch = new Branch();
 	        branch.setClinicId(saved.getHospitalId());
+	        branch.setHospitalName(saved.getName());
 	        branch.setBranchId(branchId);
 	        branch.setBranchName(
 	                clinic.getBranch() != null && !clinic.getBranch().isEmpty()
