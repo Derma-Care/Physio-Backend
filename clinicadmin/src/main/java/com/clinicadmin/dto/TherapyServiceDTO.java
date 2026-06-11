@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TherapyServiceDTO {
-    private String id;
+    
+	private String id;
     private int consentType;
     private List<String> exerciseIds;
     private String therapyName;

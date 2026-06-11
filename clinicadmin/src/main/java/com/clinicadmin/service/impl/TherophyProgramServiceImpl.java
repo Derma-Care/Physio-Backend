@@ -186,7 +186,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
                     List<TheraphyNamesDTO> therapyList =
                             new LinkedList<>();
 
-                    double totalProgramAmount = 0;
+                    int totalProgramAmount = 0;
 
                     if (e.getTherophyIds() != null &&
                             !e.getTherophyIds().isEmpty()) {
