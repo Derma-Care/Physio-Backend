@@ -10,17 +10,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import physiotherapydoctor.dto.Assessment;
-import physiotherapydoctor.dto.Complaints;
 import physiotherapydoctor.dto.Diagnosis;
 import physiotherapydoctor.dto.ExercisePlan;
 import physiotherapydoctor.dto.FollowUp;
 import physiotherapydoctor.dto.Investigation;
-import physiotherapydoctor.dto.PatientInfo;
-import physiotherapydoctor.dto.Psychosocial;
-import physiotherapydoctor.dto.RadiationNeuro;
-import physiotherapydoctor.dto.RedFlags;
-import physiotherapydoctor.dto.SpecialSymptoms;
 import physiotherapydoctor.dto.TherapySession;
 import physiotherapydoctor.dto.TreatmentPlan;
 
@@ -49,8 +42,6 @@ public class PhysiotherapyRecordTemplate {
 
 	private ExercisePlan exercisePlan;
 	private FollowUp followUp;
-	private String prescriptionPdf;
 	private String createdTime;
 
-	private boolean uptoInvestigation = false;
 }

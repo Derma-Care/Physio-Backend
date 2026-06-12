@@ -2,8 +2,6 @@ package physiotherapydoctor.dto;
 
 import java.util.List;
 
-import org.springframework.data.annotation.Id;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -14,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class PhysiotherapyRecordTemplateRequest {
+public class PhysiotherapyRecordTemplateDTO {
 
 	private String templateRecordId;
 	private String bookingId;
@@ -33,9 +31,6 @@ public class PhysiotherapyRecordTemplateRequest {
 
 	private ExercisePlan exercisePlan;
 	private FollowUp followUp;
-	private String prescriptionPdf;
 	private String createdTime;
-
-	private boolean uptoInvestigation = false;
 
 }
