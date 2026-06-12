@@ -129,16 +129,20 @@ public class ServiceImpl implements ServiceInterface{
 			repository.save(notificationEntity);}
 	
 	
-	private String buildBody(BookingResponse booking) {
-		String body=booking.getBookingFor() + " booked a " +booking.getConsultationType()+" Appointment For "+booking.getSubServiceName()+" on "
-				+booking.getName()+" at "+booking.getServicetime();
-		return body;
+	private String buildTitle(BookingResponse booking) {
+	    return "Appointment Confirmed";
 	}
 	
-	private String buildTitle(BookingResponse booking) {
-		String title=" Hello ClinicAdmin ";
-		return title;
-	} 
+	
+	private String buildBody(BookingResponse booking) {
+	    return "Dear " + booking.getName() + ",\n\n" +
+	           "Your appointment has been successfully booked.\n\n" +
+	           "Doctor: " + booking.getDoctorName() + "\n" +
+	           "Branch: " + booking.getBranchname() + "\n" +
+	           "Date: " + booking.getServiceDate() + "\n" +
+	           "Time: " + booking.getServicetime() + "\n\n" +
+	           "We look forward to seeing you.";
+	}
 	
 	
 	

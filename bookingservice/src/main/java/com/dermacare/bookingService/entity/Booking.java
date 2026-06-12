@@ -43,7 +43,6 @@ public class Booking  {
     private String clinicDeviceId;
     private String doctorId;
     private String doctorName;
-    private String focReason;
     private String doctorDeviceId;
     private String doctorWebDeviceId;
 //    private String subServiceId;
@@ -75,6 +74,7 @@ public class Booking  {
 //    private Integer takenSittings;
 //    private Integer currentSitting;
     private String foc;
+    private String focReason;
     // ------------------- NEW: Treatments and dates -------------------
     ///private TreatmentResponseDTO treatments; // treatmentName -> treatment details
     private String bodyPartId;
