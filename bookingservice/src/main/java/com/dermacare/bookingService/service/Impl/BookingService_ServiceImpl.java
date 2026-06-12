@@ -430,104 +430,178 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	}
 		
 	
+
 	@Override
-	 public ResponseEntity<?> physioAppointment(BookingRequset request) {
-		 Response res = new Response();
-		  ObjectMapper mapper = new ObjectMapper();
-	         mapper.registerModule(new JavaTimeModule());
-	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		 ResponseEntity<?> repnse = null;
-		 try {
-			 if (request.getFreeFollowUps() == null) {
-			        throw new RuntimeException("Free FollowUps is mandatory");
-			    }
-			 if (request.getClinicName() == null || request.getClinicName().isEmpty() ) {
-			        throw new RuntimeException("ClinicName is mandatory");
-			    }
-			 if (request.getBranchname() == null || request.getBranchname().isEmpty() ) {
-			        throw new RuntimeException("Branchname is mandatory");
-			    }	 
-			 if (request.getFreeFollowUps() == null) {
-			        throw new RuntimeException("Free FollowUps is mandatory");
-			    }
-			   if (request.getPatientMobileNumber() == null || request.getPatientMobileNumber().trim().isEmpty()) {
-			    	if(request.getMobileNumber() == null  || request.getMobileNumber().trim().isEmpty()) {
-			        throw new RuntimeException("patientmobilenumber or Mobile Number is mandatory");
-			    }}
+	public ResponseEntity<?> physioAppointment(BookingRequset request) {
 
-			    if (request.getConsultationExpiration() == null
-			            || request.getConsultationExpiration().trim().isEmpty()) {
+	    Response res = new Response();
 
-			        throw new RuntimeException("Consultation Expiration is mandatory");
-			    }
-		    
+	    try {
 
-			    if (request.getClinicId() == null || request.getClinicId().trim().isEmpty()) {
-			        throw new RuntimeException("Clinic Id is mandatory");
-			    }
+	        ObjectMapper mapper = new ObjectMapper();
+	        mapper.registerModule(new JavaTimeModule());
+	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-			    if (request.getBranchId() == null || request.getBranchId().trim().isEmpty()) {
-			        throw new RuntimeException("Branch Id is mandatory");
-			    }
+	        // =====================================================
+	        // VALIDATIONS
+	        // =====================================================
 
-			    if (request.getDoctorId() == null || request.getDoctorId().trim().isEmpty()) {
-			        throw new RuntimeException("Doctor Id is mandatory");
-			    }
+	        if (request.getFreeFollowUps() == null) {
+	            throw new RuntimeException("Free FollowUps is mandatory");
+	        }
 
-			    if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
-			        throw new RuntimeException("Service Date is mandatory");}
-			        
-			    if (request.getServicetime() == null || request.getServicetime().trim().isEmpty()) {
-				        throw new RuntimeException("Service Time is mandatory");
-			    }
-	     Booking entity = toEntity(request);
-	     Booking updatedBooking = repository.save(entity);
+	        if (request.getClinicId() == null
+	                || request.getClinicId().trim().isEmpty()) {
+	            throw new RuntimeException("Clinic Id is mandatory");
+	        }
 
-         if (updatedBooking != null) {
+	        if (request.getBranchId() == null
+	                || request.getBranchId().trim().isEmpty()) {
+	            throw new RuntimeException("Branch Id is mandatory");
+	        }
 
-             // existing notification feign
-             int status = 0;
-             try {
-                 Response respnse = notificationFeign
-                     .createNotification(mapper.convertValue(updatedBooking, BookingResponse.class))
-                     .getBody();
-                 status = respnse.getStatus();
-             } catch (Exception e) {
-                 log.warn("Notification feign failed: {}", e.getMessage());
-             }
+	        if (request.getDoctorId() == null
+	                || request.getDoctorId().trim().isEmpty()) {
+	            throw new RuntimeException("Doctor Id is mandatory");
+	        }
 
-             // ✅ WHATSAPP NOTIFICATION — won't break booking if fails
-             try {
-                 // pass original request (has all fields)
-                 request.setBookingId(updatedBooking.getBookingId());
-                 whatsAppService.sendBookingConfirmation(request);
-                 log.info("WhatsApp sent for booking: {}", updatedBooking.getBookingId());
-             } catch (Exception e) {
-                 log.warn("WhatsApp notification failed for booking {}: {}",
-                     updatedBooking.getBookingId(), e.getMessage());
-                 // ✅ booking still succeeds even if WhatsApp fails
-             }
+	        if (request.getServiceDate() == null
+	                || request.getServiceDate().trim().isEmpty()) {
+	            throw new RuntimeException("Service Date is mandatory");
+	        }
 
-             if (status == 200) {
-                 res.setMessage("Appointment Booked Successfully and notification sent");
-             } else {
-                 res.setMessage("Appointment Booked Successfully but notification not sent");
-             }
-         }
+	        if (request.getServicetime() == null
+	                || request.getServicetime().trim().isEmpty()) {
+	            throw new RuntimeException("Service Time is mandatory");
+	        }
 
-         res.setStatus(200);
-         res.setSuccess(true);
-         repnse = ResponseEntity.status(res.getStatus()).body(res);
+	        if (request.getConsultationExpiration() == null
+	                || request.getConsultationExpiration().trim().isEmpty()) {
+	            throw new RuntimeException("Consultation Expiration is mandatory");
+	        }
 
-     } catch (Exception e) {
-         res.setMessage(e.getMessage());
-         res.setStatus(500);
-         res.setSuccess(false);
-         repnse = ResponseEntity.status(res.getStatus()).body(res);
-     }
+	        boolean hasPatientMobile =
+	                request.getPatientMobileNumber() != null
+	                && !request.getPatientMobileNumber().trim().isEmpty();
 
-     return repnse;
- }
+	        boolean hasMobile =
+	                request.getMobileNumber() != null
+	                && !request.getMobileNumber().trim().isEmpty();
+
+	        if (!hasPatientMobile && !hasMobile) {
+	            throw new RuntimeException(
+	                    "Patient Mobile Number or Mobile Number is mandatory");
+	        }
+
+	        // =====================================================
+	        // SAVE BOOKING
+	        // =====================================================
+
+	        Booking entity = toEntity(request);
+
+	        Booking updatedBooking = repository.save(entity);
+
+	        if (updatedBooking == null) {
+	            throw new RuntimeException("Unable to save appointment");
+	        }
+
+	        // =====================================================
+	        // SEND NOTIFICATION
+	        // =====================================================
+
+	        int notificationStatus = 0;
+
+	        try {
+
+	            Response notificationResponse =
+	                    notificationFeign
+	                            .createNotification(
+	                                    mapper.convertValue(
+	                                            updatedBooking,
+	                                            BookingResponse.class))
+	                            .getBody();
+
+	            if (notificationResponse != null) {
+	                notificationStatus =
+	                        notificationResponse.getStatus();
+	            }
+
+	        } catch (Exception e) {
+
+	            log.warn(
+	                    "Notification service failed for booking {} : {}",
+	                    updatedBooking.getBookingId(),
+	                    e.getMessage());
+	        }
+
+	        // =====================================================
+	        // SEND WHATSAPP
+	        // =====================================================
+
+	        try {
+
+	            request.setBookingId(
+	                    updatedBooking.getBookingId());
+
+	            request.setClinicId(
+	                    updatedBooking.getClinicId());
+
+	            request.setBranchId(
+	                    updatedBooking.getBranchId());
+
+	            whatsAppService.sendBookingConfirmation(
+	                    request);
+
+	            log.info(
+	                    "WhatsApp sent successfully for booking {}",
+	                    updatedBooking.getBookingId());
+
+	        } catch (Exception e) {
+
+	            log.warn(
+	                    "WhatsApp notification failed for booking {} : {}",
+	                    updatedBooking.getBookingId(),
+	                    e.getMessage());
+
+	            // Do not fail booking if WhatsApp fails
+	        }
+
+	        // =====================================================
+	        // SUCCESS RESPONSE
+	        // =====================================================
+
+	        res.setStatus(200);
+	        res.setSuccess(true);
+
+	        if (notificationStatus == 200) {
+
+	            res.setMessage(
+	                    "Appointment Booked Successfully and notification sent");
+
+	        } else {
+
+	            res.setMessage(
+	                    "Appointment Booked Successfully");
+	        }
+
+	        return ResponseEntity.ok(res);
+
+	    } catch (Exception e) {
+
+	        log.error(
+	                "Appointment booking failed : {}",
+	                e.getMessage(),
+	                e);
+
+	        res.setStatus(500);
+	        res.setSuccess(false);
+	        res.setMessage(e.getMessage());
+
+	        return ResponseEntity
+	                .status(500)
+	                .body(res);
+	    }
+	}
 	
 	     
 	public ResponseEntity<?> getAppointsByPatientId(String patientId) {

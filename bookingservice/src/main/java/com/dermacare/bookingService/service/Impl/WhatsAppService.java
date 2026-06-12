@@ -1,10 +1,15 @@
 package com.dermacare.bookingService.service.Impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.dermacare.bookingService.dto.BookingRequset;
+import com.dermacare.bookingService.dto.BranchDTO;
+import com.dermacare.bookingService.feign.AdminServiceClient;
+import com.dermacare.bookingService.util.ResponseStructure;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +21,9 @@ public class WhatsAppService {
             .baseUrl("https://www.fast2sms.com")
             .build();
 
+    @Autowired
+    private AdminServiceClient adminServiceClient;
+
     @Value("${whatsapp.auth-key}")
     private String authKey;
 
@@ -25,84 +33,201 @@ public class WhatsAppService {
     @Value("${whatsapp.message-id}")
     private String messageId;
 
-    // ✅ Template name — must match exactly in Fast2SMS dashboard
-    private static final String BOOKING_TEMPLATE = "booking_confirmation";
+    private static final String BOOKING_TEMPLATE =
+            "appointment_confirmation";
 
-    // =========================
-    // SEND BOOKING CONFIRMATION
-    // =========================
     public void sendBookingConfirmation(BookingRequset booking) {
 
-        // Get mobile — patientMobileNumber first, fallback to mobileNumber
-        String mobile = booking.getPatientMobileNumber();
-        if (mobile == null || mobile.trim().isEmpty()) {
-            mobile = booking.getMobileNumber();
-        }
-        if (mobile == null || mobile.trim().isEmpty()) {
-            log.warn("No mobile number found, skipping WhatsApp for booking: {}",
-                booking.getBookingId());
-            return;
-        }
-
-        // Normalize to 10 digits
-        String cleanMobile = mobile.replaceAll("[^0-9]", "");
-        if (cleanMobile.startsWith("91") && cleanMobile.length() == 12) {
-            cleanMobile = cleanMobile.substring(2);
-        }
-
-     // Build variables — order must match template
-     // {{1}} = Patient Name 
-     // {{2}} = Doctor Name 
-     // {{3}} = Date 
-     // {{4}} = Time 
-     // {{5}} = Booking ID
-     // {{6}} = Clinic Name
-     String variables = String.join("|",
-         nullSafe(booking.getName(),        "Patient"),
-         nullSafe(booking.getDoctorName(),  "Doctor"),
-         nullSafe(booking.getServiceDate(), ""),
-         nullSafe(booking.getServicetime(), ""),
-         nullSafe(booking.getBookingId(),   ""),
-         nullSafe(booking.getClinicName(),  "Clinic")
-     );
-
-        final String finalMobile    = cleanMobile;
-        final String finalVariables = variables;
-
-        log.info("Sending WhatsApp booking confirmation | template: {} | to: {} | variables: {}",
-            BOOKING_TEMPLATE, finalMobile, finalVariables);
-
         try {
-            String response = webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                    .path("/dev/whatsapp")
-                    .queryParam("authorization",    authKey)
-                    .queryParam("message_id",       messageId)
-                    .queryParam("phone_number_id",  phoneNumberId)
-                    .queryParam("numbers",          finalMobile)
-                    .queryParam("variables_values", finalVariables)
-                    .build())
-                .retrieve()
-                .onStatus(
-                    status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> clientResponse.bodyToMono(String.class)
-                        .map(body -> new RuntimeException("Fast2SMS error: " + body))
-                )
-                .bodyToMono(String.class)
-                .block();
 
-            log.info("WhatsApp booking confirmation sent successfully: {}", response);
+            // =====================================================
+            // MOBILE NUMBER
+            // =====================================================
+
+            String mobile = booking.getPatientMobileNumber();
+
+            if (mobile == null || mobile.trim().isEmpty()) {
+                mobile = booking.getMobileNumber();
+            }
+
+            if (mobile == null || mobile.trim().isEmpty()) {
+
+                log.warn(
+                        "Mobile number not found for booking {}",
+                        booking.getBookingId());
+
+                return;
+            }
+
+            String normalizedMobile =
+                    mobile.replaceAll("[^0-9]", "");
+
+            if (normalizedMobile.startsWith("91")
+                    && normalizedMobile.length() == 12) {
+
+                normalizedMobile =
+                        normalizedMobile.substring(2);
+            }
+
+            final String cleanMobile = normalizedMobile;
+
+            // =====================================================
+            // FETCH BRANCH DETAILS FROM ADMIN SERVICE
+            // =====================================================
+
+            BranchDTO branch = null;
+
+            try {
+
+                log.info(
+                        "Fetching branch details for branchId={}",
+                        booking.getBranchId());
+
+                ResponseEntity<ResponseStructure<BranchDTO>> response =
+                        adminServiceClient.getBranchById(
+                                booking.getBranchId());
+
+                if (response != null
+                        && response.getBody() != null
+                        && response.getBody().getData() != null) {
+
+                    branch = response.getBody().getData();
+
+                    log.info("Branch Details : {}", branch);
+
+                } else {
+
+                    log.warn(
+                            "Branch details not found for branchId={}",
+                            booking.getBranchId());
+                }
+
+            } catch (Exception e) {
+
+                log.error(
+                        "Unable to fetch branch details for branchId {} : {}",
+                        booking.getBranchId(),
+                        e.getMessage(),
+                        e);
+            }
+
+            // =====================================================
+            // DEFAULT VALUES
+            // =====================================================
+
+            String clinicName = "Clinic";
+            String branchName = "";
+            String whatsappNumber = "";
+            String email = "";
+            String locationUrl = "";
+
+            if (branch != null) {
+
+                clinicName = nullSafe(
+                        branch.getHospitalName(),
+                        "Clinic");
+
+                branchName = nullSafe(
+                        branch.getBranchName(),
+                        "");
+
+                whatsappNumber = nullSafe(
+                        branch.getContactNumber(),
+                        "");
+
+                email = nullSafe(
+                        branch.getEmail(),
+                        "");
+
+                if (branch.getLatitude() != null
+                        && !branch.getLatitude().trim().isEmpty()
+                        && branch.getLongitude() != null
+                        && !branch.getLongitude().trim().isEmpty()) {
+
+                    locationUrl =
+                            "https://maps.google.com/?q="
+                                    + branch.getLatitude()
+                                    + ","
+                                    + branch.getLongitude();
+                }
+
+                log.info(
+                        "Hospital={}, Branch={}, WhatsApp={}, Email={}",
+                        clinicName,
+                        branchName,
+                        whatsappNumber,
+                        email);
+            }
+
+            // =====================================================
+            // TEMPLATE VARIABLES
+            // =====================================================
+
+            final String variables = String.join("|",
+
+                    clinicName,                                  // {{1}}
+                    nullSafe(booking.getName(), "Patient"),      // {{2}}
+                    nullSafe(booking.getDoctorName(), "Doctor"), // {{3}}
+                    nullSafe(booking.getServiceDate(), ""),      // {{4}}
+                    nullSafe(booking.getServicetime(), ""),      // {{5}}
+                    nullSafe(booking.getBookingId(), ""),        // {{6}}
+                    branchName,                                  // {{7}}
+                    whatsappNumber,                              // {{8}}
+                    email,                                       // {{9}}
+                    locationUrl                                  // {{10}}
+            );
+
+            log.info(
+                    "Sending WhatsApp | Template={} | BookingId={} | Mobile={}",
+                    BOOKING_TEMPLATE,
+                    booking.getBookingId(),
+                    cleanMobile);
+
+            log.info(
+                    "WhatsApp Variables={}",
+                    variables);
+
+            // =====================================================
+            // FAST2SMS API
+            // =====================================================
+
+            String response = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/dev/whatsapp")
+                            .queryParam("authorization", authKey)
+                            .queryParam("message_id", messageId)
+                            .queryParam("phone_number_id", phoneNumberId)
+                            .queryParam("numbers", cleanMobile)
+                            .queryParam("variables_values", variables)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info(
+                    "WhatsApp booking confirmation sent successfully : {}",
+                    response);
 
         } catch (Exception e) {
-            log.error("WhatsApp booking confirmation failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage());
+
+            log.error(
+                    "WhatsApp booking confirmation failed : {}",
+                    e.getMessage(),
+                    e);
+
+            throw new RuntimeException(
+                    "WhatsApp booking confirmation failed : "
+                            + e.getMessage());
         }
     }
 
-    // =========================
-    // NULL SAFE HELPER
-    // =========================
-    private String nullSafe(String value, String defaultValue) {
-        return (value != null && !value.trim().isEmpty()) ? value.trim() : defaultValue;
+    private String nullSafe(
+            String value,
+            String defaultValue) {
+
+        return (value != null
+                && !value.trim().isEmpty())
+                ? value.trim()
+                : defaultValue;
     }
 }
