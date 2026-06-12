@@ -1,5 +1,8 @@
 package com.dermacare.bookingService.service.Impl;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -144,11 +147,17 @@ public class WhatsAppService {
                         && branch.getLongitude() != null
                         && !branch.getLongitude().trim().isEmpty()) {
 
-                    locationUrl =
-                            "https://maps.google.com/?q="
-                                    + branch.getLatitude()
-                                    + ","
-                                    + branch.getLongitude();
+                	locationUrl =
+                		    "https://www.google.com/maps/search/?api=1&query="
+                		    + URLEncoder.encode(branch.getHospitalName()
+                		    + " " + branch.getAddress(),
+                		    StandardCharsets.UTF_8);
+                	
+//                	locationUrl =
+//                		    "https://www.google.com/maps/search/?api=1&query="
+//                		    + branch.getLatitude()
+//                		    + ","
+//                		    + branch.getLongitude();
                 }
 
                 log.info(

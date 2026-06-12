@@ -2029,10 +2029,9 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		        if (dto.getConsentFormPdf() != null && !dto.getConsentFormPdf().isEmpty())
 		            entity.setConsentFormPdf(dto.getConsentFormPdf());
 
+		 
 		        if (dto.getPrescriptionPdf() != null && !dto.getPrescriptionPdf().isEmpty())
-		            entity.setPrescriptionPdf(
-		                    mapper.convertValue(dto.getPrescriptionPdf(),
-		                            new TypeReference<List<byte[]>>() {}));
+		            entity.setPrescriptionPdf(dto.getPrescriptionPdf());
 
 		        // -------- PAYMENT --------
 

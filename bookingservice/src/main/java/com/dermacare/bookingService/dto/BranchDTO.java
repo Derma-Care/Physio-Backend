@@ -9,7 +9,7 @@ public class BranchDTO {
     private String hospitalName;
     private String branchId;
     private String branchName;
-
+    private String address;
     private String contactNumber; // WhatsApp
     private String email;
 

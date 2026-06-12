@@ -63,7 +63,7 @@ public class Booking  {
     private Integer visitCount;
     private List<String> attachments;
     private String consentFormPdf;
-    private List<byte[]> prescriptionPdf;
+    private List<String> prescriptionPdf;
     private double totalFee;
 	private String paymentType;
     private String doctorRefCode;
@@ -161,4 +161,5 @@ public class Booking  {
 //        this.currentSitting = booking.getCurrentSitting();
        /// this.treatments = booking.getTreatments();
     }
+
 }
