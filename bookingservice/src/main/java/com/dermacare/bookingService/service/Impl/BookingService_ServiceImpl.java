@@ -335,14 +335,17 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	 
 	 private String getPrescriptionpdf(String bid) {
-	     try {	        
-	         String res = physioDoctorFeign.getByBookingId(bid);
-	         return res;
-	         }catch(Exception e) {	
-	        	 System.out.println(e.getMessage());
-	         return null;
-	     }
-	 }
+		    try {	        
+		        String res = physioDoctorFeign.getByBookingId(bid);
+		        if (res != null && !res.isBlank()) {
+		            return s3Service.generateSignedUrl(res);
+		        }
+		        return null;
+		    } catch(Exception e) {	
+		        System.out.println(e.getMessage());
+		        return null;
+		    }
+		}
 	
 	
 	private static String randomNumber() {

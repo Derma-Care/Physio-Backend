@@ -2151,7 +2151,15 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (int i = 0; i < records.size(); i++) {
 
 				PhysiotherapyRecord record = records.get(i);
-
+				
+				 // ✅ Sign prescriptionPdf before converting to map
+	            if (record.getPrescriptionPdf() != null && !record.getPrescriptionPdf().isBlank()) {
+	                try {
+	                    record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
+	                } catch (Exception e) {
+	                    System.out.println("prescriptionPdf sign error: " + e.getMessage());
+	                }
+	            }
 				Map<String, Object> map = new LinkedHashMap<>();
 				map.put("visitNumber", "Visit " + (i + 1));
 				map.put("visitDate", record.getCreatedAt());
@@ -2216,7 +2224,14 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        for (int i = 0; i < records.size(); i++) {
 
 	            PhysiotherapyRecord record = records.get(i);
-	            
+	            // ✅ Sign prescriptionPdf before converting to map
+	            if (record.getPrescriptionPdf() != null && !record.getPrescriptionPdf().isBlank()) {
+	                try {
+	                    record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
+	                } catch (Exception e) {
+	                    System.out.println("prescriptionPdf sign error: " + e.getMessage());
+	                }
+	            }
 	            if(record.getTreatmentPlan() == null) {
 	            	continue;}
 	            if(record.getTreatmentPlan() != null) {
@@ -2276,7 +2291,14 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (int i = 0; i < records.size(); i++) {
 
 				PhysiotherapyRecord record = records.get(i);
-
+				 // ✅ Sign prescriptionPdf before converting to map
+	            if (record.getPrescriptionPdf() != null && !record.getPrescriptionPdf().isBlank()) {
+	                try {
+	                    record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
+	                } catch (Exception e) {
+	                    System.out.println("prescriptionPdf sign error: " + e.getMessage());
+	                }
+	            }
 				VisitDetailsDTO map = new VisitDetailsDTO();
 
 			    map.setVisitNumber( String.valueOf(i + 1));

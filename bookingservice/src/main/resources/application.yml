@@ -56,17 +56,22 @@ spring.lifecycle:
 # WHATSAPP
 # =========================================================
 whatsapp:
-  auth-key: ${WHATSAPP_AUTH_KEY}
-  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID}
-  message-id: ${WHATSAPP_MESSAGE_ID}
+  auth-key: 
+  phone-number-id: 
+  message-id: 
 
 # =========================================================
 # AWS S3
 # =========================================================
 
 aws:
+<<<<<<< Updated upstream
   accessKeyId: ${AWS_ACCESS_KEY_ID}
   secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+=======
+  accessKeyId:    
+  secretAccessKey: 
+>>>>>>> Stashed changes
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage
