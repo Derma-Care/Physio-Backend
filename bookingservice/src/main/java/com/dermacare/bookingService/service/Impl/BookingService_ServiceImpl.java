@@ -2792,16 +2792,28 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 		//System.out.println(res);
 		// ✅ Enrich with session details
 		try {
-			res = res.stream().map(n -> {			
-				List<Session> lst = physioDoctorFeign
-						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
-						.getBody();				
-                if(lst != null ) {
-				n.setSession(lst);
-				n.setVisitType("session");
-				}else {
-				n.setSession(null);}				
-				return n;
+			res = res.stream().map(n -> {
+
+			    List<Session> lst = physioDoctorFeign
+			            .getPhysioByBookingId(
+			                    n.getBookingId(),
+			                    n.getServiceDate())
+			            .getBody();
+
+			    if (lst != null && !lst.isEmpty()) {
+
+			        // If Session already contains exerciseId and exerciseName
+			        n.setSession(lst);
+
+			        n.setVisitType("session");
+
+			    } else {
+
+			        n.setSession(null);
+			    }
+
+			    return n;
+
 			}).toList();
 			res.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
 			map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
