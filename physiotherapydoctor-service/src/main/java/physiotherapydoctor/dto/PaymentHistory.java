@@ -16,4 +16,5 @@ public class PaymentHistory {
     private String paymentLevel; // ✅ ADD
     private Double discountAmount;
     private String discountIssuedBy;
+    private String receiptNumber;
 }

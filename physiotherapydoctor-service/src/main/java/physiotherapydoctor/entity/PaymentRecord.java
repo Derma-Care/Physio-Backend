@@ -56,6 +56,7 @@ public class PaymentRecord {
 	private boolean sessionTableCreatedStatus;
 
 	// 🧾 HISTORY
+	private String overallReceiptNumber;
 	private List<PaymentHistory> paymentHistory;
 
 	// 🌳 DATA
