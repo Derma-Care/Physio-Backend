@@ -642,6 +642,14 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		existing.setUpdatedAt(now);
 
 		PhysiotherapyRecord updated = repository.save(existing);
+		
+		if (updated.getPrescriptionPdf() != null
+		        && !updated.getPrescriptionPdf().isEmpty()) {
+
+		    updated.setPrescriptionPdf(
+		            s3Service.generateSignedUrl(
+		                    updated.getPrescriptionPdf()));
+		}
 		// ✅ Call booking update API here
 		if (existing.getBookingId() != null && !existing.getBookingId().isEmpty()) {
 
