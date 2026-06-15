@@ -819,6 +819,7 @@ public class PaymentServiceImpl implements PaymentService {
 		res.setNoOfSessionCompletedCount(record.getNoOfSessionCompletedCount());
 		res.setNoOfSessionCompletedStatus(record.isNoOfSessionCompletedStatus());
 		res.setSessionTableCreatedStatus(record.isSessionTableCreatedStatus());
+		res.setOverallReceiptNumber(record.getOverallReceiptNumber());
 		res.setPaymentHistory(record.getPaymentHistory());
 
 		String serviceType = record.getServiceType() != null ? record.getServiceType().toLowerCase() : "package";
