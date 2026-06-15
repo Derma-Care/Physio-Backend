@@ -82,12 +82,12 @@ management:
 # ===============================
 # AWS S3
 # ===============================
-#aws:
-#   accessKeyId:    
-#   secretAccessKey: 
-#   region: ap-south-1
-#   s3:
-#    bucket: physiocare-prod-storage
+aws:
+   accessKeyId: ${AWS_ACCESS_KEY_ID}
+   secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+   region: ap-south-1
+   s3:
+    bucket: physiocare-prod-storage
 
 # ===============================
 # Firebase
