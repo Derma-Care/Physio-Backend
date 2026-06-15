@@ -22,7 +22,7 @@ import physiotherapydoctor.dto.ResponseStructure;
 public interface  BookingFeignClient {
 	
 	@GetMapping("/api/v1/getBookedServiceById/{id}")
-	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id);
+	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable("id") String id);
 	
 	
 	@PutMapping("/api/v1/updateAppointment")

@@ -62,18 +62,12 @@ public class BookingResponse {
 	private List<String> prescriptionPdf;
 	private String doctorRefCode;
 	private String paymentType;
-//	private Integer totalSittings;
-//	private Integer pendingSittings;
-//	private Integer takenSittings;
-//	private Integer currentSitting;
 	private String followupDate;
 	private String foc;
 	private String focReason;
 	private String followupStatus;
 	private String treatmentName;
 	private String treatmentDate;
-	// ✅ Add treatments info
-	//private TreatmentResponseDTO treatments;
 
 	// ✅ Add this new field
 	private String updatedTreatment;
