@@ -600,9 +600,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			existing.setExercisePlan(dto.getExercisePlan());
 		}
 
-		// if (dto.getProgressNotes() != null) {
-		// existing.setProgressNotes(dto.getProgressNotes());
-		// }
+		 if (dto.getPrescriptionPdf() != null) {
+		 existing.setPrescriptionPdf(dto.getPrescriptionPdf());
+		 }
 
 		if (dto.getFollowUp() != null) {
 			existing.setFollowUp(dto.getFollowUp());
