@@ -3332,4 +3332,81 @@ public ResponseEntity<Response> getBookingByCustomRange(String clinicId,
 		}catch (Exception e) {
 			///System.out.println(e.getMessage());
 			return null;
-		}}}
+		}}
+	@Override
+	public List<Map<String, Object>> searchBookings(String clinicId, String input) {
+
+	    try {
+
+	        List<Booking> bookings;
+
+	        // Mobile Number Search
+	        if (input.matches("^[6-9]\\d{9}$")) {
+
+	            bookings = repository.searchBookings(
+	                    clinicId,
+	                    input,
+	                    ""
+	            );
+
+	        } else {
+
+	            // Name must be minimum 3 characters
+	            if (input.length() < 3) {
+	                throw new IllegalArgumentException(
+	                        "Please enter at least 3 characters to search by patient name");
+	            }
+
+	            bookings = repository.searchBookings(
+	                    clinicId,
+	                    input,
+	                    input
+	            );
+	        }
+
+	        if (bookings == null || bookings.isEmpty()) {
+	            return new ArrayList<>();
+	        }
+
+	        List<BookingResponse> dto = toResponses(bookings);
+
+	        List<Map<String, Object>> list = new ArrayList<>();
+
+	        dto.forEach(n -> {
+
+	            Map<String, Object> map = new LinkedHashMap<>();
+
+	            map.put("bookingId", n.getBookingId());
+	            map.put("serviceDate", n.getServiceDate());
+	            map.put("servicetime", n.getServicetime());
+	            map.put("name", n.getName());
+	            map.put("mobileNumber",
+	                    n.getPatientMobileNumber() != null
+	                            && !n.getPatientMobileNumber().isEmpty()
+	                            ? n.getPatientMobileNumber()
+	                            : n.getMobileNumber());
+
+	            map.put("doctorId", n.getDoctorId());
+	            map.put("doctorName", n.getDoctorName());
+	            map.put("paymentType", n.getPaymentType());
+	            map.put("visitType", n.getVisitType());
+	            map.put("status", n.getStatus());
+	            map.put("followupStatus", n.getFollowupStatus());
+	            map.put("patientId", n.getPatientId());
+	            map.put("clinicId", n.getClinicId());
+	            map.put("customerId", n.getCustomerId());
+	            map.put("branchId", n.getBranchId());
+	            map.put("problem", n.getProblem());
+
+	            list.add(map);
+	        });
+
+	        return list;
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return new ArrayList<>();
+	    }
+	}
+	}
+

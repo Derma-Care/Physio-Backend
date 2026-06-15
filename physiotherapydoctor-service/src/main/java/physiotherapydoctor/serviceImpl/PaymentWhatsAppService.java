@@ -1,17 +1,20 @@
 package physiotherapydoctor.serviceImpl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.extern.slf4j.Slf4j;
 import physiotherapydoctor.dto.BookingResponse;
-import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.feign.BookingFeignClient;
@@ -20,20 +23,9 @@ import physiotherapydoctor.feign.BookingFeignClient;
 @Slf4j
 public class PaymentWhatsAppService {
 
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl("https://www.fast2sms.com")
-            .build();
-
-    // =====================================================
-    // ✅ FIX: ObjectMapper with JavaTimeModule registered
-    // so LocalDate/LocalDateTime fields (e.g. date_TIME in
-    // ConsultationFeesDTO) don't throw InvalidDefinitionException
-    // =====================================================
-    private final ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule());
-
-    @Autowired
-    private BookingFeignClient bookingFeignClient;
+    private final WebClient webClient;
+    private final ObjectMapper mapper;
+    private final BookingFeignClient bookingFeignClient;
 
     @Value("${whatsapp.auth-key}")
     private String authKey;
@@ -41,182 +33,216 @@ public class PaymentWhatsAppService {
     @Value("${whatsapp.phone-number-id}")
     private String phoneNumberId;
 
-    @Value("${whatsapp.message-id}")
-    private String messageId;
+    @Value("${whatsapp.payment-confirmation-template-id}")
+    private String paymentConfirmationTemplateId;
+
+    @Value("${whatsapp.base-url}")
+    private String baseUrl;
+
+    public PaymentWhatsAppService(
+            WebClient.Builder webClientBuilder,
+            ObjectMapper mapper,
+            BookingFeignClient bookingFeignClient,
+            @Value("${whatsapp.base-url}") String baseUrl
+    ) {
+        this.mapper = mapper;
+        this.bookingFeignClient = bookingFeignClient;
+
+        this.webClient = webClientBuilder
+                .baseUrl(baseUrl)
+                .build();
+    }
 
     // =====================================================
-    // TEMPLATE : payment_confirmation
-    //
-    // Hi {{1}} 👋, your payment at *{{2}}* has been
-    // recorded successfully. ✅
-    //
-    // 🗒️ Booking {{3}} · {{4}}
-    //
-    // 💰 Final amount    Rs. {{5}}
-    // ✅ Amount paid     Rs. {{6}}
-    // ⏳ Balance due     Rs. {{7}}
-    //
-    // 📋 Payment status: *{{8}}*
-    //
-    // For any queries please contact your clinic directly.
-    // 🙏 Wishing you a speedy recovery!
+    // PUBLIC API
     // =====================================================
 
     public void sendPaymentConfirmation(PaymentRecord record) {
 
+        if (record == null || record.getBookingId() == null) {
+            log.warn("WhatsApp skipped — invalid payment record");
+            return;
+        }
+
         try {
-
-            // =====================================================
-            // STEP 1 — FETCH BOOKING DATA VIA FEIGN
-            // =====================================================
-
-            BookingResponse booking = fetchBookingData(record.getBookingId());
+            BookingResponse booking = fetchBooking(record.getBookingId());
 
             if (booking == null) {
-                log.warn("WhatsApp skipped — booking data not found for bookingId={}",
-                        record.getBookingId());
+                log.warn("WhatsApp skipped — booking not found: {}", record.getBookingId());
                 return;
             }
 
-            // =====================================================
-            // STEP 2 — EXTRACT FIELDS FROM BOOKING RESPONSE
-            // name           → patientName   → {{1}}
-            // clinicName     → clinicName    → {{2}}
-            // patientMobileNumber → mobile (fallback to mobileNumber)
-            // =====================================================
+            String mobile = resolveMobile(booking);
+            String normalizedMobile = normalizeMobile(mobile);
 
-            String patientName = safe(booking.getName(), "Patient");
-
-            String clinicName  = safe(booking.getClinicName(), "Clinic");
-
-            // patientMobileNumber first, fallback to mobileNumber
-            String rawMobile = (booking.getPatientMobileNumber() != null
-                    && !booking.getPatientMobileNumber().isBlank())
-                    ? booking.getPatientMobileNumber()
-                    : booking.getMobileNumber();
-
-            // =====================================================
-            // STEP 3 — VALIDATE & NORMALIZE MOBILE
-            // =====================================================
-
-            if (rawMobile == null || rawMobile.isBlank()) {
-                log.warn("WhatsApp skipped — no mobile number for bookingId={}",
-                        record.getBookingId());
+            if (!isValidMobile(normalizedMobile)) {
+                log.warn("WhatsApp skipped — invalid mobile bookingId={}", record.getBookingId());
                 return;
             }
 
-            String mobile = rawMobile.replaceAll("[^0-9]", "");
+            String variables = buildVariables(record, booking);
 
-            if (mobile.startsWith("91") && mobile.length() == 12) {
-                mobile = mobile.substring(2);
-            }
+            sendWhatsApp(normalizedMobile, variables, record.getBookingId());
 
-            if (mobile.length() != 10) {
-                log.warn("WhatsApp skipped — invalid mobile length={} bookingId={}",
-                        mobile.length(), record.getBookingId());
-                return;
-            }
-
-            final String cleanMobile = mobile;
-
-            // =====================================================
-            // STEP 4 — BUILD VARIABLES STRING
-            // =====================================================
-
-            String variables = String.join("|",
-                    patientName,                                    // {{1}}
-                    clinicName,                                     // {{2}}
-                    safe(record.getBookingId(),     ""),            // {{3}}
-                    safe(record.getTreatmentName(), "Treatment"),   // {{4}}
-                    fmt(record.getFinalAmount()),                   // {{5}}
-                    fmt(record.getTotalPaid()),                     // {{6}}
-                    fmt(record.getBalanceAmount()),                 // {{7}}
-                    safe(record.getPaymentStatus(), "Pending")      // {{8}}
-            );
-
-            log.info("Sending payment WhatsApp | bookingId={} | mobile={} | patient={} | clinic={}",
-                    record.getBookingId(), cleanMobile, patientName, clinicName);
-
-            log.debug("WhatsApp variables={}", variables);
-
-            // =====================================================
-            // STEP 5 — CALL FAST2SMS API
-            // =====================================================
-
-            String response = webClient.get()
-                    .uri(ub -> ub
-                            .path("/dev/whatsapp")
-                            .queryParam("authorization",    authKey)
-                            .queryParam("message_id",       messageId)
-                            .queryParam("phone_number_id",  phoneNumberId)
-                            .queryParam("numbers",          cleanMobile)
-                            .queryParam("variables_values", variables)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            log.info("WhatsApp sent successfully | bookingId={} | response={}",
-                    record.getBookingId(), response);
-
-        } catch (Exception e) {
-
-            // ✅ NEVER fail payment due to WhatsApp error
-            log.error("WhatsApp failed | bookingId={} | error={}",
-                    record.getBookingId(), e.getMessage(), e);
+        } catch (Exception ex) {
+            log.error("WhatsApp failure bookingId={} error={}",
+                    record.getBookingId(), ex.getMessage(), ex);
         }
     }
 
     // =====================================================
-    // FETCH BOOKING DATA FROM BOOKING SERVICE
+    // WHATSAPP CALL
     // =====================================================
 
-    private BookingResponse fetchBookingData(String bookingId) {
+    private void sendWhatsApp(String mobile, String variables, String bookingId) {
+
+        String response = webClient.get()
+                .uri(uri -> uri
+                        .path("/dev/whatsapp")
+                        .queryParam("authorization", authKey)
+                        .queryParam("message_id", paymentConfirmationTemplateId)
+                        .queryParam("phone_number_id", phoneNumberId)
+                        .queryParam("numbers", mobile)
+                        .queryParam("variables_values", variables)
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(5))
+                .retry(1)
+                .block();
+
+        log.info("WhatsApp sent bookingId={} response={}", bookingId, response);
+    }
+
+    // =====================================================
+    // BOOKING FETCH
+    // =====================================================
+
+    private BookingResponse fetchBooking(String bookingId) {
 
         try {
-
-            ResponseEntity<ResponseStructure<BookingResponse>> responseEntity =
+            ResponseEntity<ResponseStructure<BookingResponse>> response =
                     bookingFeignClient.getBookedService(bookingId);
 
-            if (responseEntity == null
-                    || responseEntity.getBody() == null
-                    || responseEntity.getBody().getData() == null) {
-
-                log.warn("Booking data empty for bookingId={}", bookingId);
+            if (response == null ||
+                response.getBody() == null ||
+                response.getBody().getData() == null) {
                 return null;
             }
 
-            Object data = responseEntity.getBody().getData();
+            return mapper.convertValue(
+                    response.getBody().getData(),
+                    BookingResponse.class
+            );
 
-            // Response.data is Object — convert using ObjectMapper
-            // (mapper now has JavaTimeModule registered — fixes
-            // LocalDateTime serialization failure on date_TIME field)
-            BookingResponse booking = mapper.convertValue(data, BookingResponse.class);
-
-            log.info("Booking fetched | bookingId={} | patient={} | mobile={} | clinic={}",
-                    bookingId,
-                    booking.getName(),
-                    booking.getPatientMobileNumber(),
-                    booking.getClinicName());
-
-            return booking;
-
-        } catch (Exception e) {
-            log.error("Failed to fetch booking | bookingId={} | error={}",
-                    bookingId, e.getMessage(), e);
+        } catch (Exception ex) {
+            log.error("Booking fetch failed bookingId={} error={}",
+                    bookingId, ex.getMessage(), ex);
             return null;
         }
     }
 
     // =====================================================
-    // UTILS
+    // VARIABLE BUILDER
     // =====================================================
 
-    private String fmt(double amount) {
-        return String.format("%.2f", amount);
+    private String buildVariables(PaymentRecord record, BookingResponse booking) {
+
+        LastPayment last = getLastPayment(record);
+
+        return String.join("|",
+                safe(booking.getName(), "Patient"),
+                safe(booking.getClinicName(), "Clinic"),
+                safe(record.getBookingId(), ""),
+                safe(record.getTreatmentName(), "Treatment"),
+                fmt(record.getFinalAmount()),
+                fmt(record.getTotalPaid()),
+                fmt(record.getBalanceAmount()),
+                fmt(last != null ? last.amount : 0.0),
+                formatDate(last != null ? last.date : null),
+                safe(last != null ? last.mode : "NA", "NA"),
+                safe(record.getPaymentStatus(), "Pending")
+        );
+    }
+
+    // =====================================================
+    // LAST PAYMENT
+    // =====================================================
+
+    private LastPayment getLastPayment(PaymentRecord record) {
+
+        if (record.getPaymentHistory() == null || record.getPaymentHistory().isEmpty()) {
+            return null;
+        }
+
+        var history = record.getPaymentHistory();
+        var last = history.get(history.size() - 1);
+
+        LastPayment lp = new LastPayment();
+        lp.amount = last.getAmount();
+        lp.date = last.getPaymentDate();
+        lp.mode = last.getPaymentMode();
+
+        return lp;
+    }
+
+    private static class LastPayment {
+        Double amount;
+        String date;
+        String mode;
+    }
+
+    // =====================================================
+    // MOBILE HANDLING
+    // =====================================================
+
+    private String resolveMobile(BookingResponse booking) {
+
+        if (booking.getPatientMobileNumber() != null &&
+            !booking.getPatientMobileNumber().isBlank()) {
+            return booking.getPatientMobileNumber();
+        }
+
+        return booking.getMobileNumber();
+    }
+
+    private String normalizeMobile(String mobile) {
+        return mobile == null ? null : mobile.replaceAll("\\D", "");
+    }
+
+    private boolean isValidMobile(String mobile) {
+        return mobile != null && mobile.matches("^[6-9]\\d{9}$");
+    }
+
+    // =====================================================
+    // UTIL METHODS
+    // =====================================================
+
+    private String fmt(Double amount) {
+
+        double value = (amount == null) ? 0.0 : amount;
+
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .toString();
+    }
+
+    private String formatDate(String date) {
+
+        try {
+            if (date == null) return "-";
+
+            return LocalDate.parse(date)
+                    .format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+
+        } catch (Exception e) {
+            return date;
+        }
     }
 
     private String safe(String value, String fallback) {
-        return (value != null && !value.isBlank()) ? value.trim() : fallback;
+        return (value == null || value.isBlank())
+                ? fallback
+                : value.trim();
     }
 }

@@ -2,6 +2,7 @@ package physiotherapydoctor.feign;
 
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -66,4 +67,8 @@ public interface  BookingFeignClient {
 	 @GetMapping("/api/v1/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
 		public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
 			@PathVariable String doctorId,@PathVariable String status);	
+	 @GetMapping("/api/v1/searchBookings/{clinicId}/{input}")
+	 ResponseEntity<ResponseStructure<List<Map<String, Object>>>> searchBookings(
+	         @PathVariable("clinicId") String clinicId,
+	         @PathVariable("input") String input);
 }

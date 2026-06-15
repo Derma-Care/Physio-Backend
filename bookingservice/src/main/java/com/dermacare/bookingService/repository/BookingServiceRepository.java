@@ -79,4 +79,14 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public Optional<Booking> findByBookingIdIgnoreCase(String bookingId);
 	public List<Booking> findByBookingIdInAndClinicIdAndBranchId(List<String> followupIds, String clinicId,
 			String branchId);
+	@Query("{ 'clinicId': ?0, '$or': [ "
+        + "{ 'patientId': ?1 }, "
+        + "{ 'mobileNumber': ?1 }, "
+        + "{ 'patientMobileNumber': ?1 }, "
+        + "{ 'name': { $regex: ?2, $options: 'i' } } "
+        + "] }")
+List<Booking> searchBookings(
+        String clinicId,
+        String exactValue,
+        String nameValue);
 	}

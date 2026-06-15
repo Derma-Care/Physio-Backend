@@ -71,6 +71,7 @@ public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndSt
         String status);
 
 public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId);
+List<Map<String, Object>> searchBookings(String clinicId, String input);
 
 	   	
 }

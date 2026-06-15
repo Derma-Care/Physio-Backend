@@ -1,12 +1,12 @@
 package com.dermacare.bookingService.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dermacare.bookingService.dto.BookingInfoByInput;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.ReportsDTO;
@@ -446,5 +445,33 @@ public class BookingServiceController {
 		{
 			return service.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, branchId, doctorId, status);
 		}	
+	    
+	    @GetMapping("/searchBookings/{clinicId}/{input}")
+	    public ResponseEntity<?> searchBookings(
+	            @PathVariable String clinicId,
+	            @PathVariable String input) {
+
+	        try {
+
+	            List<Map<String, Object>> data =
+	            		service.searchBookings(clinicId, input);
+
+	            return ResponseEntity.ok(
+	                    ResponseStructure.buildResponse(
+	                            data,
+	                            "Bookings fetched successfully",
+	                            HttpStatus.OK,
+	                            200));
+
+	        } catch (IllegalArgumentException e) {
+
+	            return ResponseEntity.badRequest().body(
+	                    ResponseStructure.buildResponse(
+	                            new ArrayList<>(), // Empty array instead of null
+	                            e.getMessage(),
+	                            HttpStatus.BAD_REQUEST,
+	                            400));
+	        }
+	    }
 	    
   }

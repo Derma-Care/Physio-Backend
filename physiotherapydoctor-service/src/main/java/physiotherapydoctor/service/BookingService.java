@@ -25,6 +25,8 @@ public interface BookingService {
 	    		String bookingId);
 	 public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,String branchId,
 	    		String doctorId,String status);
+
+	ResponseEntity<?> searchPatient(String clinicId, String input);
 	        
 }
 

@@ -94,4 +94,10 @@ public class BookingController {
 
 		return bookingService.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status);
 	}
+
+	@GetMapping("/searchBookings/{clinicId}/{input}")
+	public ResponseEntity<?> searchPatient(@PathVariable String clinicId, @PathVariable String input) {
+
+		return bookingService.searchPatient(clinicId, input);
+	}
 }
