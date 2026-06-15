@@ -151,5 +151,7 @@ public interface BookingFeign {
 	 
 	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
 	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index);
+	  
+	  
 	   	  
 }

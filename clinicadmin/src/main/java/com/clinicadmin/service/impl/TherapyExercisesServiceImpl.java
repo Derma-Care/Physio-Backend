@@ -154,6 +154,9 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
         if (dto.getUnit() != null)
             entity.setUnit(dto.getUnit());
+        
+        if (dto.getBodyPart() != null)
+            entity.setBodyPart(dto.getBodyPart());
 
         if (dto.getActivityType() != null)
             entity.setActivityType(dto.getActivityType());

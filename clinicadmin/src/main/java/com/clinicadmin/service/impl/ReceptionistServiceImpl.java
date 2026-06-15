@@ -1,16 +1,18 @@
 package com.clinicadmin.service.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +20,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.Branch;
+import com.clinicadmin.dto.DashboardRequest;
 import com.clinicadmin.dto.ReceptionistRequestDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.ReceptionistEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
+import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.ReceptionistRepository;
 import com.clinicadmin.service.ReceptionistService;
@@ -45,6 +49,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Autowired
 	AdminServiceClient adminServiceClient;
+	
+	@Autowired
+	private BookingFeign bookingFeign;
 
 	@Autowired
 	ObjectMapper objectMapper;
@@ -415,5 +422,123 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	    return ResponseStructure.buildResponse(dtos, message, HttpStatus.OK, HttpStatus.OK.value());
 	}
+	
 
+	@Override
+	public ResponseEntity<Response> getReceptionistDashboard(
+	        String clinicId,
+	        String branchId,
+	        String role) {
+
+	    // Fetch receptionist
+	    ReceptionistEntity receptionist = repository
+	            .findByClinicIdAndBranchIdAndRoleIgnoreCase(
+	                    clinicId,
+	                    branchId,
+	                    role)
+	            .orElseThrow(() ->
+	                    new RuntimeException("Receptionist not found"));
+
+	    ResponseEntity<ResponseStructure<List<Map<String, Object>>>> response =
+	            bookingFeign.getTodayBookings(clinicId, branchId);
+
+	    List<Map<String, Object>> bookings = response.getBody().getData();
+
+	    long pending = 0;
+	    long confirmed = 0;
+	    long followupNeeded = 0;
+	    long followupDue = 0;
+	    long dueForInvestigation = 0;
+	    long investigationDone = 0;
+
+	    if (bookings != null) {
+
+	        for (Map<String, Object> booking : bookings) {
+
+	            String bookingStatus = booking.get("status") != null
+	                    ? booking.get("status").toString().trim()
+	                    : "";
+
+	            String followupStatus = booking.get("followupStatus") != null
+	                    ? booking.get("followupStatus").toString().trim()
+	                    : "";
+
+	            if ("pending".equalsIgnoreCase(bookingStatus))
+	                pending++;
+
+	            if ("confirmed".equalsIgnoreCase(bookingStatus))
+	                confirmed++;
+
+	            if ("Follow-up Needed".equalsIgnoreCase(followupStatus))
+	                followupNeeded++;
+
+	            if ("Follow-up".equalsIgnoreCase(followupStatus))
+	                followupDue++;
+
+	            if ("Due for Investigation".equalsIgnoreCase(followupStatus))
+	                dueForInvestigation++;
+
+	            if ("Investigation Done".equalsIgnoreCase(followupStatus))
+	                investigationDone++;
+	        }
+	    }
+
+	    Map<String, Object> dashboard = new LinkedHashMap<>();
+
+	    dashboard.put("clinicId", clinicId);
+	    dashboard.put("branchId", branchId);
+	    dashboard.put("role", role);
+
+	    // This comes from Receptionist entity
+	    dashboard.put("status", receptionist.getDashboardStatus());
+
+	    dashboard.put("pending", pending);
+	    dashboard.put("confirmed", confirmed);
+	    dashboard.put("followupNeeded", followupNeeded);
+	    dashboard.put("followupDue", followupDue);
+	    dashboard.put("dueForInvestigation", dueForInvestigation);
+	    dashboard.put("investigationDone", investigationDone);
+
+	    Response res = new Response();
+	    res.setSuccess(true);
+	    res.setData(dashboard);
+	    res.setMessage("Dashboard data fetched successfully");
+	    res.setStatus(HttpStatus.OK.value());
+
+	    return ResponseEntity.ok(res);
+	}
+	@Override
+	public Response updateReceptionistDashboard(
+	        String clinicId,
+	        String branchId,
+	        String role,
+	        DashboardRequest request) {
+
+	    ReceptionistEntity receptionist =
+	            repository.findByClinicIdAndBranchIdAndRoleIgnoreCase(
+	                    clinicId,
+	                    branchId,
+	                    role)
+	            .orElseThrow(() ->
+	                    new RuntimeException("Receptionist not found"));
+
+	    receptionist.setDashboardStatus(request.getStatus());
+
+	    repository.save(receptionist);
+
+	    Map<String, Object> dashboard = new LinkedHashMap<>();
+
+	    dashboard.put("clinicId", clinicId);
+	    dashboard.put("branchId", branchId);
+	    dashboard.put("role", role);
+	    dashboard.put("status", receptionist.getDashboardStatus());
+
+	    Response res = new Response();
+	    res.setSuccess(true);
+	    res.setData(dashboard);
+	    res.setMessage("Dashboard updated successfully");
+	    res.setStatus(HttpStatus.OK.value());
+
+	    return res;
+	}
 }

@@ -12,11 +12,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
-import com.clinicadmin.dto.OnBoardResponse;
+import com.clinicadmin.dto.DashboardRequest;
 import com.clinicadmin.dto.ReceptionistRequestDTO;
-import com.clinicadmin.dto.ReceptionistRestPassword;
+import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.service.ReceptionistService;
 
@@ -110,6 +109,33 @@ public class ReceptionistController {
                 service.getReceptionistsByClinicAndBranch(clinicId, branchId);
         
         return ResponseEntity.status(response.getHttpStatus()).body(response);
+    }
+    
+    @PostMapping("/getReceptionistDashboard/{clinicId}/{branchId}/{role}")
+    public ResponseEntity<Response> getReceptionistDashboard(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String role) {
+
+        return service.getReceptionistDashboard(
+                clinicId,
+                branchId,
+                role);
+    }
+    
+    @PutMapping("/updateReceptionistDashboard/{clinicId}/{branchId}/{role}")
+    public ResponseEntity<?> updateReceptionistDashboard(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String role,
+            @RequestBody DashboardRequest request) {
+
+        return ResponseEntity.ok(
+                service.updateReceptionistDashboard(
+                        clinicId,
+                        branchId,
+                        role,
+                        request));
     }
 
 }
