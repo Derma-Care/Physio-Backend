@@ -472,13 +472,13 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	            if ("Follow-up Needed".equalsIgnoreCase(followupStatus))
 	                followupNeeded++;
 
-	            if ("Follow-up".equalsIgnoreCase(followupStatus))
+	            if ("Follow-up".equalsIgnoreCase(bookingStatus))
 	                followupDue++;
 
-	            if ("Due for Investigation".equalsIgnoreCase(followupStatus))
+	            if ("Due for Investigation".equalsIgnoreCase(bookingStatus))
 	                dueForInvestigation++;
 
-	            if ("Investigation Done".equalsIgnoreCase(followupStatus))
+	            if ("Investigation Done".equalsIgnoreCase(bookingStatus))
 	                investigationDone++;
 	        }
 	    }
