@@ -1,5 +1,6 @@
 package com.clinicadmin.service.impl;
-import java.time.LocalDate;
+	
+	import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 	public class GenerateTableServiceImpl implements GenerateTableService {
 	
 	    private final PhysiotherapyFeignClient feignClient;
-	 
 	    @Override
 	    public Response generateTable(PhysiotherapyRecordDTO request) {
 
@@ -55,7 +55,7 @@ import lombok.RequiredArgsConstructor;
 	            }
 
 	            if (therapySessions == null || therapySessions.isEmpty()) {
-	                throw new RuntimeException("No therapy sessions found");
+	                throw new RuntimeException("No therapySessions found");
 	            }
 
 	            LocalDate startDate = LocalDate.parse(request.getStartDate());
@@ -64,49 +64,30 @@ import lombok.RequiredArgsConstructor;
 
 	            for (Map<String, Object> session : therapySessions) {
 
-	                String serviceType =
-	                        session.get("serviceType") != null
-	                                ? session.get("serviceType").toString().toLowerCase()
-	                                : "";
-
+	                // =========================================
+	                // PROGRAM
+	                // =========================================
 	                List<Map<String, Object>> programs =
 	                        (List<Map<String, Object>>) session.get("programs");
 
-	                List<Map<String, Object>> packageData =
-	                        (List<Map<String, Object>>) session.get("packageData");
+	                if (programs != null && !programs.isEmpty()) {
 
-	                List<Map<String, Object>> therapyData =
-	                        (List<Map<String, Object>>) session.get("therapyData");
+	                    for (Map<String, Object> program : programs) {
 
-	                /*
-	                 * =====================================================
-	                 * PROGRAM SERVICE
-	                 * =====================================================
-	                 */
-	                if ("program".equals(serviceType)) {
+	                        List<Map<String, Object>> therapyDataList =
+	                                (List<Map<String, Object>>) program.get("therapyData");
 
-	                    if (programs != null && !programs.isEmpty()) {
-
-	                        for (Map<String, Object> program : programs) {
-
-	                            List<Map<String, Object>> therapyDataList =
-	                                    (List<Map<String, Object>>) program.get("therapyData");
-
-	                            if (therapyDataList == null || therapyDataList.isEmpty()) {
-	                                continue;
-	                            }
+	                        if (therapyDataList != null && !therapyDataList.isEmpty()) {
 
 	                            ProgramResponseDTO dto =
 	                                    buildProgramDTO(therapyDataList, startDate);
 
 	                            dto.setSourceType("PROGRAM");
-
 	                            dto.setProgramId(
 	                                    program.get("programId") != null
 	                                            ? program.get("programId").toString()
 	                                            : ""
 	                            );
-
 	                            dto.setProgramName(
 	                                    program.get("programName") != null
 	                                            ? program.get("programName").toString()
@@ -118,46 +99,63 @@ import lombok.RequiredArgsConstructor;
 	                    }
 	                }
 
-	                /*
-	                 * =====================================================
-	                 * PACKAGE SERVICE
-	                 * =====================================================
-	                 */
-	                else if ("package".equals(serviceType)) {
+	                // =========================================
+	                // PACKAGE
+	                // =========================================
+	                List<Map<String, Object>> packageData =
+	                        (List<Map<String, Object>>) session.get("packageData");
 
-	                    List<Map<String, Object>> allTherapies =
-	                            new ArrayList<>();
+	                if (packageData != null && !packageData.isEmpty()) {
 
-	                    if (packageData != null && !packageData.isEmpty()) {
+	                    ProgramResponseDTO dto =
+	                            buildProgramDTO(packageData, startDate);
 
-	                        allTherapies.addAll(packageData);
+	                    dto.setSourceType("PACKAGE");
+	                    dto.setPackageId(
+	                            session.get("packageId") != null
+	                                    ? session.get("packageId").toString()
+	                                    : ""
+	                    );
+	                    dto.setPackageName(
+	                            session.get("packageName") != null
+	                                    ? session.get("packageName").toString()
+	                                    : ""
+	                    );
+
+	                    result.add(dto);
+
+	                } else if (session.get("packageId") != null
+	                        || session.get("packageName") != null) {
+
+	                    List<Map<String, Object>> fallbackData = null;
+
+	                    List<Map<String, Object>> therapyData =
+	                            (List<Map<String, Object>>) session.get("therapyData");
+
+	                    if (therapyData != null && !therapyData.isEmpty()) {
+	                        fallbackData = therapyData;
 
 	                    } else if (programs != null && !programs.isEmpty()) {
 
-	                        for (Map<String, Object> program : programs) {
+	                        List<Map<String, Object>> pTherapy =
+	                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
 
-	                            List<Map<String, Object>> therapyDataList =
-	                                    (List<Map<String, Object>>) program.get("therapyData");
-
-	                            if (therapyDataList != null) {
-	                                allTherapies.addAll(therapyDataList);
-	                            }
+	                        if (pTherapy != null && !pTherapy.isEmpty()) {
+	                            fallbackData = pTherapy;
 	                        }
 	                    }
 
-	                    if (!allTherapies.isEmpty()) {
+	                    if (fallbackData != null && !fallbackData.isEmpty()) {
 
 	                        ProgramResponseDTO dto =
-	                                buildProgramDTO(allTherapies, startDate);
+	                                buildProgramDTO(fallbackData, startDate);
 
 	                        dto.setSourceType("PACKAGE");
-
 	                        dto.setPackageId(
 	                                session.get("packageId") != null
 	                                        ? session.get("packageId").toString()
 	                                        : ""
 	                        );
-
 	                        dto.setPackageName(
 	                                session.get("packageName") != null
 	                                        ? session.get("packageName").toString()
@@ -168,81 +166,100 @@ import lombok.RequiredArgsConstructor;
 	                    }
 	                }
 
-	                /*
-	                 * =====================================================
-	                 * THERAPY SERVICE
-	                 * =====================================================
-	                 */
-	                else if ("therapy".equals(serviceType)) {
+	                // =========================================
+	                // THERAPY
+	                // =========================================
+	                List<Map<String, Object>> therapyData =
+	                        (List<Map<String, Object>>) session.get("therapyData");
+
+	                if (therapyData != null && !therapyData.isEmpty()) {
+
+	                    ProgramResponseDTO dto =
+	                            buildProgramDTO(therapyData, startDate);
+
+	                    dto.setSourceType("THERAPY");
+	                    result.add(dto);
+	                }
+
+	                // =========================================
+	                // EXERCISE
+	                // =========================================
+	                List<Map<String, Object>> exercises =
+	                        (List<Map<String, Object>>) session.get("exercises");
+
+	                if (exercises != null && !exercises.isEmpty()) {
+
+	                    List<Map<String, Object>> singleTherapy = new ArrayList<>();
+	                    Map<String, Object> therapyMap = new HashMap<>();
+
+	                    String therapyId = "";
+	                    String therapyName = "";
 
 	                    if (therapyData != null && !therapyData.isEmpty()) {
 
-	                        ProgramResponseDTO dto =
-	                                buildProgramDTO(therapyData, startDate);
+	                        therapyId = therapyData.get(0).get("therapyId") != null
+	                                ? therapyData.get(0).get("therapyId").toString()
+	                                : "";
 
-	                        dto.setSourceType("THERAPY");
+	                        therapyName = therapyData.get(0).get("therapyName") != null
+	                                ? therapyData.get(0).get("therapyName").toString()
+	                                : "";
 
-	                        result.add(dto);
+	                    } else if (packageData != null && !packageData.isEmpty()) {
+
+	                        therapyId = packageData.get(0).get("therapyId") != null
+	                                ? packageData.get(0).get("therapyId").toString()
+	                                : "";
+
+	                        therapyName = packageData.get(0).get("therapyName") != null
+	                                ? packageData.get(0).get("therapyName").toString()
+	                                : "";
+
+	                    } else if (programs != null && !programs.isEmpty()) {
+
+	                        List<Map<String, Object>> pTherapy =
+	                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
+
+	                        if (pTherapy != null && !pTherapy.isEmpty()) {
+
+	                            therapyId = pTherapy.get(0).get("therapyId") != null
+	                                    ? pTherapy.get(0).get("therapyId").toString()
+	                                    : "";
+
+	                            therapyName = pTherapy.get(0).get("therapyName") != null
+	                                    ? pTherapy.get(0).get("therapyName").toString()
+	                                    : "";
+	                        }
 	                    }
-	                }
 
-	                /*
-	                 * =====================================================
-	                 * EXERCISE SERVICE
-	                 * =====================================================
-	                 */
-	                else if ("exercise".equals(serviceType)) {
+	                    therapyMap.put("therapyId", therapyId);
+	                    therapyMap.put("therapyName", therapyName);
+	                    therapyMap.put("exercises", exercises);
 
-	                    List<Map<String, Object>> exercises =
-	                            (List<Map<String, Object>>) session.get("exercises");
+	                    singleTherapy.add(therapyMap);
 
-	                    if (exercises != null && !exercises.isEmpty()) {
+	                    ProgramResponseDTO dto =
+	                            buildProgramDTO(singleTherapy, startDate);
 
-	                        List<Map<String, Object>> wrapper =
-	                                new ArrayList<>();
-
-	                        Map<String, Object> therapyMap =
-	                                new HashMap<>();
-
-	                        therapyMap.put(
-	                                "therapyId",
-	                                session.getOrDefault("therapyId", "")
-	                        );
-
-	                        therapyMap.put(
-	                                "therapyName",
-	                                session.getOrDefault("therapyName", "")
-	                        );
-
-	                        therapyMap.put("exercises", exercises);
-
-	                        wrapper.add(therapyMap);
-
-	                        ProgramResponseDTO dto =
-	                                buildProgramDTO(wrapper, startDate);
-
-	                        dto.setSourceType("EXERCISE");
-
-	                        result.add(dto);
-	                    }
+	                    dto.setSourceType("EXERCISE");
+	                    result.add(dto);
 	                }
 	            }
 
 	            response.setSuccess(true);
+	            response.setData(result);
 	            response.setStatus(200);
 	            response.setMessage("Table generated successfully");
-	            response.setData(result);
 
 	        } catch (Exception e) {
 
 	            response.setSuccess(false);
-	            response.setStatus(500);
 	            response.setMessage(e.getMessage());
+	            response.setStatus(500);
 	        }
 
 	        return response;
 	    }
-	    
 
 	    private ProgramResponseDTO buildProgramDTO(
 	            List<Map<String, Object>> therapyDataList,
