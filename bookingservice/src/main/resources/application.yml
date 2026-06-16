@@ -56,10 +56,10 @@ spring.lifecycle:
 # =========================================================
 whatsapp:
   base-url: https://www.fast2sms.com
-  auth-key: 
+  auth-key: nOMxH612g9wV0DiWJQEelNtoaKdcB3XYvRy7fbhGZzP45jmFprIGtA2KCySVjwxd5guPLF80eoUmlvbT
 
-  phone-number-id: 
-  booking-confirmation-template-id: 
+  phone-number-id: 1048713955002862 
+  booking-confirmation-template-id: 22970
 
 # =========================================================
 # AWS S3

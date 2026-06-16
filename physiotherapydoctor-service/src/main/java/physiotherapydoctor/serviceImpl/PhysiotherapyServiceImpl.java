@@ -382,83 +382,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			}
 		}
 	}
-	// @Override
-	// public Response create(PhysiotherapyRecordDTO dto) {
-	//
-	// Response response = new Response();
-	//
-	// if (dto == null) {
-	// response.setSuccess(false);
-	// response.setData(null);
-	// response.setMessage("Request body is null");
-	// response.setStatus(400);
-	// return response;
-	// }
-	//
-	// PhysiotherapyRecord dtoData = mapToEntity(dto);
-	//
-	// // ✅ Set ID
-	// dtoData.setTherapistRecordId(dto.getTherapistRecordId());
-	//
-
-	//
-	//// // ✅ Set session status
-	//// if (dtoData.getTherapySessions() != null) {
-	//// for (TherapySession s : dtoData.getTherapySessions()) {
-	//// if (s.getStatus() == null || s.getStatus().isEmpty()) {
-	//// s.setStatus("Pending");
-	//// }
-	//// }
-	//// }
-	//
-	// // ✅ Set overall status
-	// dtoData.setOverallStatus("Pending");
-	//
-	// // ✅ DATE FIX (STRING FORMAT - NO CHANGE)
-	// String now =
-	// java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-	//
-	// // if frontend sends → use it, else auto-generate
-	// dtoData.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : now);
-	// dtoData.setUpdatedAt(now);
-	//
-	// // ✅ Save record
-	// PhysiotherapyRecord saved = repository.save(dtoData);
-	//
-	// // ✅ BOOKING UPDATE (same logic, cleaned)
-	// if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
-	//
-	// try {
-	// ResponseStructure<BookingResponse> res =
-	// bookingFeign.getBookingById(dto.getBookingId());
-	//
-	// if (res != null && res.getData() != null) {
-	//
-	// BookingResponse oldBooking = res.getData();
-	//
-	// BookingResponse updateRequest = new BookingResponse();
-	// updateRequest.setBookingId(oldBooking.getBookingId());
-	// updateRequest.setStatus("Active");
-	//
-	// // optional fields
-	// updateRequest.setName(oldBooking.getName());
-	// updateRequest.setMobileNumber(oldBooking.getMobileNumber());
-	//
-	// bookingFeign.updateAppointment(updateRequest);
-	// }
-	//
-	// } catch (Exception e) {
-	// System.out.println("Booking update failed: " + e.getMessage());
-	// }
-	// }
-	//
-	// response.setSuccess(true);
-	// response.setData(saved);
-	// response.setMessage("Record created successfully");
-	// response.setStatus(201);
-	//
-	// return response;
-	// }
 
 	// ✅ GET BY ID
 	@Override
@@ -600,56 +523,18 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			existing.setExercisePlan(dto.getExercisePlan());
 		}
 
-		 if (dto.getPrescriptionPdf() != null) {
-		 existing.setPrescriptionPdf(dto.getPrescriptionPdf());
-		 }
+		if (dto.getPrescriptionPdf() != null) {
+			existing.setPrescriptionPdf(dto.getPrescriptionPdf());
+		}
 
 		if (dto.getFollowUp() != null) {
 			existing.setFollowUp(dto.getFollowUp());
 		}
 
-		// if (dto.getProgressAnalytics() != null) {
-		// existing.setProgressAnalytics(dto.getProgressAnalytics());
-		// }
-
-		// if (dto.getOverallStatus() != null) {
-		// existing.setOverallStatus(dto.getOverallStatus());
-		// }
-
-		// Fetch booking status and update uptoInvestigation flag
-		if (existing.getBookingId() != null && !existing.getBookingId().isEmpty()) {
-
-			try {
-
-				ResponseEntity<ResponseStructure<BookingResponse>> bookingRes = bookingFeign
-						.getBookedService(existing.getBookingId());
-
-				if (bookingRes != null && bookingRes.getBody() != null && bookingRes.getBody().getData() != null) {
-
-					String bookingStatus = bookingRes.getBody().getData().getStatus();
-
-					existing.setUptoInvestigation("Investigation Done".equalsIgnoreCase(bookingStatus)
-							|| "Due for Investigation".equalsIgnoreCase(bookingStatus));
-				}
-
-			} catch (Exception e) {
-				System.out.println("Error fetching booking status: " + e.getMessage());
-			}
-		}
 		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
 		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
 		existing.setUpdatedAt(now);
-
-		PhysiotherapyRecord updated = repository.save(existing);
-		
-		if (updated.getPrescriptionPdf() != null
-		        && !updated.getPrescriptionPdf().isEmpty()) {
-
-		    updated.setPrescriptionPdf(
-		            s3Service.generateSignedUrl(
-		                    updated.getPrescriptionPdf()));
-		}
 		// ✅ Call booking update API here
 		if (existing.getBookingId() != null && !existing.getBookingId().isEmpty()) {
 
@@ -660,9 +545,18 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				updateRequest.setStatus("in-progress");
 
 				clinicAdminFeign.updateAppointment(updateRequest);
+				existing.setUptoInvestigation(false);
 
 			} catch (Exception e) {
-				e.printStackTrace();			}
+				e.printStackTrace();
+			}
+		}
+
+		PhysiotherapyRecord updated = repository.save(existing);
+
+		if (updated.getPrescriptionPdf() != null && !updated.getPrescriptionPdf().isEmpty()) {
+
+			updated.setPrescriptionPdf(s3Service.generateSignedUrl(updated.getPrescriptionPdf()));
 		}
 
 		response.setSuccess(true);
@@ -1239,231 +1133,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return 0;
 		}
 	}
-
-	// private void generateSessionIds(List<TherapySession> sessions) {
-	//
-	// if (sessions == null || sessions.isEmpty())
-	// return;
-	//
-	// for (TherapySession session : sessions) {
-	//
-	// // ✅ Generate UNIQUE sessionId
-	// session.setSessionId("SES-" + System.currentTimeMillis());
-	//
-	// // small delay to avoid same millis
-	// try {
-	// Thread.sleep(1);
-	// } catch (InterruptedException e) {
-	// Thread.currentThread().interrupt();
-	// }
-	//
-	// // ✅ Auto set status if null
-	// if (session.getStatus() == null || session.getStatus().isEmpty()) {
-	// session.setStatus("Pending");
-	// }
-	// }
-	// }
-
-	// public void updateSessionStatusFromTherapist(String therapistRecordId, String
-	// sessionId) {
-	//
-	// PhysiotherapyRecord record =
-	// repository.findByTherapistRecordId(therapistRecordId)
-	// .orElseThrow(() -> new RuntimeException("Record not found"));
-	//
-	// List<TherapySession> sessions = record.getTherapySessions();
-	//
-	// if (sessions == null || sessions.isEmpty()) {
-	// throw new RuntimeException("No sessions found");
-	// }
-	//
-	// boolean sessionFound = false;
-	//
-	// for (TherapySession session : sessions) {
-	//
-	// // ✅ MATCH sessionId safely
-	// if (sessionId.equals(session.getSessionId())) {
-	//
-	// // ✅ Update status
-	// session.setStatus("Completed");
-	// sessionFound = true;
-	// break;
-	// }
-	// }
-	//
-	// if (!sessionFound) {
-	// throw new RuntimeException("Session not found with ID: " + sessionId);
-	// }
-	//
-	// // ✅ UPDATE OVERALL STATUS
-	// record.setOverallStatus(calculateOverallStatus(sessions));
-	//
-	// repository.save(record);
-	// // ======================================================
-	// // 🔥 ADD THIS BLOCK (BOOKING UPDATE)
-	// // ======================================================
-	// if (record.getBookingId() != null && !record.getBookingId().isEmpty()) {
-	//
-	// try {
-	// ResponseStructure<BookingResponse> res =
-	// bookingFeign.getBookingById(record.getBookingId());
-	//
-	// if (res != null && res.getData() != null) {
-	//
-	// BookingResponse updateRequest = new BookingResponse();
-	// updateRequest.setBookingId(record.getBookingId());
-	//
-	// // ✅ CORE LOGIC
-	// if ("Completed".equalsIgnoreCase(record.getOverallStatus())) {
-	// updateRequest.setStatus("Completed"); // 🔥 Active → Completed
-	// } else {
-	// updateRequest.setStatus("Active");
-	// }
-	//
-	// bookingFeign.updateAppointment(updateRequest);
-	// }
-	// } catch (Exception e) {
-	// }
-	// }
-	// }
-	//
-	// private String calculateOverallStatus(List<TherapySession> sessions) {
-	//
-	// if (sessions == null || sessions.isEmpty()) {
-	// return "Pending";
-	// }
-	//
-	// boolean allCompleted = true;
-	// boolean anyCompleted = false;
-	//
-	// for (TherapySession s : sessions) {
-	//
-	// if ("Completed".equalsIgnoreCase(s.getStatus())) {
-	// anyCompleted = true;
-	// } else {
-	// allCompleted = false;
-	// }
-	// }
-	//
-	// if (allCompleted)
-	// return "Completed";
-	// if (anyCompleted)
-	// return "Active";
-	//
-	// return "Pending";
-	// }
-
-	// ===================== GET SESSIONS BY DATE =====================
-
-//	private void generateSessionIds(List<TherapySession> sessions) {
-//
-//		if (sessions == null || sessions.isEmpty())
-//			return;
-//
-//		for (TherapySession session : sessions) {
-//
-//			// ✅ Generate UNIQUE sessionId
-//			session.setSessionId("SES-" + System.currentTimeMillis());
-//
-//			// small delay to avoid same millis
-//			try {
-//				Thread.sleep(1);
-//			} catch (InterruptedException e) {
-//				Thread.currentThread().interrupt();
-//			}
-//
-//			// ✅ Auto set status if null
-//			if (session.getStatus() == null || session.getStatus().isEmpty()) {
-//				session.setStatus("Pending");
-//			}
-//		}
-//	}
-
-//	public void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId) {
-//
-//		PhysiotherapyRecord record = repository.findByTherapistRecordId(therapistRecordId)
-//				.orElseThrow(() -> new RuntimeException("Record not found"));
-//
-//		List<TherapySession> sessions = record.getTherapySessions();
-//
-//		if (sessions == null || sessions.isEmpty()) {
-//			throw new RuntimeException("No sessions found");
-//		}
-//
-//		boolean sessionFound = false;
-//
-//		for (TherapySession session : sessions) {
-//
-//			// ✅ MATCH sessionId safely
-//			if (sessionId.equals(session.getSessionId())) {
-//
-//				// ✅ Update status
-//				session.setStatus("Completed");
-//				sessionFound = true;
-//				break;
-//			}
-//		}
-//
-//		if (!sessionFound) {
-//			throw new RuntimeException("Session not found with ID: " + sessionId);
-//		}
-//
-//		// ✅ UPDATE OVERALL STATUS
-//		record.setOverallStatus(calculateOverallStatus(sessions));
-//
-//		repository.save(record);
-//		// ======================================================
-//		// 🔥 ADD THIS BLOCK (BOOKING UPDATE)
-//		// ======================================================
-//		if (record.getBookingId() != null && !record.getBookingId().isEmpty()) {
-//
-//			try {
-//				ResponseStructure<BookingResponse> res = bookingFeign.getBookingById(record.getBookingId());
-//
-//				if (res != null && res.getData() != null) {
-//
-//					BookingResponse updateRequest = new BookingResponse();
-//					updateRequest.setBookingId(record.getBookingId());
-//
-//					// ✅ CORE LOGIC
-//					if ("Completed".equalsIgnoreCase(record.getOverallStatus())) {
-//						updateRequest.setStatus("Completed"); // 🔥 Active → Completed
-//					} else {
-//						updateRequest.setStatus("Active");
-//					}
-//
-//					bookingFeign.updateAppointment(updateRequest);
-//				}
-//			} catch (Exception e) {
-//			}
-//		}
-//	}
-//
-//	private String calculateOverallStatus(List<TherapySession> sessions) {
-//
-//		if (sessions == null || sessions.isEmpty()) {
-//			return "Pending";
-//		}
-//
-//		boolean allCompleted = true;
-//		boolean anyCompleted = false;
-//
-//		for (TherapySession s : sessions) {
-//
-//			if ("Completed".equalsIgnoreCase(s.getStatus())) {
-//				anyCompleted = true;
-//			} else {
-//				allCompleted = false;
-//			}
-//		}
-//
-//		if (allCompleted)
-//			return "Completed";
-//		if (anyCompleted)
-//			return "Active";
-//
-//		return "Pending";
-//	}
 
 	// ===================== GET SESSIONS BY DATE =====================
 
