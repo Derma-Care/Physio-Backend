@@ -988,11 +988,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
             
             try {
-    	        // 🔥 DOCTOR — skip all distance validation
     	       
-				if ("doctor".equalsIgnoreCase(role)) {
-    	            return;
-    	        }
+            	// 🔥 DOCTOR & PHYSIOTHERAPIST — skip all distance validation
+            	if ("doctor".equalsIgnoreCase(role)
+            	        || "physiotherapist".equalsIgnoreCase(role)) {
+            	    return;
+            	}
 				
 				  // ✅ BRANCH ID CHECK — required for non-doctors
 		        if (branchId == null || branchId.isBlank()) {

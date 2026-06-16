@@ -1778,6 +1778,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (Session session : ex.getSessions()) {
 
 				if (date.equals(session.getDate())) {
+					
+					
 					result.add(session);
 				}
 			}

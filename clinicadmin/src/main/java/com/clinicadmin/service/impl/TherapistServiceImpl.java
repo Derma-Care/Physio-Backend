@@ -468,11 +468,18 @@ public class TherapistServiceImpl implements TherapistService {
     @Override
     public ResponseStructure<String> deleteBytherapistId(String therapistId) {
 
+        repository.findByTherapistId(therapistId)
+                .orElseThrow(() -> new RuntimeException("Therapist not found"));
+
+        therapistAttendanceRepository.deleteByTherapistId(therapistId);
+//        therapistRecordRepository.deleteByTherapistId(therapistId);
+        credentialsRepository.deleteByStaffId(therapistId);
+
         repository.deleteByTherapistId(therapistId);
 
         return ResponseStructure.buildResponse(
                 therapistId,
-                "Deleted successfully",
+                "Therapist and all linked records deleted successfully",
                 HttpStatus.OK,
                 200);
     }
