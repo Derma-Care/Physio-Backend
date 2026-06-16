@@ -1,4 +1,4 @@
-package com.clinicadmin.dto;
+package physiotherapydoctor.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,8 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Session {
-
+public class SessionForBooking {
 	private String sessionId;
 	private Integer sessionNo;
 	private String date;
@@ -16,5 +15,5 @@ public class Session {
 	private String status;
 	private String paymentStatus;
 	private String exerciseId;
-	private String exerciseName;
+    private String exerciseName;
 }

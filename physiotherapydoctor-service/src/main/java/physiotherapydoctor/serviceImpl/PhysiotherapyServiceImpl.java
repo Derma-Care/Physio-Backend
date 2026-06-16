@@ -44,6 +44,7 @@ import physiotherapydoctor.dto.ProgramDataForPackage;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
+import physiotherapydoctor.dto.SessionForBooking;
 import physiotherapydoctor.dto.TheraphyInfo;
 import physiotherapydoctor.dto.TherapistRecordDetails;
 import physiotherapydoctor.dto.TherapyCalculations;
@@ -1716,7 +1717,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		return response;
 	}
 
-	public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
+	@Override
+	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String date) {
 
 		try {
 			Optional<PaymentRecord> optional = paymentRepository.findByBookingId(bookingId);
@@ -1727,7 +1729,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 			PaymentRecord record = optional.get();
 			// System.out.println(record);
-			List<Session> matchedSessions = new ArrayList<>();
+			List<SessionForBooking> matchedSessions = new ArrayList<>();
 
 			if (record.getTherapyWithSessions() == null) {
 				return ResponseEntity.ok(null);
@@ -1745,7 +1747,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	private void handlePrograms(List<Program> programs, String date, List<Session> result) {
+	private void handlePrograms(List<Program> programs, String date, List<SessionForBooking> result) {
 
 		if (programs == null)
 			return;
@@ -1755,7 +1757,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	private void handleTherapyData(List<TherapyData> therapyDataList, String date, List<Session> result) {
+	private void handleTherapyData(List<TherapyData> therapyDataList, String date, List<SessionForBooking> result) {
 
 		if (therapyDataList == null)
 			return;
@@ -1765,7 +1767,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	private void handleExercises(List<TherapyExercise> exercises, String date, List<Session> result) {
+	private void handleExercises(List<TherapyExercise> exercises, String date, List<SessionForBooking> result) {
 
 		if (exercises == null)
 			return;
@@ -1778,9 +1780,25 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (Session session : ex.getSessions()) {
 
 				if (date.equals(session.getDate())) {
+<<<<<<< Updated upstream
 					
 					
 					result.add(session);
+=======
+					SessionForBooking bookingSession = new SessionForBooking();
+
+					bookingSession.setSessionId(session.getSessionId());
+					bookingSession.setSessionNo(session.getSessionNo());
+					bookingSession.setDate(session.getDate());
+					bookingSession.setStatus(session.getStatus());
+					bookingSession.setPaymentStatus(session.getPaymentStatus());
+
+					// from parent exercise
+					bookingSession.setExerciseId(ex.getExerciseId());
+					bookingSession.setExerciseName(ex.getExerciseName());
+
+					result.add(bookingSession);
+>>>>>>> Stashed changes
 				}
 			}
 		}
