@@ -1780,11 +1780,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (Session session : ex.getSessions()) {
 
 				if (date.equals(session.getDate())) {
-<<<<<<< Updated upstream
-					
-					
-					result.add(session);
-=======
+
 					SessionForBooking bookingSession = new SessionForBooking();
 
 					bookingSession.setSessionId(session.getSessionId());
@@ -1798,7 +1794,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					bookingSession.setExerciseName(ex.getExerciseName());
 
 					result.add(bookingSession);
->>>>>>> Stashed changes
 				}
 			}
 		}
