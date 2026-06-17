@@ -137,7 +137,7 @@ public interface ClinicAdminFeign {
 	@GetMapping("/clinic-admin/api/s3/signed-url")
 	ResponseEntity<String> getSignedUrl(@RequestParam("fileKey") String fileKey);
 
-	@GetMapping("/getAllRecoverySupportsByClinicId/{clinicId}")
+	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
 	public Response getAllRecoverySupportsByClinicId(@PathVariable String clinicId);
 
 }
