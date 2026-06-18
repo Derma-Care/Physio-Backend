@@ -17,10 +17,7 @@ import physiotherapydoctor.dto.ExercisePlan;
 import physiotherapydoctor.dto.FollowUp;
 import physiotherapydoctor.dto.Investigation;
 import physiotherapydoctor.dto.PatientInfo;
-import physiotherapydoctor.dto.Psychosocial;
-import physiotherapydoctor.dto.RadiationNeuro;
-import physiotherapydoctor.dto.RedFlags;
-import physiotherapydoctor.dto.SpecialSymptoms;
+import physiotherapydoctor.dto.RecoverySupportDTO;
 import physiotherapydoctor.dto.TherapySession;
 import physiotherapydoctor.dto.TreatmentPlan;
 
@@ -49,6 +46,7 @@ public class PhysiotherapyRecord {
     private TreatmentPlan treatmentPlan;
 
     private List<TherapySession> therapySessions;
+    private List<RecoverySupportDTO> recoverySupport;
 
     private ExercisePlan exercisePlan;
     private FollowUp followUp;

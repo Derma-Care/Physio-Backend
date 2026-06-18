@@ -3,33 +3,35 @@ package physiotherapydoctor.dto;
 import java.util.List;
 
 import lombok.Data;
+
 @Data
 public class PhysiotherapyRecordDTO {
 
-    private String therapistRecordId;
-    private String bookingId;
-    private String clinicId;
-    private String branchId;
+	private String therapistRecordId;
+	private String bookingId;
+	private String clinicId;
+	private String branchId;
 
 //    private String overallStatus;
-    private String createdAt;
+	private String createdAt;
 
-    private PatientInfo patientInfo;
-    private Complaints complaints;
-    private Investigation investigation;
+	private PatientInfo patientInfo;
+	private Complaints complaints;
+	private Investigation investigation;
 
-    private Assessment assessment;
-    private Diagnosis diagnosis;
-    private TreatmentPlan treatmentPlan;
+	private Assessment assessment;
+	private Diagnosis diagnosis;
+	private TreatmentPlan treatmentPlan;
 
-    private List<TherapySession> therapySessions;
+	private List<TherapySession> therapySessions;
+	private List<RecoverySupportDTO> recoverySupport;
 
-    private ExercisePlan exercisePlan;
-    private FollowUp followUp;
-    private String prescriptionPdf;
-    private RedFlags redFlags;
-    private RadiationNeuro radiationNeuro;
-    private Psychosocial psychosocial;
-    private SpecialSymptoms specialSymptoms;
-    private boolean uptoInvestigation = false;	
+	private ExercisePlan exercisePlan;
+	private FollowUp followUp;
+	private String prescriptionPdf;
+	private RedFlags redFlags;
+	private RadiationNeuro radiationNeuro;
+	private Psychosocial psychosocial;
+	private SpecialSymptoms specialSymptoms;
+	private boolean uptoInvestigation = false;
 }

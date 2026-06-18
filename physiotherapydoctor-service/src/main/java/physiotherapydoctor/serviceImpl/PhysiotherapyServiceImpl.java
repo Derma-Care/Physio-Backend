@@ -531,7 +531,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		if (dto.getFollowUp() != null) {
 			existing.setFollowUp(dto.getFollowUp());
 		}
-
+		if (dto.getRecoverySupport() != null) {
+			existing.setRecoverySupport(dto.getRecoverySupport());
+		}
 		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
 		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
@@ -677,6 +679,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		// =========================
 		if (dto.getFollowUp() != null) {
 			entity.setFollowUp(dto.getFollowUp());
+		}
+		if (dto.getRecoverySupport() != null) {
+			entity.setRecoverySupport(dto.getRecoverySupport());
 		}
 
 		entity.setPrescriptionPdf(dto.getPrescriptionPdf());
@@ -882,223 +887,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		response.setStatus(200);
 
 		return response;
-	}// public Response getAssignedPatients(String clinicId, String branchId, String
-		// therapistId, Integer overallStatus) {
-		//
-		// Response response = new Response();
-		//
-		// List<PhysiotherapyRecord> records =
-		// repository.findByClinicIdAndBranchIdAndTreatmentPlan_TherapistId(
-		// clinicId, branchId, therapistId);
-		//
-		// if (records == null || records.isEmpty()) {
-		// response.setSuccess(false);
-		// response.setMessage("No assigned patients found");
-		// response.setStatus(404);
-		// return response;
-		// }
-		//
-		// Map<String, AssignTherapistPatientListDTO> map = new LinkedHashMap<>();
-		//
-		// for (PhysiotherapyRecord record : records) {
-		//
-		// String dbStatus = record.getOverallStatus();
-		//
-		// // ✅ FINAL STATUS FILTER (ROBUST)
-		// if (overallStatus != null) {
-		//
-		// if (dbStatus == null) continue;
-		//
-		// String status = dbStatus.trim().toLowerCase();
-		//// 1-pending, 2-in-progrss 3,completed
-		// switch (overallStatus) {
-		//
-		// case 1: // Pending
-		// if (!status.startsWith("pending")) continue;
-		// break;
-		//
-		// case 2:
-		// if (!(status.startsWith("in-progrss") )) continue;
-		// break;
-		//
-		// case 3: // Completed
-		// if (!(status.startsWith("completed"))) continue;
-		// break;
-		// }
-		// }
-		//
-		// if (record.getTherapySessions() == null ||
-		// record.getTherapySessions().isEmpty())
-		// continue;
-		//
-		// if (record.getPatientInfo() == null)
-		// continue;
-		//
-		// for (TherapySession session : record.getTherapySessions()) {
-		//
-		// if (session.getProgramId() == null && session.getProgramName() == null) {
-		// continue;
-		// }
-		//
-		// // ✅ UNIQUE KEY
-		// String key = record.getTherapistRecordId() + "_" +
-		// (session.getProgramId() != null ? session.getProgramId() : "NA");
-		//
-		// if (map.containsKey(key))
-		// continue;
-		//
-		// AssignTherapistPatientListDTO dto = new AssignTherapistPatientListDTO();
-		//
-		// // ✅ BASIC
-		// dto.setBookingId(record.getBookingId());
-		// dto.setTherapistRecordId(record.getTherapistRecordId());
-		// dto.setClinicId(record.getClinicId());
-		// dto.setBranchId(record.getBranchId());
-		//
-		// // ✅ PATIENT INFO
-		// dto.setPatientId(record.getPatientInfo().getPatientId());
-		// dto.setPatientName(
-		// record.getPatientInfo().getPatientName() != null
-		// ? record.getPatientInfo().getPatientName()
-		// : "Unknown"
-		// );
-		// dto.setMobileNumber(record.getPatientInfo().getMobileNumber());
-		// dto.setAge(record.getPatientInfo().getAge());
-		// dto.setSex(record.getPatientInfo().getSex());
-		//
-		// // ✅ TREATMENT PLAN
-		// if (record.getTreatmentPlan() != null) {
-		// dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-		// dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
-		// dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-		// dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
-		// }
-		//
-		// // ✅ SESSION DATA
-		// dto.setProgramId(session.getProgramId() != null ? session.getProgramId() :
-		// "N/A");
-		// dto.setProgramName(session.getProgramName());
-		// dto.setSerivceType(session.getServiceType() != null ?
-		// session.getServiceType() : "N/A");
-		//
-		// // ✅ STATUS
-		// dto.setOverallStatus(record.getOverallStatus());
-		//
-		// map.put(key, dto);
-		// }
-		// }
-		//
-		// List<AssignTherapistPatientListDTO> dtoList = new ArrayList<>(map.values());
-		//
-		// if (dtoList.isEmpty()) {
-		// response.setSuccess(false);
-		// response.setMessage("No patients found for given status");
-		// response.setStatus(404);
-		// return response;
-		// }
-		//
-		// response.setSuccess(true);
-		// response.setData(dtoList);
-		// response.setMessage("Assigned patients fetched successfully");
-		// response.setStatus(200);
-		//
-		// return response;
-		// }
-		//
-		// @Override
-
-	// public Response getTherapistDashboard(String clinicId, String branchId,
-	// String therapistId) {
-	//
-	// Response response = new Response();
-	//
-	// List<PhysiotherapyRecord> records =
-	// repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(clinicId,
-	// branchId, therapistId);
-	//
-	// if (records.isEmpty()) {
-	// response.setSuccess(false);
-	// response.setMessage("No records found");
-	// response.setStatus(404);
-	// return response;
-	// }
-	//
-	// LocalDate today = LocalDate.now();
-	// LocalDate weekStart = today.minusDays(7);
-	// LocalDate monthStart = today.minusDays(30);
-	//
-	// DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-	//
-	// int todayCount = 0, weekCount = 0, monthCount = 0;
-	// long todayMinutes = 0, weekMinutes = 0, monthMinutes = 0;
-	//
-	// for (PhysiotherapyRecord record : records) {
-	//
-	// if (record.getTherapySessions() == null)
-	// continue;
-	//
-	// boolean countedToday = false;
-	// boolean countedWeek = false;
-	// boolean countedMonth = false;
-	//
-	// for (TherapySession session : record.getTherapySessions()) {
-	//
-	// if (session.getSessionDate() == null)
-	// continue;
-	//
-	// LocalDate sessionDate = parseDate(session.getSessionDate(), formatter);
-	//
-	// if (sessionDate == null) continue; // ✅ ADD THIS
-	// long duration = parseDuration(session.getDuration());
-	//
-	// // ✅ TODAY
-	// if (sessionDate.equals(today)) {
-	// if (!countedToday) {
-	// todayCount++; // count patient once
-	// countedToday = true;
-	// }
-	// todayMinutes += duration;
-	// }
-	//
-	// // ✅ WEEK
-	// if (!sessionDate.isBefore(weekStart)) {
-	// if (!countedWeek) {
-	// weekCount++;
-	// countedWeek = true;
-	// }
-	// weekMinutes += duration;
-	// }
-	//
-	// // ✅ MONTH
-	// if (!sessionDate.isBefore(monthStart)) {
-	// if (!countedMonth) {
-	// monthCount++;
-	// countedMonth = true;
-	// }
-	// monthMinutes += duration;
-	// }
-	// }
-	// }
-	//
-	// TherapistDashboardResponse dashboard = new TherapistDashboardResponse();
-	// dashboard.setTodayPatientCount(todayCount);
-	// dashboard.setTodayWorkingMinutes(todayMinutes);
-	//
-	// dashboard.setWeeklyPatientCount(weekCount);
-	// dashboard.setWeeklyWorkingMinutes(weekMinutes);
-	//
-	// dashboard.setMonthlyPatientCount(monthCount);
-	// dashboard.setMonthlyWorkingMinutes(monthMinutes);
-	//
-	// dashboard.setRecords(records);
-	//
-	// response.setSuccess(true);
-	// response.setData(dashboard);
-	// response.setMessage("Dashboard fetched successfully");
-	// response.setStatus(200);
-	//
-	// return response;
-	// }
+	}
 
 	private LocalDate parseDate(String date, DateTimeFormatter formatter) {
 		try {
