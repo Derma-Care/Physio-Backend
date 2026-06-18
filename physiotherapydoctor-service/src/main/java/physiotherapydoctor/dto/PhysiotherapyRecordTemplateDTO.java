@@ -28,6 +28,7 @@ public class PhysiotherapyRecordTemplateDTO {
 	private TreatmentPlan treatmentPlan;
 
 	private List<TherapySession> therapySessions;
+	private List<RecoverySupportDTO> recoverySupport;
 
 	private ExercisePlan exercisePlan;
 	private FollowUp followUp;

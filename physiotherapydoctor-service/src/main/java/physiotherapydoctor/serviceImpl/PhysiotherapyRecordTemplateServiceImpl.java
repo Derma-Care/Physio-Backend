@@ -427,6 +427,9 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 		if (dto.getFollowUp() != null) {
 			existing.setFollowUp(dto.getFollowUp());
 		}
+		if (dto.getRecoverySupport() != null) {
+			existing.setRecoverySupport(dto.getRecoverySupport());
+		}
 
 		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
 		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -530,6 +533,9 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 		// =========================
 		if (dto.getFollowUp() != null) {
 			entity.setFollowUp(dto.getFollowUp());
+		}
+		if (dto.getRecoverySupport() != null) {
+			entity.setRecoverySupport(dto.getRecoverySupport());
 		}
 		return entity;
 	}

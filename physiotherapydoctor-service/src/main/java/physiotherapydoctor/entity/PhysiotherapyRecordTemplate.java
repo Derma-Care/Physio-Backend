@@ -14,6 +14,7 @@ import physiotherapydoctor.dto.Diagnosis;
 import physiotherapydoctor.dto.ExercisePlan;
 import physiotherapydoctor.dto.FollowUp;
 import physiotherapydoctor.dto.Investigation;
+import physiotherapydoctor.dto.RecoverySupportDTO;
 import physiotherapydoctor.dto.TherapySession;
 import physiotherapydoctor.dto.TreatmentPlan;
 
@@ -39,7 +40,7 @@ public class PhysiotherapyRecordTemplate {
 	private TreatmentPlan treatmentPlan;
 
 	private List<TherapySession> therapySessions;
-
+	private List<RecoverySupportDTO> recoverySupport;
 	private ExercisePlan exercisePlan;
 	private FollowUp followUp;
 	private String createdTime;
