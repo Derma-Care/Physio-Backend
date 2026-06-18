@@ -26,56 +26,53 @@ public class FollowUpReminderScheduler {
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    // =====================================================
-    // RUNS EVERY DAY AT 7:00 AM IST
-    // =====================================================
+ // =====================================================
+ // RUNS EVERY DAY AT 09:00 AM IST
+ // =====================================================
 
-    @Scheduled(cron = "0 0 7 * * *", zone = "Asia/Kolkata")
-    public void sendFollowUpReminders() {
+ @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Kolkata")
+ public void sendFollowUpReminders() {
 
-        log.info("FollowUp reminder scheduler started at 7 AM");
+     log.info("FollowUp reminder scheduler started at 9:00 AM");
 
-        try {
+     try {
 
-            // Tomorrow's date = nextVisitDate we're looking for
-            String tomorrowDate = LocalDate.now()
-                    .plusDays(1)
-                    .format(FORMATTER);
+         String tomorrowDate = LocalDate.now()
+                 .plusDays(1)
+                 .format(FORMATTER);
 
-            log.info("Looking for follow-ups scheduled on: {}", tomorrowDate);
+         log.info("Looking for follow-ups scheduled on: {}", tomorrowDate);
 
-            // Fetch all records whose nextVisitDate == tomorrow
-            List<PhysiotherapyRecord> records =
-                    repository.findByFollowUpNextVisitDate(tomorrowDate);
+         List<PhysiotherapyRecord> records =
+                 repository.findByFollowUpNextVisitDate(tomorrowDate);
 
-            if (records == null || records.isEmpty()) {
-                log.info("No follow-up reminders to send for {}", tomorrowDate);
-                return;
-            }
+         if (records == null || records.isEmpty()) {
+             log.info("No follow-up reminders to send for {}", tomorrowDate);
+             return;
+         }
 
-            log.info("Found {} follow-up(s) to remind for {}",
-                    records.size(), tomorrowDate);
+         log.info("Found {} follow-up(s) to remind for {}",
+                 records.size(), tomorrowDate);
 
-            for (PhysiotherapyRecord record : records) {
-                try {
+         for (PhysiotherapyRecord record : records) {
+             try {
 
-                    followUpWhatsAppService.sendFollowUpReminder(
-                            record,
-                            tomorrowDate
-                    );
+                 followUpWhatsAppService.sendFollowUpReminder(
+                         record,
+                         tomorrowDate
+                 );
 
-                    log.info("Reminder sent for bookingId={}",
-                            record.getBookingId());
+                 log.info("Reminder sent for bookingId={}",
+                         record.getBookingId());
 
-                } catch (Exception e) {
-                    // One failure must NOT stop the rest
-                    log.error("Reminder failed for bookingId={} : {}",
-                            record.getBookingId(), e.getMessage());
-                }
-            }
+             } catch (Exception e) {
+                 log.error("Reminder failed for bookingId={} : {}",
+                         record.getBookingId(), e.getMessage());
+             }
+         }
 
-        } catch (Exception e) {
-            log.error("FollowUp scheduler error: {}", e.getMessage(), e);
-        }
-    }
+     } catch (Exception e) {
+         log.error("FollowUp scheduler error: {}", e.getMessage(), e);
+     }
+ }
 }
