@@ -17,19 +17,23 @@ import jakarta.annotation.PostConstruct;
 public class FirebaseConfig {
 
     @Value("${app.firebase-configuration-file}")
-    private String firebaseKeyPath;
+    private String firebaseConfigurationFile;
 
     @PostConstruct
     public void initFirebase() throws IOException {
+
         if (FirebaseApp.getApps().isEmpty()) {
+
             InputStream serviceAccount =
-                    new ClassPathResource(firebaseKeyPath)
+                    new ClassPathResource(
+                            firebaseConfigurationFile)
                             .getInputStream();
 
             FirebaseOptions options =
                     FirebaseOptions.builder()
                             .setCredentials(
-                                    GoogleCredentials.fromStream(serviceAccount))
+                                    GoogleCredentials.fromStream(
+                                            serviceAccount))
                             .build();
 
             FirebaseApp.initializeApp(options);
