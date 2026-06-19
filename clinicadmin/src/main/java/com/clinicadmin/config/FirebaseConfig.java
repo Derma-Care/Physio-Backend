@@ -1,33 +1,35 @@
 package com.clinicadmin.config;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
+import com.google.api.client.util.Value;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+
 import jakarta.annotation.PostConstruct;
-import java.io.IOException;
-import java.io.InputStream;
 
 @Configuration
 public class FirebaseConfig {
 
+    @Value("${app.firebase-configuration-file}")
+    private String firebaseKeyPath;
+
     @PostConstruct
     public void initFirebase() throws IOException {
-
         if (FirebaseApp.getApps().isEmpty()) {
-
             InputStream serviceAccount =
-                    new ClassPathResource(
-                            "firebase-key.json")
+                    new ClassPathResource(firebaseKeyPath)
                             .getInputStream();
 
             FirebaseOptions options =
                     FirebaseOptions.builder()
                             .setCredentials(
-                                    GoogleCredentials.fromStream(
-                                            serviceAccount))
+                                    GoogleCredentials.fromStream(serviceAccount))
                             .build();
 
             FirebaseApp.initializeApp(options);
