@@ -1,25 +1,31 @@
 package com.clinicadmin.service.impl;
 
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.clinicadmin.dto.DoctorFeedbackSummaryDTO;
 import com.clinicadmin.dto.FeedbackDetailsDTO;
-import com.clinicadmin.dto.PatientRatingDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ServiceInfo;
 import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.entity.FeedbackDetails;
+import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.service.FeedbackDetailsServcie;
+import com.clinicadmin.service.PushNotificationService;
 
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 @Service
 public class FeedbackDetailsServiceImpl
         implements FeedbackDetailsServcie {
@@ -33,6 +39,11 @@ public class FeedbackDetailsServiceImpl
     @Autowired
     private CustomerOnboardingRepository customerOnboardingRepository;
     
+    @Autowired
+    private PushNotificationService pushNotificationService;
+    
+    @Autowired
+    private AdminServiceClient adminServiceClient;
     
     @Override
     public Response createFeedback(
@@ -71,6 +82,9 @@ public class FeedbackDetailsServiceImpl
 
             FeedbackDetails saved =
                     repository.save(entity);
+            
+         // ================= PUSH NOTIFICATION ON CREATE =================
+            triggerSessionNotificationIfNeeded(saved);
 
             // ================= RESPONSE =================
 
@@ -274,6 +288,9 @@ public class FeedbackDetailsServiceImpl
 
             FeedbackDetails updated =
                     repository.save(existing);
+            
+         // ================= PUSH NOTIFICATION ON UPDATE =================
+            triggerSessionNotificationIfNeeded(updated);
 
             // ================= RESPONSE =================
 
@@ -343,18 +360,22 @@ public class FeedbackDetailsServiceImpl
                                     clinicId,
                                     branchId);
 
+            // 👉 If Feign already failed, return directly
+            if (paymentResponse == null || !paymentResponse.isSuccess()) {
+                return paymentResponse;
+            }
+            
             List<Map<String, Object>> payments =
-                    (List<Map<String, Object>>)
-                            paymentResponse.getData();
+                    (List<Map<String, Object>>) paymentResponse.getData();
+
+            
 
             if (payments == null || payments.isEmpty()) {
 
-                response.setSuccess(false);
-                response.setStatus(404);
-                response.setMessage(
-                        "No payment records found");
-
-                response.setData(null);
+                response.setSuccess(paymentResponse.isSuccess());   // reuse
+                response.setStatus(paymentResponse.getStatus());    // reuse
+                response.setMessage(paymentResponse.getMessage());  // reuse
+                response.setData(Collections.emptyList());
 
                 return response;
             }
@@ -806,21 +827,27 @@ public class FeedbackDetailsServiceImpl
             }
 
             response.setSuccess(true);
-            response.setStatus(200);
-            response.setMessage(
-                    "Feedback details fetched successfully");
-
+            response.setMessage("Feedback details fetched successfully");
             response.setData(result);
+
+            return response;
+
+        } catch (FeignException.BadRequest ex) {
+
+            response.setSuccess(false);
+            response.setMessage("Payment service returned no data");
+            response.setData(null);
+
+            return response;
 
         } catch (Exception e) {
 
             response.setSuccess(false);
-            response.setStatus(500);
             response.setMessage(e.getMessage());
             response.setData(null);
-        }
 
-        return response;
+            return response;
+        }
     }
     private FeedbackDetails mapToEntity(
             FeedbackDetailsDTO dto) {
@@ -1070,4 +1097,69 @@ public class FeedbackDetailsServiceImpl
 //
 //        return response;
 //    }
+    
+    private void triggerSessionNotificationIfNeeded(
+            FeedbackDetails feedback) {
+
+        String bookingId   = feedback.getBookingId();
+        String patientName = feedback.getPatientName();
+        String mobile      = feedback.getMobileNumber();
+        String clinicId    = feedback.getClinicId();
+
+        // ================= FETCH FCM TOKEN USING EXISTING FEIGN =================
+
+        ResponseEntity<Response> clinicResponse =
+                adminServiceClient.getClinicById(clinicId);
+
+        if (clinicResponse == null
+                || clinicResponse.getBody() == null
+                || !clinicResponse.getBody().isSuccess()
+                || clinicResponse.getBody().getData() == null) {
+
+            log.warn("Clinic not found | ClinicId: {} | BookingId: {}",
+                    clinicId, bookingId);
+            return;
+        }
+
+        // ================= GET FCM TOKEN FROM RESPONSE =================
+
+        Map<String, Object> clinicData =
+                (Map<String, Object>) clinicResponse
+                        .getBody().getData();
+
+        String fcmToken =
+                String.valueOf(clinicData.get("fcmToken"));
+
+        if (fcmToken == null
+                || fcmToken.isBlank()
+                || "null".equalsIgnoreCase(fcmToken)) {
+
+            log.warn("FCM token not found | ClinicId: {}",
+                    clinicId);
+            return;
+        }
+
+        // ================= FULL COMPLETED =================
+
+        if (feedback.isFullSessionsCompleted()) {
+
+            pushNotificationService
+                    .sendFullSessionNotification(
+                            fcmToken,
+                            bookingId,
+                            patientName,
+                            mobile);
+
+        // ================= HALF COMPLETED =================
+
+        } else if (feedback.isHalfSessionsCompleted()) {
+
+            pushNotificationService
+                    .sendHalfSessionNotification(
+                            fcmToken,
+                            bookingId,
+                            patientName,
+                            mobile);
+        }
+    }
 }

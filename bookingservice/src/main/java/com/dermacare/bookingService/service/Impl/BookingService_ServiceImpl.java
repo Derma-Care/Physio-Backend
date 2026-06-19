@@ -695,8 +695,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					map.put("serviceDate", n.getServiceDate());
 					map.put("servicetime", n.getServicetime());
 					map.put("name", n.getName());
-					map.put("mobileNumber",
-							!n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber());
+					 map.put("mobileNumber",
+					            n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+					                    ? n.getPatientMobileNumber()
+					                    : n.getMobileNumber());
 					map.put("doctorId", n.getDoctorId());
 					map.put("doctorName", n.getDoctorName());
 					map.put("paymentType", n.getPaymentType());
@@ -711,6 +713,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					map.put("gender", n.getGender());
 					map.put("branchName", n.getBranchname());
 					map.put("problem", n.getProblem());
+					
+					// New fields
+				    map.put("consultationFee", n.getConsultationFee());
+				    map.put("freeFollowUpsLeft", n.getFreeFollowUpsLeft());
+				    map.put("freeFollowUps", n.getFreeFollowUps());
+				    
 					list.add(map);
 					return n;
 				}).toList();

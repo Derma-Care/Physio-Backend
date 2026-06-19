@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1356,14 +1357,13 @@ public class PaymentServiceImpl implements PaymentService {
 	// FIND BY CLINIC AND BRANCH
 	// ========================================================
 	@Override
-	public List<PaymentRecordResponse> findByClinicIdAndBranchId(String clinicId, String branchId) {
+	public List<PaymentRecordResponse> findByClinicIdAndBranchId(
+	        String clinicId,
+	        String branchId) {
 
-		List<PaymentRecord> records = repo.findByClinicIdAndBranchId(clinicId, branchId);
-
-		if (records == null || records.isEmpty()) {
-			throw new RuntimeException("No payment records found");
-		}
-
-		return records.stream().map(this::mapToResponse).toList();
+	    return repo.findByClinicIdAndBranchId(clinicId, branchId)
+	            .stream()
+	            .map(this::mapToResponse)
+	            .toList();
 	}
 }

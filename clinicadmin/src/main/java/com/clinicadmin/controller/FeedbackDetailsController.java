@@ -2,6 +2,7 @@ package com.clinicadmin.controller;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -114,30 +115,18 @@ public class FeedbackDetailsController {
             @PathVariable String clinicId,
             @PathVariable String branchId) {
 
-        try {
+        Response response =
+                service.getFeedbackDetails(clinicId, branchId);
 
-            Response response =
-                    service.getFeedbackDetails(
-                            clinicId,
-                            branchId);
-
-            return ResponseEntity
-                    .status(response.getStatus())
-                    .body(response);
-
-        } catch (Exception e) {
-
-            Response response = new Response();
-
-            response.setSuccess(false);
-            response.setStatus(400);
-            response.setMessage(e.getMessage());
-            response.setData(null);
-
-            return ResponseEntity
-                    .status(response.getStatus())
-                    .body(response);
+        // ✅ success case
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
         }
+
+        // ❌ real system error
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(response);
     }
     
 //    @GetMapping("/getDoctorFeedbackSummaryByCinicIdAndDoctorId/{clinicId}/{doctorId}")

@@ -22,4 +22,6 @@ public class ClinicCredentialsDTO {
 	
 	private String role;
 	private List<String>permissions;
+	private String fcmToken;
+
 }

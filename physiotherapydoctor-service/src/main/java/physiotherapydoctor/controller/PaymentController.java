@@ -1,7 +1,9 @@
 package physiotherapydoctor.controller;
 
+import java.util.Collections;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
-import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.service.PaymentService;
 
 @RestController
@@ -176,28 +177,42 @@ public class PaymentController {
 	}
 
 	@GetMapping("/getPayments/{clinicId}/{branchId}")
-	public ResponseEntity<Response> getPayments(@PathVariable String clinicId, @PathVariable String branchId) {
+	public ResponseEntity<Response> getPayments(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		try {
+	    try {
 
-			List<PaymentRecordResponse> records = service.findByClinicIdAndBranchId(clinicId, branchId);
+	        List<PaymentRecordResponse> records =
+	                service.findByClinicIdAndBranchId(clinicId, branchId);
 
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Payments fetched successfully");
-			response.setData(records);
+	        if (records == null || records.isEmpty()) {
+	            response.setSuccess(true);
+	            response.setStatus(200);
+	            response.setMessage("No payments found");
+	            response.setData(Collections.emptyList());
 
-		} catch (Exception e) {
+	            return ResponseEntity.status(HttpStatus.OK).body(response);
+	        }
 
-			response.setSuccess(false);
-			response.setStatus(400);
-			response.setMessage(e.getMessage());
-			response.setData(null);
-		}
+	        response.setSuccess(true);
+	        response.setStatus(200);
+	        response.setMessage("Payments fetched successfully");
+	        response.setData(records);
 
-		return ResponseEntity.status(response.getStatus()).body(response);
+	        return ResponseEntity.ok(response);
+
+	    } catch (Exception e) {
+
+	        response.setSuccess(false);
+	        response.setStatus(500);
+	        response.setMessage("Internal server error: " + e.getMessage());
+	        response.setData(null);
+
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+	    }
 	}
 
 	@GetMapping("/getCompletedTherapyRecord/{clinicId}/{branchId}/{therapistRecordId}/{sessionId}")

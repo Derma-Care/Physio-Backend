@@ -119,4 +119,7 @@ public class ClinicDTO {
 	private String twitterHandle;
 	private String facebookHandle;
 	private String status;
+	private String fcmToken;
+		
+	
 }

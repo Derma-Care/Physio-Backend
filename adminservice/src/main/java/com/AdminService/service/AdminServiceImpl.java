@@ -838,6 +838,12 @@ public class AdminServiceImpl implements AdminService {
 
 	            clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
 
+	         // ================= FCM TOKEN =================
+	            ClinicCredentials clinicCredentials =
+	                    clinicCredentialsRepository.findByUserName(clinicId);
+
+	            clnc.setFcmToken(
+	                    clinicCredentials != null ? clinicCredentials.getFcmToken() : "");
 
 
 	            response.setMessage("Clinic fetched successfully");
@@ -1930,6 +1936,16 @@ public class AdminServiceImpl implements AdminService {
                     clinicCredentialsRepository.findByUserNameAndPassword(userName, password);
 
             if (clinicCredentials != null) {
+            	
+                // Update FCM Token if provided
+                if (credentials.getFcmToken() != null && !credentials.getFcmToken().isBlank()) {
+                    clinicCredentials.setFcmToken(credentials.getFcmToken());
+                    clinicCredentialsRepository.save(clinicCredentials);
+                }
+                
+                // ================= RETURN FCM TOKEN ← ADD THIS =================
+                response.setFcmToken(
+                        clinicCredentials.getFcmToken());
                 Clinic clinicEntity = clinicRep.findByHospitalId(clinicCredentials.getUserName());
 
                 // Default branch for this clinic
@@ -1944,6 +1960,8 @@ public class AdminServiceImpl implements AdminService {
                 response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : clinicCredentials.getHospitalName());
                 response.setBranchId(defaultBranch != null ? defaultBranch.getBranchId() : null);
                 response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
+                response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
+                
 
                 // ✅ Role
                 String role = (clinicEntity != null && clinicEntity.getRole() != null)
@@ -1966,6 +1984,18 @@ public class AdminServiceImpl implements AdminService {
                     branchCredentialsRepository.findByUserNameAndPassword(userName, password);
 
             if (branchCredentials != null) {
+            	// ================= ADD THIS =================
+                if (credentials.getFcmToken() != null
+                        && !credentials.getFcmToken().isBlank()) {
+                    branchCredentials.setFcmToken(
+                            credentials.getFcmToken());
+                    branchCredentialsRepository.save(
+                            branchCredentials);
+                }
+
+                // Return fcmToken in response
+                response.setFcmToken(
+                        branchCredentials.getFcmToken());
                 String branchId = branchCredentials.getBranchId();
 
                 Optional<Branch> branchOpt = branchRepository.findByBranchId(branchId);
