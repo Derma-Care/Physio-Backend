@@ -1093,15 +1093,15 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			Response fetchedResponse = getByWithoutTherapistRecordId(clinicId, branchId, patientId, bookingId);
 
 			if (fetchedResponse == null || fetchedResponse.getData() == null) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(new Response(false, null, "Record not found", 404));
+				return ResponseEntity.status(HttpStatus.OK)
+						.body(new Response(false, null, "Record not found", 200));
 			}
 
 			List<PhysiotherapyRecord> records = extractRecords(fetchedResponse.getData());
 
 			if (records == null || records.isEmpty()) {
 				return ResponseEntity.status(HttpStatus.NO_CONTENT)
-						.body(new Response(false, null, "No records found", 204));
+						.body(new Response(false, null, "No records found", 200));
 			}
 
 			List<Object> result = new ArrayList<>();

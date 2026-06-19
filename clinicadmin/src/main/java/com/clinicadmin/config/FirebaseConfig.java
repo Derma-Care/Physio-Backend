@@ -5,8 +5,7 @@ import java.io.InputStream;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-
-import com.google.api.client.util.Value;
+import org.springframework.beans.factory.annotation.Value;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;

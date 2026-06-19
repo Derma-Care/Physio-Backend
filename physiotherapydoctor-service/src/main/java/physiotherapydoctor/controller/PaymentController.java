@@ -96,7 +96,7 @@ public class PaymentController {
 			response.setSuccess(false);
 			response.setData(null);
 			response.setMessage(e.getMessage());
-			response.setStatus(404);
+			response.setStatus(200);
 		}
 
 		return ResponseEntity.status(response.getStatus()).body(response);
