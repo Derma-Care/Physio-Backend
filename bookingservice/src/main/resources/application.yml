@@ -37,18 +37,18 @@ spring.lifecycle:
 # WHATSAPP
 # =========================================================
 whatsapp:
-  base-url: ${WHATSAPP_BASE_URL}
-  auth-key: ${WHATSAPP_AUTH_KEY}
-  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID}
-  booking-confirmation-template-id: ${WHATSAPP_BOOKING_CONFIRMATION_TEMPLATE_ID}
+  base-url:
+  auth-key: 
+  phone-number-id: 
+  booking-confirmation-template-id: 
 
 # =========================================================
 # AWS S3
 # =========================================================
 
 aws:
-  accessKeyId: ${AWS_ACCESS_KEY_ID}
-  secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+  accessKeyId: 
+  secretAccessKey: 
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage
