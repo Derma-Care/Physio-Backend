@@ -91,145 +91,175 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@Override
 	public Response create(PhysiotherapyRecordDTO dto) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		if (dto == null) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Request body is null");
-			response.setStatus(400);
-			return response;
-		}
+	    if (dto == null) {
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Request body is null");
+	        response.setStatus(400);
+	        return response;
+	    }
 
-		calculateTherapyPrices(dto.getTherapySessions());
+	    calculateTherapyPrices(dto.getTherapySessions());
 
-		PhysiotherapyRecord entity = mapToEntity(dto);
+	    PhysiotherapyRecord entity = mapToEntity(dto);
 
-		LocalDateTime now = LocalDateTime.now();
+	    LocalDateTime now = LocalDateTime.now();
 
-		String createdDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-		String createdTime = now.format(DateTimeFormatter.ofPattern("hh:mm a"));
+	    String createdDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+	    String createdTime = now.format(DateTimeFormatter.ofPattern("hh:mm a"));
 
-		entity.setCreatedAt(createdDate);
-		entity.setCreatedTime(createdTime);
-		entity.setUpdatedAt(createdDate);
+	    entity.setCreatedAt(createdDate);
+	    entity.setCreatedTime(createdTime);
+	    entity.setUpdatedAt(createdDate);
 
-		// Flag to control booking updates
-		boolean allowBookingUpdate = true;
+	    boolean allowBookingUpdate = true;
 
-		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
+	    if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
 
-			try {
+	        try {
 
-				ResponseEntity<ResponseStructure<BookingResponse>> bookingRes = bookingFeign
-						.getBookedService(dto.getBookingId());
+	            ResponseEntity<ResponseStructure<BookingResponse>> bookingRes =
+	                    bookingFeign.getBookedService(dto.getBookingId());
 
-				if (bookingRes != null && bookingRes.getBody() != null && bookingRes.getBody().getData() != null) {
+	            if (bookingRes != null
+	                    && bookingRes.getBody() != null
+	                    && bookingRes.getBody().getData() != null) {
 
-					String bookingStatus = bookingRes.getBody().getData().getStatus();
+	                String bookingStatus = bookingRes.getBody().getData().getStatus();
 
-					if ("Due for Investigation".equalsIgnoreCase(bookingStatus)
-							|| "Investigation Done".equalsIgnoreCase(bookingStatus)) {
+	                if ("Due for Investigation".equalsIgnoreCase(bookingStatus)
+	                        || "Investigation Done".equalsIgnoreCase(bookingStatus)) {
 
-						entity.setUptoInvestigation(true);
+	                    entity.setUptoInvestigation(true);
+	                    allowBookingUpdate = false;
+	                }
+	            }
 
-						// Skip booking status updates
-						allowBookingUpdate = false;
-					}
-				}
+	        } catch (Exception e) {
+	            System.out.println("Error while fetching booking status : " + e.getMessage());
+	        }
+	    }
 
-			} catch (Exception e) {
-				System.out.println("Error while fetching booking status : " + e.getMessage());
-			}
-		}
+	    Integer updatedFreeLeft = null;
 
-		PhysiotherapyRecord saved = repository.save(entity);
+	    if (dto.getBookingId() != null
+	            && !dto.getBookingId().isEmpty()
+	            && dto.getPatientInfo() != null
+	            && dto.getPatientInfo().getPatientId() != null) {
 
-		Integer updatedFreeLeft = null;
+	        try {
 
-		// ✅ Get current freeFollowUpsLeft and calculate new value
-		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty()) {
-			try {
+	            ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
+	                    bookingFeign.getBookedService(dto.getBookingId());
 
-				ResponseStructure<BookingResponse> res = clinicAdminFeign.getBookingById(dto.getBookingId());
+	            if (bookingResponse != null && bookingResponse.getBody().getData() != null) {
 
-				if (res != null && res.getData() != null) {
+	                Integer freeLeft = bookingResponse.getBody().getData().getFreeFollowUpsLeft();
 
-					Integer freeLeft = res.getData().getFreeFollowUpsLeft();
+	                // Count BEFORE save
+	                long visitCount = repository.countByBookingIdAndPatientInfoPatientId(
+	                        dto.getBookingId(),
+	                        dto.getPatientInfo().getPatientId());
 
-					// ✅ First time for bookingId + patientId ignore
-					long visitCount = repository.countByBookingIdAndPatientInfoPatientId(dto.getBookingId(),
-							dto.getPatientInfo().getPatientId());
+	                System.out.println("Current Visit Count : " + visitCount);
+	                System.out.println("Current Free FollowUps : " + freeLeft);
 
-					if (visitCount <= 1) {
-						updatedFreeLeft = freeLeft;
-					} else {
-						if (freeLeft != null && freeLeft > 0) {
-							updatedFreeLeft = freeLeft - 1;
-						} else {
-							updatedFreeLeft = freeLeft;
-						}
-					}
-				}
+	                // First visit -> don't decrease
+	                if (visitCount == 0) {
+	                    updatedFreeLeft = freeLeft;
+	                }
+	                // Follow-up visits -> decrease
+	                else if (freeLeft != null && freeLeft > 0) {
+	                    updatedFreeLeft = freeLeft - 1;
+	                } else {
+	                    updatedFreeLeft = freeLeft;
+	                }
 
-			} catch (Exception e) {
-				System.out.println("Booking fetch failed: " + e.getMessage());
-			}
-		}
+	                System.out.println("Updated Free FollowUps : " + updatedFreeLeft);
+	            }
 
-		// ✅ BOOKING UPDATE (ClinicAdminFeign + in-progress + freeFollowUpsLeft)
-		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty() && allowBookingUpdate) {
+	        } catch (Exception e) {
+	            System.out.println("Booking fetch failed: " + e.getMessage());
+	        }
+	    }
 
-			try {
+	    // Save record AFTER calculating visit count
+	    PhysiotherapyRecord saved = repository.save(entity);
 
-				BookingResponse updateRequest = new BookingResponse();
-				updateRequest.setBookingId(dto.getBookingId());
-				updateRequest.setStatus("in-progress");
-				updateRequest.setFreeFollowUpsLeft(updatedFreeLeft);
+	    // Update Clinic Admin Booking
+	    if (dto.getBookingId() != null
+	            && !dto.getBookingId().isEmpty()
+	            && allowBookingUpdate) {
 
-				clinicAdminFeign.updateAppointment(updateRequest);
+	        try {
 
-			} catch (Exception e) {
-				System.out.println("Booking update failed: " + e.getMessage());
-			}
-		}
+	            BookingResponse updateRequest = new BookingResponse();
+	            updateRequest.setBookingId(dto.getBookingId());
+	            updateRequest.setStatus("in-progress");
+	            updateRequest.setFreeFollowUpsLeft(updatedFreeLeft);
 
-		// ✅ BOOKING UPDATE (bookingFeign + Active + freeFollowUpsLeft)
-		if (dto.getBookingId() != null && !dto.getBookingId().isEmpty() && allowBookingUpdate) {
+	            System.out.println(
+	                    "Updating Clinic Admin Booking. Free FollowUps Left : "
+	                            + updatedFreeLeft);
 
-			try {
+	            clinicAdminFeign.updateAppointment(updateRequest);
 
-				BookingResponse updateRequest = new BookingResponse();
-				updateRequest.setBookingId(dto.getBookingId());
-				updateRequest.setStatus("Active");
-				updateRequest.setFreeFollowUpsLeft(updatedFreeLeft);
+	        } catch (Exception e) {
+	            System.out.println("Clinic Admin Booking update failed : " + e.getMessage());
+	        }
+	    }
 
-				bookingFeign.updateAppointment(updateRequest);
+	    // Update Booking Service
+	    if (dto.getBookingId() != null
+	            && !dto.getBookingId().isEmpty()
+	            && allowBookingUpdate) {
 
-			} catch (Exception e) {
-				System.out.println("Booking update failed: " + e.getMessage());
-			}
-		}
+	        try {
 
-		List<Map<String, Object>> cleanSessions = transformTherapySessions(saved.getTherapySessions());
+	            BookingResponse updateRequest = new BookingResponse();
+	            updateRequest.setBookingId(dto.getBookingId());
+	            updateRequest.setStatus("Active");
+	            updateRequest.setFreeFollowUpsLeft(updatedFreeLeft);
 
-		saved.setTherapySessions((List) cleanSessions);
+	            System.out.println(
+	                    "Updating Booking Service. Free FollowUps Left : "
+	                            + updatedFreeLeft);
 
-		if (saved.getPrescriptionPdf() != null && !saved.getPrescriptionPdf().isEmpty()) {
-			try {
-				String presignedUrl = s3Service.generateSignedUrl(saved.getPrescriptionPdf());
-				saved.setPrescriptionPdf(presignedUrl);
-			} catch (Exception e) {
-				System.out.println("Presigned URL generation failed: " + e.getMessage());
-			}
-		}
+	            bookingFeign.updateAppointment(updateRequest);
 
-		response.setSuccess(true);
-		response.setData(saved);
-		response.setMessage("Record created successfully");
-		response.setStatus(201);
+	        } catch (Exception e) {
+	            System.out.println("Booking Service update failed : " + e.getMessage());
+	        }
+	    }
 
-		return response;
+	    List<Map<String, Object>> cleanSessions =
+	            transformTherapySessions(saved.getTherapySessions());
+
+	    saved.setTherapySessions((List) cleanSessions);
+
+	    if (saved.getPrescriptionPdf() != null
+	            && !saved.getPrescriptionPdf().isEmpty()) {
+
+	        try {
+	            String presignedUrl =
+	                    s3Service.generateSignedUrl(saved.getPrescriptionPdf());
+
+	            saved.setPrescriptionPdf(presignedUrl);
+
+	        } catch (Exception e) {
+	            System.out.println(
+	                    "Presigned URL generation failed : " + e.getMessage());
+	        }
+	    }
+
+	    response.setSuccess(true);
+	    response.setData(saved);
+	    response.setMessage("Record created successfully");
+	    response.setStatus(201);
+
+	    return response;
 	}
 
 	private List<Map<String, Object>> transformTherapySessions(List<TherapySession> sessions) {

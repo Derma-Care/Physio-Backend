@@ -1,11 +1,14 @@
 spring:
-
   application:
     name: bookingservice
 
+#  config:
+#    import: optional:application-secrets.yml
+
   data:
     mongodb:
-      uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000  
+      uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
+
   cloud:
     openfeign:
       client:
@@ -14,8 +17,10 @@ spring:
             connectTimeout: 30000
             readTimeout: 60000
 
-server:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
+server:
   port: 9900
 
   servlet:
@@ -30,17 +35,19 @@ server:
       - text/html
       - text/plain
 
-spring.lifecycle:
-  timeout-per-shutdown-phase: 30s
-
 # =========================================================
 # WHATSAPP
 # =========================================================
+<<<<<<< Updated upstream
 whatsapp:
   base-url:
   auth-key: 
   phone-number-id: 
   booking-confirmation-template-id: 
+=======
+
+
+>>>>>>> Stashed changes
 
 # =========================================================
 # AWS S3
@@ -58,11 +65,9 @@ aws:
 # =========================================================
 
 eureka:
-
   client:
     register-with-eureka: true
     fetch-registry: true
-
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
@@ -74,39 +79,28 @@ eureka:
 # =========================================================
 
 resilience4j:
-
   circuitbreaker:
-
     instances:
-
       bookingService:
-
         register-health-indicator: true
-
         sliding-window-size: 10
-
         minimum-number-of-calls: 5
-
         permitted-number-of-calls-in-half-open-state: 3
-
         wait-duration-in-open-state: 10s
-
         failure-rate-threshold: 50
 
   timelimiter:
-
     instances:
-
       bookingService:
         timeout-duration: 60s
 
 # =========================================================
-# ACTUATOR — FIXED
+# ACTUATOR
 # =========================================================
 
 management:
   server:
-    base-path: /              # ← FIXED: moves actuator out of /api context-path
+    base-path: /
 
   endpoints:
     web:
@@ -117,14 +111,13 @@ management:
     health:
       show-details: always
       probes:
-        enabled: true         # ← enables liveness & readiness probes
+        enabled: true
 
 # =========================================================
 # INFO
 # =========================================================
 
 info:
-
   app:
     name: bookingservice
     description: Service responsible for booking appointments
@@ -135,6 +128,5 @@ info:
 # =========================================================
 
 logging:
-
   level:
     root: INFO

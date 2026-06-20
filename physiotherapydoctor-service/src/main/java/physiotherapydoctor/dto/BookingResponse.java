@@ -2,7 +2,9 @@ package physiotherapydoctor.dto;
 
 import java.util.List;
 import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,13 +14,12 @@ import lombok.NoArgsConstructor;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BookingResponse {
-
+	
 	private String bookingId;
 	private String bookingFor;
-	private String name;
-	private String relation;
-	private String patientMobileNumber;
+	private String name;	
 	private String dob;
+	private String patientMobileNumber;
 	private String patientId;
 	private String visitType;
 	private Integer freeFollowUpsLeft;
@@ -41,17 +42,14 @@ public class BookingResponse {
 	private String doctorName;
 	private String doctorMobileDeviceId;
 	private String doctorWebDeviceId;
-	private String subServiceId;
-	private String subServiceName;
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
 	private List<ConsultationFeesDTO> listOfConsultationFee;
-	private double consultationFee;
+	private Double consultationFee;
 	private Integer visitCount;
 	private String channelId;
 	private String reasonForCancel;
-	///private String notes;
 	private List<ReportsDtoList> reports;
 	private String BookedAt;
 	private List<StatusDTO> currentStatus;
@@ -61,24 +59,24 @@ public class BookingResponse {
 	private String consentFormPdf;
 	private List<String> prescriptionPdf;
 	private String doctorRefCode;
-	private String paymentType;
+	private String paymentType;		
 	private String followupDate;
 	private String foc;
 	private String focReason;
 	private String followupStatus;
 	private String treatmentName;
-	private String treatmentDate;
-
-	// ✅ Add this new field
-	private String updatedTreatment;
-	private String bodyPartId;
-	private String bodyPartName;
-	private String partImage;
-	private Map<String, List<TheraphyAnswersDTO>> theraphyAnswers;
-	private List<String> parts;
-	private double partAmount;
-	private double dueAmount;
-	private String referredByType;
+	// ✅ Add treatments info
+   // private TreatmentResponseDTO treatments;    
+    // ✅ Add this new field
+    private String updatedTreatment;
+    private String bodyPartId;
+   	private String bodyPartName;
+   	private String partImage;
+   	private Map<String,List<TheraphyAnswersDTO>> theraphyAnswers;
+   	private List<String> parts;
+   	private double partAmount;
+   	private double dueAmount;
+   	private String referredByType;
 	private String referredByName;
 	private String paymentStatus;
 	private String previousInjuries;
@@ -91,13 +89,15 @@ public class BookingResponse {
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
 	private List<Session> session;
-
+	//private List<FollowupBookingDto> follwupBookings;
+		
 	public void setIsFollowupStatus(boolean followupStatus) {
-		isFollowupStatus = followupStatus;
+	    isFollowupStatus = followupStatus;
 	}
-
+	
 	public boolean getIsFollowupStatus() {
-		return isFollowupStatus;
+	    return isFollowupStatus;
 	}
-
+	
+   	
 }
