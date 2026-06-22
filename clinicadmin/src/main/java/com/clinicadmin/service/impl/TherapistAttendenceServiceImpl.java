@@ -352,6 +352,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 s.setActivity(r.getServiceType());
                 s.setDuration(r.getDuration());
                 s.setLocation(r.getLocation());
+                s.setDescription(r.getDescription());
+
 
                 finalSessions.add(s);
             }
@@ -437,6 +439,28 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
                     res.setIdleTime(idleH + "h " + idleM + "m");
                 }
+                
+                String description = "N/A";
+
+                if (a.getSessions() != null && !a.getSessions().isEmpty()) {
+
+                    List<String> descriptions = new ArrayList<>();
+
+                    for (Session s : a.getSessions()) {
+
+                        if (s.getDescription() != null
+                                && !s.getDescription().trim().isEmpty()) {
+
+                            descriptions.add(s.getDescription());
+                        }
+                    }
+
+                    if (!descriptions.isEmpty()) {
+                        description = String.join(", ", descriptions);
+                    }
+                }
+
+                res.setDescription(description);
 
                 return res;
 

@@ -210,4 +210,208 @@ public class EmailService {
             </html>
             """.formatted(bodyMessage, reason);
     }
+    
+    public void sendPatientEmail(
+
+            String to,
+
+            String patientName,
+
+            String clinicName,
+
+            String branchName,
+
+            String title,
+
+            String body) {
+
+        try {
+
+            if (to == null || to.isBlank()) {
+
+                logger.warn(
+                        "Patient email not sent: recipient address is blank");
+
+                return;
+            }
+
+            MimeMessage mimeMessage =
+                    mailSender.createMimeMessage();
+
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(
+                            mimeMessage,
+                            true,
+                            "UTF-8");
+
+            helper.setTo(to);
+
+            helper.setFrom(fromAddress);
+
+            helper.setSubject(title);
+
+            helper.setText(
+
+                    buildPatientMessageBody(
+
+                            patientName,
+
+                            clinicName,
+
+                            branchName,
+
+                            title,
+
+                            body),
+
+                    true);
+
+            mailSender.send(mimeMessage);
+
+            logger.info(
+                    "Patient email sent successfully to {}",
+                    to);
+
+        } catch (Exception e) {
+
+            logger.error(
+                    "Failed to send patient email to {} : {}",
+                    to,
+                    e.getMessage(),
+                    e);
+        }
+    }
+    private String buildPatientMessageBody(
+
+            String patientName,
+
+            String clinicName,
+
+            String branchName,
+
+            String title,
+
+            String body) {
+
+        return """
+            <html>
+
+            <body style="
+                margin:0;
+                padding:0;
+                font-family:Arial,sans-serif;
+                background:#f5f7fa;">
+
+            <div style="
+                max-width:600px;
+                margin:30px auto;
+                background:#ffffff;
+                border-radius:10px;
+                border:1px solid #e0e0e0;
+                overflow:hidden;">
+
+                <!-- Header -->
+
+                <div style="
+                    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+                    padding:12px 10px;
+                    text-align:center;">
+
+                    <div style="
+                        color:#ffffff;
+                        font-size:22px;
+                        font-weight:700;
+                        line-height:1.2;">
+
+                        %s
+
+                    </div>
+
+                    <div style="
+                        color:#d9e3ea;
+                        font-size:12px;
+                        margin-top:3px;
+                        font-weight:400;">
+
+                        %s
+
+                    </div>
+
+                </div>
+
+                <!-- Body -->
+
+                <div style="
+                    padding:25px;
+                    color:#333;">
+
+                    <p style="
+                        margin-top:0;">
+
+                        Dear %s,
+
+                    </p>
+
+                    <h3 style="
+                        margin-top:10px;">
+
+                        %s
+
+                    </h3>
+
+                    <p style="
+                        line-height:1.8;">
+
+                        %s
+
+                    </p>
+
+                    <br>
+
+                    <p>
+
+                        Regards,<br>
+
+                        <strong>%s</strong>
+
+                    </p>
+
+                    <hr style="
+                        border:none;
+                        border-top:1px solid #e0e0e0;
+                        margin-top:25px;">
+
+                    <p style="
+                        text-align:center;
+                        font-size:12px;
+                        color:#777;
+                        margin-top:15px;">
+
+                        Powered by CCMS
+
+                    </p>
+
+                </div>
+
+            </div>
+
+            </body>
+
+            </html>
+            """
+            .formatted(
+
+                    clinicName,
+
+                    branchName,
+
+                    patientName,
+
+                    title,
+
+                    body.replace("\n", "<br>"),
+
+                    clinicName
+            );
+    }
 }
