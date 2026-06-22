@@ -3,13 +3,15 @@ package com.clinicadmin.service.impl;
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.clinicadmin.dto.CustomNotificationRequest;
 import com.clinicadmin.dto.CustomNotificationRequest.PatientEntry;
+import com.clinicadmin.dto.ResponseStructure;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -39,20 +41,46 @@ public class CustomWhatsAppService {
     // PUBLIC API
     // =====================================================
 
-    public void sendToAll(CustomNotificationRequest request) {
+    public ResponseStructure<String> sendToAll(CustomNotificationRequest request) {
 
-        if (request.getList() == null || request.getList().isEmpty()) {
-            log.warn("CustomWhatsApp skipped — no patients in list");
-            return;
-        }
-
-        for (PatientEntry patient : request.getList()) {
-            try {
-                sendToOne(patient, request);
-            } catch (Exception ex) {
-                log.error("CustomWhatsApp failed patientId={} error={}",
-                        patient.getPatientId(), ex.getMessage(), ex);
+        try {
+            if (request.getList() == null || request.getList().isEmpty()) {
+                return ResponseStructure.buildResponse(null,
+                        "Patient list cannot be empty",
+                        HttpStatus.BAD_REQUEST, 400);
             }
+
+            if (request.getTitle() == null || request.getTitle().isBlank()) {
+                return ResponseStructure.buildResponse(null,
+                        "Title cannot be empty",
+                        HttpStatus.BAD_REQUEST, 400);
+            }
+
+            if (request.getBody() == null || request.getBody().isBlank()) {
+                return ResponseStructure.buildResponse(null,
+                        "Body cannot be empty",
+                        HttpStatus.BAD_REQUEST, 400);
+            }
+
+            for (PatientEntry patient : request.getList()) {
+                try {
+                    sendToOne(patient, request);
+                } catch (Exception ex) {
+                    log.error("CustomWhatsApp failed patientId={} error={}",
+                            patient.getPatientId(), ex.getMessage(), ex);
+                }
+            }
+
+            return ResponseStructure.buildResponse(
+                    "Notification dispatch initiated",
+                    "WhatsApp notifications sent successfully",
+                    HttpStatus.OK, 200);
+
+        } catch (Exception ex) {
+            log.error("CustomWhatsApp service error={}", ex.getMessage(), ex);
+            return ResponseStructure.buildResponse(null,
+                    "Internal server error: " + ex.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR, 500);
         }
     }
 

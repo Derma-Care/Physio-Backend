@@ -439,28 +439,6 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
                     res.setIdleTime(idleH + "h " + idleM + "m");
                 }
-                
-                String description = "N/A";
-
-                if (a.getSessions() != null && !a.getSessions().isEmpty()) {
-
-                    List<String> descriptions = new ArrayList<>();
-
-                    for (Session s : a.getSessions()) {
-
-                        if (s.getDescription() != null
-                                && !s.getDescription().trim().isEmpty()) {
-
-                            descriptions.add(s.getDescription());
-                        }
-                    }
-
-                    if (!descriptions.isEmpty()) {
-                        description = String.join(", ", descriptions);
-                    }
-                }
-
-                res.setDescription(description);
 
                 return res;
 
@@ -672,6 +650,14 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	                sd.setActivity(s.getActivity());
 	                sd.setDuration(s.getDuration());
 	                sd.setLocation(s.getLocation());
+	                
+	                sd.setDescription(
+	                        s.getDescription() != null
+	                                && !s.getDescription().trim().isEmpty()
+	                        ? s.getDescription()
+	                        : "N/A"
+	                    );
+
 
 	                sessions.add(sd);
 	            }

@@ -1,13 +1,17 @@
 package com.clinicadmin.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.clinicadmin.dto.CustomNotificationRequest;
+import com.clinicadmin.dto.ResponseStructure;
+import com.clinicadmin.service.impl.CustomWhatsAppService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import com.clinicadmin.dto.CustomNotificationRequest;
-import com.clinicadmin.service.impl.CustomWhatsAppService;
 
 
 @RestController
@@ -19,7 +23,7 @@ public class CustomNotificationController {
     private final CustomWhatsAppService customWhatsAppService;
 
     @PostMapping("/notifications/whatsapp/custom")
-    public ResponseEntity<String> sendCustomWhatsApp(
+    public ResponseEntity<ResponseStructure<String>> sendCustomWhatsApp(
             @RequestBody CustomNotificationRequest request) {
 
         log.info("CustomWhatsApp request received clinicName={} branchName={} patients={}",
@@ -27,8 +31,6 @@ public class CustomNotificationController {
                 request.getBranchName(),
                 request.getList() != null ? request.getList().size() : 0);
 
-        new Thread(() -> customWhatsAppService.sendToAll(request)).start();
-
-        return ResponseEntity.ok("Notification dispatch initiated");
+        return ResponseEntity.ok(customWhatsAppService.sendToAll(request));
     }
 }
