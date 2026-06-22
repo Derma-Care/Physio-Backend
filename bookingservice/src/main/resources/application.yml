@@ -2,8 +2,8 @@ spring:
   application:
     name: bookingservice
 
-#  config:
-#    import: optional:application-secrets.yml
+  config:
+    import: optional:application-secrets.yml
 
   data:
     mongodb:
@@ -38,12 +38,15 @@ server:
 # =========================================================
 # WHATSAPP
 # =========================================================
+<<<<<<< Updated upstream
 
 whatsapp:
   base-url:
   auth-key: 
   phone-number-id: 
   booking-confirmation-template-id: 
+=======
+>>>>>>> Stashed changes
 
 
 # =========================================================

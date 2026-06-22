@@ -131,6 +131,8 @@ public class PaymentServiceImpl implements PaymentService {
 		// ================= CREATE SESSIONS =================
 		boolean created = createSessions(req.getTherapyWithSessions(), req.getSessionStartDate());
 		record.setSessionTableCreatedStatus(created);
+		// ✅ Set session end date
+		record.setSessionEndDate(getLastSessionDate(req.getTherapyWithSessions()));
 
 		// ✅ STEP 2: Set normalized data on record BEFORE distribute/status calls
 		record.setTherapyWithSessions(req.getTherapyWithSessions());
@@ -816,6 +818,7 @@ public class PaymentServiceImpl implements PaymentService {
 		res.setBalanceAmount(record.getBalanceAmount());
 		res.setPaymentStatus(record.getPaymentStatus());
 		res.setSessionStartDate(record.getSessionStartDate());
+		res.setSessionEndDate(record.getSessionEndDate());
 		res.setTotalSessionCount(record.getTotalSessionCount());
 		res.setNoOfSessionCompletedCount(record.getNoOfSessionCompletedCount());
 		res.setNoOfSessionCompletedStatus(record.isNoOfSessionCompletedStatus());
@@ -1357,13 +1360,43 @@ public class PaymentServiceImpl implements PaymentService {
 	// FIND BY CLINIC AND BRANCH
 	// ========================================================
 	@Override
-	public List<PaymentRecordResponse> findByClinicIdAndBranchId(
-	        String clinicId,
-	        String branchId) {
+	public List<PaymentRecordResponse> findByClinicIdAndBranchId(String clinicId, String branchId) {
 
-	    return repo.findByClinicIdAndBranchId(clinicId, branchId)
-	            .stream()
-	            .map(this::mapToResponse)
-	            .toList();
+		return repo.findByClinicIdAndBranchId(clinicId, branchId).stream().map(this::mapToResponse).toList();
+	}
+
+	private String getLastSessionDate(List<TherapyWithSessions> data) {
+
+		LocalDate lastDate = null;
+
+		for (var pkg : data) {
+			if (pkg.getPrograms() == null)
+				continue;
+
+			for (var prog : pkg.getPrograms()) {
+				if (prog.getTherapyData() == null)
+					continue;
+
+				for (var therapy : prog.getTherapyData()) {
+					if (therapy.getExercises() == null)
+						continue;
+
+					for (var ex : therapy.getExercises()) {
+						if (ex.getSessions() == null || ex.getSessions().isEmpty())
+							continue;
+
+						Session lastSession = ex.getSessions().get(ex.getSessions().size() - 1);
+
+						LocalDate sessionDate = LocalDate.parse(lastSession.getDate());
+
+						if (lastDate == null || sessionDate.isAfter(lastDate)) {
+							lastDate = sessionDate;
+						}
+					}
+				}
+			}
+		}
+
+		return lastDate != null ? lastDate.toString() : null;
 	}
 }
