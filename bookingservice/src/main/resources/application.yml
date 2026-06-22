@@ -38,16 +38,13 @@ server:
 # =========================================================
 # WHATSAPP
 # =========================================================
-<<<<<<< Updated upstream
+
 whatsapp:
   base-url:
   auth-key: 
   phone-number-id: 
   booking-confirmation-template-id: 
-=======
 
-
->>>>>>> Stashed changes
 
 # =========================================================
 # AWS S3

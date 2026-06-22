@@ -1798,13 +1798,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 				PhysiotherapyRecord record = records.get(i);
 				// ✅ Sign prescriptionPdf before converting to map
-				if (record.getPrescriptionPdf() != null && !record.getPrescriptionPdf().isBlank()) {
-					try {
-						record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
-					} catch (Exception e) {
-						System.out.println("prescriptionPdf sign error: " + e.getMessage());
-					}
-				}
+//				if (record.getPrescriptionPdf() != null && !record.getPrescriptionPdf().isBlank()) {
+//					try {
+//						record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
+//					} catch (Exception e) {
+//						System.out.println("prescriptionPdf sign error: " + e.getMessage());
+//					}
+//				}
 				VisitDetailsDTO map = new VisitDetailsDTO();
 
 				map.setVisitNumber(String.valueOf(i + 1));
