@@ -124,9 +124,14 @@ public class CustomWhatsAppService {
     // =====================================================
 
     private String buildVariables(CustomNotificationRequest request) {
+        // sanitize — remove newlines that break Fast2SMS variables
+        String sanitizedBody = safe(request.getBody(), "")
+                .replace("\n\n", " ")
+                .replace("\n", " ");
+
         return String.join("|",
                 safe(request.getTitle(), "Notification"),  // Header {{1}}
-                safe(request.getBody(), ""),               // Body {{1}}
+                sanitizedBody,                             // Body {{1}}
                 safe(request.getClinicName(), "Clinic"),   // Body {{2}}
                 safe(request.getBranchName(), "Branch")    // Body {{3}}
         );
