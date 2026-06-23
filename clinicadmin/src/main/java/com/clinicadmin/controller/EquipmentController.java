@@ -17,7 +17,7 @@ public class EquipmentController {
 
     private final EquipmentService service;
 
-    @PostMapping("/createEquipment")
+    @PostMapping("/equipment/save")
     public ResponseEntity<Response> createEquipment(
             @RequestBody EquipmentDTO dto) {
 
@@ -25,7 +25,7 @@ public class EquipmentController {
                 .body(service.createEquipment(dto));
     }
 
-    @GetMapping("/getEquipmentById/{equipmentId}")
+    @GetMapping("/equipment/equipmentId/{equipmentId}")
     public ResponseEntity<Response> getEquipmentById(
             @PathVariable String equipmentId) {
 
@@ -33,14 +33,14 @@ public class EquipmentController {
                 service.getEquipmentById(equipmentId));
     }
 
-    @GetMapping("/getAllEquipment")
+    @GetMapping("/equipment/getAllEquipment")
     public ResponseEntity<Response> getAllEquipment() {
 
         return ResponseEntity.ok(
                 service.getAllEquipment());
     }
 
-    @GetMapping("/getEquipmentByClinicIdAndBranchId/{clinicId}/{branchId}")
+    @GetMapping("/equipment/getAll/{clinicId}/{branchId}")
     public ResponseEntity<Response> getEquipmentByClinicIdAndBranchId(
             @PathVariable String clinicId,
             @PathVariable String branchId) {
@@ -51,7 +51,7 @@ public class EquipmentController {
                         branchId));
     }
 
-    @PutMapping("/updateEquipmentByEquipmentId/{equipmentId}")
+    @PutMapping("/equipment/update/{equipmentId}")
     public ResponseEntity<Response> updateEquipment(
             @PathVariable String equipmentId,
             @RequestBody EquipmentDTO dto) {
@@ -62,7 +62,7 @@ public class EquipmentController {
                         dto));
     }
 
-    @DeleteMapping("/deleteEquipmentByEquipmentId/{equipmentId}")
+    @DeleteMapping("/equipment/delete/{equipmentId}")
     public ResponseEntity<Response> deleteEquipment(
             @PathVariable String equipmentId) {
 
