@@ -517,7 +517,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 				Response notificationResponse = notificationFeign
 						.createNotification(mapper.convertValue(updatedBooking, BookingResponse.class)).getBody();
-
 				if (notificationResponse != null) {
 					notificationStatus = notificationResponse.getStatus();
 				}
@@ -565,7 +564,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			} else {
 
-				res.setMessage("Appointment Booked Successfully");
+				res.setMessage("Appointment Booked Successfully but Notification not sent");
 			}
 
 			return ResponseEntity.ok(res);

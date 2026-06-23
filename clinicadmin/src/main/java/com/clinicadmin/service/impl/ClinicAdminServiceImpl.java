@@ -277,8 +277,10 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
         		if(obj.isPresent()) {
         			 deviceId = obj.get().getClinicAdminWebFcmToken();
             	}}} catch (Exception e) {
+            		System.out.println(e.getMessage());
         		return null;
         	}
+    	///System.out.println(deviceId);
     	return  deviceId;
         }
 }

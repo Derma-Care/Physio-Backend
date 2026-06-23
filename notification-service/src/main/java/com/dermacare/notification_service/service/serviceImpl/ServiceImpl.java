@@ -93,26 +93,29 @@ public class ServiceImpl implements ServiceInterface{
 			convertToNotification(bookingDTO);	  
 			String title=buildTitle(bookingDTO);
 			String body =buildBody(bookingDTO);
+			System.out.println(bookingDTO);
 			customerDeviceId = cllinicFeign.customerDeviceId(bookingDTO.getCustomerId());
 			Id = cllinicFeign.getDeviceId(bookingDTO.getClinicId(),bookingDTO.getBranchId());
 			try {
-			if(customerDeviceId != null || !customerDeviceId.isEmpty()) {
+			if(customerDeviceId != null) {
 			appNotification.sendPushNotification(customerDeviceId,title,body, "BOOKING",
 				    "BookingScreen","default");}
-			if(Id != null || !Id.isEmpty()) {
-				String content = "Doctor:+ booking.getDoctorName() + \n"
-						+ "Branch: + booking.getBranchname() + \n"
-						+ "Date:+ booking.getServiceDate() + \n"
-						+ "Time:+ booking.getServicetime()";
+			if(Id != null) {
+				String content = 
+						"AppointmentId:"+bookingDTO.getBookingId()+ "\n\n"
+						+ "Doctor:"+bookingDTO.getDoctorName()+ "\n\n"
+						+ "Branch: "+ bookingDTO.getBranchname() +"\n\n"
+						+ "Date:"+ bookingDTO.getServiceDate() +"\n\n"
+						+ "Time:"+ bookingDTO.getServicetime();
 						
-				appNotification.sendPushNotification(Id,"An appointment has been successfully confirmed.\n\n",content, "BOOKING",
+				appNotification.sendPushNotification(Id,"An appointment has been successfully confirmed for "+bookingDTO.getName()+".\n\n",content, "BOOKING",
 					    "BookingScreen","default");}	
 			
 	        res.setMessage("notification sent");
 	        res.setStatus(200);
 	        res.setSuccess(true);
 			}catch(Exception e) {
-				res.setMessage("notification not sent");
+				res.setMessage(e.getMessage());
 		        res.setStatus(404);
 		        res.setSuccess(false);	
 			}}catch (Exception e) {

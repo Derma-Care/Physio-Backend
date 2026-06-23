@@ -527,7 +527,6 @@ public class AdminServiceImpl implements AdminService {
 
 	        // 🔐 Generate secure password (YOUR METHOD)
 	        String tempPassword = generatePassword(9);
-
 	        // 🔐 Save clinic credentials
 	        ClinicCredentials credentials = new ClinicCredentials();
 	        credentials.setHospitalName(clinic.getName());

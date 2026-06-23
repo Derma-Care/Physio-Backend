@@ -39,23 +39,23 @@ server:
 # WHATSAPP
 # =========================================================
 
-whatsapp:
-  base-url:
-  auth-key: 
-  phone-number-id: 
-  booking-confirmation-template-id: 
+#whatsapp:
+#  base-url:
+#  auth-key: 
+#  phone-number-id: 
+#  booking-confirmation-template-id: 
 
 
 # =========================================================
 # AWS S3
 # =========================================================
 
-aws:
-  accessKeyId: 
-  secretAccessKey: 
-  region: ap-south-1
-  s3:
-    bucket: physiocare-prod-storage
+#aws:
+#  accessKeyId: 
+#  secretAccessKey: 
+#  region: ap-south-1
+#  s3:
+#    bucket: physiocare-prod-storage
 
 # =========================================================
 # EUREKA

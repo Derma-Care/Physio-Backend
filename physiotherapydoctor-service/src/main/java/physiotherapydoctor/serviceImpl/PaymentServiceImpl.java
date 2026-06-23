@@ -1299,8 +1299,6 @@ public class PaymentServiceImpl implements PaymentService {
 	                                     String branchId,
 	                                     String therapistId) {
 
-	    Response response = new Response();
-
 	    try {
 
 	        List<PaymentRecord> records =
@@ -1315,7 +1313,7 @@ public class PaymentServiceImpl implements PaymentService {
 	        }
 
 	        String today = LocalDate.now()
-	                .format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+	                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
 	        int todaySessionCount = 0;
 
