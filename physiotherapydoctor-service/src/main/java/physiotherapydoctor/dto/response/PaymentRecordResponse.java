@@ -33,6 +33,7 @@ public class PaymentRecordResponse {
 	private String paymentStatus;
 
 	private String sessionStartDate;
+	private String sessionEndDate;
 	private int totalSessionCount;
 	private int noOfSessionCompletedCount;
 	private boolean noOfSessionCompletedStatus;

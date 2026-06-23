@@ -83,8 +83,8 @@ public class FeedbackDetailsServiceImpl
             FeedbackDetails saved =
                     repository.save(entity);
             
-         // ================= PUSH NOTIFICATION ON CREATE =================
-            triggerSessionNotificationIfNeeded(saved);
+//         // ================= PUSH NOTIFICATION ON CREATE =================
+//            triggerSessionNotificationIfNeeded(saved);
 
             // ================= RESPONSE =================
 
@@ -289,8 +289,8 @@ public class FeedbackDetailsServiceImpl
             FeedbackDetails updated =
                     repository.save(existing);
             
-         // ================= PUSH NOTIFICATION ON UPDATE =================
-            triggerSessionNotificationIfNeeded(updated);
+//         // ================= PUSH NOTIFICATION ON UPDATE =================
+//            triggerSessionNotificationIfNeeded(updated);
 
             // ================= RESPONSE =================
 
@@ -388,6 +388,10 @@ public class FeedbackDetailsServiceImpl
 
                 FeedbackDetailsDTO data =
                         new FeedbackDetailsDTO();
+                
+                data.setClinicId(clinicId);
+
+                data.setBranchId(branchId);
 
                 // ================= BASIC =================
                 String patientId =
@@ -676,16 +680,28 @@ public class FeedbackDetailsServiceImpl
                         && !isFullCompleted
                         && completedSessions >= Math.ceil(totalSessions / 2.0);
 
-                data.setHalfSessionsCompleted(
-                        isHalfCompleted);
+                        data.setHalfSessionsCompleted(
+                                isHalfCompleted);
 
-                data.setFullSessionsCompleted(
-                        isFullCompleted);
+                        data.setFullSessionsCompleted(
+                                isFullCompleted);
 
-                result.add(data);
+                        // ================= TRIGGER NOTIFICATION =================
+
+                        if (isHalfCompleted || isFullCompleted) {
+
+                            FeedbackDetails feedback =
+                                    mapToEntity(data);
+
+                            triggerSessionNotificationIfNeeded(
+                                    feedback);
+                        }
+
+                        result.add(data);
             }
 
             response.setSuccess(true);
+            response.setStatus(200);
             response.setMessage("Feedback details fetched successfully");
             response.setData(result);
 
@@ -702,6 +718,7 @@ public class FeedbackDetailsServiceImpl
         } catch (Exception e) {
 
             response.setSuccess(false);
+            response.setStatus(400);
             response.setMessage(e.getMessage());
             response.setData(null);
 

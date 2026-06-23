@@ -22,7 +22,7 @@ public class PackageManagementDTO {
     private String finalAmount;
     private List<String> programIds;
 
-    private double discountPercentage;
+    private int discountPercentage;
 
     private String startOfferDate;
 

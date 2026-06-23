@@ -352,6 +352,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 s.setActivity(r.getServiceType());
                 s.setDuration(r.getDuration());
                 s.setLocation(r.getLocation());
+                s.setDescription(r.getDescription());
+
 
                 finalSessions.add(s);
             }
@@ -648,6 +650,14 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	                sd.setActivity(s.getActivity());
 	                sd.setDuration(s.getDuration());
 	                sd.setLocation(s.getLocation());
+	                
+	                sd.setDescription(
+	                        s.getDescription() != null
+	                                && !s.getDescription().trim().isEmpty()
+	                        ? s.getDescription()
+	                        : "N/A"
+	                    );
+
 
 	                sessions.add(sd);
 	            }

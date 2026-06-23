@@ -48,6 +48,8 @@ public class PaymentRecord {
 
 	// 📅 SESSION
 	private String sessionStartDate;
+	private String sessionEndDate;
+
 	private int totalSessionCount;
 
 	private int noOfSessionCompletedCount;
