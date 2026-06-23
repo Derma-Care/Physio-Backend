@@ -1,8 +1,10 @@
 package com.clinicadmin.service.impl;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -14,8 +16,10 @@ import com.clinicadmin.dto.ClinicLoginRequestDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.StaffInfoDTO;
 import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
+import com.clinicadmin.entity.ClinicAdminDeviceTokenEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AdministratorRepository;
+import com.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
 import com.clinicadmin.repository.DoctorsRepository;
 import com.clinicadmin.repository.ReceptionistRepository;
 import com.clinicadmin.repository.SecurityStaffRepository;
@@ -50,16 +54,35 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     @Autowired
     private WardBoyRepository wardBoyRepository;
     
-    
+    @Autowired
+	private ClinicAdminWebFcmTokenRepository clinicAdminWebFcmTokenRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ClinicAdminWebFcmTokenRepository deviceIdRepo;
+  
   
 
     @Override
     public Response login(ClinicLoginRequestDTO credentials) {
-    	try {
+    	try {   		
     	Response response=adminServiceClient.login(credentials);
+    	try{
+    	ClinicAdminDeviceTokenEntity c = new ClinicAdminDeviceTokenEntity();
+    	Optional<ClinicAdminDeviceTokenEntity> obj = clinicAdminWebFcmTokenRepository.findByUsername(credentials.getUserName());
+    		 if(obj.isPresent()) {
+			   if(credentials.getFcmToken() != null) {
+				   if(!credentials.getFcmToken().equals(obj.get().getClinicAdminWebFcmToken())) {
+				   obj.get().setClinicAdminWebFcmToken(credentials.getFcmToken());
+				   clinicAdminWebFcmTokenRepository.save(obj.get());}}
+		   }else{
+		  c.setUsername(credentials.getUserName());
+		   if(credentials.getFcmToken() != null) {
+		   c.setClinicAdminWebFcmToken(credentials.getFcmToken());}
+		   clinicAdminWebFcmTokenRepository.save(c);}
+    	 }catch(Exception e) {}
     	return response;
     	}catch(FeignException e) {
     	Response res = new Response();
@@ -240,4 +263,22 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
 
         return response;
     }
+    
+    @Override
+    public String getDeviceId(String clinicId,String branchId) {
+    	Optional<ClinicAdminDeviceTokenEntity> obj = null;
+    	String deviceId = null;
+    	try {         
+        	obj =  deviceIdRepo.findByUsername(clinicId);
+        	if(obj.isPresent()) {
+        		 deviceId = obj.get().getClinicAdminWebFcmToken();
+        	}else {
+        		obj =  deviceIdRepo.findByUsername(branchId);	
+        		if(obj.isPresent()) {
+        			 deviceId = obj.get().getClinicAdminWebFcmToken();
+            	}}} catch (Exception e) {
+        		return null;
+        	}
+    	return  deviceId;
+        }
 }

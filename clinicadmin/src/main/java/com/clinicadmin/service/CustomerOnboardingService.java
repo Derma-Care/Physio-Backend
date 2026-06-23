@@ -36,7 +36,8 @@ public interface CustomerOnboardingService {
 	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId);
 	//public  List<CustomerOnbordingDTO> getCustomerByNameAndClinicId(String name,String clinicId);	
 	public List<BookingInfoByInput> bookingByInput(String input,String clinicId);
-			
+		
+	public String customerDeviceId(String customerId);
 			
 //
 //	Response resetPassword(ChangeDoctorPasswordDTO dto);

@@ -44,8 +44,8 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	@Autowired
 	private SequenceGeneratorService sequenceGeneratorService;
 	
-	@Autowired
-	private MongoTemplate mongoTemplate;
+//	@Autowired
+//	private MongoTemplate mongoTemplate;
 
 	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -484,6 +484,19 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		return response;
 	}
 
+	
+	public String customerDeviceId(String customerId) {
+		try {
+			Optional<CustomerOnbording> cs = onboardingRepository.findByCustomerId(customerId);	
+			if(cs.isPresent()) {
+				return cs.get().getDeviceId();
+			}else {
+				return null;
+			}
+		}catch(Exception e) {
+			return null;
+		}
+	}
 	// ----------------- RESET PASSWORD -----------------
 //	@Override
 //	public Response resetPassword(ChangeDoctorPasswordDTO dto) {

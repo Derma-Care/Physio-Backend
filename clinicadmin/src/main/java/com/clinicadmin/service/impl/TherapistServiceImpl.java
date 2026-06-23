@@ -307,7 +307,8 @@ public class TherapistServiceImpl implements TherapistService {
         List<TherapistDTO> list = repository
                 .findByClinicIdAndBranchId(clinicId, branchId)
                 .stream()
-                .map(this::mapToDTO)
+                .map(this::mapToDTO).map(n->{
+                n.setTotalSessionCount(physiotherapyFeignClient.getTodaySessionCount(clinicId, branchId,n.getTherapistId()));return n;})
                 .toList();
 
         return ResponseStructure.buildResponse(

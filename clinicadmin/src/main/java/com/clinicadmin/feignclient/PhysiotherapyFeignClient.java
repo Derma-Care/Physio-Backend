@@ -34,5 +34,11 @@ public interface PhysiotherapyFeignClient {
     Response getPayments(
             @PathVariable String clinicId,
             @PathVariable String branchId);
+    
+    @GetMapping("/api/physiotherapy-doctor/today-session-count/{clinicId}/{branchId}/{therapistId}")
+	public int getTodaySessionCount(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId,
+	        @PathVariable String therapistId);
 
 }

@@ -73,8 +73,6 @@ public class AdminServiceImpl implements AdminService {
 
 	private ClinicCredentialsRepository clinicCredentialsRepository;
 
-	
-
 	@Autowired
 
 	private CustomerFeign customerFeign;

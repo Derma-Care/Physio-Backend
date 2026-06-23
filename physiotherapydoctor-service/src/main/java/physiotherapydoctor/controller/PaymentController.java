@@ -176,6 +176,7 @@ public class PaymentController {
 		}
 	}
 
+	
 	@GetMapping("/getPayments/{clinicId}/{branchId}")
 	public ResponseEntity<Response> getPayments(
 	        @PathVariable String clinicId,
@@ -223,4 +224,17 @@ public class PaymentController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
+	@GetMapping("/today-session-count/{clinicId}/{branchId}/{therapistId}")
+	public int getTodaySessionCount(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId,
+	        @PathVariable String therapistId) {
+
+	    int response = service.getTodaySessionCount(
+	            clinicId,
+	            branchId,
+	            therapistId);
+
+	    return response ;
+	}
 }

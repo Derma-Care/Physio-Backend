@@ -88,5 +88,9 @@ public class ClinicAdminController {
 	            .status(response.getStatus())
 	            .body(response);
 	}
+	
+	@GetMapping("/deviceId/{clinicId}/{branchId}")
+	public String getDeviceId(@PathVariable String clinicId,@PathVariable String branchId) {
+		return clinicAdminService.getDeviceId(clinicId, branchId);}
 
 }

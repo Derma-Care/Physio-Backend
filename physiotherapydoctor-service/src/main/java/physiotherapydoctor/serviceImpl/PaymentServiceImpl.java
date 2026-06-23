@@ -1287,6 +1287,78 @@ public class PaymentServiceImpl implements PaymentService {
 
 		return response;
 	}
+	
+	
+	@Override
+	public int getTodaySessionCount(String clinicId,
+	                                     String branchId,
+	                                     String therapistId) {
+
+	    Response response = new Response();
+
+	    try {
+
+	        List<PaymentRecord> records =
+	                repo.findByClinicIdAndBranchIdAndTherapistId(
+	                        clinicId,
+	                        branchId,
+	                        therapistId);
+
+	        if (records == null || records.isEmpty()) {
+
+	            return 0;
+	        }
+
+	        String today = LocalDate.now()
+	                .format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+
+	        int todaySessionCount = 0;
+
+	        for (PaymentRecord record : records) {
+
+	            if (record.getTherapyWithSessions() == null)
+	                continue;
+
+	            for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
+
+	                if (pkg.getPrograms() == null)
+	                    continue;
+
+	                for (Program program : pkg.getPrograms()) {
+
+	                    if (program.getTherapyData() == null)
+	                        continue;
+
+	                    for (TherapyData therapy : program.getTherapyData()) {
+
+	                        if (therapy.getExercises() == null)
+	                            continue;
+
+	                        for (TherapyExercise exercise : therapy.getExercises()) {
+
+	                            if (exercise.getSessions() == null)
+	                                continue;
+
+	                            for (Session session : exercise.getSessions()) {
+
+	                                if (today.equals(session.getDate())) {
+	                                    todaySessionCount++;
+	                                }
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
+
+	       return todaySessionCount;
+
+	    } catch (Exception e) {
+
+	       return 0;
+	    }
+
+	}
 
 	// ========================================================
 	// GET COMPLETED THERAPY RECORD

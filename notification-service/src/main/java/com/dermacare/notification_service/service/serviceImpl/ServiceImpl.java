@@ -72,46 +72,58 @@ public class ServiceImpl implements ServiceInterface{
     @Autowired
     private PriceDropAlertNotifications priceDropAlertNotifications;
     
-    @Autowired
-    private FirbaseConfig firbaseConfig;
+//    @Autowired
+//    private FirbaseConfig firbaseConfig;
     	
 	public String jwtToken;
 	public String tokenExpireTime;
 
 	Set<String> bookings = new LinkedHashSet<>();
 	
-	 BookingResponse bookingResponse;
-	 
-	 private boolean isCalledAlready;
-	 
+	 BookingResponse bookingResponse;	 
+	 private boolean isCalledAlready;	 
 	 String imag = null;
-	 
-	 
-	@Override
-	public ResponseEntity<Response> createNotification(BookingResponse bookingDTO) {
-		Response res = new Response();
-		try {
-		convertToNotification(bookingDTO);	  
-		String title=buildTitle(bookingDTO);
-		String body =buildBody(bookingDTO);
-		if(bookingDTO.getClinicDeviceId()!= null || !bookingDTO.getClinicDeviceId().isEmpty()) {
-		appNotification.sendPushNotification(bookingDTO.getClinicDeviceId(),title,body, "BOOKING",
-			    "BookingScreen","default");
-        res.setMessage("notification sent");
-        res.setStatus(200);
-        res.setSuccess(true);}
-		else {
-			res.setMessage("notification not sent");
-	        res.setStatus(404);
-	        res.setSuccess(false);	
-		}}catch (Exception e) {
-			res.setMessage(e.getMessage());
-	        res.setStatus(500);
-	        res.setSuccess(false);
+	 String customerDeviceId = null;
+	 String Id = null;
+			 
+		@Override
+		public ResponseEntity<Response> createNotification(BookingResponse bookingDTO) {
+			Response res = new Response();
+			try {
+			convertToNotification(bookingDTO);	  
+			String title=buildTitle(bookingDTO);
+			String body =buildBody(bookingDTO);
+			customerDeviceId = cllinicFeign.customerDeviceId(bookingDTO.getCustomerId());
+			Id = cllinicFeign.getDeviceId(bookingDTO.getClinicId(),bookingDTO.getBranchId());
+			try {
+			if(customerDeviceId != null || !customerDeviceId.isEmpty()) {
+			appNotification.sendPushNotification(customerDeviceId,title,body, "BOOKING",
+				    "BookingScreen","default");}
+			if(Id != null || !Id.isEmpty()) {
+				String content = "Doctor:+ booking.getDoctorName() + \n"
+						+ "Branch: + booking.getBranchname() + \n"
+						+ "Date:+ booking.getServiceDate() + \n"
+						+ "Time:+ booking.getServicetime()";
+						
+				appNotification.sendPushNotification(Id,"An appointment has been successfully confirmed.\n\n",content, "BOOKING",
+					    "BookingScreen","default");}	
+			
+	        res.setMessage("notification sent");
+	        res.setStatus(200);
+	        res.setSuccess(true);
+			}catch(Exception e) {
+				res.setMessage("notification not sent");
+		        res.setStatus(404);
+		        res.setSuccess(false);	
+			}}catch (Exception e) {
+				res.setMessage(e.getMessage());
+		        res.setStatus(500);
+		        res.setSuccess(false);
+			}
+			//System.out.println(res);
+			return ResponseEntity.status(res.getStatus()).body(res);
 		}
-		System.out.println(res);
-		return ResponseEntity.status(res.getStatus()).body(res);
-	}
+			
 		
 			
 	private void convertToNotification(BookingResponse booking) {	
@@ -266,9 +278,9 @@ public class ServiceImpl implements ServiceInterface{
 		                    notificationEntity.getData().setStatus("Confirmed");
 		                    repository.save(notificationEntity);
 		                    try {
-		                        if (b.getCustomerDeviceId() != null) {
+		                        if (customerDeviceId != null) {
 		                            appNotification.sendPushNotification(
-		                                b.getCustomerDeviceId(),
+		                            		customerDeviceId,
 		                                " Hello " + b.getName(),
 		                                b.getDoctorName() + " Accepted Your Appointment For " +
 		                                b.getSubServiceName() + " on " + b.getServiceDate() + " at " + b.getServicetime(),
@@ -277,19 +289,19 @@ public class ServiceImpl implements ServiceInterface{
 		                        
 		                        if (b.getDoctorDeviceId() != null) {
 		                            appNotification.sendPushNotification(
-		                                b.getCustomerDeviceId(),
+		                            		customerDeviceId,
 		                                " Hello " + b.getDoctorName()," You Have A New "+b.getConsultationType() +" Appointment For " +
 		                                b.getSubServiceName() + " on " + b.getServiceDate() + " at " + b.getServicetime(),
 		                                "BOOKING SUCCESS",
 		                			    "BookingVerificationScreen","default" );}
 		                        
-		                        if(b.getDoctorWebDeviceId() != null) {
-		                            appNotification.sendPushNotification(
-		                                b.getCustomerDeviceId(),
-		                                " Hello " + b.getDoctorName()," You Have A New "+b.getConsultationType() +" Appointment For " +
-		                                b.getSubServiceName() + " on " + b.getServiceDate() + " at " + b.getServicetime(),
-		                                "BOOKING SUCCESS",
-		                			    "BookingVerificationScreen","default" );}
+//		                        if(b.getDoctorWebDeviceId() != null) {
+//		                            appNotification.sendPushNotification(
+//		                                b.getCustomerDeviceId(),
+//		                                " Hello " + b.getDoctorName()," You Have A New "+b.getConsultationType() +" Appointment For " +
+//		                                b.getSubServiceName() + " on " + b.getServiceDate() + " at " + b.getServicetime(),
+//		                                "BOOKING SUCCESS",
+//		                			    "BookingVerificationScreen","default" );}
 		                    } catch (Exception ex) {}
 		                      break;
 
@@ -300,9 +312,9 @@ public class ServiceImpl implements ServiceInterface{
 		                    notificationEntity.getData().setStatus("Rejected");
 		                    repository.save(notificationEntity);
 		                    try {
-		                        if (b.getCustomerDeviceId() != null) {
+		                        if (customerDeviceId != null) {
 		                            appNotification.sendPushNotification(
-		                                b.getCustomerDeviceId(),
+		                            		customerDeviceId,
 		                                " Hello " + b.getName(),
 		                                b.getDoctorName() + " Rejected Your Appointment For " +
 		                                b.getSubServiceName() + " on " + b.getServiceDate() + " at " + b.getServicetime(),
@@ -385,9 +397,9 @@ public class ServiceImpl implements ServiceInterface{
 		      
 		       Date sTime = simpleDateFormat.parse(modifiedServiceTime );
 		       Date cTime = simpleDateFormat.parse(modifiedcurrentTime);
-		       
-		       System.out.println(sTime);
-		       System.out.println(cTime);
+//		       
+//		       System.out.println(sTime);
+//		       System.out.println(cTime);
 		       long differenceInMilliSeconds
 		           =  sTime.getTime() - cTime.getTime();     
 		       		      
@@ -412,9 +424,9 @@ public class ServiceImpl implements ServiceInterface{
 		       // System.out.println(b.getDoctorDeviceId());
 		        if (b != null) {
 		        	 try {
-	                        if(b.getCustomerDeviceId() != null && b.getDoctorDeviceId() != null) {
+	                        if(customerDeviceId != null && b.getDoctorDeviceId() != null) {
 	                            appNotification.sendPushNotification(
-	                                b.getCustomerDeviceId(),
+	                            		customerDeviceId,
 	                                " Hello " + b.getName()+ "," ,
 	                                b.getDoctorName() + " Connect With You Through Video Call within 5 Minutes ", "Alert",
 	                			    "AlertScreen","default");

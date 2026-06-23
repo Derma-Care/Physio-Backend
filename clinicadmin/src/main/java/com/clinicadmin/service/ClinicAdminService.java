@@ -16,5 +16,9 @@ public interface ClinicAdminService {
 	public Response deleteClinic(String hospitalId);
 	ResponseEntity<?> getBranchesByClinicId(String clinicId);
 	 public Response getStaffInfo(String hospitalId, String branchId);
+	 public String getDeviceId(String clinicId,String branchId);
+
+
+		  
 
 }
