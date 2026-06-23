@@ -41,14 +41,21 @@ public class EquipmentServiceImpl implements EquipmentService {
 
 
     
+
     @Override
     public Response getEquipmentById(String equipmentId) {
 
-        Equipment equipment = repository.findById(equipmentId)
-                .orElseThrow(() ->
-                        new RuntimeException("Equipment Not Found"));
+        Equipment equipment = repository.findById(equipmentId).orElse(null);
 
         Response response = new Response();
+
+        if (equipment == null) {
+            response.setSuccess(false);
+            response.setMessage("Equipment Not Found");
+            response.setStatus(404);
+            return response;
+        }
+
         response.setSuccess(true);
         response.setMessage("Equipment Retrieved Successfully");
         response.setStatus(200);
@@ -56,112 +63,140 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return response;
     }
-   
+
+
 
 
     
-    @Override
-    public Response getAllEquipment() {
+    		@Override
+    		public Response getAllEquipment() {
 
-        List<EquipmentDTO> equipmentList = repository.findAll()
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    		    List<EquipmentDTO> equipmentList = repository.findAll()
+    		            .stream()
+    		            .map(this::convertToDto)
+    		            .collect(Collectors.toList());
 
-        Response response = new Response();
-        response.setSuccess(true);
-        response.setMessage("Equipment List Retrieved Successfully");
-        response.setStatus(200);
-        response.setData(equipmentList);
+    		    Response response = new Response();
 
-        return response;
-    }
+    		    if (equipmentList.isEmpty()) {
+    		        response.setSuccess(false);
+    		        response.setMessage("No Equipment Records Found");
+    		        response.setStatus(404);
+    		        return response;
+    		    }
+
+    		    response.setSuccess(true);
+    		    response.setMessage("Equipment List Retrieved Successfully");
+    		    response.setStatus(200);
+    		    response.setData(equipmentList);
+
+    		    return response;
+    		}
+    	
     
+    				@Override
+    				public Response getEquipmentByClinicIdAndBranchId(
+    				        String clinicId,
+    				        String branchId) {
+
+    				    List<EquipmentDTO> equipmentList = repository
+    				            .findByClinicIdAndBranchId(clinicId, branchId)
+    				            .stream()
+    				            .map(this::convertToDto)
+    				            .collect(Collectors.toList());
+
+    				    Response response = new Response();
+
+    				    if (equipmentList.isEmpty()) {
+    				        response.setSuccess(false);
+    				        response.setMessage("No Equipment Records Found");
+    				        response.setStatus(404);
+    				        return response;
+    				    }
+
+    				    response.setSuccess(true);
+    				    response.setMessage("Equipment List Retrieved Successfully");
+    				    response.setStatus(200);
+    				    response.setData(equipmentList);
+
+    				    return response;
+    				}
+    			
+
+
+ @Override
+ public Response updateEquipment(
+    				        String equipmentId,
+    				        EquipmentDTO dto) {
+
+    				    Equipment existing = repository.findById(equipmentId).orElse(null);
+
+    				    Response response = new Response();
+
+    				    if (existing == null) {
+    				        response.setSuccess(false);
+    				        response.setMessage("Equipment Not Found");
+    				        response.setStatus(404);
+    				        return response;
+    				    }
+
+    				    existing.setClinicId(dto.getClinicId());
+    				    existing.setBranchId(dto.getBranchId());
+    				    existing.setName(dto.getName());
+    				    existing.setCategory(dto.getCategory());
+    				    existing.setType(dto.getType());
+    				    existing.setBrand(dto.getBrand());
+    				    existing.setModel(dto.getModel());
+    				    existing.setSerialNo(dto.getSerialNo());
+    				    existing.setStatus(dto.getStatus());
+    				    existing.setDepartment(dto.getDepartment());
+
+    				    existing.setPurchaseDate(dto.getPurchaseDate());
+    				    existing.setWarrantyExpiry(dto.getWarrantyExpiry());
+    				    existing.setAmcStartDate(dto.getAmcStartDate());
+    				    existing.setAmcEndDate(dto.getAmcEndDate());
+
+    				    existing.setPurchaseCost(dto.getPurchaseCost());
+    				    existing.setCurrentValue(dto.getCurrentValue());
+
+    				    existing.setNextServiceDate(dto.getNextServiceDate());
+    				    existing.setLastServiceDate(dto.getLastServiceDate());
+
+    				    existing.setAssignedStaff(dto.getAssignedStaff());
+
+    				    if (dto.getImageUrl() != null
+    				            && !dto.getImageUrl().isBlank()) {
+    				        existing.setImageUrl(dto.getImageUrl());
+    				    }
+
+    				    existing.setNotes(dto.getNotes());
+    				    existing.setVendorDetails(dto.getVendorDetails());
+
+    				    Equipment updated = repository.save(existing);
+
+    				    response.setSuccess(true);
+    				    response.setMessage("Equipment Updated Successfully");
+    				    response.setStatus(200);
+    				    response.setData(convertToDto(updated));
+
+    				    return response;
+    				}
+
    
     @Override
-    public Response getEquipmentByClinicIdAndBranchId(
-            String clinicId,
-            String branchId) {
+    public Response deleteEquipment(String equipmentId) {
 
-        List<EquipmentDTO> equipmentList = repository
-                .findByClinicIdAndBranchId(clinicId, branchId)
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        Equipment equipment = repository.findById(equipmentId).orElse(null);
 
-        Response response = new Response();
-        response.setSuccess(true);
-        response.setMessage("Equipment List Retrieved Successfully");
-        response.setStatus(200);
-        response.setData(equipmentList);
+        if (equipment == null) {
 
-        return response;
-    }
-   
+            Response response = new Response();
+            response.setSuccess(false);
+            response.setMessage("Equipment Not Found");
+            response.setStatus(404);
 
-
-   
-
-
-    @Override
-    public Response updateEquipment(
-            String equipmentId,
-            EquipmentDTO dto) {
-
-        Equipment existing = repository.findById(equipmentId)
-                .orElseThrow(() ->
-                        new RuntimeException("Equipment Not Found"));
-
-        existing.setClinicId(dto.getClinicId());
-        existing.setBranchId(dto.getBranchId());
-        existing.setName(dto.getName());
-        existing.setCategory(dto.getCategory());
-        existing.setType(dto.getType());
-        existing.setBrand(dto.getBrand());
-        existing.setModel(dto.getModel());
-        existing.setSerialNo(dto.getSerialNo());
-        existing.setStatus(dto.getStatus());
-        existing.setDepartment(dto.getDepartment());
-
-        existing.setPurchaseDate(dto.getPurchaseDate());
-        existing.setWarrantyExpiry(dto.getWarrantyExpiry());
-        existing.setAmcStartDate(dto.getAmcStartDate());
-        existing.setAmcEndDate(dto.getAmcEndDate());
-
-        existing.setPurchaseCost(dto.getPurchaseCost());
-        existing.setCurrentValue(dto.getCurrentValue());
-
-        existing.setNextServiceDate(dto.getNextServiceDate());
-        existing.setLastServiceDate(dto.getLastServiceDate());
-
-        existing.setAssignedStaff(dto.getAssignedStaff());
-        // Update image
-        if (dto.getImageUrl() != null
-                && !dto.getImageUrl().isBlank()) {
-       
-            existing.setImageUrl(dto.getImageUrl());
+            return response;
         }
-        existing.setNotes(dto.getNotes());
-
-        existing.setVendorDetails(dto.getVendorDetails());
-
-        Equipment updated = repository.save(existing);
-
-        Response response = new Response();
-        response.setSuccess(true);
-        response.setMessage("Equipment Updated Successfully");
-        response.setStatus(200);
-        response.setData(convertToDto(updated));
-        return response;
-    }
-
-    @Override
-    public Response deleteEquipment(
-            String equipmentId) {
-
-        Equipment equipment = repository.findById(equipmentId)
-                .orElseThrow(() ->
-                        new RuntimeException("Equipment Not Found"));
 
         repository.delete(equipment);
 
@@ -170,9 +205,11 @@ public class EquipmentServiceImpl implements EquipmentService {
         response.setMessage("Equipment Deleted Successfully");
         response.setStatus(200);
         response.setData(equipmentId);
+
         return response;
-        
     }
+ 
+
 
     // ===========================
     // Convert DTO -> Entity

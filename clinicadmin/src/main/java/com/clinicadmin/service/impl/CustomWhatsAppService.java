@@ -1,11 +1,9 @@
 package com.clinicadmin.service.impl;
 
-import java.time.Duration;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
 
 import com.clinicadmin.dto.CustomNotificationRequest;
 import com.clinicadmin.dto.CustomNotificationRequest.PatientEntry;
@@ -17,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CustomWhatsAppService {
 
-    private final WebClient webClient;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${whatsapp.auth-key}")
     private String authKey;
@@ -25,17 +23,11 @@ public class CustomWhatsAppService {
     @Value("${whatsapp.phone-number-id}")
     private String phoneNumberId;
 
-    @Value("${whatsapp.custom-notification-template-id}")
+    @Value("${whatsapp.single-user-notification-template-id}")
     private String templateId;
 
-    public CustomWhatsAppService(
-            WebClient.Builder webClientBuilder,
-            @Value("${whatsapp.base-url}") String baseUrl
-    ) {
-        this.webClient = webClientBuilder
-                .baseUrl(baseUrl)
-                .build();
-    }
+    @Value("${whatsapp.base-url}")
+    private String baseUrl;
 
     // =====================================================
     // PUBLIC API
@@ -44,15 +36,15 @@ public class CustomWhatsAppService {
     public ResponseStructure<String> sendToAll(CustomNotificationRequest request) {
 
         try {
-            if (request.getList() == null || request.getList().isEmpty()) {
-                return ResponseStructure.buildResponse(null,
-                        "Patient list cannot be empty",
-                        HttpStatus.BAD_REQUEST, 400);
-            }
-
             if (request.getTitle() == null || request.getTitle().isBlank()) {
                 return ResponseStructure.buildResponse(null,
                         "Title cannot be empty",
+                        HttpStatus.BAD_REQUEST, 400);
+            }
+
+            if (request.getList() == null || request.getList().isEmpty()) {
+                return ResponseStructure.buildResponse(null,
+                        "Patient list cannot be empty",
                         HttpStatus.BAD_REQUEST, 400);
             }
 
@@ -98,42 +90,60 @@ public class CustomWhatsAppService {
             return;
         }
 
-        String variables = buildVariables(request);
+        try {
+            String variables = buildVariables(request, patient.getName());
 
-        String response = webClient.get()
-                .uri(uri -> uri
-                        .path("/dev/whatsapp")
-                        .queryParam("authorization", authKey)
-                        .queryParam("message_id", templateId)
-                        .queryParam("phone_number_id", phoneNumberId)
-                        .queryParam("numbers", mobile)
-                        .queryParam("variables_values", variables)
-                        .build())
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(5))
-                .retry(1)
-                .block();
+            log.info("CustomWhatsApp variables={}", variables);
 
-        log.info("CustomWhatsApp sent patientId={} mobile={} response={}",
-                patient.getPatientId(), mobile, response);
+            String url = baseUrl + "/dev/whatsapp"
+                    + "?authorization=" + authKey
+                    + "&message_id=" + templateId
+                    + "&phone_number_id=" + phoneNumberId
+                    + "&numbers=" + mobile
+                    + "&variables_values=" + variables;
+
+            log.info("CustomWhatsApp url={}", url);
+
+            String response = restTemplate.getForObject(url, String.class);
+
+            log.info("CustomWhatsApp sent patientId={} mobile={} response={}",
+                    patient.getPatientId(), mobile, response);
+
+        } catch (Exception ex) {
+            log.error("CustomWhatsApp send failed patientId={} error={}",
+                    patient.getPatientId(), ex.getMessage(), ex);
+        }
     }
 
     // =====================================================
     // VARIABLE BUILDER
+    // {{1}} → title (bold)
+    // {{2}} → greeting  → Hello, Patient Name
+    // {{3}} → body
+    // {{4}} → clinicName
+    // {{5}} → branchName
+    //
+    // Template must be:
+    // Greetings 👋
+    // *{{1}}*
+    // {{2}}
+    // {{3}}
+    // 🏥 Clinic : {{4}}
+    // 📍 Branch : {{5}}
+    // Thank you for choosing us 🙏
     // =====================================================
 
-    private String buildVariables(CustomNotificationRequest request) {
-        // sanitize — remove newlines that break Fast2SMS variables
-        String sanitizedBody = safe(request.getBody(), "")
-                .replace("\n\n", " ")
-                .replace("\n", " ");
+    private String buildVariables(CustomNotificationRequest request, String patientName) {
+
+        String greeting = "Hello, " + safe(patientName, "Patient");
+        String fullBody = safe(request.getBody(), "");
 
         return String.join("|",
-                safe(request.getTitle(), "Notification"),  // Header {{1}}
-                sanitizedBody,                             // Body {{1}}
-                safe(request.getClinicName(), "Clinic"),   // Body {{2}}
-                safe(request.getBranchName(), "Branch")    // Body {{3}}
+                safe(request.getTitle(), "Notification"),  // {{1}}
+                greeting,                                  // {{2}}
+                fullBody,                                  // {{3}}
+                safe(request.getClinicName(), "Clinic"),   // {{4}}
+                safe(request.getBranchName(), "Branch")    // {{5}}
         );
     }
 
