@@ -183,6 +183,8 @@ public class PaymentServiceImpl implements PaymentService {
 
 		PaymentRecord record = repo.findByBookingId(req.getBookingId())
 				.orElseThrow(() -> new RuntimeException("Payment not found"));
+		
+		record.setTreatmentName(req.getTreatmentName());
 
 		if (req.getTherapyWithSessions() != null) {
 			throw new RuntimeException("Do not send therapyWithSessions in update");
