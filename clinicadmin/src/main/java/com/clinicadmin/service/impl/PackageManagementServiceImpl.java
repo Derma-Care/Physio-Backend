@@ -250,7 +250,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         String finalAmount = String.valueOf(Integer.valueOf(dto.getPackageAmount()) - Integer.valueOf(dto.getDiscountAmount()));
         entity.setFinalAmount(finalAmount);
         // ✅ Apply discount logic
-        double finalDiscount = applyDiscountLogic(
+        int finalDiscount = applyDiscountLogic(
                 dto.getStartOfferDate(),
                 dto.getEndOfferDate(),
                 dto.getDiscountPercentage()
@@ -289,7 +289,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         return dto;
     }
 
-    private double applyDiscountLogic(String startDate, String endDate, double discount) {
+    private int applyDiscountLogic(String startDate, String endDate, int discount) {
 
         LocalDate today = LocalDate.now();
 
@@ -297,7 +297,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         if ((startDate == null || startDate.trim().isEmpty()) &&
             (endDate == null || endDate.trim().isEmpty())) {
 
-            return 0.0;
+            return 0;
         }
 
         // ✅ Only start date given -> apply discount from start date
@@ -310,14 +310,14 @@ public class PackageManagementServiceImpl implements PackageManagementService {
                 return discount;
             }
 
-            return 0.0;
+            return 0;
         }
 
         // ✅ Only end date given -> no discount
         if ((startDate == null || startDate.trim().isEmpty()) &&
             endDate != null && !endDate.trim().isEmpty()) {
 
-            return 0.0;
+            return 0;
         }
 
         // ✅ Both dates given
@@ -326,7 +326,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
         // ✅ Invalid range
         if (end.isBefore(start)) {
-            return 0.0;
+            return 0;
         }
 
         // ✅ Apply discount only within date range
@@ -335,7 +335,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
         }
 
         // ✅ Offer expired automatically
-        return 0.0;
+        return 0;
     }
     private LocalDate parseDate(String dateStr) {
 
@@ -396,12 +396,12 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             entity.setOfferType(dto.getOfferType());
         }
 
-        // ✅ Apply discount logic ONLY when needed
+     // ✅ Apply discount logic ONLY when needed
         if (dto.getDiscountPercentage() != 0 ||
             dto.getStartOfferDate() != null ||
             dto.getEndOfferDate() != null) {
 
-            double finalDiscount = applyDiscountLogic(
+            int finalDiscount = applyDiscountLogic(
                     entity.getStartOfferDate(),
                     entity.getEndOfferDate(),
                     dto.getDiscountPercentage()

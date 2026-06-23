@@ -35,7 +35,7 @@ public class PackageManagement {
     private String finalAmount;
     private List<String> programIds;
 
-    private double discountPercentage;
+    private int discountPercentage;
 
     private String startOfferDate;
 
