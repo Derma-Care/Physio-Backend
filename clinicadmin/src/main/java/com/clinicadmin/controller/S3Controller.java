@@ -96,6 +96,7 @@ public class S3Controller {
             case "prescription"  -> new FieldConfig("prescriptions",              MAX_PDF_SIZE,   "10 MB",  DOC_EXTS,   DOC_MIMES);
             case "exercise"      -> new FieldConfig("exercises",                  MAX_VIDEO_SIZE, "100 MB", VIDEO_EXTS, VIDEO_MIMES);
             case "branch"        -> new FieldConfig("branches",                   MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
+            case "equipment"     -> new FieldConfig("equipments",                 MAX_IMAGE_SIZE, "5 MB",   IMAGE_EXTS, IMAGE_MIMES);
 
             // ── Therapist document fields ──────────────────────────────
             case "therapistProfilePhoto" -> new FieldConfig(
