@@ -38,6 +38,7 @@ public interface CllinicFeign {
 	    public CustomerOnbordingDTO getCustomerByToken(
 	 			 @PathVariable String token );
 <<<<<<< Updated upstream
+
 	 	
 	  @GetMapping("/clinic-admin/deviceId/{clinicId}/{branchId}")
 		public String getDeviceId(@PathVariable String clinicId,@PathVariable String branchId);
@@ -46,6 +47,9 @@ public interface CllinicFeign {
 	    public String customerDeviceId(
 	 			 @PathVariable String customerId );
 	 	
+	
+	}
+
 =======
 	
 	}
