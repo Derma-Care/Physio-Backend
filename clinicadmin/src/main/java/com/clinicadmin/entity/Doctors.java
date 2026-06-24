@@ -19,7 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Document(collection = "doctors") 
+@Document(collection = "doctors")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -52,7 +52,7 @@ public class Doctors {
 	private List<String> focusAreas;
 	private List<String> languages;
 	private List<String> highlights;
-	private Boolean doctorAvailabilityStatus ;
+	private Boolean doctorAvailabilityStatus;
 	private double doctorAverageRating;
 	private boolean recommendation;
 	private String doctorSignature;
@@ -63,16 +63,17 @@ public class Doctors {
 	private Map<String, List<String>> permissions;
 	private String dateofJoining;
 	private String emergencyContact;
-    private String aadharID;
-    private String dateofBirth;
-    private String createdBy;
-    
-    private String createdAt;
-    
-    private String updatedDate;
+	private String aadharID;
+	private String dateofBirth;
+	private String createdBy;
 
-	private String  Status;
+	private String createdAt;
+
+	private String updatedDate;
+
+	private String Status;
 	private BankAccountDetails bankAccountDetails;
-		
-	}
 
+	private String fcmTokenUpdatedAt;
+
+}
