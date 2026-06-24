@@ -1,13 +1,19 @@
 package com.clinicadmin.service;
 
+import java.net.URL;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import java.io.InputStream;
+import java.net.URI;
+
 
 import jakarta.mail.internet.MimeMessage;
 
@@ -18,7 +24,7 @@ public class EmailService {
     private final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final String fromAddress;
-    private final String doctorLoginUrl;       // ✅ renamed from clinicLoginUrl
+    private final String doctorLoginUrl;       
     private final String therapistLoginUrl;
 
     public EmailService(JavaMailSender mailSender, Environment env) {
@@ -413,5 +419,162 @@ public class EmailService {
 
                     clinicName
             );
+    }
+ 
+
+
+    public void sendPatientPdfEmail(
+
+            String to,
+
+            String patientName,
+
+            String title,
+
+            String body,
+
+            String pdfFile) {
+
+        try {
+
+            if (to == null || to.isBlank()) {
+
+                logger.warn(
+                        "Patient PDF email not sent: recipient address is blank");
+
+                return;
+            }
+
+            MimeMessage mimeMessage =
+                    mailSender.createMimeMessage();
+
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(
+                            mimeMessage,
+                            true,
+                            "UTF-8");
+
+            helper.setTo(to);
+
+            helper.setFrom(fromAddress);
+
+            helper.setSubject(title);
+
+            helper.setText(
+
+                    buildPatientPdfMessageBody(
+
+                            patientName,
+
+                            title,
+
+                            body),
+
+                    true);
+
+            // ✅ Attach PDF from S3 signed URL
+            if (pdfFile != null
+                    && !pdfFile.isBlank()) {
+
+                try (InputStream inputStream =
+
+                        URI.create(pdfFile)
+                                .toURL()
+                                .openStream()) {
+
+                    byte[] pdfBytes =
+                            inputStream.readAllBytes();
+
+                    helper.addAttachment(
+
+                            title + ".pdf",
+
+                            new ByteArrayResource(
+                                    pdfBytes));
+                }
+            }
+
+            mailSender.send(mimeMessage);
+
+            logger.info(
+                    "Patient PDF email sent successfully to {}",
+                    to);
+
+        } catch (Exception e) {
+
+            logger.error(
+                    "Failed to send patient PDF email to {} : {}",
+                    to,
+                    e.getMessage(),
+                    e);
+        }
+    }
+    private String buildPatientPdfMessageBody(
+
+            String patientName,
+
+            String title,
+
+            String body) {
+
+        return """
+            <html>
+
+            <body style="
+                font-family:Arial,sans-serif;
+                font-size:14px;
+                color:#333333;">
+
+                <h3>%s</h3>
+
+                <p>
+
+                    Dear %s,
+
+                </p>
+
+                <p>
+
+                    Please find the attached PDF document.
+
+                </p>
+
+                <br>
+
+                <p>
+
+                    Regards,<br>
+
+                    <strong>Kintix Wellness Care</strong>
+
+                </p>
+
+                <hr>
+
+                <p style="
+                    font-size:12px;
+                    color:#777777;">
+
+                    This is a computer-generated email. Please do not reply to this email.
+
+                </p>
+
+                <p style="
+                    font-size:12px;
+                    color:#777777;">
+
+                    Powered by <strong>CCMS</strong>
+
+                </p>
+
+            </body>
+
+            </html>
+            """
+            .formatted(
+
+                    title,
+
+                    patientName);
     }
 }
