@@ -37,7 +37,7 @@ public interface CllinicFeign {
 	  @GetMapping("/clinic-admin/gcmToken/{token}")
 	    public CustomerOnbordingDTO getCustomerByToken(
 	 			 @PathVariable String token );
-<<<<<<< Updated upstream
+
 
 	 	
 	  @GetMapping("/clinic-admin/deviceId/{clinicId}/{branchId}")
@@ -50,10 +50,9 @@ public interface CllinicFeign {
 	
 	}
 
-=======
+
 	
-	}
->>>>>>> Stashed changes
+
 	
 	
 
