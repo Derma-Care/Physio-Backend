@@ -23,6 +23,7 @@ import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
+import com.clinicadmin.service.FeedbackDetailsServcie;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +39,9 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Autowired
     private S3Service s3Service;
+    
+    @Autowired
+    private FeedbackDetailsServcie feedbackDetailsService;
 
     @Override
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
@@ -90,6 +94,12 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                         dto.getTherapistRecordId().trim(),
                         dto.getSessionId().trim()
                 );
+                
+                feedbackDetailsService.processFeedbackNotification(
+                        dto.getClinicId(),
+                        dto.getBranchId()
+                );
+            
 
             }
         } catch (Exception e) {
