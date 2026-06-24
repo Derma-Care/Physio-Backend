@@ -12,7 +12,7 @@ import com.google.firebase.messaging.Notification;
 public class NotificationApp implements SendAppNotification{
 
 	@Override
-	public void sendPushNotification(String deviceToken, String title, String body, String type, String screen, String sound) {
+	public void sendPushNotification(String deviceToken, String title, String body, String type, String screen, String sound,String path) {
 	    Message message = Message.builder()
 	        .setToken(deviceToken)
 	        .setNotification(Notification.builder()
@@ -21,7 +21,8 @@ public class NotificationApp implements SendAppNotification{
 	            .build())
 	        .putData("type", type)
 	        .putData("screen", screen)
-	        .putData("sound", sound) // Custom key, handled by app
+	        .putData("sound", sound) 
+	        .putData("path", path)// Custom key, handled by app
 	        .build();
 
 	    try {
