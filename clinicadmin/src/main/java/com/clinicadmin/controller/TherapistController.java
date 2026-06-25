@@ -16,8 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistDTO;
-import com.clinicadmin.dto.TherapistLoginDTO;
-import com.clinicadmin.dto.TherapistLoginResponseDTO;
+import com.clinicadmin.dto.TherapistPresenceRequest;
 import com.clinicadmin.service.TherapistService;
 
 @RestController
@@ -124,5 +123,18 @@ public class TherapistController {
 		Response response = service.getTherapistPerformanceSummary(clinicId, branchId, therapistId, year);
 
 		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+	
+	// ================= UPDATE THERAPIST PRESENCE =================
+	@PutMapping("/updateTherapistPresence/{therapistId}")
+	public ResponseEntity<Response> updateTherapistPresence(
+	        @PathVariable String therapistId,
+	        @RequestBody TherapistPresenceRequest request) {
+
+	    Response response = service.updateTherapistPresence(
+	            therapistId,
+	            request);
+
+	    return ResponseEntity.status(response.getStatus()).body(response);
 	}
 }

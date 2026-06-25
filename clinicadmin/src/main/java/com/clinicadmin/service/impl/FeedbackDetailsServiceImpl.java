@@ -740,7 +740,8 @@ public class FeedbackDetailsServiceImpl
         entity.setRating(dto.getRating());
         entity.setServiceType(dto.getServiceType());
         entity.setService(dto.getService());
-
+        entity.setHalfNotificationSent(dto.isHalfNotificationSent());
+        entity.setFullNotificationSent(dto.isFullNotificationSent());
         entity.setTotalNoOfSessions(
                 dto.getTotalNoOfSessions());
 
@@ -814,6 +815,8 @@ public class FeedbackDetailsServiceImpl
 
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setHalfNotificationSent(entity.isHalfNotificationSent());
+        dto.setFullNotificationSent(entity.isFullNotificationSent());
 
         return dto;
     }
@@ -1214,8 +1217,7 @@ public class FeedbackDetailsServiceImpl
             int totalSessions,
             int completedSessions) {
 
-        log.info(
-                "Entered checkAndSendNotification");
+        log.info("Entered checkAndSendNotification");
 
         boolean isFullCompleted =
                 totalSessions > 0
@@ -1233,32 +1235,52 @@ public class FeedbackDetailsServiceImpl
 
         if (!(isHalfCompleted || isFullCompleted)) {
 
-            log.info(
-                    "Notification not required");
-
+            log.info("Notification not required");
             return;
         }
 
-        data.setTotalNoOfSessions(
-                totalSessions);
-
-        data.setNoOfSessionsCompleted(
-                completedSessions);
-
-        data.setHalfSessionsCompleted(
-                isHalfCompleted);
-
-        data.setFullSessionsCompleted(
-                isFullCompleted);
-
+        // Fetch existing feedback by bookingId
         FeedbackDetails feedback =
-                mapToEntity(data);
+                repository.findByBookingId(data.getBookingId())
+                        .orElseGet(() -> mapToEntity(data));
 
-        log.info(
-                "Calling triggerSessionNotificationIfNeeded");
+        feedback.setClinicId(data.getClinicId());
+        feedback.setBranchId(data.getBranchId());
+        feedback.setPatientId(data.getPatientId());
+        feedback.setPatientName(data.getPatientName());
+        feedback.setMobileNumber(data.getMobileNumber());
+        feedback.setBookingId(data.getBookingId());
 
-        triggerSessionNotificationIfNeeded(
-                feedback);
+        feedback.setTotalNoOfSessions(totalSessions);
+        feedback.setNoOfSessionsCompleted(completedSessions);
+
+        // Send Half Notification Only Once
+        if (isHalfCompleted && !feedback.isHalfNotificationSent()) {
+
+            feedback.setHalfSessionsCompleted(true);
+
+            log.info("Sending Half Session Notification");
+
+            triggerSessionNotificationIfNeeded(feedback);
+
+            feedback.setHalfNotificationSent(true);
+
+            repository.save(feedback);
+        }
+
+        // Send Full Notification Only Once
+        if (isFullCompleted && !feedback.isFullNotificationSent()) {
+
+            feedback.setFullSessionsCompleted(true);
+
+            log.info("Sending Full Session Notification");
+
+            triggerSessionNotificationIfNeeded(feedback);
+
+            feedback.setFullNotificationSent(true);
+
+            repository.save(feedback);
+        }
     }
 }
     
