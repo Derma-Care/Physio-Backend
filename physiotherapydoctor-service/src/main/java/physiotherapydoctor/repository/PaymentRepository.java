@@ -17,4 +17,6 @@ public interface PaymentRepository extends MongoRepository<PaymentRecord, String
 			String branchId, String bookingId, String patientId,String therapistId, String therapistRecordId);
 
 	List<PaymentRecord> findByClinicIdAndBranchId(String clinicId, String branchId);
+
+	List<PaymentRecord> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
 }

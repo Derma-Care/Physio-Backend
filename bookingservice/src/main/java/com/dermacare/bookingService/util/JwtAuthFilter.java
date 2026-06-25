@@ -33,12 +33,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		if(authHeader != null && authHeader.startsWith("Bearer ")){
 		//System.out.println(authHeader);
 		token = authHeader.substring(7);
+		 ////// System.out.println(token);
 		    Map<Object,Object> map = jwtUtil.tokenIntrospection(token);
-		    //System.out.println(map);
-		    Map<Object,Object> lst = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<Object,Object>>(){});	
-		    Object client_id = map.get("client_id");
-		    Map<String,List<String>> client = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<Map<String,List<String>>>(){});		   
-		   // System.out.println(client);
+		   //// System.out.println(map);
+		    ///Map<Object,Object> lst = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<Object,Object>>(){});	
+		   /// Object client_id = map.get("client_id");
+		    Map<String,List<String>> client = new ObjectMapper().convertValue(map.get("realm_access"),new TypeReference<Map<String,List<String>>>(){});		   
+		   /// System.out.println(client);
 		    List<String> roles = client.get("roles");
 		  // List<String> roles = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<List<String>>(){}); 			  
 		    if(map.get("active").equals(true)) {		    	
@@ -53,14 +54,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 					SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);						   	
 		    }}}
 		filterChain.doFilter(request, response);
-     }catch(Exception e) {   	 
-	   Response error = new Response();
-       error.setMessage(e.getMessage());
-       error.setStatus(503);
-       error.setSuccess(false);
-       if (e instanceof RetryableException fe) {
-    	   error.setStatus(fe.status());}
-   	   response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-       response.setContentType("application/json");
-       new ObjectMapper().writeValue(response.getOutputStream(), error);
+		 }catch(Exception e) {   	 
+			   Response error = new Response();
+		       error.setMessage(e.getMessage());
+		       error.setStatus(500);
+		       error.setSuccess(false);
+		   	   response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		       response.setContentType("application/json");
+		       new ObjectMapper().writeValue(response.getOutputStream(), error);
       }}}

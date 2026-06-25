@@ -2,7 +2,6 @@ package com.dermacare.bookingService.service;
 
 import java.util.List;
 import java.util.Map;
-
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import com.dermacare.bookingService.dto.BookingInfoByInput;
@@ -14,7 +13,7 @@ import com.dermacare.bookingService.util.ResponseStructure;
 
 public interface BookingService_Service {
 
-	public ResponseEntity<?> addService(BookingResponse req);
+	public ResponseEntity<?> followUpBooking(BookingResponse req);
 	public BookingResponse deleteService(String id);
 	public BookingResponse getBookedService(String id);
 
@@ -33,6 +32,7 @@ public interface BookingService_Service {
 	        String clinicId,
 	        int page,
 	        int size);
+
 
 	//public ResponseEntity<?> updateAppointment(BookingResponse bookingResponse);
 	public Page<BookingResponse> bookingByBranchId(
@@ -53,6 +53,7 @@ public interface BookingService_Service {
 	public ResponseEntity<?> getCompletedApntsByDoctorId(String hospitalId,String doctorId);
 	public ResponseEntity<?> getSizeOfConsultationTypesByDoctorId(String hospitalId,String doctorId);
 	public Response getPatientDetailsForConsetForm(String bookingId, String patientId, String mobileNumber);
+
 	public ResponseEntity<?> getInProgressAppointments(
 	        String number,
 	        int page,
@@ -82,6 +83,7 @@ public interface BookingService_Service {
 
 	public Page<BookingResponse> bookingByPatientId(String clincId,String patientId, int page, int size) ;
 		//public BookingInfoByInput bookingByInput(String input,String clinicId);
+
 	public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId);
 	public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId,String clinicId);
 	public BookingResponse checkBookingByDateAndTime(String date,String time,String doctorId);
@@ -97,6 +99,7 @@ public interface BookingService_Service {
 	        String bId,
 	        int page,
 	        int size);
+
 public ResponseEntity<?> physioAppointment(BookingRequset request);
 public ResponseEntity<Response> getTodayAllBookings(
         String clinicId,
@@ -119,24 +122,31 @@ public ResponseEntity<Response> getBookingByCustomRange(
         int page,
         int size);
 public ResponseEntity<Response> getBookingById(String bookingId);
+
 public Page<BookingResponse> bookingByPatientIdAndBookingId(
         String patientId,
         String bookingId,
         int page,
         int size);
+
 public List<ReportsDTO> getReportsByPatientId(String patientId);
 public void deleteBookedServiceReports(String bookingId,String index);
 public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
         String clinicId,
         String branchId,
         String doctorId,
+
         String status,
         int page,
         int size);
 
 public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId);
+List<Map<String, Object>> searchBookings(String clinicId, String input);
 
 public List<Map<String, Object>> bookingByCustomerId(String customerId);
+
+public ResponseEntity<Response> getTodayBookings(String clinicId, String branchId) ;
+
 
 	   	
 }

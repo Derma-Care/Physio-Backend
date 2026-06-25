@@ -3,12 +3,15 @@ package com.AdminService.service;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.AdminService.dto.AdministratorDTO;
 import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.ResponseStructure;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,12 +25,17 @@ public class AdministratorServiceImpl implements AdministratorService {
 
     private final ClinicAdminFeign clinicAdminFeign;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Autowired
+    private KeyCloakTokenStore keyCloakTokenStore;
+   
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseStructure<AdministratorDTO> addAdministrator(AdministratorDTO dto) {
         ResponseStructure<AdministratorDTO> response = new ResponseStructure<>();
         try {
-            ResponseStructure<AdministratorDTO> res = clinicAdminFeign.addAdministrator(dto);
+            ResponseStructure<AdministratorDTO> res = clinicAdminFeign.addAdministrator(keyCloakTokenStore.getAccess_token(),dto);
 
             response.setData(res.getData());
             response.setHttpStatus(res.getHttpStatus());
@@ -64,72 +72,80 @@ public class AdministratorServiceImpl implements AdministratorService {
 
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<List<AdministratorDTO>>> getAllAdministratorsByClinic(String clinicId) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.getAllAdministratorsByClinic(clinicId));
+            return ResponseEntity.ok(clinicAdminFeign.getAllAdministratorsByClinic(keyCloakTokenStore.getAccess_token(),clinicId));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch administrators by clinic");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<List<AdministratorDTO>>> getAllAdministratorsByClinicAndBranch(String clinicId, String branchId) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.getAllAdministratorsByClinicAndBranch(clinicId, branchId));
+            return ResponseEntity.ok(clinicAdminFeign.getAllAdministratorsByClinicAndBranch(keyCloakTokenStore.getAccess_token(),clinicId, branchId));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch administrators by branch");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<AdministratorDTO>> getAdministratorByClinicAndId(String clinicId, String adminId) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.getAdministratorByClinicAndId(clinicId, adminId));
+            return ResponseEntity.ok(clinicAdminFeign.getAdministratorByClinicAndId(keyCloakTokenStore.getAccess_token(),clinicId, adminId));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch administrator");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<AdministratorDTO>> getAdministratorByClinicBranchAndAdminId(String clinicId, String branchId, String adminId) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.getAdministratorByClinicBranchAndAdminId(clinicId, branchId, adminId));
+            return ResponseEntity.ok(clinicAdminFeign.getAdministratorByClinicBranchAndAdminId(keyCloakTokenStore.getAccess_token(),clinicId, branchId, adminId));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch administrator by clinic and branch");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<AdministratorDTO>> updateAdministrator(String clinicId, String adminId, AdministratorDTO dto) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.updateAdministrator(clinicId, adminId, dto));
+            return ResponseEntity.ok(clinicAdminFeign.updateAdministrator(keyCloakTokenStore.getAccess_token(),clinicId, adminId, dto));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to update administrator");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<AdministratorDTO>> updateAdministratorUsingClinicBranchAndAdminId(String clinicId, String branchId, String adminId, AdministratorDTO dto) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.updateAdministratorUsingClinicBranchAndAdminId(clinicId, branchId, adminId, dto));
+            return ResponseEntity.ok(clinicAdminFeign.updateAdministratorUsingClinicBranchAndAdminId(keyCloakTokenStore.getAccess_token(),clinicId, branchId, adminId, dto));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to update administrator");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<String>> deleteAdministrator(String clinicId, String adminId) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.deleteAdministrator(clinicId, adminId));
+            return ResponseEntity.ok(clinicAdminFeign.deleteAdministrator(keyCloakTokenStore.getAccess_token(),clinicId, adminId));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to delete administrator");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<String>> deleteAdministratorUsingClinicBranchAndAdminId(String clinicId, String branchId, String adminId) {
         try {
-            return ResponseEntity.ok(clinicAdminFeign.deleteAdministratorUsingClinicBranchAndAdminId(clinicId, branchId, adminId));
+            return ResponseEntity.ok(clinicAdminFeign.deleteAdministratorUsingClinicBranchAndAdminId(keyCloakTokenStore.getAccess_token(),clinicId, branchId, adminId));
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to delete administrator");
         }

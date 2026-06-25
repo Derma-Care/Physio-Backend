@@ -19,15 +19,15 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Response {
 	private boolean success;
-	private Object data;
-	private Map<String, Map<String, List<String>>> permissions;
-	private Map<String,Object> counts;
 	private String message;
 	private int status;
+	private Object data;
 	private String hospitalName;
 	private String hospitalId;
 	private String branchId;
     private String branchName;
+    private Map<String,Object> counts;
+    private Map<String, Map<String, List<String>>> permissions;
 	//private String role;
 	
 }

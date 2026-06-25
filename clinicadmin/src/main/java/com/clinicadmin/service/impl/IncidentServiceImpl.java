@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.IncidentDTO;
@@ -23,6 +24,7 @@ public class IncidentServiceImpl implements IncidentService {
 	private IncidentRepository incidentRepository;
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response createIncident(IncidentDTO dto) {
 		Response response = new Response();
 		if (dto.getTitle() == null || dto.getTitle().isEmpty()) {
@@ -47,6 +49,7 @@ public class IncidentServiceImpl implements IncidentService {
 		return response;
 	}
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getAllIncidents() {
 	    Response response = new Response();
 	    try {
@@ -79,6 +82,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response UpdateIncidentStatu(String id, String status) {
 		Response response = new Response();
 		try {
@@ -119,6 +123,7 @@ public class IncidentServiceImpl implements IncidentService {
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response deleteIncident(String id) {
 		Response response = new Response();
 		try {

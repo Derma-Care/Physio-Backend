@@ -31,15 +31,6 @@ public class ClinicAdminController {
 	@Autowired
 	AdminServiceClient adminServiceClient;
 
-//------------------------------login Clinic--------------------------------------------------------------------
-//	@PostMapping("/clinicLogin")
-//	public ResponseEntity<Response> clinicLogin(@Valid @RequestBody ClinicLoginRequestDTO clinicLoginRequestDTO) {
-//		Response res = clinicAdminService.login(clinicLoginRequestDTO);
-//		if (res != null) {
-//			return ResponseEntity.status(res.getStatus()).body(res);
-//		}
-//		return null;
-//	}
 
 //------------------------------Update Clinic --------------------------------------------------------------------
 	@PutMapping("/updatePassword/{userName}")
@@ -77,9 +68,22 @@ public class ClinicAdminController {
 		return clinicAdminService.getBranchesByClinicId(clinicId);
 	}
 	
-	@GetMapping("/deviceId/{username}")
-	public ResponseEntity<?> getDeviceId(@PathVariable String username) {
-		return clinicAdminService.getDeviceId(username);
+	
+	@GetMapping("/staff-info/{hospitalId}/{branchId}")
+	public ResponseEntity<Response> getStaffInfo(
+	        @PathVariable String hospitalId,
+	        @PathVariable String branchId) {
+
+	    Response response = clinicAdminService.getStaffInfo(hospitalId, branchId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+
 	}
+	
+	@GetMapping("/deviceId/{clinicId}/{branchId}")
+	public String getDeviceId(@PathVariable String clinicId,@PathVariable String branchId) {
+		return clinicAdminService.getDeviceId(clinicId, branchId);}
 
 }

@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.PermissionsDTO;
@@ -24,6 +25,7 @@ import com.clinicadmin.repository.PharmacistRepository;
 import com.clinicadmin.repository.SecurityStaffRepository;
 import com.clinicadmin.repository.WardBoyRepository;
 import com.clinicadmin.service.PermissionsService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import feign.FeignException;
 
@@ -47,9 +49,14 @@ public class PermissionsServiceImpl implements PermissionsService {
     
     @Autowired
     private AdminServiceClient adminServiceClient;
+    
+    @Autowired	
+	public KeyCloakTokenStore keyCloakTokenStore;
+	
 
     // ✅ Get permissions for specific user
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<PermissionsDTO> getPermissionsByClinicBranchAndUser(String clinicId, String branchId, String userId) {
 
         // 🔹 SecurityStaff
@@ -113,6 +120,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     // ✅ Update permissions
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<ResponseStructure<PermissionsDTO>> updatePermissionsById(String userId, PermissionsDTO dto) {
 
         // WardBoy
@@ -220,6 +228,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     // ✅ Get all permissions by Clinic ID and Branch ID
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicAndBranch(String clinicId, String branchId) {
         List<PermissionsDTO> resultList = new ArrayList<>();
 
@@ -265,22 +274,25 @@ public class PermissionsServiceImpl implements PermissionsService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<PermissionsDTO> getPermissionsByUserId(String userId) {
         return ResponseStructure.buildResponse(null,
                 "Feature not implemented yet: getPermissionsByUserId", HttpStatus.NOT_IMPLEMENTED, 501);
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByBranchId(String branchId) {
         return ResponseStructure.buildResponse(null,
                 "Feature not implemented yet: getPermissionsByBranchId", HttpStatus.NOT_IMPLEMENTED, 501);
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions() {
         try {
             // Call Admin Service using Feign
-            return adminServiceClient.getDefaultAdminPermissions();
+            return adminServiceClient.getDefaultAdminPermissions(keyCloakTokenStore.getAccess_token());
 
         } catch (FeignException e) {
             // If AdminService throws an error, capture it here

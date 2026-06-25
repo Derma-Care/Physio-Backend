@@ -56,10 +56,8 @@ public class S3Service {
     @Value("${aws.region}")
     private String region;
 
-
     @Autowired
     private S3Presigner s3Presigner;
-
 
     // ─────────────────────────────────────────────
     // NEW FLOW (Step 1): Generate presigned PUT URL

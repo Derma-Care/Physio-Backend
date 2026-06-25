@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.NotificationDTO;
@@ -26,7 +27,8 @@ public interface NotificationFeign {
 
 
     @PostMapping("/api/notificationservice/notifications")
-    public ResponseEntity<Response> createNotification(@RequestBody BookingResponse booking);
+    public ResponseEntity<Response> createNotification(@RequestHeader("Authorization") String token,@RequestBody BookingResponse booking);
+
 
 
 }

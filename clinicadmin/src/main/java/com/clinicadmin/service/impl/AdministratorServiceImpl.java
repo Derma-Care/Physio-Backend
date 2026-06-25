@@ -1,7 +1,5 @@
 package com.clinicadmin.service.impl;
 
-
-
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,6 +11,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +24,7 @@ import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AdministratorRepository;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.service.AdministratorService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +50,15 @@ public class AdministratorServiceImpl implements AdministratorService {
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private KeyCloakTokenStore keyCloakTokenStore;
+    
 
     // ------------------- Onboarding ----------------------
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response administratorOnboarding(AdministratorDTO dto) {
     	 log.info("Administrator onboarding started | clinicId={}, branchId={}, contact={}",
     	            dto.getClinicId(), dto.getBranchId(), dto.getContactNumber());
@@ -77,7 +82,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         }
         log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
         // Get branch name via Feign
-        ResponseEntity<Response> res = adminServiceClient.getBranchById(dto.getBranchId());
+        ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
         Branch branch = objectMapper.convertValue(res.getBody().getData(), Branch.class);
 
         // Map DTO → Entity
@@ -126,6 +131,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     // ------------------- Fetch All ----------------------
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllAdministratorsByClinic(String clinicId) {
     	log.info("Fetching administrators | clinicId={}", clinicId);
     	Response response = new Response();
@@ -157,6 +163,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         return response;
     }
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllAdministratorsByClinic(String clinicId, String branchId) {
 
         log.info("Fetch administrators request received. clinicId: {}, branchId: {}", clinicId, branchId);
@@ -220,6 +227,7 @@ public class AdministratorServiceImpl implements AdministratorService {
 
     // ------------------- Fetch By ID ----------------------
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAdministratorById(String clinicId, String adminId) {
 
         log.info("Fetch administrator request received. clinicId: {}, adminId: {}", clinicId, adminId);
@@ -273,6 +281,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAdministratorUsingClinicIdAndBranchIdAndAdminId(
             String clinicId, String branchId, String adminId) {
 
@@ -342,6 +351,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     // ------------------- Update ----------------------
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateAdministrator(String clinicId, String adminId, AdministratorDTO dto) {
 
         log.info("Update administrator request received. clinicId: {}, adminId: {}", clinicId, adminId);
@@ -473,6 +483,7 @@ public class AdministratorServiceImpl implements AdministratorService {
 
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateAdministratorByClinicIdAndBranchIdAndAdminId(
             String clinicId, String branchId, String adminId, AdministratorDTO dto) {
 
@@ -630,6 +641,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     // ------------------- Delete ----------------------
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteAdministrator(String clinicId, String adminId) {
 
         log.info("Delete administrator request received. clinicId: {}, adminId: {}", clinicId, adminId);
@@ -701,6 +713,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteAdministratorByClinicIdAndBranchIdAndAdminId(
             String clinicId, String branchId, String adminId) {
 
@@ -879,10 +892,5 @@ public class AdministratorServiceImpl implements AdministratorService {
 
         return capitalizedWord + specialChar + numberPart;
     }
-
-
-
-	
-
 }
 

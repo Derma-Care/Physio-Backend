@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.RetryableException;
 import jakarta.ws.rs.*;
+import lombok.Data;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
@@ -17,6 +19,7 @@ import java.util.Map;
 
 
 @Component
+@Data
 public class KeyCloakTokenStore {
 	
 	@Autowired
@@ -26,8 +29,8 @@ public class KeyCloakTokenStore {
 	@Autowired
 	private AutoReqForNewAccessTokenBeforeTokenExpiration autoReqForNewAccessToken;
 	
-	public String access_token;
-	public Long expires_in;
+	private String access_token;
+	private Long expires_in;
 		
 	 @Retryable(value = {RetryableException.class,NotAuthorizedException.class,ForbiddenException.class,NotFoundException.class,BadRequestException.class,InternalServerErrorException.class}, maxAttempts = 4, backoff = @Backoff(delay = 4000))
 	 public void obtainKeycloakToken(){ // CHECK TOKEN FOR SERVICE PRESENT OT NOT
@@ -35,8 +38,8 @@ public class KeyCloakTokenStore {
 			 if(access_token == null) {
 				 MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 				 form.add("grant_type", "client_credentials");
-				 form.add("client_id", "admin-service");
-				 form.add("client_secret", "QR5OBooIYbefMFXbf5TMR2EJ2SS9xMRI");
+				 form.add("client_id", "booking_service");
+				 form.add("client_secret", "SYEqpe0JYurJomx1nnST9EDzIB4lEoe3");
 				  Map<String, Object> data = keyCloakFeign.getToken(form);
 				 // System.out.println(data);
 				  if(data != null) {
@@ -56,7 +59,7 @@ public class KeyCloakTokenStore {
 		}
 				
 				
-		  @Scheduled(initialDelay = 1000 * 60 * 1, fixedRate = 1000 * 60 * 3) 
+		  @Scheduled(initialDelay = 1000 * 60 * 1, fixedRate = 1000 * 60 * 8) 
 			 public void reqForKeycloakTokenBeforeExpireWithScheduler(){
 				//System.out.println("autoCheckJwtToken five mts methd");
 			  try {

@@ -1,5 +1,7 @@
 package com.clinicadmin.service;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import com.clinicadmin.dto.ClinicCredentialsDTO;
 import com.clinicadmin.dto.CustomerLoginDTO;
@@ -11,10 +13,12 @@ public interface AuthService {
 	
 public ResponseEntity<Response> cliniLogin(ClinicCredentialsDTO clinicCredentialsDTO);
 
-public ResponseEntity<Response> doctorLogin(DoctorLoginDTO loginDTO);
+public ResponseEntity<Response> doctorLogin(Map<String,String> dto);
 
 public ResponseEntity<Response> requestForNewJwtTokenByRefreshToken(String refreshToken);
 
-public Response login(CustomerLoginDTO dto);
+public Response login(Map<String,String>  dto);
+
+public Response loginUsingRoles(DoctorLoginDTO dto);
 
 }

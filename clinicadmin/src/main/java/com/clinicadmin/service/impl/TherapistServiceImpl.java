@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,7 @@ import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.entity.Session;
 import com.clinicadmin.entity.Therapist;
 import com.clinicadmin.entity.TherapistAttendance;
+import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
@@ -41,6 +43,7 @@ import com.clinicadmin.repository.TherapistRepository;
 import com.clinicadmin.service.EmailService;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -56,13 +59,13 @@ public class TherapistServiceImpl implements TherapistService {
     private PasswordEncoder passwordEncoder;
     
     @Autowired
-    DoctorLoginCredentialsRepository credentialsRepository;
+    private DoctorLoginCredentialsRepository credentialsRepository;
     
     @Autowired
-    AdminServiceClient adminServiceClient;
+   private AdminServiceClient adminServiceClient;
     
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
     
 	@Autowired
 	private EmailService emailService;
@@ -79,11 +82,14 @@ public class TherapistServiceImpl implements TherapistService {
 	@Autowired
 	private TherapistRecordRepository therapistRecordRepository;
 	
+	 @Autowired	
+    public KeyCloakTokenStore keyCloakTokenStore;
+		
 	@Autowired
 	private S3Service s3Service;
-
+	
     @Override
-
+    @Secured("ROLE_CLINICADMIN")
     public Response therapistOnboarding(TherapistDTO dto) {
 
         log.info("Therapist onboarding started for contact number: {}", dto.getContactNumber());
@@ -120,7 +126,7 @@ public class TherapistServiceImpl implements TherapistService {
             }
 
             // -------------------- Fetch branch --------------------
-            ResponseEntity<Response> res = adminServiceClient.getBranchById(dto.getBranchId());
+            ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
             Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
 
             // -------------------- Map DTO -> Entity --------------------
@@ -158,12 +164,12 @@ public class TherapistServiceImpl implements TherapistService {
 
             log.info("Login credentials created for therapistId: {}", savedTherapist.getTherapistId());
 
-            // -------------------- Send Email (SAME TEMPLATE) --------------------
+         // -------------------- Send Email --------------------
             try {
                 Map<String, String> mailData = new HashMap<>();
                 mailData.put("subject", "Therapist Onboarding Successful");
                 mailData.put("message",
-                        "Welcome to CCMS!\n\n" +
+                        "Welcome to CCMS KINETIX!\n\n" +
                         "Your account has been created successfully.\n" +
                         "Please use the below credentials to login.\n\n" +
                         "Therapist ID: " + savedTherapist.getTherapistId()
@@ -171,6 +177,7 @@ public class TherapistServiceImpl implements TherapistService {
 
                 mailData.put("username", username);
                 mailData.put("password", rawPassword);
+                mailData.put("role", dto.getRole());   // ✅ ADD THIS
 
                 emailService.sendEmail(savedTherapist.getEmailId(), mailData);
 
@@ -179,7 +186,7 @@ public class TherapistServiceImpl implements TherapistService {
             } catch (Exception e) {
                 log.error("Failed to send therapist onboarding email: {}", e.getMessage());
             }
-
+            
             // -------------------- Response --------------------
             TherapistDTO savedDTO = mapToDTO(savedTherapist);
             savedDTO.setUserName(username);
@@ -205,7 +212,9 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     
-    }    // ================= LOGIN =================
+    }  
+    
+    // ================= LOGIN =================
 //    @Override
 //    public ResponseStructure<TherapistLoginResponseDTO> login(TherapistLoginDTO dto) {
 //
@@ -248,6 +257,7 @@ public class TherapistServiceImpl implements TherapistService {
 //    }
     // ================= GET BY THERAPIST ID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapistDTO> getBytherapistId(String therapistId) {
 
         Therapist entity = repository.findByTherapistId(therapistId)
@@ -262,6 +272,7 @@ public class TherapistServiceImpl implements TherapistService {
 
     // ================= GET BY CLINICID BRANCHID AND THERPISTID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<TherapistDTO>> getByClinicIdBranchIdAndTherapistId(
             String clinicId,
             String branchId,
@@ -297,6 +308,7 @@ public class TherapistServiceImpl implements TherapistService {
 
     // ================= GET BY CLINICID AND BRANCHID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<TherapistDTO>> getByClinicIdAndBranchId(
             String clinicId,
             String branchId) {
@@ -304,7 +316,8 @@ public class TherapistServiceImpl implements TherapistService {
         List<TherapistDTO> list = repository
                 .findByClinicIdAndBranchId(clinicId, branchId)
                 .stream()
-                .map(this::mapToDTO)
+                .map(this::mapToDTO).map(n->{
+                n.setTotalSessionCount(physiotherapyFeignClient.getTodaySessionCount(clinicId, branchId,n.getTherapistId()));return n;})
                 .toList();
 
         return ResponseStructure.buildResponse(
@@ -316,6 +329,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= GET BY CLINICID AND BRANCHID only required fileds =================
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getTherapistData(String clinicId, String branchId) {
 
         List<Therapist> list =
@@ -350,6 +364,7 @@ public class TherapistServiceImpl implements TherapistService {
     
     // ================= UPDATE BY THERAPISTID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapistDTO> updateBytherapistId(
             String therapistId,
             TherapistDTO dto) {
@@ -463,13 +478,21 @@ public class TherapistServiceImpl implements TherapistService {
 
     // ================= DELETEBY THERPIST ID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<String> deleteBytherapistId(String therapistId) {
+
+        repository.findByTherapistId(therapistId)
+                .orElseThrow(() -> new RuntimeException("Therapist not found"));
+
+        therapistAttendanceRepository.deleteByTherapistId(therapistId);
+//        therapistRecordRepository.deleteByTherapistId(therapistId);
+        credentialsRepository.deleteByStaffId(therapistId);
 
         repository.deleteByTherapistId(therapistId);
 
         return ResponseStructure.buildResponse(
                 therapistId,
-                "Deleted successfully",
+                "Therapist and all linked records deleted successfully",
                 HttpStatus.OK,
                 200);
     }
@@ -520,6 +543,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return entity;
     }
+    
     private TherapistDTO mapToDTO(Therapist entity) {
 
         TherapistDTO dto = new TherapistDTO();
@@ -625,7 +649,9 @@ public class TherapistServiceImpl implements TherapistService {
         }
         return sb.toString();
     }
+    
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getPaidSessions(String clinicId,
                                     String branchId,
                                     String bookingId,
@@ -636,7 +662,7 @@ public class TherapistServiceImpl implements TherapistService {
         try {
 
             Response paymentResponse =
-                    physiotherapyFeignClient.getPayment(bookingId);
+                    physiotherapyFeignClient.getPayment(keyCloakTokenStore.getAccess_token(),bookingId);
 
             Map<String, Object> data =
                     (Map<String, Object>) paymentResponse.getData();
@@ -866,6 +892,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     }
+    
     private void removeNullFields(Object obj) {
 
         if (obj instanceof Map<?, ?> map) {
@@ -892,7 +919,8 @@ public class TherapistServiceImpl implements TherapistService {
         
     }
     @Override
-    public Response getTherapistPerformanceSummary(String clinicId,String branchId,String therapistId,int year) {
+    @Secured("ROLE_CLINICADMIN")
+    public Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year) {
 
         Response response = new Response();
 
@@ -933,83 +961,94 @@ public class TherapistServiceImpl implements TherapistService {
                             .collect(Collectors.toList());
 
             // =========================================================
-            // 2. TOTAL NUMBER OF SESSIONS COMPLETED
-            // Logic:
-            // - Fetch all payments for the clinic and branch.
-            // - Filter only the selected therapist.
+            // 2. FETCH THERAPIST RECORDS
+            // Used for totalSessionCompleted and totalSessionTime.
+            // - Fetch all TherapistRecord for this therapist.
+            // - Filter by selected year using completedDate.
+            // - Filter by clinicId and branchId.
             // - Consider only valid service types:
             //   PACKAGE / PROGRAM / THERAPY / EXERCISE.
-            // - For those records, recursively search for all "sessions"
-            //   arrays and count only sessions where status = "Completed".
+            // - Count records where status = "COMPLETED".
+            // - Sum duration of those completed records.
             // =========================================================
-            int totalSessionCompleted = 0;
+            List<TherapistRecord> therapistRecords =
+                    therapistRecordRepository
+                            .findByClinicIdAndBranchIdAndTherapistId(
+                                    clinicId,
+                                    branchId,
+                                    therapistId)
+                            .stream()
+                            .filter(record -> {
+                                try {
 
-            Response paymentResponse =
-                    physiotherapyFeignClient.getPayments(
-                            clinicId,
-                            branchId);
+                                    // ---------------------------------
+                                    // Filter by year
+                                    // ---------------------------------
+                                    if (record.getCompletedDate() == null
+                                            || record.getCompletedDate()
+                                                     .trim()
+                                                     .isEmpty()) {
+                                        return false;
+                                    }
 
-            List<Map<String, Object>> payments =
-                    (List<Map<String, Object>>) paymentResponse.getData();
+                                    LocalDate completedDate =
+                                            LocalDate.parse(
+                                                    record.getCompletedDate()
+                                                          .substring(0, 10));
 
-            if (payments != null) {
+                                    if (completedDate.getYear() != year) {
+                                        return false;
+                                    }
 
-                for (Map<String, Object> payment : payments) {
+                                    // ---------------------------------
+                                    // Filter by valid service types
+                                    // ---------------------------------
+                                    String serviceType = record.getServiceType();
 
-                    // ---------------------------------------------------------
-                    // Filter by selected year
-                    // ---------------------------------------------------------
-                    Object paymentDateObj = payment.get("sessionStartDate");
+                                    if (serviceType == null) {
+                                        return false;
+                                    }
 
-                    // If date is missing, skip this payment
-                    if (paymentDateObj == null) {
-                        continue;
-                    }
+                                    return "PACKAGE".equalsIgnoreCase(serviceType)
+                                            || "PROGRAM".equalsIgnoreCase(serviceType)
+                                            || "THERAPY".equalsIgnoreCase(serviceType)
+                                            || "EXERCISE".equalsIgnoreCase(serviceType);
 
-                    try {
-                        LocalDate paymentDate =
-                                LocalDate.parse(
-                                        paymentDateObj.toString()
-                                                .substring(0, 10));
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
 
-                        // Skip if payment year does not match requested year
-                        if (paymentDate.getYear() != year) {
-                            continue;
-                        }
+            // =========================================================
+            // 2a. TOTAL SESSION COMPLETED
+            // Count records where status = "COMPLETED"
+            // =========================================================
+            int totalSessionCompleted = (int) therapistRecords.stream()
+                    .filter(record ->
+                            record.getStatus() != null
+                            && "COMPLETED".equalsIgnoreCase(
+                                    record.getStatus().trim()))
+                    .count();
 
-                    } catch (Exception e) {
-                        // Invalid date format, skip this payment
-                        continue;
-                    }
+            // =========================================================
+            // 2b. TOTAL SESSION TIME
+            // Sum duration of all completed records
+            // =========================================================
+            long totalSessionMinutes = therapistRecords.stream()
+                    .filter(record ->
+                            record.getStatus() != null
+                            && "COMPLETED".equalsIgnoreCase(
+                                    record.getStatus().trim())
+                            && record.getDuration() != null
+                            && !record.getDuration().trim().isEmpty())
+                    .mapToLong(record ->
+                            convertToMinutes(record.getDuration()))
+                    .sum();
 
-                    // ---------------------------------------------------------
-                    // Filter by therapistId
-                    // ---------------------------------------------------------
-                    if (!therapistId.equals(
-                            String.valueOf(payment.get("therapistId")))) {
-                        continue;
-                    }
+            String formattedTotalSessionTime =
+                    formatDuration(totalSessionMinutes);
 
-                    // ---------------------------------------------------------
-                    // Consider only supported service types
-                    // ---------------------------------------------------------
-                    String serviceType =
-                            String.valueOf(payment.get("serviceType"));
-
-                    if (!"PACKAGE".equalsIgnoreCase(serviceType)
-                            && !"PROGRAM".equalsIgnoreCase(serviceType)
-                            && !"THERAPY".equalsIgnoreCase(serviceType)
-                            && !"EXERCISE".equalsIgnoreCase(serviceType)) {
-                        continue;
-                    }
-
-                    // ---------------------------------------------------------
-                    // Count all sessions with status = "Completed"
-                    // ---------------------------------------------------------
-                    totalSessionCompleted +=
-                            countCompletedSessions(payment);
-                }
-            }
             // =========================================================
             // 3. TOTAL AVERAGE RATING
             // rating is stored as String in FeedbackDetails
@@ -1032,6 +1071,16 @@ public class TherapistServiceImpl implements TherapistService {
             // Round to 2 decimal places
             totalAvgRating =
                     Math.round(totalAvgRating * 100.0) / 100.0;
+
+            // =========================================================
+            // 3a. TOTAL NUMBER OF RATINGS
+            // Count of feedback records with a valid, non-empty rating
+            // =========================================================
+            long totalNoOfRatings = feedbackList.stream()
+                    .filter(feedback ->
+                            feedback.getRating() != null
+                            && !feedback.getRating().trim().isEmpty())
+                    .count();
 
             // =========================================================
             // 4. TOTAL IDLE TIME
@@ -1085,8 +1134,7 @@ public class TherapistServiceImpl implements TherapistService {
                         }
                     }
 
-                    long idleMinutes =
-                            logMinutes - workingMinutes;
+                    long idleMinutes = logMinutes - workingMinutes;
 
                     if (idleMinutes < 0) {
                         idleMinutes = 0;
@@ -1111,8 +1159,10 @@ public class TherapistServiceImpl implements TherapistService {
                     if (attendance.getSessions() != null) {
 
                         for (Session session : attendance.getSessions()) {
+
                             String activity = session.getActivity();
                             String duration    = session.getDuration();
+
                             if (activity != null
                                     && "Training".equalsIgnoreCase(
                                     		activity.trim())
@@ -1129,10 +1179,12 @@ public class TherapistServiceImpl implements TherapistService {
 
             String formattedTrainingHours =
                     formatDuration(totalTrainingMinutes);
-            // =========================================================
-            // 6. PAID LEAVES COUNT
-            // =========================================================
-            long paidLeaveDays = 0;
+            
+         // =========================================================
+         // 6. PAID LEAVES COUNT
+         // =========================================================
+         long paidLeaveDays = 0;
+
          if (attendanceList != null) {
              for (TherapistAttendance attendance : attendanceList) {
                  if (attendance.getSessions() != null) {
@@ -1255,10 +1307,9 @@ public class TherapistServiceImpl implements TherapistService {
       }
 
             // =========================================================
-            // 6. RESPONSE DATA
+            // 8. RESPONSE DATA
             // =========================================================
             Map<String, Object> data = new HashMap<>();
-
             data.put("clinicId",              clinicId);
             data.put("branchId",              branchId);
             data.put("therapistId",           therapistId);
@@ -1266,12 +1317,16 @@ public class TherapistServiceImpl implements TherapistService {
             data.put("joiningDate", joiningDate);
             data.put("yearsOfExperience", calculatedExperience);
             data.put("totalSessionCompleted", totalSessionCompleted);
-            data.put("totalIdleTime", formattedIdleTime);
-            data.put("totalAvgRating", totalAvgRating);
-            data.put("totalTrainingHours", formattedTrainingHours);
+            data.put("totalSessionTime",      formattedTotalSessionTime);
+            data.put("totalIdleTime",         formattedIdleTime);
+            data.put("totalAvgRating",        totalAvgRating);
+            data.put("totalNoOfRatings",      totalNoOfRatings);
+            data.put("totalTrainingHours",    formattedTrainingHours);
+            data.put("paidLeaveDays",         paidLeaveDays);   // ✅ NEW
+            data.put("lossOfPayDays",         lossOfPayDays);   // ✅ NEW
 
             // =========================================================
-            // 7. SUCCESS RESPONSE
+            // 9. SUCCESS RESPONSE
             // =========================================================
             response.setSuccess(true);
             response.setStatus(200);
@@ -1289,6 +1344,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     }
+
     /**
      * Converts total minutes into hours only.
      *
@@ -1321,6 +1377,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return totalHours + " hrs";
     }
+
     /**
      * Converts time strings into total minutes.
      *
@@ -1429,6 +1486,7 @@ public class TherapistServiceImpl implements TherapistService {
 
         return totalMinutes;
     }
+
     /**
      * Recursively searches the given object for all keys named "sessions"
      * and counts how many session objects have status = "Completed".
@@ -1473,5 +1531,58 @@ public class TherapistServiceImpl implements TherapistService {
         }
 
         return count;
+    }
+
+    /**
+     * Recursively searches the given object for all keys named "sessions"
+     * and sums the duration of sessions where status = "Completed".
+     *
+     * The "duration" field inside each session is parsed using
+     * convertToMinutes(), which supports formats like:
+     *   "30 mins", "1 hr", "1 hr 30 mins", "90", etc.
+     */
+    private long sumCompletedSessionTime(Object obj) {
+
+        long total = 0;
+
+        if (obj instanceof Map<?, ?> map) {
+
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+
+                // If the current key is "sessions", sum durations of completed ones
+                if ("sessions".equals(entry.getKey())
+                        && entry.getValue() instanceof List<?> sessions) {
+
+                    for (Object sessionObj : sessions) {
+
+                        if (sessionObj instanceof Map<?, ?> sessionMap) {
+
+                            Object statusObj   = sessionMap.get("status");
+                            Object durationObj = sessionMap.get("duration");
+
+                            if (statusObj != null
+                                    && "Completed".equalsIgnoreCase(
+                                            statusObj.toString())
+                                    && durationObj != null) {
+
+                                total += convertToMinutes(
+                                        durationObj.toString());
+                            }
+                        }
+                    }
+                }
+
+                // Continue searching deeper
+                total += sumCompletedSessionTime(entry.getValue());
+            }
+
+        } else if (obj instanceof List<?> list) {
+
+            for (Object item : list) {
+                total += sumCompletedSessionTime(item);
+            }
+        }
+
+        return total;
     }
 }

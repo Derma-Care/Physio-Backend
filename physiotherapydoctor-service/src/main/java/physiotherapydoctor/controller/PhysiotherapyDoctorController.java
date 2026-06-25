@@ -39,6 +39,7 @@ public class PhysiotherapyDoctorController {
 		return response;
 	}
 
+
 //	@PostMapping("/login")
 //	public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
 //		Response res = doctorService.login(dto);
@@ -47,6 +48,16 @@ public class PhysiotherapyDoctorController {
 //		}
 //		return null;
 //	}
+
+//	@PostMapping("/login")
+//	public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
+//		Response res = doctorService.login(dto);
+//		if (res != null) {
+//			return ResponseEntity.status(res.getStatus()).body(res);
+//		}
+//		return null;
+//	}
+
 
 	@PutMapping("/update-availability/{doctorId}")
 
@@ -80,19 +91,20 @@ public class PhysiotherapyDoctorController {
 		return doctorService.getDoctorsByHospitalById(clinicId);
 	}
 
-	@GetMapping("/getDoctorsBySubServiceId/{hsptlId}/{subServiceId}")
-	public ResponseEntity<?> getDoctorsBySubServiceId(@PathVariable String hsptlId, @PathVariable String subServiceId) {
-		return doctorService.getDoctorsBySubServiceId(hsptlId, subServiceId);
-	}
-
-	@GetMapping("/getAllDoctorsBySubServiceId/{subServiceId}")
-	public ResponseEntity<?> getAllDoctorsBySubServiceId(@PathVariable String subServiceId) {
-		return doctorService.getAllDoctorsBySubServiceId(subServiceId);
-	}
+//	@GetMapping("/getDoctorsBySubServiceId/{hsptlId}/{subServiceId}")
+//	public ResponseEntity<?> getDoctorsBySubServiceId(@PathVariable String hsptlId, @PathVariable String subServiceId) {
+//		return doctorService.getDoctorsBySubServiceId(hsptlId, subServiceId);
+//	}
+//
+//	@GetMapping("/getAllDoctorsBySubServiceId/{subServiceId}")
+//	public ResponseEntity<?> getAllDoctorsBySubServiceId(@PathVariable String subServiceId) {
+//		return doctorService.getAllDoctorsBySubServiceId(subServiceId);
+//	}
 
 	@GetMapping("/getDoctorFutureAppointments/{doctorId}/{page}")
 	public ResponseEntity<?> getDoctorFutureAppointments(@PathVariable String doctorId,@PathVariable int page) {
 		return doctorService.getDoctorFutureAppointments(doctorId,page);
+
 	}
 
 	@GetMapping("/getDiseasesByHospitalId/{hospitalId}")

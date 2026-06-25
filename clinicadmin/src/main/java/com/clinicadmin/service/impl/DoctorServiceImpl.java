@@ -32,6 +32,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -67,6 +68,7 @@ import com.clinicadmin.service.S3Service;
 import com.clinicadmin.utils.DoctorMapper;
 import com.clinicadmin.utils.DoctorSlotMapper;
 import com.clinicadmin.utils.ExtractFeignMessage;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -76,6 +78,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class DoctorServiceImpl implements DoctorService {
+	
 	@Autowired
 	private DoctorsRepository doctorsRepository;
 
@@ -88,11 +91,8 @@ public class DoctorServiceImpl implements DoctorService {
 	@Autowired
 	private DoctorSlotRepository slotRepository;
 
-//	@Autowired
-//	private ServiceFeignClient serviceFeignClient;
-
 	@Autowired
-	AdminServiceClient adminServiceClient;
+	private AdminServiceClient adminServiceClient;
 
 	@Autowired
 	private NotificationFeign notificationFeign;
@@ -106,11 +106,17 @@ public class DoctorServiceImpl implements DoctorService {
 	@Autowired
 	private BookingFeign bookingFeign;
 	
+	 @Autowired
+	 private KeyCloakTokenStore keyCloakTokenStore;
+	
+	
 	@Autowired
 	private EmailService emailService;
 	
 	@Autowired
 	private S3Service s3Service;
+	
+	
 
 	private List<TempBlockingSlot> slots = new CopyOnWriteArrayList<>();
 
@@ -128,6 +134,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response addDoctor(DoctorsDTO dto) {
 		log.info("Add Doctor reqest received. moblie={}, hospitalId ={}, brancId ={}", dto.getDoctorMobileNumber(),
 				dto.getHospitalId(), dto.getBranchId());
@@ -156,7 +163,7 @@ public class DoctorServiceImpl implements DoctorService {
 			log.debug("Validating clinicId :{}", dto.getHospitalId());
 			ResponseEntity<Response> clinicRes;
 			try {
-				clinicRes = adminServiceClient.getClinicById(dto.getHospitalId());
+				clinicRes = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getHospitalId());
 			} catch (FeignException fe) {
 				log.error("Clinic not found via admin service. clinicId={}", dto.getHospitalId());
 				response.setSuccess(false);
@@ -188,7 +195,7 @@ public class DoctorServiceImpl implements DoctorService {
 			log.debug("Validationg branchId={}, clinicId={}", dto.getBranchId(), dto.getHospitalId());
 			ResponseEntity<Response> branchRes;
 			try {
-				branchRes = adminServiceClient.getBranchByClinicAndBranchId(dto.getHospitalId(), dto.getBranchId());
+				branchRes = adminServiceClient.getBranchByClinicAndBranchId(keyCloakTokenStore.getAccess_token(),dto.getHospitalId(), dto.getBranchId());
 			} catch (FeignException fe) {
 				log.error("Branch not found via Admin Service. clinicId={}, brancId ={}", dto.getHospitalId(),
 						dto.getBranchId());
@@ -207,47 +214,6 @@ public class DoctorServiceImpl implements DoctorService {
 				response.setStatus(HttpStatus.NOT_FOUND.value());
 				return response;
 			}
-//			// Validate categories
-//			if (dto.getCategory() != null) {
-//				for (DoctorCategoryDTO DoctorCatDTO : dto.getCategory()) {
-//					log.debug("Validating categoryId={}", DoctorCatDTO.getCategoryId());
-//					if (!serviceFeignClient.isCategoryExists(DoctorCatDTO.getCategoryId())) {
-//						log.warn("Invalid categoryId detected :{}", DoctorCatDTO.getCategoryId());
-//						response.setSuccess(false);
-//						response.setMessage("Category does not exist: " + DoctorCatDTO.getCategoryId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-//			
-//			// Validate services
-//			if (dto.getService() != null) {
-//				for (DoctorServicesDTO DoctorSerDTO : dto.getService()) {
-//					log.debug("Validating serviceId={}", DoctorSerDTO.getServiceId());
-//					if (!serviceFeignClient.isServiceExists(DoctorSerDTO.getServiceId())) {
-//						log.warn("Invalid serviceId={}", DoctorSerDTO.getServiceId());
-//						response.setSuccess(false);
-//						response.setMessage("Service does not exist: " + DoctorSerDTO.getServiceId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-//
-//			// Validate sub-services
-//			if (dto.getSubServices() != null) {
-//				for (DoctorSubServiceDTO DoctorSubSerDTO : dto.getSubServices()) {
-//					log.debug("Validating subServieId={}", DoctorSubSerDTO.getSubServiceId());
-//					if (!serviceFeignClient.isSubServiceExists(DoctorSubSerDTO.getSubServiceId())) {
-//						log.warn("Invalid subServicId={}", DoctorSubSerDTO.getSubServiceId());
-//						response.setSuccess(false);
-//						response.setMessage("SubService does not exist: " + DoctorSubSerDTO.getSubServiceId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
 
 			Branch branchDTO = objectMapper.convertValue(branchRes.getBody().getData(), Branch.class);
 			log.debug("After Mapping branch details branchName={}, branchId={}, clinicId={}", branchDTO.getBranchName(),
@@ -292,11 +258,13 @@ public class DoctorServiceImpl implements DoctorService {
 			DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(savedDoctor.getDoctorId())
 					.staffName(savedDoctor.getDoctorName()).hospitalId(savedDoctor.getHospitalId())
 					.hospitalName(savedDoctor.getHospitalName()).branchId(savedDoctor.getBranchId()).username(username)
-					.password(encodedPassword).role(dto.getRole()).emailId(savedDoctor.getDoctorEmail()).permissions(savedDoctor.getPermissions()).build();
+					.password(encodedPassword).role("ROLE_DOCTOR").emailId(savedDoctor.getDoctorEmail()).permissions(savedDoctor.getPermissions()).build();
 
 			credentialsRepository.save(credentials);
 			log.info("Logib credentials created successfully for doctorId={}", savedDoctor.getDoctorId());
+	
 			// -------------------- Send Email to Doctor --------------------
+
 						try {
 						    Map<String, String> mailData = new HashMap<>();
 						    mailData.put("subject", "Doctor Onboarding Successful");
@@ -307,17 +275,17 @@ public class DoctorServiceImpl implements DoctorService {
 						            "Doctor ID: " + savedDoctor.getDoctorId()
 						    );
 
-						    // Send login credentials
-						    mailData.put("username", username);
-						    mailData.put("password", rawPassword);
+			    mailData.put("username", username);
+			    mailData.put("password", rawPassword);
+			    mailData.put("role", dto.getRole());   // ✅ ADD THIS
 
-						    emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
+			    emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
 
-						    log.info("Doctor onboarding email sent to {}", savedDoctor.getDoctorEmail());
+			    log.info("Doctor onboarding email sent to {}", savedDoctor.getDoctorEmail());
 
-						} catch (Exception e) {
-						    log.error("Failed to send doctor onboarding email: {}", e.getMessage());
-						}
+			} catch (Exception e) {
+			    log.error("Failed to send doctor onboarding email: {}", e.getMessage());
+			}
 
 			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(savedDoctor,s3Service);
 			Map<String, Object> data = new HashMap<>();
@@ -497,6 +465,7 @@ public class DoctorServiceImpl implements DoctorService {
 //	    }
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response getAllDoctors() {
 		log.info("Get All Doctors request received");
 		Response response = new Response();
@@ -532,6 +501,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response getDoctorsByClinicId(String hospitalId) {
 		log.info("Get doctors by clinicId request received . hospitalId={}", hospitalId);
 		Response response = new Response();
@@ -568,6 +538,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response getDoctorById(String id) {
 		log.info("Get Doctor by id request received :{}", id);
 		Response response = new Response();
@@ -601,6 +572,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response upDateDoctorById(String doctorId, DoctorsDTO dto) {
 		log.info("Update doctor request received for doctorId={}", doctorId);
 
@@ -804,6 +776,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response getDoctorsByClinicIdAndDoctorId(String clinicId, String doctorId) {
 
 		log.info("Get Doctor request received. clinicId={}, doctorId={}", clinicId, doctorId);
@@ -873,6 +846,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response deleteDoctorById(String doctorId) {
 
 		log.info("Delete doctor request received for doctorId={}", doctorId);
@@ -919,6 +893,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response deleteDoctorFromBranch(String doctorId, String branchId) {
 
 		log.info("Delete doctor from branch request received. doctorId={}, branchId={}", doctorId, branchId);
@@ -984,6 +959,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response deleteDoctorsByClinic(String hospitalId) {
 
 		log.info("Delete doctors by clinic request received. hospitalId={}", hospitalId);
@@ -1209,6 +1185,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// -------------------------------DOCTOR can Change
 	// password-------------------------------------------------------------
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response changePassword(ChangeDoctorPasswordDTO updateDTO) {
 
 		log.info("Change password request received for username={}", updateDTO.getUserName());
@@ -1319,6 +1296,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 //    ---------------------Get DoctorsAll By hospitalId---------------------------------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getDoctorsByClinicIdAndBranchId(String hospitalId, String branchId) {
 
 		log.info("Get doctors request received for hospitalId={}, branchId={}", hospitalId, branchId);
@@ -1396,6 +1374,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 //-------------------------------Doctor AvailabilityStatus--------------------------------------------------------------------------------
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response availabilityStatus(String doctorId, DoctorAvailabilityStatusDTO status) {
 
 		log.info("Update availability status request received for doctorId={}", doctorId);
@@ -1448,6 +1427,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// -------------------------------------Adding
 	// Slots---------------------------------------------------------------------------------------
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response saveDoctorSlot(String hospitalId, String doctorId, DoctorSlotDTO dto) {
 		log.info("Save doctor slot request received hospitalId={}, doctorId={}", hospitalId, doctorId);
 		Response response = new Response();
@@ -1520,6 +1500,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 //		-------------------------Get Slots by Doctors -------------------------------------------
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response getDoctorSlots(String hospitalId, String doctorId) {
 		log.info("Get doctor slot request received, hospitalId={}, doctorId={}", hospitalId, doctorId);
 		Response response = new Response();
@@ -1555,6 +1536,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// --------------------------- detele slot by time and date using
 	// doctorId-----------------------------------------
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response deleteDoctorSlot(String doctorId, String branchId, String date, String slotToDelete) {
 		log.info("Delete doctor slot request received , doctorId={}, branchId={}, date={}, slot={}", doctorId, branchId,
 				date, slotToDelete);
@@ -1618,6 +1600,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response deleteDoctorSlot(String doctorId, String date, String slotToDelete) {
 		log.info("Delete doctor slot request received , doctorId={}, date={}, slot={}", doctorId, date, slotToDelete);
 		Response response = new Response();
@@ -1679,6 +1662,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// -----------------------------update
 	// Slot---------------------------------------------------------------------------
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response updateDoctorSlot(String doctorId, String date, String oldSlot, String newSlot) {
 		log.info("Update doctor slot request received, doctorId={}, date={}, oldSlot={}, newSlot={}", doctorId, date,
 				oldSlot, newSlot);
@@ -1744,6 +1728,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response deleteDoctorSlotbyDate(String doctorId, String date) {
 		log.info("Delete doctor slots by date request received, doctorId={}, date={}", doctorId, date);
 		try {
@@ -1780,6 +1765,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response deleteDoctorSlotbyDate(String doctorId, String branchId, String date) {
 		log.info("Delete doctor slot by branch and date request received | doctorId={}, branchId={}, date={}", doctorId,
 				branchId, date);
@@ -1843,7 +1829,8 @@ public class DoctorServiceImpl implements DoctorService {
 		log.info("Delete doctor slot by branch and date request completed | status={}", response.getStatus());
 		return response;
 	}
-
+	
+	 @Secured({"ROLE_CLINICADMIN","ROLE_CUSTOMER"})
 	public boolean updateSlot(String doctorId, String branchId, String date, String time) {
 		log.info("Update slot request | doctorId={}, branchId={}, date={}, time={}", doctorId, branchId, date, time);
 		if (doctorId == null || date == null || time == null) {
@@ -1887,7 +1874,8 @@ public class DoctorServiceImpl implements DoctorService {
 			return false;
 		}
 	}
-
+	
+	 @Secured({"ROLE_CLINICADMIN","ROLE_CUSTOMER"})
 	public boolean makingFalseDoctorSlot(String doctorId, String branchId, String date, String time) {
 		log.info("Unbook slot request | doctorId={}, branchId={}, date={}, time={}", doctorId, branchId, date, time);
 		if (doctorId == null || date == null || time == null) {
@@ -2098,6 +2086,7 @@ public class DoctorServiceImpl implements DoctorService {
 //		}
 //
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response saveDoctorSlot(String hospitalId, String branchId, String doctorId, DoctorSlotDTO dto) {
 		log.info("Saved doctor slot called, hospitalId={}, branchId={}, date={}", hospitalId, branchId, doctorId);
 		Response response = new Response();
@@ -2178,7 +2167,7 @@ public class DoctorServiceImpl implements DoctorService {
 					DoctorSlot newSlot = DoctorSlotMapper.doctorSlotDTOtoEntity(dto);
 
 					// ✅ Fetch branch details for saving (only once)
-					ResponseEntity<Response> branchResponse = adminServiceClient.getBranchById(branchId);
+					ResponseEntity<Response> branchResponse = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),branchId);
 					Branch branchDetails = objectMapper.convertValue(branchResponse.getBody().getData(), Branch.class);
 
 					newSlot.setDoctorId(doctorId);
@@ -2216,6 +2205,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Response generateDoctorSlots(String doctorId, String branchId, String date, int intervalMinutes,
 			String openingTime, String closingTime) {
 
@@ -2390,6 +2380,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getDoctorSlots(String hospitalId, String branchId, String doctorId) {
 		List<DoctorSlot> slots = slotRepository.findByHospitalIdAndBranchIdAndDoctorId(hospitalId, branchId, doctorId);
 
@@ -2692,7 +2683,7 @@ public class DoctorServiceImpl implements DoctorService {
 		Response finalResponse = new Response();
 
 		try {
-			ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion();
+			ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion(keyCloakTokenStore.getAccess_token());
 			Response responseBody = responseEntity.getBody();
 
 			List<ClinicWithDoctorsDTO> result = new ArrayList<>();
@@ -2919,7 +2910,7 @@ public class DoctorServiceImpl implements DoctorService {
 	public Response getRecommendedClinicsAndOneDoctors(List<String> keyPointsFromUser) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
-		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion();
+		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion(keyCloakTokenStore.getAccess_token());
 		Response responseBody = responseEntity.getBody();
 
 		List<ClinicWithDoctorsDTO> result = new ArrayList<>();
@@ -3369,69 +3360,69 @@ public class DoctorServiceImpl implements DoctorService {
 //		}
 //		return response;
 //	}
-	@Override
-	public Response loginUsingRoles(DoctorLoginDTO dto) {
-		Response response = new Response();
-
-		try {
-			// Find credentials by username
-			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(dto.getUserName());
-
-			if (credentialsOpt.isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("Invalid credentials");
-				response.setStatus(HttpStatus.UNAUTHORIZED.value());
-				return response;
-			}
-
-			DoctorLoginCredentials credentials = credentialsOpt.get();
-
-			// Check password and role together
-			boolean passwordMatch = passwordEncoder != null
-					&& passwordEncoder.matches(dto.getPassword(), credentials.getPassword());
-			boolean roleMatch = dto.getRole() != null && credentials.getRole().equalsIgnoreCase(dto.getRole());
-
-			if (!passwordMatch || !roleMatch) {
-				response.setSuccess(false);
-				response.setMessage("Invalid credentials");
-				response.setStatus(HttpStatus.UNAUTHORIZED.value());
-				return response;
-			}
-
-			// Prepare response DTO
-			DoctorLoginDTO resDto = new DoctorLoginDTO();
-			resDto.setUserName(credentials.getUsername());
-			resDto.setRole(credentials.getRole());
-			resDto.setDeviceId(dto.getDeviceId());
-			resDto.setStaffId(credentials.getStaffId());
-			resDto.setStaffName(credentials.getStaffName());
-			resDto.setHospitalId(credentials.getHospitalId());
-			resDto.setHospitalName(credentials.getHospitalName());
-			resDto.setBranchId(credentials.getBranchId());
-			resDto.setBranchName(credentials.getBranchName());
-			resDto.setPermissions(credentials.getPermissions());
-
-			// Successful response
-			response.setSuccess(true);
-			response.setMessage("Login successful");
-			response.setData(resDto);
-			response.setStatus(HttpStatus.OK.value());
-
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Login error: " + e.getMessage());
-			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-
-		return response;
-	}
+//	@Override
+//	public Response loginUsingRoles(DoctorLoginDTO dto) {
+//		Response response = new Response();
+//
+//		try {
+//			// Find credentials by username
+//			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(dto.getUserName());
+//
+//			if (credentialsOpt.isEmpty()) {
+//				response.setSuccess(false);
+//				response.setMessage("Invalid credentials");
+//				response.setStatus(HttpStatus.UNAUTHORIZED.value());
+//				return response;
+//			}
+//
+//			DoctorLoginCredentials credentials = credentialsOpt.get();
+//
+//			// Check password and role together
+//			boolean passwordMatch = passwordEncoder != null
+//					&& passwordEncoder.matches(dto.getPassword(), credentials.getPassword());
+//			boolean roleMatch = dto.getRole() != null && credentials.getRole().equalsIgnoreCase(dto.getRole());
+//
+//			if (!passwordMatch || !roleMatch) {
+//				response.setSuccess(false);
+//				response.setMessage("Invalid credentials");
+//				response.setStatus(HttpStatus.UNAUTHORIZED.value());
+//				return response;
+//			}
+//
+//			// Prepare response DTO
+//			DoctorLoginDTO resDto = new DoctorLoginDTO();
+//			resDto.setUserName(credentials.getUsername());
+//			resDto.setRole(credentials.getRole());
+//			resDto.setDeviceId(dto.getDeviceId());
+//			resDto.setStaffId(credentials.getStaffId());
+//			resDto.setStaffName(credentials.getStaffName());
+//			resDto.setHospitalId(credentials.getHospitalId());
+//			resDto.setHospitalName(credentials.getHospitalName());
+//			resDto.setBranchId(credentials.getBranchId());
+//			resDto.setBranchName(credentials.getBranchName());
+//			resDto.setPermissions(credentials.getPermissions());
+//
+//			// Successful response
+//			response.setSuccess(true);
+//			response.setMessage("Login successful");
+//			response.setData(resDto);
+//			response.setStatus(HttpStatus.OK.value());
+//
+//		} catch (Exception e) {
+//			response.setSuccess(false);
+//			response.setMessage("Login error: " + e.getMessage());
+//			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+//		}
+//
+//		return response;
+//	}
 
 //-----------------------best one doctor using key word-------------------------------------------
 	@Override
 	public Response getRecommendedClinicsAndDoctors(List<String> keyPointsFromUser) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
-		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion();
+		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion(keyCloakTokenStore.getAccess_token());
 		Response responseBody = responseEntity.getBody();
 
 		ClinicWithDoctorsDTO bestClinic = null;
@@ -3548,7 +3539,7 @@ public class DoctorServiceImpl implements DoctorService {
 	public Response getRecommendedClinicsAndDoctors(List<String> keyPointsFromUser, int consultationType) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
-		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion();
+		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion(keyCloakTokenStore.getAccess_token());
 		Response responseBody = responseEntity.getBody();
 
 		ClinicWithDoctorsDTO bestClinic = null;
@@ -3623,7 +3614,7 @@ public class DoctorServiceImpl implements DoctorService {
 			int consultationType) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
-		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion();
+		ResponseEntity<Response> responseEntity = adminServiceClient.getHospitalUsingRecommendentaion(keyCloakTokenStore.getAccess_token());
 		Response responseBody = responseEntity.getBody();
 
 		ClinicWithDoctorsDTO bestClinic = null;
@@ -3765,7 +3756,7 @@ public class DoctorServiceImpl implements DoctorService {
 				try {
 					BookingResponse bkng = null;
 					try {
-						bkng = bookingFeign.blockingSlot(n);
+						bkng = bookingFeign.blockingSlot(keyCloakTokenStore.getAccess_token(),n);
 					} catch (Exception e) {
 						System.err.println("Feign error: " + e.getMessage());
 					}
@@ -3794,6 +3785,5 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	
-
 	
 }

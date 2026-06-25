@@ -1,5 +1,7 @@
 package com.dermaCare.customerService.feignClient;
 
+import java.util.Map;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -7,8 +9,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
 import com.dermaCare.customerService.dto.CustomerLoginDTO;
 import com.dermaCare.customerService.dto.DoctorsDTO;
+import com.dermaCare.customerService.dto.PatientFeedbackDTO;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
 import com.dermaCare.customerService.dto.TherapistRecordRequest;
 import com.dermaCare.customerService.util.Response;
@@ -18,24 +23,8 @@ import com.dermaCare.customerService.util.Response;
 //@CircuitBreaker(name = "circuitBreaker", fallbackMethod = "clinicAdminServiceFallBack")
 public interface ClinicAdminFeign {
 
-	@GetMapping("/clinic-admin/getDoctorByServiceId/{hospitalId}/{service}")
-	public ResponseEntity<Response> getDoctorByService(@PathVariable String hospitalId, @PathVariable String service);
-	
-	@GetMapping("/clinic-admin/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
-	public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId, @PathVariable String subServiceId);
-	
-	@GetMapping("/clinic-admin/doctors/{hospitalId}/{branchId}/{subServiceId}")
-	public ResponseEntity<Response> getDoctorsByHospitalBranchAndSubService(@PathVariable String hospitalId,
-			@PathVariable String branchId, @PathVariable String subServiceId);
-
 	@GetMapping("/clinic-admin/doctor/{id}")
 	public ResponseEntity<Response> getDoctorById(@PathVariable String id);
-	
-	@GetMapping("/clinic-admin/getHospitalAndDoctorUsingSubServiceId/{subServiceId}")
-	public ResponseEntity<Response> getHospitalAndDoctorUsingSubServiceId(@PathVariable String subServiceId);
-	
-	@GetMapping("/clinic-admin/getAllDoctorsBySubServiceId/{subServiceId}")
-	public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId);
 	
 	@GetMapping("/clinic-admin/getDoctorSlots/{hospitalId}/{branchId}/{doctorId}")
 	public ResponseEntity<Response> getDoctorSlot(
@@ -47,7 +36,7 @@ public interface ClinicAdminFeign {
 	public ResponseEntity<Response> getAverageRatings(@PathVariable String branchId, @PathVariable String doctorId);
 	
 	@PutMapping("/clinic-admin/updateDoctorSlotWhileBooking/{doctorId}/{branchId}/{date}/{time}")
-	public boolean updateDoctorSlotWhileBooking(@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
+	public boolean updateDoctorSlotWhileBooking(@RequestHeader("Authorization") String token,@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
 			@PathVariable String time);
 	
 	@PutMapping("/clinic-admin/updateDoctor/{doctorId}")
@@ -59,7 +48,7 @@ public interface ClinicAdminFeign {
    	
 	
 	 @PostMapping("/clinic-admin/customers/login")
-	  public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto);
+	  public ResponseEntity<Response> login(@RequestBody  Map<String,String>  dto);
 	 
 	 @GetMapping("/clinic-admin/getBestDoctorByKeyWords/{keyPoints}")
 	    public ResponseEntity<Response> getRecommendedClinicsAndOnDoctors(@PathVariable String keyPoints);
@@ -72,8 +61,26 @@ public interface ClinicAdminFeign {
 	 
 	 @PostMapping("/clinic-admin/therapist-session-details")
 	    public ResponseEntity<Response> getTherapistSessionDetails(
-	            @RequestBody TherapistRecordRequest request);
+	    		@RequestHeader("Authorization") String token,  @RequestBody TherapistRecordRequest request);
 	 
+	 
+	 @GetMapping("/clinic-admin/staff-info/{hospitalId}/{branchId}")
+		public ResponseEntity<Response> getStaffInfo(@RequestHeader("Authorization") String token,
+		        @PathVariable String hospitalId,
+		        @PathVariable String branchId);
+	 
+
+	 @PostMapping("/clinic-admin/createPatientFeedback")
+	    public Response createFeedback(@RequestHeader("Authorization") String token,
+	            @RequestBody PatientFeedbackDTO dto);
+	 
+	   @GetMapping("/clinic-admin/getByPatientFeedbackClinicIdAndBranchId/{clinicId}/{branchId}/{patientId}")
+	    public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntId(@RequestHeader("Authorization") String token,
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId,
+	            @PathVariable String patientId );
+
+
 //	 @PostMapping("/clinic-admin/customers/login")
 //	    public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto);
 //	    

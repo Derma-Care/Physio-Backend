@@ -23,4 +23,9 @@ public interface ReceptionistRepository extends MongoRepository<ReceptionistEnti
 
 	List<ReceptionistEntity> findByClinicIdAndBranchId(String clinicId, String branchId);
 
+	Optional<ReceptionistEntity> findByClinicIdAndBranchIdAndRoleIgnoreCase(
+	        String clinicId,
+	        String branchId,
+	        String role);
+
 }

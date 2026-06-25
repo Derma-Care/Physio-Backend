@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.Branch;
@@ -21,6 +22,7 @@ import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.WardBoyRepository;
 import com.clinicadmin.service.WardBoyService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.clinicadmin.utils.WardBoyMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Autowired
 	private WardBoyRepository wardBoyRepository;
+	
 	@Autowired
 	private DoctorLoginCredentialsRepository credentialsRepository;
 
@@ -41,10 +44,14 @@ public class WardBoyServiceImpl implements WardBoyService {
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-	AdminServiceClient adminServiceClient;
+	private AdminServiceClient adminServiceClient;
 
 	@Autowired
-	ObjectMapper objectMapper;
+	private ObjectMapper objectMapper;
+	
+	@Autowired	
+	public KeyCloakTokenStore keyCloakTokenStore;
+	  	
 
 	private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 	private static final SecureRandom random = new SecureRandom();
@@ -54,6 +61,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<WardBoyDTO> addWardBoy(WardBoyDTO dto) {
 		log.info("Add WardBoy started | clinicId={}, branchId={}, contact={}",
 				dto.getClinicId(), dto.getBranchId(), dto.getContactNumber());
@@ -70,7 +78,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 					HttpStatus.CONFLICT, HttpStatus.CONFLICT.value());
 		}
 		log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
-		ResponseEntity<Response> res = adminServiceClient.getBranchById(dto.getBranchId());
+		ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
 		Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
 
 		WardBoy wardBoy = WardBoyMapper.toEntity(dto);
@@ -106,6 +114,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<WardBoyDTO> getWardBoyById(String id) {
 		log.info("Fetching WardBoy by ID | id={}", id);
 
@@ -122,6 +131,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<List<WardBoyDTO>> getAllWardBoys() {
 		log.info("Fetching all WardBoys");
 
@@ -134,6 +144,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<WardBoyDTO> updateWardBoy(String id, WardBoyDTO dto) {
 		log.info("Updating WardBoy | id={}", id);
 
@@ -271,6 +282,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<Void> deleteWardBoy(String id) {
 		log.info("Delete WardBoy request received | id={}", id);
 
@@ -324,6 +336,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicId(String clinicId) {
 		log.info("Fetching WardBoys by clinicId={}", clinicId);
 
@@ -336,6 +349,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicId(String wardBoyId, String clinicId) {
 		log.info("Fetching WardBoy | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
 
@@ -369,6 +383,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching WardBoys | clinicId={}, branchId={}", clinicId, branchId);
 

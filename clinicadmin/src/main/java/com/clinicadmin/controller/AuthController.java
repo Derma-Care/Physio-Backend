@@ -1,5 +1,7 @@
 package com.clinicadmin.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,8 +32,8 @@ public class AuthController {
 	
 	
 	@PostMapping("/doctorLogin")
-	public ResponseEntity<Response> doctorLogin(@RequestBody DoctorLoginDTO loginDTO) {
-		return authService.doctorLogin(loginDTO);
+	public ResponseEntity<Response> doctorLogin(@RequestBody Map<String,String> dto) {
+		return authService.doctorLogin(dto);
 		
 	}
 	
@@ -41,9 +43,17 @@ public class AuthController {
 		}
 	 
 	 @PostMapping("/customers/login")
-	    public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto) {
+	    public ResponseEntity<Response> login(@RequestBody Map<String,String> dto) {
 	        Response response = authService.login(dto);
 	        return ResponseEntity.status(response.getStatus()).body(response);
 	    }
+	 
+		@PostMapping("/loginUsingRoles")
+		public ResponseEntity<Response> loginUsingRoles(@RequestBody DoctorLoginDTO dto){
+			  Response response = authService.loginUsingRoles(dto);
+			    return ResponseEntity.status(response.getStatus()).body(response);
+			
+		}
+		
 			
 }

@@ -2,12 +2,15 @@ package com.AdminService.service;
 
 import java.nio.charset.StandardCharsets;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.AdminService.dto.DoctorsDTO;
 import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -17,86 +20,99 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class DoctorServiceImpl implements DoctorService {
+	
+	  @Autowired
+	 private KeyCloakTokenStore keyCloakTokenStore;
+	    
 
     private final ClinicAdminFeign clinicAdminFeign;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> addDoctor(DoctorsDTO dto) {
         try {
-            return clinicAdminFeign.addDoctor(dto);
+            return clinicAdminFeign.addDoctor(keyCloakTokenStore.getAccess_token(),dto);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to add doctor");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> getAllDoctors() {
         try {
-            return clinicAdminFeign.getAllDoctors();
+            return clinicAdminFeign.getAllDoctors(keyCloakTokenStore.getAccess_token());
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch doctors list");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> getDoctorById(String doctorId) {
         try {
-            return clinicAdminFeign.getDoctorById(doctorId);
+            return clinicAdminFeign.getDoctorById(keyCloakTokenStore.getAccess_token(),doctorId);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch doctor details");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> updateDoctorById(String doctorId, DoctorsDTO dto) {
         try {
-            return clinicAdminFeign.updateDoctorById(doctorId, dto);
+            return clinicAdminFeign.updateDoctorById(keyCloakTokenStore.getAccess_token(),doctorId, dto);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to update doctor");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> deleteDoctorById(String doctorId) {
         try {
-            return clinicAdminFeign.deleteDoctorById(doctorId);
+            return clinicAdminFeign.deleteDoctorById(keyCloakTokenStore.getAccess_token(),doctorId);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to delete doctor");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> deleteDoctorsByClinic(String clinicId) {
         try {
-            return clinicAdminFeign.deleteDoctorsByClinic(clinicId);
+            return clinicAdminFeign.deleteDoctorsByClinic(keyCloakTokenStore.getAccess_token(),clinicId);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to delete doctors by clinic");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> getDoctorByClinicAndDoctorId(String clinicId, String doctorId) {
         try {
-            return clinicAdminFeign.getDoctorByClinicAndDoctorId(clinicId, doctorId);
+            return clinicAdminFeign.getDoctorByClinicAndDoctorId(keyCloakTokenStore.getAccess_token(),clinicId, doctorId);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch doctor for clinic");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> getDoctorsByHospitalId(String hospitalId) {
         try {
-            return clinicAdminFeign.getDoctorsByHospitalId(hospitalId);
+            return clinicAdminFeign.getDoctorsByHospitalId(keyCloakTokenStore.getAccess_token(),hospitalId);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch doctors by hospital");
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Response> getDoctorsByHospitalIdAndBranchId(String hospitalId, String branchId) {
         try {
-            return clinicAdminFeign.getDoctorsByHospitalIdAndBranchId(hospitalId, branchId);
+            return clinicAdminFeign.getDoctorsByHospitalIdAndBranchId(keyCloakTokenStore.getAccess_token(),hospitalId, branchId);
         } catch (FeignException ex) {
             return handleFeignException(ex, "Failed to fetch doctors by branch");
         }

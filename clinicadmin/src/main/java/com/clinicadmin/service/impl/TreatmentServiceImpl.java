@@ -9,6 +9,7 @@ import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.Response;
@@ -17,6 +18,7 @@ import com.clinicadmin.entity.Treatment;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.TreatmentRepository;
 import com.clinicadmin.service.TreatmentService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 
 @Service
 public class TreatmentServiceImpl implements TreatmentService {
@@ -26,13 +28,18 @@ public class TreatmentServiceImpl implements TreatmentService {
     
     @Autowired                                        
     AdminServiceClient adminServiceClient;
+    
+    @Autowired	
+  	public KeyCloakTokenStore keyCloakTokenStore;
+  	
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response addTreatment(TreatmentDTO dto) {
         Response response = new Response();
 
         // Check if hospital exists by calling admin service
-        ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(dto.getHospitalId());
+        ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getHospitalId());
         Response clinicResponse = clinicResponseEntity.getBody();
 
         // Validate the clinic response
@@ -73,6 +80,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllTreatments() {
         Response response = new Response();
         try {
@@ -100,6 +108,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getTreatmentById(String id,String hospitalId ) {
         Response response = new Response();
         try {
@@ -126,6 +135,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteTreatmentById(String id ,String hospitalId) {
         Response response = new Response();
         try {
@@ -149,6 +159,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateTreatmentById(String id, String hospitalId,TreatmentDTO dto) {
         Response response = new Response();
         try {
@@ -176,6 +187,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
   //----------------------------------------------------Get All Treatments by HospitalId-------------------------------------------------
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllTreatmentsByHospitalId(String hospitalId) {
         Response response = new Response();
         try {
@@ -204,11 +216,12 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response addOrGetTreatment(TreatmentDTO dto) {
         Response response = new Response();
         try {
             // 1️⃣ Check if hospital exists via Admin Service
-            ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(dto.getHospitalId());
+            ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getHospitalId());
             Response clinicResponse = clinicResponseEntity.getBody();
 
             if (clinicResponse == null || !clinicResponse.isSuccess() || clinicResponse.getData() == null) {

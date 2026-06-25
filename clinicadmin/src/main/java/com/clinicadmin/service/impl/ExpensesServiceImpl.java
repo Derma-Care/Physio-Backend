@@ -11,6 +11,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.ExpensesDTO;
@@ -40,6 +41,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<Response> create(ExpensesDTO dto) {
 
 	    try {
@@ -70,6 +72,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	}
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<Response> getAll() {
 
 	    try {
@@ -97,6 +100,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	}
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<Response> update(String id, ExpensesDTO dto) {
 
 	    try {
@@ -178,6 +182,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	}
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<Response> delete(String id) {
 
 	    try {
@@ -211,6 +216,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	}
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<Response> getByClinicAndBranch(String clinicId, String branchId) {
 
 	    try {
@@ -248,6 +254,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	}
 	
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	public Double getTodayExpenses(String clinicId, String branchId) {
 
 	    LocalDate today = LocalDate.now();
@@ -270,6 +277,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	public Double getWeeklyExpenses(String clinicId, String branchId) {
 
 		try {
@@ -294,6 +302,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	public Double getMonthlyExpenses(String clinicId, String branchId) {
 
 		try {
@@ -318,6 +327,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	public Double customeFilter(String startDate, String endDate) {
 		try {
 	    List<ExpensesEntity> entities = repository

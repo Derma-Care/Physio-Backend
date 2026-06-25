@@ -23,7 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 public class BookingServiceController {
 
 	@Autowired
-	BookingService bookingService; 
+	private BookingService bookingService; 
 	
 	@GetMapping("/getAllbookingsDetailsByBranchId/{branchId}/{page}")
 	public ResponseEntity<?> getAllbookingsDetailsByBranchId(@PathVariable String branchId,@PathVariable int page) {
@@ -56,9 +56,7 @@ public class BookingServiceController {
 		return bookingService.updateAppointmentBasedOnBookingId(bookingResponse);
 		
 	}
-	
-	
-	
+		
 	   @GetMapping("/bookings/byPatientId/{patientId}/{page}")
 	   public ResponseEntity<?> getInprogressBookingsByPatientId(
 				 @PathVariable String patientId, @PathVariable int page){
@@ -94,6 +92,13 @@ public class BookingServiceController {
 				 @PathVariable String patientId){
 		   return bookingService.getInprogressBookingsByPatientId(patientId);
 	 }
+	   
+	   @GetMapping("/deleteBooking/{id}")
+	   public ResponseEntity<?> deleteBooking(
+				 @PathVariable String id){
+		   return bookingService.deleteBookedService(id);
+	 }
+	   
 	   @GetMapping("/bookings/Inprogress/patientId/{patientId}/{clinicId}")
 	   public ResponseEntity<?> getInprogressAppointmentsByPatientIdAndClinicId(
 	           @PathVariable String patientId,

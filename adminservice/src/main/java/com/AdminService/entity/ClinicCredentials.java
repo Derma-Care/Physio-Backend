@@ -22,8 +22,6 @@ public class ClinicCredentials {
     private String password;
     private List<String> roles;
     private Map<String, Map<String, List<String>>> permissions;
-
-
     
 	}
     

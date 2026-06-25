@@ -30,9 +30,11 @@ public class BookingController {
 	}
 
 	// 3. Get today's appointments for a doctor in a clinic
+
 	@GetMapping("/appointments/today/{clinicId}/{doctorId}/{page}")
-	public ResponseEntity<?> getTodaysAppointments(@PathVariable String clinicId, @PathVariable String doctorId, int page) {
+	public ResponseEntity<?> getTodaysAppointments(@PathVariable String clinicId, @PathVariable String doctorId, @PathVariable int page) {
 		return bookingService.getTodaysAppointments(clinicId, doctorId,page);
+
 	}
 
 	// 4. Filter doctor appointments by status
@@ -65,6 +67,7 @@ public class BookingController {
 	}
 
 	// 8. Get all appointments by doctor ID
+
 	@GetMapping("/getAllAppointmentsByDoctorId/{doctorId}/{page}")
 	public ResponseEntity<?> getAllBookedServicesByDoctorId(@PathVariable String doctorId,
 															@PathVariable int page) {
@@ -89,6 +92,7 @@ public class BookingController {
 	}
 
 	// 11. Get doctor appointments by status
+
 	@GetMapping("/getDoctorAppointmentsonStatuses/{clinicId}/{branchId}/{doctorId}/{status}/{page}")
 	public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,
 														   @PathVariable String branchId,
@@ -97,5 +101,12 @@ public class BookingController {
 														   @PathVariable int page) {
 
 		return bookingService.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status,page);
+
+	}
+
+	@GetMapping("/searchBookings/{clinicId}/{input}")
+	public ResponseEntity<?> searchPatient(@PathVariable String clinicId, @PathVariable String input) {
+
+		return bookingService.searchPatient(clinicId, input);
 	}
 }

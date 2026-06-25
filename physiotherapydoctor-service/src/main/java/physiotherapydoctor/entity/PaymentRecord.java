@@ -20,7 +20,7 @@ public class PaymentRecord {
 
 	@Id
 	private String id;
-	private boolean payAfterService; //true->paid, false -> payslater
+	private boolean payAfterService; // true->paid, false -> payslater
 
 	private String clinicId;
 	private String branchId;
@@ -33,7 +33,7 @@ public class PaymentRecord {
 	private String therapistId;
 	private String therapistName;
 	private String therapistRecordId;
-
+	private String treatmentName;
 	private String serviceType;
 	private String overallStatus;
 	// 💰 SUMMARY
@@ -48,6 +48,8 @@ public class PaymentRecord {
 
 	// 📅 SESSION
 	private String sessionStartDate;
+	private String sessionEndDate;
+
 	private int totalSessionCount;
 
 	private int noOfSessionCompletedCount;
@@ -56,10 +58,10 @@ public class PaymentRecord {
 	private boolean sessionTableCreatedStatus;
 
 	// 🧾 HISTORY
+	private String overallReceiptNumber;
 	private List<PaymentHistory> paymentHistory;
 
 	// 🌳 DATA
 	private List<TherapyWithSessions> therapyWithSessions;
 
-	
 }

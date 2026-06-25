@@ -19,7 +19,7 @@ public class StartupRunner implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {	
 		obtainKeycloakToken();
-		secretKeyGenerator();
+		//secretKeyGenerator();
 	}
 
 	
@@ -30,16 +30,16 @@ public class StartupRunner implements CommandLineRunner {
 			}catch(Exception e) {}
 	}
 	
-	private void secretKeyGenerator(){
-		try {
-		 KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
-	      SecretKey secretKey = keyGen.generateKey();
-	      String encoded = Base64.getEncoder().encodeToString(secretKey.getEncoded());
-       /// jwtUtil.SECRET = encoded;
-	      System.out.println(encoded);
-		}catch(NoSuchAlgorithmException e) {
-			System.out.println(e.getMessage());
-		}
-	} 
+//	private void secretKeyGenerator(){
+//		try {
+//		 KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
+//	      SecretKey secretKey = keyGen.generateKey();
+//	      String encoded = Base64.getEncoder().encodeToString(secretKey.getEncoded());
+//       /// jwtUtil.SECRET = encoded;
+//	      System.out.println(encoded);
+//		}catch(NoSuchAlgorithmException e) {
+//			System.out.println(e.getMessage());
+//		}
+//	} 
 	
 }

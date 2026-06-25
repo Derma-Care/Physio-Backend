@@ -1,14 +1,13 @@
 package physiotherapydoctor.dto;
 
+
 import java.util.Collection;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,6 +38,7 @@ public class DoctorLoginDTO implements UserDetails {
 	@Override
 	public String getUsername() {		
 		return userName;
+
 	}
 
 

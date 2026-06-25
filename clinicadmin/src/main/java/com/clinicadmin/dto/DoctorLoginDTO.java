@@ -1,9 +1,16 @@
 
 package com.clinicadmin.dto;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -14,10 +21,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class DoctorLoginDTO {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class DoctorLoginDTO implements UserDetails {
+	
+	private static final long serialVersionUID = 1L;
 	private String userName;
-	private String password;
+    private String password;
 	private String role;
+	private List<String> roles;
 	private String deviceId;
 	private String staffId;
 	private String staffName;
@@ -26,29 +37,20 @@ public class DoctorLoginDTO {
 	private String branchId;
 	private String branchName;
 	private Map<String, List<String>> permissions;
+	
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+	    if (roles == null) {
+	        return Collections.emptyList();
+	    }
 
-
-	public void setDoctorMobileNumber(String doctorMobileNumber) {
-		this.userName = userName != null ? userName.trim() : null;
+	    return roles.stream()
+	            .map(SimpleGrantedAuthority::new)
+	            .toList();
 	}
-
-	public void setPassword(String password) {
-		this.password = password != null ? password.trim() : null;
-	}
-
-	public void setDeviceId(String deviceId) {
-		this.deviceId = deviceId != null ? deviceId.trim() : null;
-	}
-
-	public void setStaffId(String staffId) {
-		this.staffId = staffId != null ? staffId.trim() : null;
-	}
-
-	public void setStaffName(String staffName) {
-		this.staffName = staffName != null ? staffName.trim() : null;
-	}
-
-	public void setHospitalId(String hospitalId) {
-		this.hospitalId = hospitalId != null ? hospitalId.trim() : null;
+	
+	@Override
+	public String getUsername() {		
+		return userName;
 	}
 }

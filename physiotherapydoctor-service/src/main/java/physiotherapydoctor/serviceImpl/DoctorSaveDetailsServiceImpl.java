@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -52,6 +53,7 @@ import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.DoctorSaveDetailsRepository;
 import physiotherapydoctor.service.DoctorSaveDetailsService;
 import physiotherapydoctor.service.S3Service;
+import physiotherapydoctor.util.KeyCloakTokenStore;
 import physiotherapydoctor.util.VisitTypeUtil;
 
 @Service
@@ -74,10 +76,14 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     @Autowired
     private S3Service s3Service;
+    
+    @Autowired
+    private KeyCloakTokenStore keyCloakTokenStore;
+   
 
 
-
-    @Override    
+    @Override   
+    @Secured("ROLE_DOCTOR")
     public Response saveDoctorDetails(DoctorSaveDetailsDTO dto) {
         try {
             // ----------------------- Step 0: Validate Booking ID -----------------------
@@ -89,7 +95,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
             // ----------------------- Step 1: Fetch Booking -----------------------
             ResponseEntity<ResponseStructure<BookingResponse>> bookingEntity =
-                    bookingFeignClient.getBookedService(dto.getBookingId());
+                    bookingFeignClient.getBookedService(keyCloakTokenStore.getAccess_token(),dto.getBookingId());
 
             if (bookingEntity == null || bookingEntity.getBody() == null) {
                 return buildResponse(false, null,
@@ -105,7 +111,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             }
 
             // ----------------------- Step 2: Fetch Doctor -----------------------
-            Response doctorResponse = clinicAdminServiceClient.getDoctorById(dto.getDoctorId()).getBody();
+            Response doctorResponse = clinicAdminServiceClient.getDoctorById(keyCloakTokenStore.getAccess_token(),dto.getDoctorId()).getBody();
             if (doctorResponse == null || !doctorResponse.isSuccess() || doctorResponse.getData() == null) {
                 return buildResponse(false, null,
                         "Doctor not found with ID: " + dto.getDoctorId(),
@@ -136,7 +142,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             DoctorSaveDetails savedVisit = repository.save(entity);
 
             // ----------------------- Step 6: Fetch Clinic for Consultation Expiry -----------------------
-            Response clinicResponse = adminFeignClient.getClinicById(dto.getClinicId()).getBody();
+            Response clinicResponse = adminFeignClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getClinicId()).getBody();
             int expirationDays = 0;
             String consultationExpirationStr = "";
             if (clinicResponse != null && clinicResponse.isSuccess() && clinicResponse.getData() != null) {
@@ -360,7 +366,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
             bookingData.setCurrentStatus(null);
             bookingData.setListOfConsultationFee(null);
-            bookingFeignClient.updateAppointmentBasedOnBookingId(bookingData);
+            bookingFeignClient.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),bookingData);
 
             // ----------------------- Step 12: Build Response -----------------------
             DoctorSaveDetailsDTO savedDto = convertToDto(savedVisit);
@@ -397,6 +403,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
     
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getDoctorDetailsById(String id) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
 
@@ -417,6 +424,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response updateDoctorDetails(String id, DoctorSaveDetailsDTO dto) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
 
@@ -484,6 +492,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response updateDoctorDetailsByBookingId(String id, DoctorSaveDetailsDTO dto) {
         DoctorSaveDetails optional = repository.findByBookingId(id);
         if (optional != null) {
@@ -501,6 +510,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
     
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response deleteDoctorDetails(String id) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
         if (optional.isPresent()) {
@@ -512,12 +522,14 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getAllDoctorDetails() {
         List<DoctorSaveDetails> list = repository.findAll();
         return buildResponse(true, list, "All doctor details fetched", HttpStatus.OK.value());
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatientAndBooking(String patientId, String bookingId) {
         try {
             List<DoctorSaveDetails> visits = repository.findByPatientIdAndBookingId(patientId, bookingId);
@@ -541,6 +553,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatient(String patientId) {
         try {
             List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
@@ -846,6 +859,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
                 .build();
     }
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatientAndDoctor(String patientId, String doctorId) {
         try {
             List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
@@ -899,11 +913,12 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getInProgressDetails(String patientId, String bookingId) {
         try {
             // 1. Fetch booking from Booking Service
             ResponseEntity<ResponseStructure<BookingResponse>> bookingResponseEntity =
-                    bookingFeignClient.getBookedService(bookingId);
+                    bookingFeignClient.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
 
             if (bookingResponseEntity == null || bookingResponseEntity.getBody() == null) {
                 return buildResponse(false, null,
@@ -950,6 +965,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getDoctorDetailsByBookingId(String bookingId) {
     	try {   		
         DoctorSaveDetails optional = repository.findByBookingIdIgnoreCase(bookingId);
@@ -966,6 +982,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
     
     @Override
+    @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
     public Response getDoctorDetailsByCustomerId(String customerId) {
     	try {
        List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);
@@ -997,6 +1014,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     
     @Override
+    @Secured("ROLE_DOCTOR")
     public DoctorSaveDetailsDTO getDoctorLatestDetailsByCustomerId(String customerId) {
     	try {
        List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);

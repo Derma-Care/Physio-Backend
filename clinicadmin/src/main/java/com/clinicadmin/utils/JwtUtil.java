@@ -261,8 +261,8 @@ public class JwtUtil {
 
 				        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 				        form.add("token", token);
-				        form.add("client_id", "admin-service");
-				        form.add("client_secret", "QR5OBooIYbefMFXbf5TMR2EJ2SS9xMRI");
+				        form.add("client_id", "clinic_admin_service");
+				        form.add("client_secret", "cOMIqZ564YMwMQ2HkNerTtQWX30tgoeU");
 
 				        HttpEntity<MultiValueMap<String, String>> request =
 				                new HttpEntity<>(form, headers);

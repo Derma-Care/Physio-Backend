@@ -19,6 +19,7 @@ import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.Session;
+import physiotherapydoctor.dto.SessionForBooking;
 import physiotherapydoctor.dto.VisitHistoryRequest;
 import physiotherapydoctor.service.PhysiotherapyService;
 
@@ -84,7 +85,7 @@ public class PhysiotherapyController {
 	}
 	
 	@GetMapping("/getPhysioByBookingId/{bookingId}/{date}")
-	public ResponseEntity<List<Session>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String date) {		
+	public ResponseEntity<List<SessionForBooking>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String date) {		
 		return service.getSessionsByBookingIdAndDate(bookingId, date);
 	}
 	
@@ -236,6 +237,15 @@ public class PhysiotherapyController {
 	        return response;
 	   }
 	    
+
+//	    @PostMapping("/PhysioDoctorlogin")
+//	    public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
+//			Response res = service.login(dto);
+//			 if(res!=null) {
+//				 return ResponseEntity.status(res.getStatus()).body(res);
+//			 }
+//			return null;}
+
 //	    @PostMapping("/PhysioDoctorlogin")
 //	    public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
 //			Response res = service.login(dto);
@@ -254,8 +264,10 @@ public class PhysiotherapyController {
 	    
 	    @GetMapping("/getDoctorAppointmentsonStatus/{clinicId}/{branchId}/{doctorId}/{status}")
 	 	public ResponseEntity<?> getDoctorAppointmentsonStatus(@PathVariable String clinicId,@PathVariable String branchId,
+
 	 		@PathVariable String doctorId,@PathVariable String status,@PathVariable int page){
 	 		return service.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status,page);
+
 	 		   
 	 	 }
 	    

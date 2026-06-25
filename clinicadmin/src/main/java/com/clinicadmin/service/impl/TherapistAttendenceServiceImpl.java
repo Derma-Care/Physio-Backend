@@ -12,6 +12,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -40,6 +41,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response addManualSession(String therapistId, Map<String, String> body) {
 
         Response response = new Response();
@@ -92,6 +94,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
         return response;
     }
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getDailyReport(String therapistId, String date) {
 
         Response response = new Response();
@@ -196,7 +199,9 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
         return response;
     }
+    
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateAttendance(String therapistId,
                                      Map<String, String> body) {
 
@@ -352,6 +357,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
                 s.setActivity(r.getServiceType());
                 s.setDuration(r.getDuration());
                 s.setLocation(r.getLocation());
+                s.setDescription(r.getDescription());
+
 
                 finalSessions.add(s);
             }
@@ -384,7 +391,9 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
         return response;
     }
+    
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getMonthlyReport(String therapistId, String month) {
 
         Response response = new Response();
@@ -455,6 +464,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
         return response;
     }
+    
     private int convertToMinutes(String time) {
 
         if (time == null || time.trim().isEmpty()) return 0;
@@ -542,7 +552,9 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	        return "Unknown";
 	    }
 	}
+	
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public Response deleteSession(String therapistId, String date, String sessionId) {
 
 	    Response response = new Response();
@@ -622,6 +634,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	}
 	
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public Response getReportByClinicBranch(
 	        String clinicId,
 	        String branchId,
@@ -648,6 +661,14 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	                sd.setActivity(s.getActivity());
 	                sd.setDuration(s.getDuration());
 	                sd.setLocation(s.getLocation());
+	                
+	                sd.setDescription(
+	                        s.getDescription() != null
+	                                && !s.getDescription().trim().isEmpty()
+	                        ? s.getDescription()
+	                        : "N/A"
+	                    );
+
 
 	                sessions.add(sd);
 	            }

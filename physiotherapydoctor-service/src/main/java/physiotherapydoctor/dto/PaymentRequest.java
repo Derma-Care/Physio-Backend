@@ -23,7 +23,7 @@ public class PaymentRequest {
 	private String therapistId;
 	private String therapistName;
 	private String therapistRecordId;
-
+	private String treatmentName;
 	private String serviceType;
 	private String overallSatatus;
 	private Double amount;

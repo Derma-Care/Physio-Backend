@@ -1,8 +1,8 @@
-package com.clinicadmin.service;
-
-import com.clinicadmin.dto.Response;
-
-public interface DoctorNoteService {
-	Response getAllNotes();
-
-}
+//package com.clinicadmin.service;
+//
+//import com.clinicadmin.dto.Response;
+//
+//public interface DoctorNoteService {
+//	Response getAllNotes();
+//
+//}

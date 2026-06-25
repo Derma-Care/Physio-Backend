@@ -15,7 +15,7 @@ import physiotherapydoctor.service.AuthService;
 
 
 @RestController
-@RequestMapping("/clinic-admin")
+@RequestMapping("/physiotherapy-doctor")
 public class AuthController {
 	
 	@Autowired

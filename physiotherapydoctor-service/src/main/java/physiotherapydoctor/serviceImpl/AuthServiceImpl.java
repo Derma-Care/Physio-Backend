@@ -41,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
 	public ResponseEntity<Response> doctorLogin( DoctorLoginDTO doctorLoginDTO) {
 		//System.out.println("hlo");
 				Response response = new Response();
-				//System.out.println(response);
+				///System.out.println(doctorLoginDTO.getUsername());
 				customDoctorLoginDetailsService.deviceId = doctorLoginDTO.getDeviceId();
 				try {			
 					authManager.authenticate(new UsernamePasswordAuthenticationToken(doctorLoginDTO.getUsername(),doctorLoginDTO.getPassword()));

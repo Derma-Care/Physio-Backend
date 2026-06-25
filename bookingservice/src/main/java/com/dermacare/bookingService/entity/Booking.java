@@ -43,7 +43,6 @@ public class Booking  {
     private String clinicDeviceId;
     private String doctorId;
     private String doctorName;
-    private String focReason;
     private String doctorDeviceId;
     private String doctorWebDeviceId;
 //    private String subServiceId;
@@ -63,7 +62,7 @@ public class Booking  {
     private Integer visitCount;
     private List<String> attachments;
     private String consentFormPdf;
-    private List<byte[]> prescriptionPdf;
+    private List<String> prescriptionPdf;
     private double totalFee;
     private String paymentType;
     private String doctorRefCode;
@@ -75,37 +74,38 @@ public class Booking  {
 //    private Integer takenSittings;
 //    private Integer currentSitting;
     private String foc;
+    private String focReason;
     // ------------------- NEW: Treatments and dates -------------------
     ///private TreatmentResponseDTO treatments; // treatmentName -> treatment details
     private String bodyPartId;
-    private String bodyPartName;
-    private String partImage;
-    private Map<String,List<TheraphyAnswersEntity>> theraphyAnswers;
-    private List<String> parts;
-    private double partAmount;
-    private double dueAmount;
-    private String referredByType;
-    private String referredByName;
-    private String paymentStatus;
-    private String previousInjuries;
-    private String currentMedications;
-    private String allergies;
-    private String occupation;
-    private String insuranceProvider;
-    private String policyNumber;
-    private List<String> activityLevels;
-    private String reasonforVisit;
-    private boolean isFollowupStatus;
-    private List<FollowupBooking> follwupBookings;
-
-    public void setIsFollowupStatus(boolean followupStatus) {
-        isFollowupStatus = followupStatus;
-    }
-
-    public boolean getIsFollowupStatus() {
-        return isFollowupStatus;
-    }
-
+   	private String bodyPartName;
+   	private String partImage;
+   	private Map<String,List<TheraphyAnswersEntity>> theraphyAnswers;
+   	private List<String> parts;
+   	private double partAmount;
+   	private double dueAmount;
+   	private String referredByType;
+	private String referredByName;
+	private String paymentStatus;
+	private String previousInjuries;
+	private String currentMedications;
+	private String allergies;
+	private String occupation;
+	private String insuranceProvider;
+	private String policyNumber;
+	private List<String> activityLevels;
+	private String reasonforVisit;
+	private boolean isFollowupStatus;
+	private List<FollowupBooking> follwupBookings;
+	
+	public void setIsFollowupStatus(boolean followupStatus) {
+	    isFollowupStatus = followupStatus;
+	}
+	
+	public boolean getIsFollowupStatus() {
+	    return isFollowupStatus;
+	}
+   	
 
     public Booking(Booking booking) {
         this.bookingId = booking.getBookingId();
@@ -161,4 +161,5 @@ public class Booking  {
 //        this.currentSitting = booking.getCurrentSitting();
        /// this.treatments = booking.getTreatments();
     }
+
 }

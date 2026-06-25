@@ -16,6 +16,7 @@ spring:
         config:
           default:
             connectTimeout: 30000
+
             readTimeout: 60000					
 #  config:
 #   import: optional:classpath:application-secrets.yml  
@@ -81,14 +82,17 @@ management:
 # ===============================
 # AWS S3
 # ===============================
-aws:
-  region: ap-south-1
-  s3:
-    bucket: physiocare-prod-storage
+#aws:
+#  accessKeyId: ${AWS_ACCESS_KEY_ID}
+#  secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+#  region: ap-south-1
+#  s3:
+#    bucket: physiocare-prod-storage
 
 # ===============================
 # Firebase
 # ===============================
+
 #app:
 #  firebase-configuration-file: firebase-key.json
 
@@ -98,9 +102,11 @@ aws:
 logging:
   level:
     org.springframework.web: INFO
+
     com.sureCare.CustomerService: DEBUG
 jwt:
- secret-key: VIaXYh7bWCfKmmeXrZvsmnpqRyucfvN0fK8NMlZCp34=
+ secret-key: /rJI4OoQToPuSEENNowcQBvIOBH7W6oQM0KqqVRky0g=
 
 refresh-token:
- secret-key: 1NNosu6DEDztmMp2KGeLSST665dW6Np9zbODSnVBgd4=		
+ secret-key: 59M85FqbFUldVO+GgMa5gHcxW3bvgUEeI60+tOLAjG0=
+

@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.Response;
@@ -27,6 +28,7 @@ public class TherapistCertificateServiceImpl
 
     // CREATE
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response createCertificate(
             TherapistCertificateDTO dto) {
 
@@ -49,6 +51,7 @@ public class TherapistCertificateServiceImpl
 
     // GET ALL
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllCertificates() {
 
         Response response = new Response();
@@ -69,6 +72,7 @@ public class TherapistCertificateServiceImpl
 
     // GET BY ID
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getCertificateById(String id) {
 
         Response response = new Response();
@@ -96,6 +100,7 @@ public class TherapistCertificateServiceImpl
 
     // GET BY CLINIC & BRANCH
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getCertificatesByClinicAndBranch(
             String clinicId,
             String branchId) {
@@ -117,8 +122,38 @@ public class TherapistCertificateServiceImpl
         return response;
     }
 
+    // GET BY CLINIC + BRANCH + THERAPIST
+    @Override
+    @Secured("ROLE_CLINICADMIN")
+    public Response getCertificatesByClinicBranchAndTherapist(
+            String clinicId,
+            String branchId,
+            String therapistId) {
+
+        Response response = new Response();
+
+        List<TherapistCertificateDTO> list =
+                repository.findByClinicIdAndBranchIdAndTherapistId(
+                        clinicId,
+                        branchId,
+                        therapistId)
+                .stream()
+                .map(this::entityToDto)
+                .collect(Collectors.toList());
+
+        response.setSuccess(true);
+        response.setStatus(200);
+        response.setMessage("Certificates fetched successfully");
+        response.setData(list);
+
+        return response;
+    }
+
+
+
     // UPDATE
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateCertificate(
             String id,
             TherapistCertificateDTO dto) {
@@ -167,6 +202,7 @@ public class TherapistCertificateServiceImpl
 
     // DELETE
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteCertificate(String id) {
 
         Response response = new Response();

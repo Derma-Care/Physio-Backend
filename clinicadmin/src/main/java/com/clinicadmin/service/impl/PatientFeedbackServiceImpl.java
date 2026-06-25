@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.DoctorFeedbackDTO;
@@ -33,6 +34,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     // ================= CREATE =================
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response createFeedback(PatientFeedbackDTO dto) {
 
         PatientFeedback feedback = mapToEntity(dto);
@@ -53,6 +55,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     // ================= GET ALL =================
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllFeedbacks() {
 
         List<PatientFeedbackDTO> list = repository.findAll()
@@ -73,6 +76,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     // ================= GET BY ID =================
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getFeedbackById(String id) {
 
         PatientFeedback feedback = repository.findById(id)
@@ -89,6 +93,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getByClinicIdAndBranchId(String clinicId,
                                              String branchId) {
 
@@ -109,9 +114,35 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
         return response;
     }
+    
+    @Override
+    @Secured("ROLE_CLINICADMIN")
+    public Response getByClinicIdAndBranchIdAndPatientId(String clinicId,
+                                             String branchId,String patientId) {
+
+        List<PatientFeedback> feedbackList = repository
+                .findByClinicIdAndBranchIdAndPatientId(clinicId, branchId,patientId);
+
+        List<PatientFeedbackDTO> list = feedbackList
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+
+        Response response = new Response();
+
+        response.setSuccess(true);
+        response.setMessage("Feedbacks fetched successfully");
+        response.setStatus(HttpStatus.OK.value());
+        response.setData(list);
+
+        return response;
+    }
+
+
     // ================= UPDATE =================
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateFeedback(String id, PatientFeedbackDTO dto) {
 
         PatientFeedback existing = repository.findById(id)
@@ -214,6 +245,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     // ================= DELETE =================
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteFeedback(String id) {
 
         PatientFeedback feedback = repository.findById(id)
@@ -469,6 +501,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
 
         List<PatientFeedback> feedbacks =

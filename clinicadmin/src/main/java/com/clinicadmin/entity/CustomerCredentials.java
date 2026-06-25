@@ -16,6 +16,7 @@ public class CustomerCredentials {
 	private String Id;
 	private String userName;
 	private String password;
+	private String deviceId;
 	private String hospitalId;
 	private String branchId;
 	private String hospitalName;

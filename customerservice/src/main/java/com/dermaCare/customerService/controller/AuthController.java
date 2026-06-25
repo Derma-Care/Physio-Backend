@@ -15,7 +15,7 @@ import com.dermaCare.customerService.util.Response;
 
 
 @RestController
-@RequestMapping("/clinic-admin")
+@RequestMapping("/customer")
 public class AuthController {
 	
 	@Autowired

@@ -1,10 +1,10 @@
 package com.AdminService.controller;
+
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,9 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.AdminService.dto.AdminHelper;
-//import com.AdminService.dto.CategoryDto;
-import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
 //import com.AdminService.dto.ServicesDto;
@@ -26,14 +23,11 @@ import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.service.AdminService;
 import com.AdminService.util.PermissionsUtil;
 import com.AdminService.util.Response;
-import com.AdminService.util.ResponseStructure;
 import jakarta.validation.Valid;
+
 @RestController
-
 @RequestMapping("/admin")
-
 //@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
-
 public class AdminController {
 	
 	@Autowired
@@ -192,139 +186,138 @@ public class AdminController {
 				return null;}
 
     }
- 
- 
-/// CUSTOMER MANAGEMENT
 
-@PostMapping("/saveBasicDetails")
-
-public ResponseEntity<Response> saveCustomerBasicDetails(@RequestBody CustomerDTO customerDTO ){
-
-	Response response = serviceImpl.saveCustomerBasicDetails(customerDTO);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-@GetMapping("/getBasicDetails/{mobileNumber}")
-
-public ResponseEntity<Response> getCustomerBasicDetails(@PathVariable String mobileNumber ){
-
-	Response response = serviceImpl.getCustomerBasicDetails(mobileNumber);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-@GetMapping("/getAllCustomers")
-
-public ResponseEntity<Response> getAllCustomers(){
-
-	Response response = serviceImpl.getAllCustomers();
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-@PutMapping("/updateCustomerBasicDetails/{mobileNumber}")
-
-public ResponseEntity<Response> updateCustomerBasicDetails(@RequestBody CustomerDTO customerDTO,
-
-		@PathVariable String mobileNumber ){
-
-	Response response = serviceImpl.updateCustomerBasicDetails(customerDTO, mobileNumber);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }
-
-	else {
-
-			return null;}
-
-}
-
-
-
-@DeleteMapping("/deleteCustomerBasicDetails/{mobileNumber}")
-
-public ResponseEntity<Response> deleteCustomerBasicDetails(@PathVariable String mobileNumber ){
-
-	Response response = serviceImpl.deleteCustomerBasicDetails(mobileNumber);
-
-	if(response != null && response.getData() == null) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }else if(response != null && response.getData() != null ) {
-
-		 return ResponseEntity.status(response.getStatus()).body(response);
-
-	 }
-
-	else {
-			return null;
-			}
-
-}
-
-
-
-@GetMapping("/getCustomerByInput/{input}")
-
-	public ResponseEntity<?> getCustomerByUsernameMobileEmail(@PathVariable String input){
-
-	return serviceImpl.getCustomerByUsernameMobileEmail(input);
-
-}
+///// CUSTOMER MANAGEMENT
+//
+//@PostMapping("/saveBasicDetails")
+//
+//public ResponseEntity<Response> saveCustomerBasicDetails(@RequestBody CustomerDTO customerDTO ){
+//
+//	Response response = serviceImpl.saveCustomerBasicDetails(customerDTO);
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }
+//
+//	else {
+//
+//			return null;}
+//
+//}
+//
+//
+//
+//@GetMapping("/getBasicDetails/{mobileNumber}")
+//
+//public ResponseEntity<Response> getCustomerBasicDetails(@PathVariable String mobileNumber ){
+//
+//	Response response = serviceImpl.getCustomerBasicDetails(mobileNumber);
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }
+//
+//	else {
+//
+//			return null;}
+//
+//}
+//
+//
+//
+//@GetMapping("/getAllCustomers")
+//
+//public ResponseEntity<Response> getAllCustomers(){
+//
+//	Response response = serviceImpl.getAllCustomers();
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }
+//
+//	else {
+//
+//			return null;}
+//
+//}
+//
+//
+//
+//@PutMapping("/updateCustomerBasicDetails/{mobileNumber}")
+//
+//public ResponseEntity<Response> updateCustomerBasicDetails(@RequestBody CustomerDTO customerDTO,
+//
+//		@PathVariable String mobileNumber ){
+//
+//	Response response = serviceImpl.updateCustomerBasicDetails(customerDTO, mobileNumber);
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }
+//
+//	else {
+//
+//			return null;}
+//
+//}
+//
+//
+//
+//@DeleteMapping("/deleteCustomerBasicDetails/{mobileNumber}")
+//
+//public ResponseEntity<Response> deleteCustomerBasicDetails(@PathVariable String mobileNumber ){
+//
+//	Response response = serviceImpl.deleteCustomerBasicDetails(mobileNumber);
+//
+//	if(response != null && response.getData() == null) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }else if(response != null && response.getData() != null ) {
+//
+//		 return ResponseEntity.status(response.getStatus()).body(response);
+//
+//	 }
+//
+//	else {
+//			return null;
+//			}
+//
+//}
+//
+//
+//
+//@GetMapping("/getCustomerByInput/{input}")
+//
+//	public ResponseEntity<?> getCustomerByUsernameMobileEmail(@PathVariable String input){
+//
+//	return serviceImpl.getCustomerByUsernameMobileEmail(input);
+//
+//}
 
 
 

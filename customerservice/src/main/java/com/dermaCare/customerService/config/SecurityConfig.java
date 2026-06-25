@@ -29,7 +29,7 @@ import com.dermaCare.customerService.util.JwtAuthFilter;
 
 @Configuration
 @EnableWebSecurity
-//@EnableMethodSecurity(securedEnabled = true)
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 	
 	 @Autowired 
@@ -49,15 +49,14 @@ public class SecurityConfig {
 	            .oauth2Login(n->n.defaultSuccessUrl("/customerPublicApis/oauth2tokens"));
 	        return http.build();
 	    }    
-	    	    	
+    	    	
 
 	    @Bean
 	    @Order(2)
 	    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-	        http.csrf(csrf -> csrf.disable()).securityMatcher("/customerpublicapis")
+	        http.csrf(csrf -> csrf.disable())
 	            .authorizeHttpRequests(auth -> auth
-	                .requestMatchers("/VerifyUserCredentialsAndGenerateAndSendOtp","/verifyOtp","/resendOtp",
-	                "/newAccessTokenForCustomerService","/oauth2tokens")
+	                .requestMatchers("/customer/customerHospitalLogin","/customer/newAccessTokenForClinicAdminService")
 	                .permitAll()
 	                .anyRequest().authenticated()
 	            ).exceptionHandling(ex->ex.authenticationEntryPoint(jWTAthenticationEntryPoint))

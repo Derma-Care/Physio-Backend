@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.AdminService.dto.AdministratorDTO;
 import com.AdminService.dto.DoctorAvailabilityStatusDTO;
@@ -38,42 +39,42 @@ public interface ClinicAdminFeign {
 
     // ---------------- Doctor CRUD ---------------- //
     @PostMapping("/clinic-admin/addDoctor")
-    ResponseEntity<Response> addDoctor(@RequestBody DoctorsDTO dto);
+    ResponseEntity<Response> addDoctor(@RequestHeader("Authorization") String token,@RequestBody DoctorsDTO dto);
 
     @GetMapping("/clinic-admin/doctors")
-    ResponseEntity<Response> getAllDoctors();
+    ResponseEntity<Response> getAllDoctors(@RequestHeader("Authorization") String token);
 
     @GetMapping("/clinic-admin/doctor/{id}")
-    ResponseEntity<Response> getDoctorById(@PathVariable("id") String id);
+    ResponseEntity<Response> getDoctorById(@RequestHeader("Authorization") String token,@PathVariable("id") String id);
 
     @PutMapping("/clinic-admin/updateDoctor/{doctorId}")
-    ResponseEntity<Response> updateDoctorById(@PathVariable("doctorId") String doctorId,
+    ResponseEntity<Response> updateDoctorById(@RequestHeader("Authorization") String token,@PathVariable("doctorId") String doctorId,
                                               @RequestBody DoctorsDTO dto);
 
     @DeleteMapping("/clinic-admin/delete-doctor/{doctorId}")
-    ResponseEntity<Response> deleteDoctorById(@PathVariable("doctorId") String doctorId);
+    ResponseEntity<Response> deleteDoctorById(@RequestHeader("Authorization") String token,@PathVariable("doctorId") String doctorId);
 
     @DeleteMapping("/clinic-admin/delete-doctors-by-clinic/{clinicId}")
-    ResponseEntity<Response> deleteDoctorsByClinic(@PathVariable("clinicId") String clinicId);
+    ResponseEntity<Response> deleteDoctorsByClinic(@RequestHeader("Authorization") String token,@PathVariable("clinicId") String clinicId);
 
     // ---------------- Additional Filters ---------------- //
     @GetMapping("/clinic-admin/clinic/{clinicId}/doctor/{doctorId}")
-    ResponseEntity<Response> getDoctorByClinicAndDoctorId(@PathVariable("clinicId") String clinicId,
+    ResponseEntity<Response> getDoctorByClinicAndDoctorId(@RequestHeader("Authorization") String token,@PathVariable("clinicId") String clinicId,
                                                           @PathVariable("doctorId") String doctorId);
 
     @GetMapping("/clinic-admin/doctors/hospitalById/{hospitalId}")
-    ResponseEntity<Response> getDoctorsByHospitalId(@PathVariable("hospitalId") String hospitalId);
+    ResponseEntity<Response> getDoctorsByHospitalId(@RequestHeader("Authorization") String token,@PathVariable("hospitalId") String hospitalId);
 
     @GetMapping("/clinic-admin/getDoctorsByHospitalIdAndBranchId/{hospitalId}/{branchId}")
-    ResponseEntity<Response> getDoctorsByHospitalIdAndBranchId(@PathVariable("hospitalId") String hospitalId,
+    ResponseEntity<Response> getDoctorsByHospitalIdAndBranchId(@RequestHeader("Authorization") String token,@PathVariable("hospitalId") String hospitalId,
                                                                @PathVariable("branchId") String branchId);
 
     // ---------------------- Disease APIs ----------------------
     @PostMapping("/clinic-admin/addDiseases")
-    ResponseEntity<Response> addDiseases(@RequestBody Object requestBody);
+    ResponseEntity<Response> addDiseases(@RequestHeader("Authorization") String token,@RequestBody Object requestBody);
 
     @GetMapping("/clinic-admin/get-all-diseases")
-    ResponseEntity<Response> getAllDiseases();
+    ResponseEntity<Response> getAllDiseases(@RequestHeader("Authorization") String token);
 
     @GetMapping("/clinic-admin/getDisease/{id}/{hospitalId}")
     ResponseEntity<Response> getDiseaseByDiseaseId(@PathVariable("id") String id,
@@ -137,38 +138,29 @@ public interface ClinicAdminFeign {
     @GetMapping("/clinic-admin/treatments/{hospitalId}")
     ResponseEntity<ResponseStructure<List<TreatmentDTO>>> getTreatmentsByHospitalId(@PathVariable("hospitalId") String hospitalId);
     
-    
- 
-
-    // ---------------------- Fallback Method ----------------------
-    default ResponseEntity<?> clinicAdminServiceFallBack(Exception e) {
-        return ResponseEntity.status(503).body(
-                new Response(false, null, "CLINIC ADMIN SERVICE NOT AVAILABLE", 503,null,null,null, null)
-        );
-    }
 
     // ---------------------- Doctor Slot APIs (Added Last) ----------------------
     @PostMapping("/clinic-admin/addDoctorSlots/{hospitalId}/{branchId}/{doctorId}")
-    ResponseEntity<Response> addDoctorSlot(@PathVariable("hospitalId") String hospitalId,
+    ResponseEntity<Response> addDoctorSlot(@RequestHeader("Authorization") String token,@PathVariable("hospitalId") String hospitalId,
                                            @PathVariable("branchId") String branchId,
                                            @PathVariable("doctorId") String doctorId,
                                            @RequestBody DoctorSlotDTO slotDto);
 
     @GetMapping("/clinic-admin/getDoctorSlots/{hospitalId}/{branchId}/{doctorId}")
-    ResponseEntity<Response> getDoctorSlots(@PathVariable("hospitalId") String hospitalId,
+    ResponseEntity<Response> getDoctorSlots(@RequestHeader("Authorization") String token,@PathVariable("hospitalId") String hospitalId,
                                             @PathVariable("branchId") String branchId,
                                             @PathVariable("doctorId") String doctorId);
     
     
     @PutMapping("/clinic-admin/doctor/update-slot")
-	public ResponseEntity<Response> updateDoctorSlot(@RequestBody UpdateSlotRequestDTO request) ;
+	public ResponseEntity<Response> updateDoctorSlot(@RequestHeader("Authorization") String token,@RequestBody UpdateSlotRequestDTO request) ;
 	
     
-    @GetMapping("/clinic-admin/getDoctorslots/{hospitalId}/{doctorId}")
-	public ResponseEntity<Response> getDoctorSlot(@PathVariable String hospitalId, @PathVariable String doctorId);
-    
+//    @GetMapping("/clinic-admin/getDoctorslots/{hospitalId}/{doctorId}")
+//	public ResponseEntity<Response> getDoctorSlot(@RequestHeader String token,@PathVariable String hospitalId, @PathVariable String doctorId);
+//    
     @DeleteMapping("/clinic-admin/doctorId/{doctorId}/branchId/{branchId}/date/{date}/slot/{slot}")
-	public  ResponseEntity<Response>deleteDoctorSlot(
+	public  ResponseEntity<Response>deleteDoctorSlot(@RequestHeader("Authorization") String token,
 	        @PathVariable String doctorId,
 	        @PathVariable String branchId,
 	        @PathVariable String date,
@@ -176,15 +168,15 @@ public interface ClinicAdminFeign {
     
     
     @DeleteMapping("/clinic-admin/doctorId/{doctorId}/{date}/{slot}/slots")
-	public Response deleteDoctorSlot(@PathVariable String doctorId, @PathVariable String date,
+	public Response deleteDoctorSlot(@RequestHeader("Authorization") String token,@PathVariable String doctorId, @PathVariable String date,
 			@PathVariable String slot);
     
-    @DeleteMapping("/clinic-admin/delete-by-date/{doctorId}/{date}")
-	public ResponseEntity<Response> deleteDoctorSlotsByDate(@PathVariable String doctorId, @PathVariable String date);
-    
+//    @DeleteMapping("/clinic-admin/delete-by-date/{doctorId}/{date}")
+//	public ResponseEntity<Response> deleteDoctorSlotsByDate(@PathVariable String doctorId, @PathVariable String date);
+//    
     
     @DeleteMapping("/clinic-admin/delete-by-date/{doctorId}/{branchId}/{date}")
-	public ResponseEntity<Response> deleteDoctorSlotsByDate(
+	public ResponseEntity<Response> deleteDoctorSlotsByDate(@RequestHeader("Authorization") String token,
 	        @PathVariable String doctorId,
 	        @PathVariable String branchId,
 	        @PathVariable String date);
@@ -192,18 +184,18 @@ public interface ClinicAdminFeign {
     
     
     @PutMapping("/clinic-admin/updateDoctorSlotWhileBooking/{doctorId}/{branchId}/{date}/{time}")
-	public boolean updateDoctorSlotWhileBooking(@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
+	public boolean updateDoctorSlotWhileBooking(@RequestHeader("Authorization") String token,@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
 			@PathVariable String time);
     
     
     
     @PutMapping("/clinic-admin/makingFalseDoctorSlot/{doctorId}/{branchId}/{date}/{time}")
-	public boolean makingFalseDoctorSlot(@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
+	public boolean makingFalseDoctorSlot(@RequestHeader("Authorization") String token,@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
 			@PathVariable String time);
     
     
     @GetMapping("/clinic-admin/generateDoctorSlots/{doctorId}/{branchId}/{date}/{intervalMinutes}/{openingTime}/{closingTime}")
-	public Response generateSlots(
+	public Response generateSlots(@RequestHeader("Authorization") String token,
 	        @PathVariable String doctorId,
 	        @PathVariable String branchId,
 	        @PathVariable String date,
@@ -263,42 +255,42 @@ public interface ClinicAdminFeign {
         // ✅ Create Receptionist
         @PostMapping("/clinic-admin/createReceptionist")
         ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> createReceptionist(
-                @RequestBody ReceptionistRequestDTO dto);
+        		@RequestHeader("Authorization") String token,    @RequestBody ReceptionistRequestDTO dto);
 
         // ✅ Get Receptionist by ID
         @GetMapping("/clinic-admin/getReceptionistById/{id}")
         ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> getReceptionistById(
-                @PathVariable String id);
+        		@RequestHeader("Authorization") String token,  @PathVariable String id);
 
         // ✅ Get All Receptionists
         @GetMapping("/clinic-admin/getAllReceptionists")
-        ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getAllReceptionists();
+        ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getAllReceptionists(@RequestHeader("Authorization") String token);
 
         // ✅ Update Receptionist by ID
         @PutMapping("/clinic-admin/updateReceptionist/{id}")
         ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> updateReceptionist(
-                @PathVariable String id,
+        		@RequestHeader("Authorization") String token,     @PathVariable String id,
                 @RequestBody ReceptionistRequestDTO dto);
 
         // ✅ Delete Receptionist by ID
         @DeleteMapping("/clinic-admin/deleteReceptionist/{id}")
-        ResponseEntity<ResponseStructure<String>> deleteReceptionist(@PathVariable String id);
+        ResponseEntity<ResponseStructure<String>> deleteReceptionist(@RequestHeader("Authorization") String token,   @PathVariable String id);
 
         // ✅ Get Receptionists by Clinic ID
         @GetMapping("/clinic-admin/receptionists/{clinicId}")
-        ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getReceptionistsByClinic(
+        ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getReceptionistsByClinic(@RequestHeader("Authorization") String token,
                 @PathVariable String clinicId);
 
         // ✅ Get Receptionist by Clinic ID and Receptionist ID
         @GetMapping("/clinic-admin/{clinicId}/{receptionistId}")
         ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> getReceptionistByClinicAndId(
-                @PathVariable String clinicId,
+        		@RequestHeader("Authorization") String token,  @PathVariable String clinicId,
                 @PathVariable String receptionistId);
 
         // ✅ Get Receptionists by Clinic ID and Branch ID
         @GetMapping("/clinic-admin/getReceptionistsByClinicIdAndBranchId/{clinicId}/{branchId}")
         ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getReceptionistsByClinicAndBranch(
-                @PathVariable String clinicId,
+        		@RequestHeader("Authorization") String token,     @PathVariable String clinicId,
                 @PathVariable String branchId);
         
         @PostMapping("/clinic-admin/addNurse")
@@ -371,107 +363,113 @@ public interface ClinicAdminFeign {
         /////////////Security staff/////////////////////
        
      @PostMapping("/clinic-admin/addSecurityStaff")
-     ResponseStructure<SecurityStaffDTO> addSecurityStaff(@RequestBody SecurityStaffDTO dto);
+     ResponseStructure<SecurityStaffDTO> addSecurityStaff(@RequestHeader("Authorization") String token,@RequestBody SecurityStaffDTO dto);
 
      @PutMapping("/clinic-admin/updateSecurityStaffById/{staffId}")
      ResponseStructure<SecurityStaffDTO> updateSecurityStaff(
-             @PathVariable("staffId") String staffId,
+    		 @RequestHeader("Authorization") String token,    @PathVariable("staffId") String staffId,
              @RequestBody SecurityStaffDTO staffRequest);
 
      @GetMapping("/clinic-admin/getSecurityStaffById/{staffId}")
-     ResponseStructure<SecurityStaffDTO> getSecurityStaffById(@PathVariable("staffId") String staffId);
+     ResponseStructure<SecurityStaffDTO> getSecurityStaffById(@RequestHeader("Authorization") String token,@PathVariable("staffId") String staffId);
 
      @GetMapping("/clinic-admin/getAllSecurityStaffByClinicId/{clinicId}")
-     ResponseStructure<List<SecurityStaffDTO>> getAllByClinicId(@PathVariable("clinicId") String clinicId);
+     ResponseStructure<List<SecurityStaffDTO>> getAllByClinicId(@RequestHeader("Authorization") String token,@PathVariable("clinicId") String clinicId);
 
      @DeleteMapping("/clinic-admin/deleteSecurityStaffById/{staffId}")
-     ResponseStructure<String> deleteSecurityStaff(@PathVariable("staffId") String staffId);
+     ResponseStructure<String> deleteSecurityStaff(@RequestHeader("Authorization") String token,@PathVariable("staffId") String staffId);
 
      @GetMapping("/clinic-admin/getSecurityStaffByClinicIdAndBranchId/{clinicId}/{branchId}")
      ResponseStructure<List<SecurityStaffDTO>> getSecurityStaffByClinicIdAndBranchId(
-             @PathVariable("clinicId") String clinicId,
+    		 @RequestHeader("Authorization") String token, @PathVariable("clinicId") String clinicId,
              @PathVariable("branchId") String branchId);
      
                           ///////WardBoy////////////////
      @PostMapping("/clinic-admin/addWardBoy")
-     ResponseStructure<WardBoyDTO> addWardBoy(@RequestBody WardBoyDTO dto);
+     ResponseStructure<WardBoyDTO> addWardBoy(@RequestHeader("Authorization") String token,@RequestBody WardBoyDTO dto);
 
      @PutMapping("/clinic-admin/updateWardBoyById/{id}")
-     ResponseStructure<WardBoyDTO> updateWardBoy(@PathVariable("id") String id, @RequestBody WardBoyDTO dto);
+     ResponseStructure<WardBoyDTO> updateWardBoy(@RequestHeader("Authorization") String token,@PathVariable("id") String id, @RequestBody WardBoyDTO dto);
 
      @GetMapping("/clinic-admin/getWardBoyById/{id}")
-     ResponseStructure<WardBoyDTO> getWardBoyById(@PathVariable("id") String id);
+     ResponseStructure<WardBoyDTO> getWardBoyById(@RequestHeader("Authorization") String token,@PathVariable("id") String id);
 
      @GetMapping("/clinic-admin/getAllWardBoys")
-     ResponseStructure<List<WardBoyDTO>> getAllWardBoys();
+     ResponseStructure<List<WardBoyDTO>> getAllWardBoys(@RequestHeader("Authorization") String token);
 
      @GetMapping("/clinic-admin/getWardBoysByClinicId/{clinicId}")
-     ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicId(@PathVariable("clinicId") String clinicId);
+     ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicId(@RequestHeader("Authorization") String token,@PathVariable("clinicId") String clinicId);
 
      @GetMapping("/clinic-admin/getWardBoyByIdAndClinicId/{wardBoyId}/{clinicId}")
      ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicId(
-             @PathVariable("wardBoyId") String wardBoyId,
+    		 @RequestHeader("Authorization") String token,     @PathVariable("wardBoyId") String wardBoyId,
              @PathVariable("clinicId") String clinicId);
 
      @DeleteMapping("/clinic-admin/deleteWardBoyById/{id}")
-     ResponseStructure<Void> deleteWardBoy(@PathVariable("id") String id);
+     ResponseStructure<Void> deleteWardBoy(@RequestHeader("Authorization") String token,@PathVariable("id") String id);
 
      @GetMapping("/clinic-admin/getWardBoysByClinicIdAndBranchId/{clinicId}/{branchId}")
      ResponseEntity<ResponseStructure<List<WardBoyDTO>>> getWardBoysByClinicIdAndBranchId(
-             @PathVariable("clinicId") String clinicId,
+    		 @RequestHeader("Authorization") String token,    @PathVariable("clinicId") String clinicId,
              @PathVariable("branchId") String branchId
      );
      
 ///////////Administrator//////////
 @PostMapping("/clinic-admin/addAdministrator")
-ResponseStructure<AdministratorDTO> addAdministrator(@RequestBody AdministratorDTO dto);
+ResponseStructure<AdministratorDTO> addAdministrator(@RequestHeader("Authorization") String token,@RequestBody AdministratorDTO dto);
 
 @GetMapping("/clinic-admin/getAllAdministrators/{clinicId}")
-ResponseStructure<List<AdministratorDTO>> getAllAdministratorsByClinic(@PathVariable String clinicId);
+ResponseStructure<List<AdministratorDTO>> getAllAdministratorsByClinic(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
 
 @GetMapping("/clinic-admin/getAllAdministrators/{clinicId}/{branchId}")
-ResponseStructure<List<AdministratorDTO>> getAllAdministratorsByClinicAndBranch(@PathVariable String clinicId,
+ResponseStructure<List<AdministratorDTO>> getAllAdministratorsByClinicAndBranch(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                                                                 @PathVariable String branchId);
 
 @GetMapping("/clinic-admin/getAdministrator/{clinicId}/{adminId}")
-ResponseStructure<AdministratorDTO> getAdministratorByClinicAndId(@PathVariable String clinicId,
+ResponseStructure<AdministratorDTO> getAdministratorByClinicAndId(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                                                   @PathVariable String adminId);
 
 @GetMapping("/clinic-admin/getAdministrator/{clinicId}/{branchId}/{adminId}")
-ResponseStructure<AdministratorDTO> getAdministratorByClinicBranchAndAdminId(@PathVariable String clinicId,
+ResponseStructure<AdministratorDTO> getAdministratorByClinicBranchAndAdminId(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                                                              @PathVariable String branchId,
                                                                              @PathVariable String adminId);
 
 @PutMapping("/clinic-admin/updateAdministrator/{clinicId}/{adminId}")
-ResponseStructure<AdministratorDTO> updateAdministrator(@PathVariable String clinicId,
+ResponseStructure<AdministratorDTO> updateAdministrator(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                                         @PathVariable String adminId,
                                                         @RequestBody AdministratorDTO dto);
 
 @PutMapping("/clinic-admin/updateAdministrator/{clinicId}/{branchId}/{adminId}")
-ResponseStructure<AdministratorDTO> updateAdministratorUsingClinicBranchAndAdminId(@PathVariable String clinicId,
+ResponseStructure<AdministratorDTO> updateAdministratorUsingClinicBranchAndAdminId(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                                                                     @PathVariable String branchId,
                                                                                     @PathVariable String adminId,
                                                                                     @RequestBody AdministratorDTO dto);
 
 @DeleteMapping("/clinic-admin/deleteAdministrator/{clinicId}/{adminId}")
-ResponseStructure<String> deleteAdministrator(@PathVariable String clinicId,
+ResponseStructure<String> deleteAdministrator(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                               @PathVariable String adminId);
 
 @DeleteMapping("/clinic-admin/deleteAdministrator/{clinicId}/{branchId}/{adminId}")
-ResponseStructure<String> deleteAdministratorUsingClinicBranchAndAdminId(@PathVariable String clinicId,
+ResponseStructure<String> deleteAdministratorUsingClinicBranchAndAdminId(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
                                                                          @PathVariable String branchId,
                                                                          @PathVariable String adminId);
 //------------------Doctor Availability----------------------------------------------------------------------------------------
 @PostMapping("clinic-admin/doctorId/{doctorId}/availability")
-public ResponseEntity<Response> doctorAvailabilityStatus(@PathVariable String doctorId,
+public ResponseEntity<Response> doctorAvailabilityStatus(@RequestHeader("Authorization") String token,@PathVariable String doctorId,
 	@RequestBody DoctorAvailabilityStatusDTO status);
 
 
 //    @PutMapping("/clinic-admin/updateDoctorSlotWhileBooking/{doctorId}/{branchId}/{date}/{time}")
 //    public boolean updateDoctorSlotWhileBooking(@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
 //                                                @PathVariable String time);
-}
+
  
+// ---------------------- Fallback Method ----------------------
+default ResponseEntity<?> clinicAdminServiceFallBack(Exception e) {
+    return ResponseEntity.status(503).body(
+            new Response(false, null, "CLINIC ADMIN SERVICE NOT AVAILABLE", 503,null,null,null, null,null)
+    );
+}}
  
         
     

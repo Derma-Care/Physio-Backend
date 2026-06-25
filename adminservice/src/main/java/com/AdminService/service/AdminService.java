@@ -51,12 +51,12 @@ public Response deleteClinicCredentials(String userName );
 
 
 //CUSTOMER MANAGEMENT
-public Response saveCustomerBasicDetails(CustomerDTO customerDTO );
-public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input);
-public Response getCustomerBasicDetails(String mobileNumber );
-public Response getAllCustomers();
-public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber );
-public Response deleteCustomerBasicDetails(String mobileNumber);
+//public Response saveCustomerBasicDetails(CustomerDTO customerDTO );
+//public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input);
+//public Response getCustomerBasicDetails(String mobileNumber );
+//public Response getAllCustomers();
+//public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber );
+//public Response deleteCustomerBasicDetails(String mobileNumber);
 
 //SUBSERVICES
 //public Response getAllSubServicesFromClincAdmin();

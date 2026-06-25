@@ -1,5 +1,8 @@
 package com.dermaCare.customerService.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,13 +28,15 @@ public class CustomCustomerDetailsService implements UserDetailsService{
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		CustomerLoginDTO dto = new CustomerLoginDTO();
-		dto.setUserName(username);
-		dto.setDeviceId(deviceId);
-		 Response res = clinicAdminFeign.login(dto).getBody();
+		 Map<String,String> credentials = new LinkedHashMap<>();
+		 credentials.put("username",username);
+		 credentials.put("deviceId",deviceId);
+		 Response res = clinicAdminFeign.login(credentials).getBody();
+		/// System.out.println(res);
 		 if(res.getData()!=null) {
-			 CustomerLoginDTO customerLoginDTO = new ObjectMapper().convertValue(res, CustomerLoginDTO.class);
-			 rolesStore.setRoles(dto.getRoles()); 
+			 CustomerLoginDTO customerLoginDTO = new ObjectMapper().convertValue(res.getData(), CustomerLoginDTO.class);
+			 rolesStore.setRoles(customerLoginDTO.getRoles()); 
+			 ///System.out.println(customerLoginDTO);
 			 return customerLoginDTO;
 		 }else {
 			 return null;

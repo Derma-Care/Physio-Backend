@@ -171,6 +171,30 @@ public class DoctorMapper {
 //			consultationDTO.setVideoOrOnline(doctor.getConsultation().getVideoOrOnline());
 //			dto.setConsultation(consultationDTO);
 //		}
+		
+		if (doctor.getBankAccountDetails() != null) {
+
+		    BankAccountDetails bankDetails = new BankAccountDetails();
+
+		    bankDetails.setAccountHolderName(
+		            doctor.getBankAccountDetails().getAccountHolderName());
+
+		    bankDetails.setAccountNumber(
+		            doctor.getBankAccountDetails().getAccountNumber());
+
+		    bankDetails.setBankName(
+		            doctor.getBankAccountDetails().getBankName());
+
+		    bankDetails.setBranchName(
+		            doctor.getBankAccountDetails().getBranchName());
+
+		    bankDetails.setIfscCode(
+		            doctor.getBankAccountDetails().getIfscCode());
+		    
+		    bankDetails.setPanCardNumber(doctor.getBankAccountDetails().getPanCardNumber());
+		           		    
+		    dto.setBankAccountDetails(bankDetails);
+		}
 
 		if (doctor.getBankAccountDetails() != null) {
 

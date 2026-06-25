@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     private final DoctorTemplateRepository repository;
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response createTemplate(DoctorTemplateDTO dto) {
         try {
             String normalizedTitle = dto.getTitle().trim().replaceAll("\\s+", " ").toLowerCase();
@@ -98,6 +100,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getTemplateById(String id) {
         Optional<DoctorTemplate> template = repository.findById(id);
         if (template.isPresent()) {
@@ -120,6 +123,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getAllTemplates() {
         List<DoctorTemplate> templates = repository.findAll();
         List<DoctorTemplateDTO> dtos = templates.stream()
@@ -136,6 +140,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response deleteTemplate(String id) {
         Optional<DoctorTemplate> existing = repository.findById(id);
         if (existing.isPresent()) {
@@ -255,6 +260,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public ResponseEntity<Response> updateTemplate(String id, DoctorTemplateDTO dto) {
         Optional<DoctorTemplate> existingTemplate = repository.findById(id);
 
@@ -306,6 +312,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response searchTemplatesByTitle(String keyword) {
         try {
             if (keyword == null || keyword.trim().isEmpty()) {
@@ -535,6 +542,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
     
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getTemplatesByClinicIdAndTitle(String clinicId, String title) {
         try {
             if (clinicId == null || clinicId.trim().isEmpty() ||

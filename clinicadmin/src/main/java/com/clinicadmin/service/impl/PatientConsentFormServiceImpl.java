@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.BookingResponse;
@@ -19,29 +20,37 @@ import com.clinicadmin.repository.DoctorsRepository;
 import com.clinicadmin.repository.PatientConsentFormRepository;
 import com.clinicadmin.service.PatientConsentFormService;
 import com.clinicadmin.utils.Base64CompressionUtil;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class PatientConsentFormServiceImpl implements PatientConsentFormService {
+	
 	@Autowired
-	PatientConsentFormRepository patientConsentFormRepository;
+	private PatientConsentFormRepository patientConsentFormRepository;
 
 	@Autowired
-	DoctorsRepository doctorsRepository;
+	private DoctorsRepository doctorsRepository;
 
 	@Autowired
-	BookingFeign bookingFeign;
+	private BookingFeign bookingFeign;
+	
+	@Autowired	
+	private KeyCloakTokenStore keyCloakTokenStore;
+	
+	@Autowired
+	private AdminServiceClient adminServiceClient;
 
 	@Autowired
-	AdminServiceClient adminServiceClient;
-
-	@Autowired
-	ObjectMapper objectMapper;
+	private ObjectMapper objectMapper;
+	
+	
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public Response getPatientDetailsForFormUsingBooking(String bookingId, String patientId, String mobileNumber) {
 		Response response = new Response();
-		ResponseEntity<Response> responseEntity = bookingFeign.getPatientDetailsForConsentForm(bookingId, patientId,
+		ResponseEntity<Response> responseEntity = bookingFeign.getPatientDetailsForConsentForm(keyCloakTokenStore.getAccess_token(),bookingId, patientId,
 				mobileNumber);
 		Response resData = responseEntity.getBody();
 
@@ -64,7 +73,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 		}
 
- ResponseEntity<Response> clinicData =	adminServiceClient.getClinicById(bookingDto.getClinicId());
+ ResponseEntity<Response> clinicData =	adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),bookingDto.getClinicId());
  ClinicDTO clinics = objectMapper.convertValue(clinicData.getBody().getData(), ClinicDTO.class);
 	if (clinics == null) {
 		response.setSuccess(false);
@@ -77,7 +86,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 		String decompressedSignature = Base64CompressionUtil.decompressBase64(doctordata.getDoctorSignature());
 
-		ResponseEntity<Response> adminRes = adminServiceClient.getClinicById(bookingDto.getClinicId());
+		ResponseEntity<Response> adminRes = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),bookingDto.getClinicId());
 		Response clinicRes = adminRes.getBody();
         ClinicDTO clincDTO = objectMapper.convertValue(clinicRes.getData(), ClinicDTO.class);
         String decompressedLogo =  Base64CompressionUtil.decompressBase64(clinics.getHospitalLogo());
@@ -124,6 +133,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public Response updatePatientConsentForm(String id, PatientConsentFormDTO dto) {
 		Response response = new Response();
 

@@ -132,6 +132,7 @@ public class DoctorsDTO {
 	private String createdAt;
 
 	private String updatedDate;
+
 	private BankAccountDetails bankAccountDetails;
 	
 

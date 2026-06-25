@@ -22,9 +22,8 @@ public class BranchCredentials {
     private String userName;  
     private String password;  
     private String branchName;
-    private String role;
-    private Map<String, List<String>> permissions;
-
+    private List<String> roles;
+    private Map<String, Map<String, List<String>>> permissions;
 
 }
 

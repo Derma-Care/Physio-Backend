@@ -23,11 +23,9 @@ import physiotherapydoctor.serviceImpl.CustomDoctorLoginDetailsService;
 import physiotherapydoctor.util.JWTAthenticationEntryPoint;
 import physiotherapydoctor.util.JwtAuthFilter;
 
-
-
 @Configuration
 @EnableWebSecurity
-//@EnableMethodSecurity(securedEnabled = true)
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 	
 	 @Autowired 
@@ -41,8 +39,7 @@ public class SecurityConfig {
 	    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 	        http.csrf(csrf -> csrf.disable())
 	            .authorizeHttpRequests(auth -> auth
-	                .requestMatchers("/clinic-admin/clinicLogin","/clinic-admin/doctorLogin/**",
-	                "/clinic-admin/customers/login","/clinic-admin/newAccessTokenForClinicAdminService")
+	                .requestMatchers("/physiotherapy-doctor/doctorLogin","/physiotherapy-doctor/newAccessTokenForClinicAdminService")
 	                .permitAll()
 	                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 	                .anyRequest().authenticated()

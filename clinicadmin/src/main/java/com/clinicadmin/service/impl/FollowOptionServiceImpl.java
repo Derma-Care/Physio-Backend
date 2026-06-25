@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.FollowOptionDTO;
@@ -34,6 +35,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response create(FollowOptionDTO dto) {
         FollowOption saved = repository.save(toEntity(dto));
         return Response.builder()
@@ -45,6 +47,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAll() {
         List<FollowOptionDTO> all = repository.findAll()
                 .stream()
@@ -60,6 +63,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getById(String id) {
         Optional<FollowOption> option = repository.findById(id);
         if (option.isPresent()) {
@@ -78,6 +82,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
         }
     }
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response update(String id, FollowOptionDTO dto) {
         if (dto == null || dto.getFollowOptions() == null || dto.getFollowOptions().isEmpty()) {
             return Response.builder()
@@ -134,6 +139,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response delete(String id) {
         if (repository.existsById(id)) {
             repository.deleteById(id);

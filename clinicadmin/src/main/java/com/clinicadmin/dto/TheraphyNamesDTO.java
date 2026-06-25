@@ -11,6 +11,6 @@ public class TheraphyNamesDTO {
 	
 	private String theraphyId;
 	private String theraphyName;
-	private double theraphyTotalAmount;
+	private int theraphyTotalAmount;
 
 }

@@ -31,7 +31,7 @@ public interface DoctorSlotService {
 
     Response deleteDoctorSlot(String doctorId, String date, String slot);
 
-    Response deleteDoctorSlotsByDate(String doctorId, String date);
+    //Response deleteDoctorSlotsByDate(String doctorId, String date);
 
     Response deleteDoctorSlotsByDate(String doctorId, String branchId, String date);
 

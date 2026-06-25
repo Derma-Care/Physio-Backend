@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.CustomConsentFormDTO;
@@ -169,6 +170,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// ------------------------------- Get Consent Form
 	// -------------------------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getConsentForm(String hospitalId, String consentFormType) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -213,6 +215,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getProcedureConsentForm(String hospitalId, String subServiceId) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -276,6 +279,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// ------------------------------- Get All Consent Forms by Hospital
 	// -------------------------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getAllConsentFormsByHospital(String hospitalId) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -300,6 +304,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	}
 	// ------------------------------- Delete Consent Form by ID -------------------------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response deleteConsentFormById(String formId) {
 	    if (formId == null || formId.trim().isEmpty()) {
 	        return buildErrorResponse("Consent Form ID cannot be null or empty", 400);

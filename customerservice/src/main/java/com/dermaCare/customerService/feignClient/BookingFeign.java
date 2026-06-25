@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.dermaCare.customerService.dto.BookingRequset;
 import com.dermaCare.customerService.dto.BookingResponse;
@@ -71,7 +72,7 @@ public interface BookingFeign {
 	        @PathVariable String branchId);
 	
 	@GetMapping("/api/v1/booking/customerId/{customerId}")
-	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@PathVariable String customerId);
+	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getBookingByCustomerId(@RequestHeader("Authorization") String token,@PathVariable String customerId);
 
 	@GetMapping("/api/v1/appointments/Inprogress/{customerId}")
 	public ResponseEntity<?> getInprogressAppointmentsByCustomerId(@PathVariable String customerId);

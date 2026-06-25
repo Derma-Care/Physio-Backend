@@ -15,5 +15,6 @@ public interface DoctorLoginCredentialsRepository extends MongoRepository<Doctor
             String hospitalId,
             String branchId
     );
+	void deleteByStaffId(String therapistId);
     
 }

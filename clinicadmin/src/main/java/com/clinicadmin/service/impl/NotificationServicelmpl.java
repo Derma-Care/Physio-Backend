@@ -4,6 +4,7 @@ import java.util.Base64;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,7 +27,7 @@ public class NotificationServicelmpl implements NotificationService {
 	@Autowired
 	private NotificationFeign notificationFeign;
 	
-	
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<?> storeImageForNotification(ImageForNotificationDto imageForNotificationDto){
 		Response response = new Response();
 		try {
@@ -64,7 +65,7 @@ public class NotificationServicelmpl implements NotificationService {
 				return null;
 		}			
 }
-	
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<?> pricedrop(PriceDropAlertDto priceDropAlertDto){
 		Response response = new Response();		
 		try {
@@ -78,7 +79,7 @@ public class NotificationServicelmpl implements NotificationService {
 		
 	}
 	
-	
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<?> priceDropNotification(String clinicId, String branchId ){
 		Response response = new Response();		
 		try {
@@ -92,7 +93,7 @@ public class NotificationServicelmpl implements NotificationService {
 		
 	}
 	
-	
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<?> updatePriceDropNotification(String clinicId, String branchId,String id, PriceDropAlertDto dto ){
 		Response response = new Response();		
 		try {
@@ -106,7 +107,7 @@ public class NotificationServicelmpl implements NotificationService {
 		
 	}
 	
-	
+	 @Secured("ROLE_CLINICADMIN")
 	public ResponseEntity<?> deletePriceDropNotification(String clinicId, String branchId,String id){
 		Response response = new Response();		
 		try {

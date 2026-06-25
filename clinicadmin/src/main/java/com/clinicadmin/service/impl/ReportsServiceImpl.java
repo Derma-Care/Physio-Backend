@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.BookingResponse;
@@ -22,7 +23,7 @@ import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.ReportsRepository;
 import com.clinicadmin.service.ReportsService;
 import com.clinicadmin.service.S3Service;
-
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import feign.FeignException;
 
 @Service
@@ -33,7 +34,10 @@ public class ReportsServiceImpl implements ReportsService {
 
     @Autowired
     private BookingFeign bookingFeign;
-
+    
+    @Autowired	
+	public KeyCloakTokenStore keyCloakTokenStore;
+	
     @Autowired
     private S3Service s3Service;
 
@@ -137,6 +141,7 @@ public class ReportsServiceImpl implements ReportsService {
     //              → POST here with fileKeys in reportFile field
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response saveReports(ReportsDtoList dto) {
         try {
             if (dto == null || dto.getReportsList() == null || dto.getReportsList().isEmpty()) {
@@ -191,8 +196,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             // ── Fetch booking & sync ────────────────────────────────
             ResponseEntity<ResponseStructure<BookingResponse>> response =
-                    bookingFeign.getBookedService(bookingId);
-
+                    bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
             BookingResponse bookingData =
                     response.getBody() != null ? response.getBody().getData() : null;
 
@@ -208,7 +212,7 @@ public class ReportsServiceImpl implements ReportsService {
                 dto.setCustomerId(bookingData.getCustomerId());
                 dto.setPatientId(bookingData.getPatientId());
 
-                bookingFeign.updateAppointmentBasedOnBookingId(bookingData);
+                bookingFeign.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),bookingData);
             }
 
             // ── Save to MongoDB ─────────────────────────────────────
@@ -246,6 +250,7 @@ public class ReportsServiceImpl implements ReportsService {
     // GET REPORTS BY BOOKING ID
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getReportsByBookingId(String bookingId) {
         Response res = new Response();
         try {
@@ -281,6 +286,7 @@ public class ReportsServiceImpl implements ReportsService {
     // GET ALL REPORTS
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllReports() {
         Response res = new Response();
         try {
@@ -315,6 +321,7 @@ public class ReportsServiceImpl implements ReportsService {
     // GET REPORTS BY CUSTOMER ID
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getReportsByCustomerId(String customerId) {
         Response res = new Response();
         try {
@@ -350,6 +357,7 @@ public class ReportsServiceImpl implements ReportsService {
     // GET REPORTS BY PATIENT ID + BOOKING ID
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getReportsByPatientIdAndBookingId(String patientId, String bookingId) {
         Response res = new Response();
         try {
@@ -386,6 +394,7 @@ public class ReportsServiceImpl implements ReportsService {
     // UPDATE REPORT
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateReport(String reportId, ReportsDtoList dto) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -508,6 +517,7 @@ public class ReportsServiceImpl implements ReportsService {
     // DELETE FULL REPORT DOCUMENT
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteReport(String reportId) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -526,7 +536,7 @@ public class ReportsServiceImpl implements ReportsService {
             if (reportsList.getReportsList() != null
                     && !reportsList.getReportsList().isEmpty()) {
                 Reports reports = reportsList.getReportsList().get(0);
-                bookingFeign.deleteReport(reports.getBookingId(), "null");
+                bookingFeign.deleteReport(keyCloakTokenStore.getAccess_token(),reports.getBookingId(), "null");
             }
 
             reportsRepository.deleteById(reportId);
@@ -552,6 +562,7 @@ public class ReportsServiceImpl implements ReportsService {
     // DELETE SINGLE REPORT FILE BY INDEX
     // ─────────────────────────────────────────────────────────────────
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteReportFile(String reportId, String bookingId, int fileIndex) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -584,7 +595,7 @@ public class ReportsServiceImpl implements ReportsService {
                     }
 
                     fileKeys.remove(fileIndex);
-                    bookingFeign.deleteReport(bookingId, String.valueOf(fileIndex));
+                    bookingFeign.deleteReport(keyCloakTokenStore.getAccess_token(),bookingId, String.valueOf(fileIndex));
 
                     if (fileKeys.isEmpty()) {
                         reportEntries.remove(i);

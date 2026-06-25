@@ -1,18 +1,14 @@
 package com.clinicadmin.service;
 
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.http.ResponseEntity;
-
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Response;
-import com.clinicadmin.dto.ResponseStructure;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface BookingService {
-	public Response deleteBookedService(String id);
+	
+	public ResponseEntity<?>  deleteBookedService(String id);
 
 	public ResponseEntity<?> getAllBookedServicesDetailsByBranchId(String branchId,int page);
 

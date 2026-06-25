@@ -13,6 +13,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,6 +23,7 @@ import com.clinicadmin.dto.DailyAllUsersResponseDTO;
 import com.clinicadmin.dto.DailyAttendanceResponseDTO;
 import com.clinicadmin.dto.MonthlyAttendanceResponseDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.Session;
 import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
@@ -33,6 +35,7 @@ import com.clinicadmin.repository.AttendanceRepository;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.service.AttendanceService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,11 +49,15 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     private final TherapistAttendanceRepository therapistAttendanceRepo;
     
-
+    @Autowired
+    private KeyCloakTokenStore keyCloakTokenStore;
+    
+ 
     @Autowired
     private DoctorLoginCredentialsRepository credentialsRepository;
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response save(AttendanceDTO dto) {
 
         Response response = new Response();
@@ -155,10 +162,47 @@ public class AttendanceServiceImpl implements AttendanceService {
                     entity.getActivities().add(act);
                 }
             }
+            if ("PHYSIOTHERAPIST".equalsIgnoreCase(dto.getRole())) {
 
+                TherapistAttendance attendance =
+                        therapistAttendanceRepo.findByTherapistIdAndDate(
+                                entity.getUserId(),
+                                entity.getDate()
+                        );
+
+                if (attendance == null) {
+
+                    attendance = new TherapistAttendance();
+                    attendance.setTherapistId(entity.getUserId());
+                    attendance.setDate(entity.getDate());
+                }
+
+                // ✅ Clinic & Branch
+                attendance.setClinicId(entity.getClinicId());
+                attendance.setBranchId(entity.getBranchId());
+
+                // ✅ Login / Logout
+                attendance.setStatus(entity.getStatus());
+                attendance.setLogin(entity.getLogin());
+                attendance.setLogout(entity.getLogout());
+
+                attendance.setLogTime(entity.getLogTime());
+                attendance.setWorkingHours(entity.getWorkingHours());
+                attendance.setIdleTime(entity.getIdleTime());
+
+                TherapistAttendance savedAttendance =
+                        therapistAttendanceRepo.save(attendance);
+
+                response.setSuccess(true);
+                response.setMessage("Therapist attendance saved successfully");
+                response.setData(savedAttendance);
+                response.setStatus(201);
+
+                return response;
+            }
             repo.save(entity);
-
             response.setSuccess(true);
+            
             response.setMessage(
                     existingOpt.isPresent()
                             ? "Activity added to existing attendance"
@@ -171,12 +215,13 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             response.setSuccess(false);  
             response.setMessage(e.getMessage());
-            response.setStatus(400);     
+            response.setStatus(200);     
         }
 
         return response;
     }
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateActivity(AttendanceDTO dto) {
 
         Response response = new Response();
@@ -429,6 +474,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         return response;
     }
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getDaily(String userId, String date) {
 
         Response response = new Response();
@@ -587,6 +633,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getMonthlyReport(String userId, String month) {
 
         Response response = new Response();
@@ -929,6 +976,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             return "Unknown";
         }
     }
+    
     private void validateLoginDistance(
             String clinicId,
             String branchId,
@@ -939,7 +987,7 @@ public class AttendanceServiceImpl implements AttendanceService {
       
             // 🔥 Get complete clinic details
             ResponseEntity<Response> responseEntity =
-                    adminServiceClient.getClinicById(clinicId);
+                    adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),clinicId);
 
             if (responseEntity == null
                     || responseEntity.getBody() == null
@@ -948,11 +996,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
             
             try {
-    	        // 🔥 DOCTOR — skip all distance validation
     	       
-				if ("doctor".equalsIgnoreCase(role)) {
-    	            return;
-    	        }
+            	// 🔥 DOCTOR & PHYSIOTHERAPIST — skip all distance validation
+            	if ("doctor".equalsIgnoreCase(role)
+            	        || "physiotherapist".equalsIgnoreCase(role)) {
+            	    return;
+            	}
 				
 				  // ✅ BRANCH ID CHECK — required for non-doctors
 		        if (branchId == null || branchId.isBlank()) {
@@ -1070,7 +1119,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return EARTH_RADIUS * c;
     }
+    
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getDailyByClinicAndBranch(
             String clinicId,
             String branchId,
@@ -1260,7 +1311,7 @@ public class AttendanceServiceImpl implements AttendanceService {
       try {
 
           ResponseEntity<Response> branchResponse =
-                  adminServiceClient.getAllBranches();
+                  adminServiceClient.getAllBranches(keyCloakTokenStore.getAccess_token());
 
           if (branchResponse.getBody() != null
                   && branchResponse.getBody().getData() != null) {
@@ -1269,7 +1320,7 @@ public class AttendanceServiceImpl implements AttendanceService {
               Map<String, String> clinicNameMap = new HashMap<>();
               try {
                   ResponseEntity<Response> clinicRes =
-                          adminServiceClient.getAllClinics();
+                          adminServiceClient.getAllClinics(keyCloakTokenStore.getAccess_token());
                   if (clinicRes.getBody() != null
                           && clinicRes.getBody().getData() != null) {
                       List<Map<String, Object>> cls =
@@ -1820,6 +1871,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getMonthlyByClinicAndBranch(
             String clinicId,
             String branchId,
@@ -1921,6 +1973,42 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
 
         return response;
+    }
+    private void saveTherapistAttendance(Attendance attendance) {
+
+        if (attendance == null
+                || attendance.getRole() == null
+                || !"PHYSIOTHERAPIST".equalsIgnoreCase(attendance.getRole())) {
+            return;
+        }
+
+        TherapistAttendance therapistAttendance =
+                therapistAttendanceRepo.findByTherapistIdAndDate(
+                        attendance.getUserId(),
+                        attendance.getDate()
+                );
+
+        if (therapistAttendance == null) {
+
+            therapistAttendance = new TherapistAttendance();
+            therapistAttendance.setTherapistId(attendance.getUserId());
+            therapistAttendance.setDate(attendance.getDate());
+        }
+
+        therapistAttendance.setStatus(attendance.getStatus());
+        therapistAttendance.setLogTime(attendance.getLogTime());
+        therapistAttendance.setWorkingHours(attendance.getWorkingHours());
+        therapistAttendance.setIdleTime(attendance.getIdleTime());
+
+        if (attendance.getLogin() != null) {
+            therapistAttendance.setLogin(attendance.getLogin());
+        }
+
+        if (attendance.getLogout() != null) {
+            therapistAttendance.setLogout(attendance.getLogout());
+        }
+
+        therapistAttendanceRepo.save(therapistAttendance);
     }
    
 }

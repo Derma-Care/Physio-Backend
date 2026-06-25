@@ -15,7 +15,7 @@ import com.dermacare.bookingService.util.JwtAuthFilter;
 
 @Configuration
 @EnableWebSecurity
-//@EnableMethodSecurity(securedEnabled = true)
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 	
 	 @Autowired 

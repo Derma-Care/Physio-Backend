@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,6 +26,7 @@ import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
@@ -38,8 +40,13 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Autowired
     private S3Service s3Service;
+    
+    @Autowired	
+   	public KeyCloakTokenStore keyCloakTokenStore;
+   	
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
 
         if (dto == null) {
@@ -86,7 +93,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                     && dto.getSessionId() != null
                     && !dto.getSessionId().trim().isEmpty()) {
 
-                physiotherapyFeignClient.updateSessionStatus(
+                physiotherapyFeignClient.updateSessionStatus(keyCloakTokenStore.getAccess_token(),
                         dto.getTherapistRecordId().trim(),
                         dto.getSessionId().trim()
                 );
@@ -108,6 +115,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     // ================= GET =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapistRecordDTO> getByIds(
             String clinicId, String branchId, String therapistRecordId,String sessionId) {
 
@@ -241,6 +249,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
  // ===================== getByPatientIdAndBookingId =====================
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
             String patientId,
             String bookingId) {
@@ -266,6 +275,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     
  // ================= GET BY SESSION =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapistRecordDTO> getBySession(
             String clinicId,
             String branchId,
@@ -299,6 +309,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                 200
         );
     }
+    
+    
     private String getCityFromLatLong(String lat, String lon) {
 
         try {
@@ -346,7 +358,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         }
     }
     
-   
+    @Secured("ROLE_CLINICADMIN")
     public Response getTherapistSessionDetails(
             TherapistRecordRequest request) {
 
@@ -404,6 +416,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecord(
             String clinicId,
             String branchId,

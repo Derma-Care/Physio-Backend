@@ -1,6 +1,7 @@
 package com.AdminService.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,8 +26,10 @@ import com.AdminService.entity.Branch;
 import com.AdminService.entity.BranchCounter;
 import com.AdminService.entity.BranchCredentials;
 import com.AdminService.entity.Clinic;
+import com.AdminService.entity.ClinicCredentials;
 import com.AdminService.repository.BranchCredentialsRepository;
 import com.AdminService.repository.BranchRepository;
+import com.AdminService.repository.ClinicCredentialsRepository;
 import com.AdminService.repository.ClinicRep;
 import com.AdminService.util.PermissionsUtil;
 import com.AdminService.util.Response;
@@ -41,11 +46,20 @@ public class BranchServiceImpl implements BranchService {
     @Autowired
     private MongoOperations mongoOperations;
 
-    @Autowired
-    private BranchCredentialsRepository branchCredentialsRepository;
-    
+	
+	@Autowired
+	private ClinicCredentialsRepository clinicCredentialsRepository;
+	
+//	@Autowired
+//	private BranchCredentialsRepository branchCredentialsRepository;
+//	    
+
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+	private PasswordEncoder passwordEncoder;
+
 
     private static class PasswordGenerator {
         private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -68,6 +82,7 @@ public class BranchServiceImpl implements BranchService {
  // ---------------------- CREATE BRANCH  ----------------------
     @Override
     @Transactional
+	@Secured("ROLE_ADMIN")
     public Response createBranch(BranchDTO dto) {
 
         Response res = new Response();
@@ -106,7 +121,7 @@ public class BranchServiceImpl implements BranchService {
 
             // ---------------- Create Branch ----------------
             Branch branch = convertDtoToEntity(dto, branchId);
-            branch.setRole("ADMIN");
+            branch.setRole("ROLE_ADMIN");
             branch.setPermissions(PermissionsUtil.getAdminPermissions());
             branch.setStatus("ACTIVE");
 
@@ -129,15 +144,19 @@ public class BranchServiceImpl implements BranchService {
             String tempPassword = PasswordGenerator.generatePassword(10);
 
             // ---------------- Save Credentials ----------------
-            BranchCredentials credentials = new BranchCredentials();
-            credentials.setBranchId(branchId);
+            ClinicCredentials credentials = new ClinicCredentials();
             credentials.setUserName(branchId);
-            credentials.setPassword(tempPassword);
-            credentials.setBranchName(savedBranch.getBranchName());
-            credentials.setRole(savedBranch.getRole());
-            credentials.setPermissions(savedBranch.getPermissions());
+            credentials.setPassword(passwordEncoder.encode(tempPassword));
+            credentials.setHospitalName(savedBranch.getHospitalName());
+            credentials.setRoles(Collections.singletonList("ROLE_CLINICADMIN"));
+            Map<String, Map<String, List<String>>> permissionWrapper = new HashMap<>();
+	        permissionWrapper.put(
+	                "ADMIN",
+	                PermissionsUtil.getAdminPermissions()
+	        );
+            credentials.setPermissions(permissionWrapper);
 
-            branchCredentialsRepository.save(credentials);
+            clinicCredentialsRepository.save(credentials);
 
             // ---------------- Send Email ----------------
             if (savedBranch.getEmail() != null && !savedBranch.getEmail().isBlank()) {
@@ -361,6 +380,7 @@ public class BranchServiceImpl implements BranchService {
 
     // ---------------------- GET BRANCH BY ID ----------------------
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<?> getBranchById(String branchId) {
         Response response = new Response();
         try {
@@ -385,6 +405,7 @@ public class BranchServiceImpl implements BranchService {
 
     // ---------------------- UPDATE BRANCH ----------------------
     @Override
+	@Secured("ROLE_ADMIN")
     public Response updateBranch(String branchId, BranchDTO branchDto) {
 
         Response response = new Response();
@@ -495,6 +516,7 @@ public class BranchServiceImpl implements BranchService {
     }
     // ---------------------- DELETE BRANCH ----------------------
     @Override
+	@Secured("ROLE_ADMIN")
     public Response deleteBranch(String branchId) {
         Response response = new Response();
         try {
@@ -503,9 +525,9 @@ public class BranchServiceImpl implements BranchService {
                 Branch branch = existingBranch.get();
 
                 // Delete BranchCredentials
-                List<BranchCredentials> credentialsList = branchCredentialsRepository.findByBranchId(branchId);
-                if (credentialsList != null && !credentialsList.isEmpty()) {
-                    branchCredentialsRepository.deleteAll(credentialsList);
+                ClinicCredentials credentialsList = clinicCredentialsRepository.findByUserName(branchId);
+                if (credentialsList != null) {
+                	clinicCredentialsRepository.delete(credentialsList);
                 }
 
                 // Delete Branch from Branches collection
@@ -540,6 +562,7 @@ public class BranchServiceImpl implements BranchService {
     }
     // ---------------------- GET BRANCHES BY CLINIC ID ----------------------
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<?> getBranchByClinicId(String clinicId) {
         Response response = new Response();
         try {
@@ -563,6 +586,7 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response getBranchesByClinicId(String clinicId) {
         Response response = new Response();
         try {
@@ -650,6 +674,7 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response getAllBranches() {
         Response response = new Response();
         try {
@@ -668,6 +693,7 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<?> getBranchByClinicAndBranchId(String clinicId, String branchId) {
         Response response = new Response();
         try {

@@ -1,6 +1,7 @@
 package physiotherapydoctor.feign;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import physiotherapydoctor.dto.BookingResponse;
@@ -26,35 +28,36 @@ import physiotherapydoctor.dto.VitalsDTO;
 
 @FeignClient(name = "clinicadmin")
 public interface ClinicAdminFeign {
-	
+
 	@PostMapping("/clinic-admin/doctorLogin")
-	public ResponseEntity<Response> doctorLogin(@RequestBody DoctorLoginDTO loginDTO);
+	public ResponseEntity<Response> doctorLogin(@RequestBody  Map<String,String> dto);
 	
+
 	 @PutMapping("/clinic-admin/update-password/{username}")
-	    Response changePassword(@PathVariable("username") String username, @RequestBody ChangeDoctorPasswordDTO updateDTO);
+	    Response changePassword(@RequestHeader("Authorization") String token,@PathVariable("username") String username, @RequestBody ChangeDoctorPasswordDTO updateDTO);
 	 
 	 @PostMapping("/clinic-admin/doctorId/{doctorId}/availability")
-	 Response updateDoctorAvailability(@PathVariable("doctorId") String doctorId,
+	 Response updateDoctorAvailability(@RequestHeader("Authorization") String token,@PathVariable("doctorId") String doctorId,
 	                                   @RequestBody DoctorAvailabilityStatusDTO availabilityDTO);
 	 
 
     // ✅ Get booking by bookingId
     @GetMapping("/clinic-admin/getBookingById/{bookingId}")
-    ResponseStructure<BookingResponse> getBookingById(
+    ResponseStructure<BookingResponse> getBookingById(@RequestHeader("Authorization") String token,
             @PathVariable("bookingId") String bookingId);
 
     // ✅ Update booking status
     @PutMapping("/clinic-admin/updateAppointmentBasedOnBookingId")
-    ResponseEntity<?> updateAppointment(
+    ResponseEntity<?> updateAppointment(@RequestHeader("Authorization") String token,
             @RequestBody BookingResponse bookingResponse);
     
     @GetMapping("/clinic-admin/getByPatientIdAndBookingId/{patientId}/{bookingId}")
-    ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
+    ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(@RequestHeader("Authorization") String token,
             @PathVariable String patientId,
             @PathVariable String bookingId);
     
     @GetMapping("/clinic-admin/getRecordBySession/{clinicId}/{branchId}/{bookingId}/{patientId}/{sessionId}")
-    ResponseEntity<ResponseStructure<TherapistRecordDTO>> getRecordBySession(
+    ResponseEntity<ResponseStructure<TherapistRecordDTO>> getRecordBySession(@RequestHeader("Authorization") String token,
             @PathVariable String clinicId,
             @PathVariable String branchId,
             @PathVariable String bookingId,
@@ -63,94 +66,99 @@ public interface ClinicAdminFeign {
     
  // ================= GET Threapistdata by clinicId and Branch Id  with required field=================
  	@GetMapping("/clinic-admin/getTherapistWithRequiredFileds/{clinicId}/{branchId}")
- 	public ResponseEntity<Response> getTherapistWithRequiredFileds(@PathVariable String clinicId,
+ 	public ResponseEntity<Response> getTherapistWithRequiredFileds(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
  			@PathVariable String branchId);
  	
  	
  	@GetMapping("/clinic-admin/getCompletedTherapyRecord/{clinicId}/{branchId}/{therapistRecordId}/{sessionId}")
- 	ResponseEntity<ResponseStructure<TherapistRecordDTO>> getCompletedTherapyRecord(
+ 	ResponseEntity<ResponseStructure<TherapistRecordDTO>> getCompletedTherapyRecord(@RequestHeader("Authorization") String token,
  	        @PathVariable String clinicId,
  	        @PathVariable String branchId,
  	        @PathVariable String therapistRecordId,
  	        @PathVariable String sessionId);
  	
 	@PutMapping("/clinic-admin/updateDoctor/{doctorId}")
-	public ResponseEntity<Response> updateDoctorById(@PathVariable String doctorId,
+	public ResponseEntity<Response> updateDoctorById(@RequestHeader("Authorization") String token,@PathVariable String doctorId,
 			 @RequestBody DoctorsDTO dto) ;
 
 //	======================From doctor service========================
-		 
-//	--------------------------------- TreatmentFeignClient from clinic admin  -------------------------------------
-	 @PostMapping("/clinic-admin/treatment/addTreatment")
-	    public ResponseEntity<Response> addTreatment(@RequestBody TreatmentDTO dto);
-	 
-	  @GetMapping("/clinic-admin/treatment/getAllTreatments")
-	    public ResponseEntity<Response> getAllTreatments();
-	  
-	  @GetMapping("/clinic-admin/treatment/getTreatmentById/{id}/{hospitalId}")
-	    public ResponseEntity<Response> getTreatmentById(@PathVariable String id , @PathVariable String hospitalId);
-	  
-	  @DeleteMapping("/clinic-admin/treatment/deleteTreatmentById/{id}/{hospitalId}")
-	    public ResponseEntity<Response> deleteTreatmentById(@PathVariable String id, @PathVariable String hospitalId);
-	  
-	  @PutMapping("/clinic-admin/treatment/updateTreatmentById/{id}/{hospitalId}")
-	    public ResponseEntity<Response> updateTreatmentById(@PathVariable String id, @PathVariable String hospitalId, @RequestBody TreatmentDTO dto);
-	  
 
-	  
+//	--------------------------------- TreatmentFeignClient from clinic admin  -------------------------------------
+	@PostMapping("/clinic-admin/treatment/addTreatment")
+	public ResponseEntity<Response> addTreatment(@RequestBody TreatmentDTO dto);
+
 	  @GetMapping("/clinic-admin/doctors")
-		 public ResponseEntity<Response> getAllDoctors();
+		 public ResponseEntity<Response> getAllDoctors(@RequestHeader("Authorization") String token);
 		 
 		 @GetMapping("/clinic-admin/doctor/{id}")
-		 public ResponseEntity<Response> getDoctorById(@PathVariable String id);
+		 public ResponseEntity<Response> getDoctorById(@RequestHeader("Authorization") String token,@PathVariable String id);
 		 
 		 @GetMapping("/clinic-admin/clinic/{clinicId}/doctor/{doctorId}")
-			public ResponseEntity<Response> getDoctorByClinicAndDoctorId(@PathVariable String clinicId,
+			public ResponseEntity<Response> getDoctorByClinicAndDoctorId(@RequestHeader("Authorization") String token,@PathVariable String clinicId,
 					@PathVariable String doctorId);
 		 
 		 @GetMapping("/clinic-admin/doctors/hospitalById/{hospitalId}")
-			public ResponseEntity<Response> getDoctorsByHospitalById(@PathVariable String hospitalId);
+			public ResponseEntity<Response> getDoctorsByHospitalById(@RequestHeader("Authorization") String token,@PathVariable String hospitalId);
 		 
-		 @GetMapping("/clinic-admin/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
-			public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
-					@PathVariable String subServiceId);
+//		 @GetMapping("/clinic-admin/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
+//			public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
+//					@PathVariable String subServiceId);
+//		 
 		 
-		 
-		 @GetMapping("/clinic-admin/getAllDoctorsBySubServiceId/{subServiceId}")
-			public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId);
-		 
+//		 @GetMapping("/clinic-admin/getAllDoctorsBySubServiceId/{subServiceId}")
+//			public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId);
+//		 
 		 @GetMapping("/clinic-admin/clinic/{clinicId}")
-		 ResponseEntity<Response> getClinicById(@PathVariable String clinicId);
+		 ResponseEntity<Response> getClinicById(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
 
 		 @GetMapping("/clinics/doctor/{doctorId}")
-		    ClinicInfoDTO getClinicInfoByDoctorId(@PathVariable String doctorId);
+		    ClinicInfoDTO getClinicInfoByDoctorId(@RequestHeader("Authorization") String token,@PathVariable String doctorId);
 		
 		// ------------------------------ Vitals ------------------------------
 		 @PostMapping("/clinic-admin/addingVitals/{bookingId}")
-		    ResponseEntity<Response> addVitals(@PathVariable("bookingId") String bookingId,
+		    ResponseEntity<Response> addVitals(@RequestHeader("Authorization") String token,@PathVariable("bookingId") String bookingId,
 		                                       @RequestBody VitalsDTO dto);
 
 		    @GetMapping("/clinic-admin/getVitals/{bookingId}/{patientId}")
-		    ResponseEntity<Response> getVitals(@PathVariable("bookingId") String bookingId,
+		    ResponseEntity<Response> getVitals(@RequestHeader("Authorization") String token,@PathVariable("bookingId") String bookingId,
 		                                       @PathVariable("patientId") String patientId);
 
 		    @DeleteMapping("/clinic-admin/deleteVitals/{bookingId}/{patientId}")
-		    ResponseEntity<Response> delVitals(@PathVariable("bookingId") String bookingId,
+		    ResponseEntity<Response> delVitals(@RequestHeader("Authorization") String token,@PathVariable("bookingId") String bookingId,
 		                                       @PathVariable("patientId") String patientId);
 
 		    @PutMapping("/clinic-admin/updateVitals/{bookingId}/{patientId}")
-		    ResponseEntity<Response> updateVitals(@PathVariable("bookingId") String bookingId,
+		    ResponseEntity<Response> updateVitals(@RequestHeader("Authorization") String token,@PathVariable("bookingId") String bookingId,
 		                                          @PathVariable("patientId") String patientId,
 		                                          @RequestBody VitalsDTO dto);
 		    @GetMapping("/clinic-admin/diseases/{hospitalId}")
-		    public ResponseEntity<Response> getDiseasesByHospitalId(@PathVariable String hospitalId);
+		    public ResponseEntity<Response> getDiseasesByHospitalId(@RequestHeader("Authorization") String token,@PathVariable String hospitalId);
 		    
 		    @GetMapping("/clinic-admin/labtests/{hospitalId}")
 		    public ResponseEntity<Response> getLabTestsByHospitalId(@PathVariable String hospitalId);
 		    
 		    @GetMapping("/clinic-admin/api/s3/signed-url")
-		    ResponseEntity<String> getSignedUrl(@RequestParam("fileKey") String fileKey);
+		    ResponseEntity<String> getSignedUrl(@RequestHeader("Authorization") String token,@RequestParam("fileKey") String fileKey);
+
+	@GetMapping("/clinic-admin/treatment/getAllTreatments")
+	public ResponseEntity<Response> getAllTreatments(@RequestHeader("Authorization") String token);
+
+	@GetMapping("/clinic-admin/treatment/getTreatmentById/{id}/{hospitalId}")
+	public ResponseEntity<Response> getTreatmentById(@RequestHeader("Authorization") String token,@PathVariable String id, @PathVariable String hospitalId);
+
+	@DeleteMapping("/clinic-admin/treatment/deleteTreatmentById/{id}/{hospitalId}")
+	public ResponseEntity<Response> deleteTreatmentById(@RequestHeader("Authorization") String token,@PathVariable String id, @PathVariable String hospitalId);
+
+	@PutMapping("/clinic-admin/treatment/updateTreatmentById/{id}/{hospitalId}")
+	public ResponseEntity<Response> updateTreatmentById(@RequestHeader("Authorization") String token,@PathVariable String id, @PathVariable String hospitalId,
+			@RequestBody TreatmentDTO dto);
+
+	@GetMapping("/clinic-admin/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
+	public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
+			@PathVariable String subServiceId);
+
+	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
+	public Response getAllRecoverySupportsByClinicId(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
+
 
 }
-    
-    

@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.Response;
@@ -35,6 +36,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     //  CREATETHERAPY
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response createTherapy(TherapyServiceDTO dto) {
 
         TherapyService therapy = mapToEntity(dto);
@@ -50,6 +52,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getByClinicAndBranch(String clinicId, String branchId) {
 
         List<TherapyService> list = repository.findByClinicIdAndBranchId(clinicId, branchId);
@@ -107,6 +110,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     //  GET BY id + clinicId + branchId
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getByIdClinicBranch(String id, String clinicId, String branchId) {
 
         Optional<TherapyService> optional =
@@ -129,7 +133,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         return response;
     }
     
-   
+    @Secured("ROLE_CLINICADMIN")
     public TherapyServiceDTO getById(String id) {
 
         Optional<TherapyService> optional =
@@ -141,6 +145,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateTherapyById(String id, TherapyServiceDTO dto) {
 
         Response response = new Response();
@@ -334,6 +339,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         return response;
     }
  
+    @Secured("ROLE_CLINICADMIN")
     public TherapyServiceDTO getTherapyWithExercisesWithId(String id) {
 
         Optional<TherapyService> optional =

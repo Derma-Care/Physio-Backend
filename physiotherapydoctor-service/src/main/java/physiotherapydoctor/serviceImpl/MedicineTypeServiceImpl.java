@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import physiotherapydoctor.dto.MedicineTypeDTO;
@@ -21,6 +22,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     private MedicineTypeRepository repository;
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response addMedicineType(MedicineTypeDTO dto) {
 
         MedicineType entity;
@@ -53,6 +55,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getMedicineTypesById(String id) {
 
         Optional<MedicineType> entity = repository.findById(id);
@@ -75,6 +78,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
 
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response searchOrAddMedicineType(MedicineTypeDTO dto) {
 
         // get first document if exists
@@ -122,6 +126,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
     
     @Override
+    @Secured("ROLE_DOCTOR")
     public Response getAllMedicineTypes() {
 
         Response response = new Response();

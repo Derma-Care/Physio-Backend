@@ -20,6 +20,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,6 +55,7 @@ import com.AdminService.repository.BranchRepository;
 import com.AdminService.repository.ClinicCredentialsRepository;
 import com.AdminService.repository.ClinicRep;
 import com.AdminService.util.ExtractFeignMessage;
+import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.PermissionsUtil;
 import com.AdminService.util.Response;
 import com.AdminService.util.ResponseStructure;
@@ -75,8 +77,8 @@ public class AdminServiceImpl implements AdminService {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	@Autowired
-	private CustomerFeign customerFeign;
+//	@Autowired
+//	private CustomerFeign customerFeign;
 
 	@Autowired
 	private  ClinicAdminFeign clinicAdminFeign;
@@ -85,8 +87,7 @@ public class AdminServiceImpl implements AdminService {
 	@Autowired
 	private BranchRepository branchRepository;
 	
-	@Autowired
-	
+	@Autowired	
 	private BranchCredentialsRepository branchCredentialsRepository;
 	
 	@Autowired
@@ -94,12 +95,13 @@ public class AdminServiceImpl implements AdminService {
 	
    @Autowired
     private  EmailService emailService; // ✅ ADD THIS
-	
-	//	@Autowired
-//	private QuetionsAndAnswerForAddClinicRepository quetionsAndAnswerForAddClinicRepository;
-
+   
+   @Autowired
+   private KeyCloakTokenStore keyCloakTokenStore;
+  
 
 	@Override
+	@Secured("ROLE_ADMIN")
 	public Response createClinic(ClinicDTO clinic) {
 
 	    Response response = new Response();
@@ -153,7 +155,7 @@ public class AdminServiceImpl implements AdminService {
 
 	        // ---------------- NGK CORE ----------------
 	        savedClinic.setStatus("PENDING");
-	        savedClinic.setRole("ROLE_ADMIN");
+	        savedClinic.setRole("ROLE_CLINICADMIN");
 	        savedClinic.setPermissions(PermissionsUtil.getAdminPermissions());
 	        savedClinic.setCreatedAt(String.valueOf(Instant.now())); // FIXED
 
@@ -185,9 +187,10 @@ public class AdminServiceImpl implements AdminService {
 	                Integer.parseInt(saved.getHospitalId()),
 	                counter.getSeq()
 	        );
-
+	       
 	        Branch branch = new Branch();
 	        branch.setClinicId(saved.getHospitalId());
+	        branch.setHospitalName(saved.getName());
 	        branch.setBranchId(branchId);
 	        branch.setBranchName(
 	                clinic.getBranch() != null && !clinic.getBranch().isEmpty()
@@ -198,7 +201,7 @@ public class AdminServiceImpl implements AdminService {
 	        branch.setCity(saved.getCity());
 	        branch.setContactNumber(saved.getContactNumber());
 	        branch.setEmail(saved.getEmailAddress());
-	        branch.setRole("ROLE_ADMIN");
+	        branch.setRole("ROLE_CLINICADMIN");
 	        branch.setLatitude(String.valueOf(saved.getLatitude()));	
 	        branch.setLongitude(String.valueOf(saved.getLongitude()));
 	        branch.setPermissions(PermissionsUtil.getAdminPermissions());
@@ -346,6 +349,7 @@ public class AdminServiceImpl implements AdminService {
 	}
 
 	@Override
+	@Secured("ROLE_ADMIN")
 	public Response startVerificationProcess(String clinicId) {
 
 	    Response response = new Response();
@@ -389,6 +393,7 @@ public class AdminServiceImpl implements AdminService {
 	    }
 	}
 	@Override
+	@Secured("ROLE_ADMIN")
 	public Response verifyClinic(String clinicId) {
 
 	    Response response = new Response();
@@ -412,13 +417,12 @@ public class AdminServiceImpl implements AdminService {
 
 	        // 🔐 Generate secure password (YOUR METHOD)
 	        String tempPassword = generatePassword(9);
-
 	        // 🔐 Save clinic credentials
 	        ClinicCredentials credentials = new ClinicCredentials();
 	        credentials.setHospitalName(clinic.getName());
 	        credentials.setUserName(clinic.getHospitalId());
 	        credentials.setPassword(passwordEncoder.encode(tempPassword));
-	        credentials.setRoles(Collections.singletonList("ROLE_ADMIN"));
+	        credentials.setRoles(Collections.singletonList("ROLE_CLINICADMIN"));
 
 	        // 🔧 FIX: permissions type mismatch
 	        Map<String, Map<String, List<String>>> permissionWrapper = new HashMap<>();
@@ -466,6 +470,7 @@ public class AdminServiceImpl implements AdminService {
 
 
 	@Override
+	@Secured("ROLE_ADMIN")
 	public Response rejectClinic(String clinicId, String reason) {
 
 	    Response response = new Response();
@@ -509,6 +514,7 @@ public class AdminServiceImpl implements AdminService {
 	    }
 	}
 
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	private Clinic findClinic(String clinicId) {
 
 	    Clinic clinic = clinicRep.findByHospitalId(clinicId);
@@ -522,6 +528,7 @@ public class AdminServiceImpl implements AdminService {
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Response getClinicById(String clinicId) {
 
 	    Response response = new Response();
@@ -721,8 +728,6 @@ public class AdminServiceImpl implements AdminService {
 
 	            clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
 
-
-
 	            response.setMessage("Clinic fetched successfully");
 
 	            response.setSuccess(true);
@@ -762,6 +767,7 @@ public class AdminServiceImpl implements AdminService {
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Response getAllClinics() {
 
 	    Response response = new Response();
@@ -1074,6 +1080,7 @@ public class AdminServiceImpl implements AdminService {
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Response updateClinic(String clinicId, ClinicDTO clinic) {
 
 	    Response response = new Response();
@@ -1357,6 +1364,7 @@ public class AdminServiceImpl implements AdminService {
 
 	
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Response deleteClinic(String clinicId) {
 	    Response response = new Response();
 
@@ -1378,7 +1386,7 @@ public class AdminServiceImpl implements AdminService {
 	            // Delete doctors
 	            boolean doctorsDeleted = true;
 	            try {
-	                ResponseEntity<Response> doctorDeleteResponse = clinicAdminFeign.deleteDoctorsByClinic(clinicId);
+	                ResponseEntity<Response> doctorDeleteResponse = clinicAdminFeign.deleteDoctorsByClinic(keyCloakTokenStore.getAccess_token(),clinicId);
 	                doctorsDeleted = doctorDeleteResponse.getStatusCode().is2xxSuccessful();
 	            } catch (Exception e) {
 	                doctorsDeleted = e.getMessage().contains("404");
@@ -1594,7 +1602,7 @@ public class AdminServiceImpl implements AdminService {
     
 
     @Override
-
+    @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
     public Response getClinicCredentials(String userName) {
 
         Response response = new Response();
@@ -1650,7 +1658,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-
+    @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
     public Response updateClinicCredentials(UpdateClinicCredentials credentials,String userName) {
 
         Response response = new Response();
@@ -1739,6 +1747,7 @@ public class AdminServiceImpl implements AdminService {
 
     }
     @Override
+    @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
     public Response deleteClinicCredentials(String userName ) {
         Response response = new Response();
 
@@ -1786,207 +1795,207 @@ public class AdminServiceImpl implements AdminService {
 
     }
 
+
 	// CUSTOMER MANAGEMENT
 
-    @Override
-
-	public Response saveCustomerBasicDetails(CustomerDTO customerDTO ) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.saveCustomerBasicDetails(customerDTO);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;}
-
-    
-
-    @Override	
-
-	public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input) {
-
-    	Response response = new Response();
-
-	    	try {
-
-	    		ResponseEntity<?> res = customerFeign.getCustomerByUsernameMobileEmail(input);
-
-	    		  if(res.getBody()!= null) {
-
-	    			  response.setData(res.getBody());
-
-	    			  response.setStatus(res.getStatusCode().value());
-
-	    			  return ResponseEntity.status(res.getStatusCode().value()).body(res.getBody());}
-
-	    		  else {
-
-	    			  response.setMessage("Customer Details Not Found");
-
-	    			  response.setStatus(200);
-
-	    			  response.setSuccess(true);
-
-	    			  return ResponseEntity.status(200).body(response);}
-
-	    		  }catch(FeignException e) {
-
-	    			  response.setMessage(e.getMessage());
-
-	    			  response.setStatus(e.status());
-
-	    			  response.setSuccess(false);
-
-	    			  return ResponseEntity.status(e.status()).body(response);
-
-	    	        }}
-
-   
-
-    
-
-    @Override
-
-	public Response getCustomerBasicDetails(String mobileNumber ) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.getCustomerBasicDetails(mobileNumber);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
-
-
-
-    @Override
-
-	public Response getAllCustomers(){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.getAllCustomers();
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
-
-	
-
-    @Override
-
-	public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber ){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.updateCustomerBasicDetails(customerDTO, mobileNumber);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
-
-	
-
-    @Override
-
-	public Response deleteCustomerBasicDetails(String mobileNumber){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.deleteCustomerBasicDetails(mobileNumber);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
+//    @Override
+//	public Response saveCustomerBasicDetails(CustomerDTO customerDTO ) {
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.saveCustomerBasicDetails(customerDTO);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;}
+//
+//    
+//
+//    @Override	
+//
+//	public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input) {
+//
+//    	Response response = new Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<?> res = customerFeign.getCustomerByUsernameMobileEmail(input);
+//
+//	    		  if(res.getBody()!= null) {
+//
+//	    			  response.setData(res.getBody());
+//
+//	    			  response.setStatus(res.getStatusCode().value());
+//
+//	    			  return ResponseEntity.status(res.getStatusCode().value()).body(res.getBody());}
+//
+//	    		  else {
+//
+//	    			  response.setMessage("Customer Details Not Found");
+//
+//	    			  response.setStatus(200);
+//
+//	    			  response.setSuccess(true);
+//
+//	    			  return ResponseEntity.status(200).body(response);}
+//
+//	    		  }catch(FeignException e) {
+//
+//	    			  response.setMessage(e.getMessage());
+//
+//	    			  response.setStatus(e.status());
+//
+//	    			  response.setSuccess(false);
+//
+//	    			  return ResponseEntity.status(e.status()).body(response);
+//
+//	    	        }}
+//
+//   
+//
+//    
+//
+//    @Override
+//
+//	public Response getCustomerBasicDetails(String mobileNumber ) {
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.getCustomerBasicDetails(mobileNumber);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
+//
+//
+//
+//    @Override
+//
+//	public Response getAllCustomers(){
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.getAllCustomers();
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
+//
+//	
+//
+//    @Override
+//
+//	public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber ){
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.updateCustomerBasicDetails(customerDTO, mobileNumber);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
+//
+//	
+//
+//    @Override
+//
+//	public Response deleteCustomerBasicDetails(String mobileNumber){
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.deleteCustomerBasicDetails(mobileNumber);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
 
     
 
@@ -2030,17 +2039,15 @@ public class AdminServiceImpl implements AdminService {
 //
 // 
 
-    ///GETDOCTORINFO
-
-    
-
+    ///GETDOCTORINFO  
+	@Secured("ROLE_ADMIN")
     public Response getDoctorInfoByDoctorId(String doctorId) {
 
         Response response = new Response();
 
         try {
 
-        	ResponseEntity<Response>  res = clinicAdminFeign.getDoctorById(doctorId);  
+        	ResponseEntity<Response>  res = clinicAdminFeign.getDoctorById(keyCloakTokenStore.getAccess_token(),doctorId);  
 
                     if (res.getBody() != null ) {
 
@@ -2290,16 +2297,7 @@ public class AdminServiceImpl implements AdminService {
 			}
 		} catch (Exception ignored) {
 		}
-		return rawMessage;
-	}
-
-
-
-
-
-
-
-	
+		return rawMessage;}
 	}
 
 

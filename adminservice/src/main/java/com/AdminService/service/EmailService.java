@@ -28,7 +28,7 @@ public class EmailService {
         );
         this.clinicLoginUrl = env.getProperty(
                 "notification.clinic-login-url",
-                "http://3.7.216.95:3000/login"
+                "https://clinic.ccmstestserver.online"
         );
     }
 

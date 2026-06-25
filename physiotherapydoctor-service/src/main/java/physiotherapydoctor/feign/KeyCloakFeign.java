@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
-@FeignClient(name = "keycloak-client" , url = "http://localhost:9091/realms/Dermacare/protocol/openid-connect" )
+@FeignClient(name = "keycloak-client" , url = "http://localhost:9094/realms/physiocare/protocol/openid-connect" )
 public interface KeyCloakFeign {
 
 	  @PostMapping(value = "/token", 

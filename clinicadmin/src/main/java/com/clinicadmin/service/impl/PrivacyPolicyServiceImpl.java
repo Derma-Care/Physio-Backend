@@ -7,6 +7,7 @@ import com.clinicadmin.repository.PrivacyPolicyRepository;
 import com.clinicadmin.service.PrivacyPolicyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,9 +19,8 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Autowired
     private PrivacyPolicyRepository repository;
 
-
-
     // Create / Save new policy
+    @Secured("ROLE_CLINICADMIN")
     public Response createPolicy(PrivacyPolicyDTO dto) {
         PrivacyPolicy entity = toEntity(dto);
         PrivacyPolicy saved = repository.save(entity);
@@ -35,6 +35,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
     // Read all policies
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getAllPolicies() {
         List<PrivacyPolicyDTO> dtos = repository.findAll()
                 .stream()
@@ -51,6 +52,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
     // Read single policy by ID
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getPolicyById(String id) {
         return repository.findById(id)
                 .map(policy -> Response.builder()
@@ -67,6 +69,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response getPoliciesByClinicId(String clinicId) {
         Response response = new Response();
         List<PrivacyPolicyDTO> policies = repository.findByClinicId(clinicId);
@@ -81,6 +84,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updatePolicy(PrivacyPolicyDTO dto) {
         if (dto.getId() == null) {
             return Response.builder()
@@ -124,6 +128,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deletePolicy(String id) {
         if (repository.existsById(id)) {
             repository.deleteById(id);

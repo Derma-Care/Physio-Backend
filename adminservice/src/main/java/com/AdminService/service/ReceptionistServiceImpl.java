@@ -2,13 +2,16 @@
 
 import com.AdminService.dto.ReceptionistRequestDTO;
 import com.AdminService.feign.ClinicAdminFeign;
-
+import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.ResponseStructure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -17,15 +20,20 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ReceptionistServiceImpl implements ReceptionistService {
-
+	
+	
+	 @Autowired
+    private KeyCloakTokenStore keyCloakTokenStore;
+	   
     private final ClinicAdminFeign clinicAdminFeign;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ✅ Create Receptionist
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> createReceptionist(ReceptionistRequestDTO dto) {
         try {
-            return clinicAdminFeign.createReceptionist(dto);
+            return clinicAdminFeign.createReceptionist(keyCloakTokenStore.getAccess_token(),dto);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -33,9 +41,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Get Receptionist by ID
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> getReceptionistById(String id) {
         try {
-            return clinicAdminFeign.getReceptionistById(id);
+            return clinicAdminFeign.getReceptionistById(keyCloakTokenStore.getAccess_token(),id);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -43,9 +52,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Get All Receptionists
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getAllReceptionists() {
         try {
-            return clinicAdminFeign.getAllReceptionists();
+            return clinicAdminFeign.getAllReceptionists(keyCloakTokenStore.getAccess_token());
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -53,9 +63,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Update Receptionist
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> updateReceptionist(String id, ReceptionistRequestDTO dto) {
         try {
-            return clinicAdminFeign.updateReceptionist(id, dto);
+            return clinicAdminFeign.updateReceptionist(keyCloakTokenStore.getAccess_token(),id, dto);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -63,9 +74,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Delete Receptionist
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<String>> deleteReceptionist(String id) {
         try {
-            return clinicAdminFeign.deleteReceptionist(id);
+            return clinicAdminFeign.deleteReceptionist(keyCloakTokenStore.getAccess_token(),id);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -73,9 +85,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Get Receptionists by Clinic ID
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getReceptionistsByClinic(String clinicId) {
         try {
-            return clinicAdminFeign.getReceptionistsByClinic(clinicId);
+            return clinicAdminFeign.getReceptionistsByClinic(keyCloakTokenStore.getAccess_token(),clinicId);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -83,9 +96,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Get Receptionist by Clinic ID and Receptionist ID
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<ReceptionistRequestDTO>> getReceptionistByClinicAndId(String clinicId, String receptionistId) {
         try {
-            return clinicAdminFeign.getReceptionistByClinicAndId(clinicId, receptionistId);
+            return clinicAdminFeign.getReceptionistByClinicAndId(keyCloakTokenStore.getAccess_token(),clinicId, receptionistId);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }
@@ -93,9 +107,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     // ✅ Get Receptionists by Clinic and Branch
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<ResponseStructure<List<ReceptionistRequestDTO>>> getReceptionistsByClinicAndBranch(String clinicId, String branchId) {
         try {
-            return clinicAdminFeign.getReceptionistsByClinicAndBranch(clinicId, branchId);
+            return clinicAdminFeign.getReceptionistsByClinicAndBranch(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
         } catch (FeignException ex) {
             return handleFeignException(ex);
         }

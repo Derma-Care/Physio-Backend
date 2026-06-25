@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 import com.AdminService.dto.AccessTokenAndRefreshToken;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.RegisterAndLoginDto;
+import com.AdminService.entity.BranchCredentials;
 import com.AdminService.entity.ClinicCredentials;
 import com.AdminService.entity.RegisterAndLoginEntity;
+import com.AdminService.repository.BranchCredentialsRepository;
 import com.AdminService.repository.ClinicCredentialsRepository;
 import com.AdminService.repository.CredentialsRepository;
 import com.AdminService.util.JwtUtil;
@@ -35,6 +37,9 @@ public class AuthServiceImpl implements AuthService {
 	@Autowired
 	private JwtUtil jwtUtil;
 	
+    @Autowired	
+	private BranchCredentialsRepository branchCredentialsRepository;
+		
 	@Autowired
 	private ClinicCredentialsRepository clinicCredentialsRepository;
 	
@@ -115,10 +120,10 @@ public class AuthServiceImpl implements AuthService {
 	    	ClinicCredentials existUserName = clinicCredentialsRepository.findByUserName(userName);
 	    	///System.out.println(existUserName);
 	    		if(existUserName != null) {
-	    			response.setSuccess(false);
+	    			response.setSuccess(true);
 	    			response.setData(new ObjectMapper().convertValue(existUserName,ClinicCredentialsDTO.class ));
 	        		response.setMessage("Valid Credentials");
-	        		response.setStatus(200);}
+	        		response.setStatus(200);}	       
 	    	//System.out.println(response);
 	    	}catch(Exception e){
 	    		response.setSuccess(false);

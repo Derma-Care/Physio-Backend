@@ -33,15 +33,15 @@ public class AutoReqForNewAccessTokenBeforeTokenExpiration {
 		//try {	if(utilityForStoreJwtTokenAndExpiryTime.getAccess_token() == null && utilityForStoreJwtTokenAndExpiryTime.getExpires_in() == null) {
 			 MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 			 form.add("grant_type", "client_credentials");
-			 form.add("client_id", "clinicadminservice@8080");
-			 form.add("client_secret", "OBBIAnghPvfF7kVkI4pTj2jv2ndmoa0g");
+			 form.add("client_id", "notification_service");
+			 form.add("client_secret", "MsHiOtmJfzc86dz9n2fbKgDa6ZOFnNIX");
 			  Map<String, Object> data = keyCloakFeign.getToken(form);
 			 // System.out.println(data);
 			  if(data != null) {
 				  Map<String,String> token  =  new ObjectMapper().convertValue(data,new TypeReference<Map<String,String>>() {});
-				  keyCloakTokenStore.ACCESS_TOKEN = "Bearer "+token.get("access_token");
-				  keyCloakTokenStore.EXPIRES_IN = Long.valueOf(token.get("expires_in"));
-//					  System.out.println(keyCloakTokenStore.access_token);
+				  keyCloakTokenStore.setACCESS_TOKEN("Bearer "+token.get("access_token"));
+				  keyCloakTokenStore.setEXPIRES_IN(Long.valueOf(token.get("expires_in")));
+					 // System.out.println(  keyCloakTokenStore.ACCESS_TOKEN);
 //					  System.out.println(keyCloakTokenStore.expires_in);
 			  //System.out.println(utilityForStoreJwtTokenAndExpiryTime);
 	          }}

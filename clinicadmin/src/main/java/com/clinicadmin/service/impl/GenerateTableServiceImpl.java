@@ -1,11 +1,13 @@
 package com.clinicadmin.service.impl;
-	
-	import java.time.LocalDate;
+
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.ExerciseResponseDTO;
@@ -16,549 +18,554 @@ import com.clinicadmin.dto.SessionDTO;
 import com.clinicadmin.dto.TherapyResponseDTO;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.service.GenerateTableService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import lombok.RequiredArgsConstructor;
-	
-	@Service
-	@RequiredArgsConstructor
-	public class GenerateTableServiceImpl implements GenerateTableService {
-	
-	    private final PhysiotherapyFeignClient feignClient;
-	    @Override
-	    public Response generateTable(PhysiotherapyRecordDTO request) {
-
-	        Response response = new Response();
-
-	        try {
-
-	            Response doctorResponse = feignClient.getRecord(
-	                    request.getClinicId(),
-	                    request.getBranchId(),
-	                    request.getPatientId(),
-	                    request.getBookingId(),
-	                    request.getTherapistRecordId()
-	            );
 
-	            if (!doctorResponse.isSuccess()) {
-	                return doctorResponse;
-	            }
 
-	            Map<String, Object> record =
-	                    (Map<String, Object>) doctorResponse.getData();
+@Service
+@RequiredArgsConstructor
+public class GenerateTableServiceImpl implements GenerateTableService {
 
-	            List<Map<String, Object>> therapySessions =
-	                    (List<Map<String, Object>>) record.get("therapySessions");
 
-	            if (therapySessions == null || therapySessions.isEmpty()) {
-	                therapySessions =
-	                        (List<Map<String, Object>>) record.get("therapyWithSessions");
-	            }
+    private final PhysiotherapyFeignClient feignClient;
+    
 
-	            if (therapySessions == null || therapySessions.isEmpty()) {
-	                throw new RuntimeException("No therapySessions found");
-	            }
-
-	            LocalDate startDate = LocalDate.parse(request.getStartDate());
-
-	            List<ProgramResponseDTO> result = new ArrayList<>();
-
-	            for (Map<String, Object> session : therapySessions) {
-
-	                // =========================================
-	                // PROGRAM
-	                // =========================================
-	                List<Map<String, Object>> programs =
-	                        (List<Map<String, Object>>) session.get("programs");
-
-	                if (programs != null && !programs.isEmpty()) {
-
-	                    for (Map<String, Object> program : programs) {
-
-	                        List<Map<String, Object>> therapyDataList =
-	                                (List<Map<String, Object>>) program.get("therapyData");
-
-	                        if (therapyDataList != null && !therapyDataList.isEmpty()) {
-
-	                            ProgramResponseDTO dto =
-	                                    buildProgramDTO(therapyDataList, startDate);
-
-	                            dto.setSourceType("PROGRAM");
-	                            dto.setProgramId(
-	                                    program.get("programId") != null
-	                                            ? program.get("programId").toString()
-	                                            : ""
-	                            );
-	                            dto.setProgramName(
-	                                    program.get("programName") != null
-	                                            ? program.get("programName").toString()
-	                                            : ""
-	                            );
-
-	                            result.add(dto);
-	                        }
-	                    }
-	                }
+	 @Autowired	
+    public KeyCloakTokenStore keyCloakTokenStore;
 
-	                // =========================================
-	                // PACKAGE
-	                // =========================================
-	                List<Map<String, Object>> packageData =
-	                        (List<Map<String, Object>>) session.get("packageData");
-
-	                if (packageData != null && !packageData.isEmpty()) {
 
-	                    ProgramResponseDTO dto =
-	                            buildProgramDTO(packageData, startDate);
+    @Override
+    @SuppressWarnings("unchecked")
+    @Secured("ROLE_CLINICADMIN")
+    public Response generateTable(PhysiotherapyRecordDTO request) {
 
-	                    dto.setSourceType("PACKAGE");
-	                    dto.setPackageId(
-	                            session.get("packageId") != null
-	                                    ? session.get("packageId").toString()
-	                                    : ""
-	                    );
-	                    dto.setPackageName(
-	                            session.get("packageName") != null
-	                                    ? session.get("packageName").toString()
-	                                    : ""
-	                    );
+        Response response = new Response();
 
-	                    result.add(dto);
+        try {
 
-	                } else if (session.get("packageId") != null
-	                        || session.get("packageName") != null) {
+            Response doctorResponse = feignClient.getRecord(keyCloakTokenStore.getAccess_token(),
+                    request.getClinicId(),
+                    request.getBranchId(),
+                    request.getPatientId(),
+                    request.getBookingId(),
+                    request.getTherapistRecordId()
+            );
 
-	                    List<Map<String, Object>> fallbackData = null;
+            if (!doctorResponse.isSuccess()) {
+                return doctorResponse;
+            }
 
-	                    List<Map<String, Object>> therapyData =
-	                            (List<Map<String, Object>>) session.get("therapyData");
+            Map<String, Object> record =
+                    (Map<String, Object>) doctorResponse.getData();
 
-	                    if (therapyData != null && !therapyData.isEmpty()) {
-	                        fallbackData = therapyData;
+            List<Map<String, Object>> therapySessions =
+                    (List<Map<String, Object>>) record.get("therapySessions");
 
-	                    } else if (programs != null && !programs.isEmpty()) {
+            if (therapySessions == null || therapySessions.isEmpty()) {
+                therapySessions =
+                        (List<Map<String, Object>>) record.get("therapyWithSessions");
+            }
 
-	                        List<Map<String, Object>> pTherapy =
-	                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
+            if (therapySessions == null || therapySessions.isEmpty()) {
+                throw new RuntimeException("No therapySessions found");
+            }
 
-	                        if (pTherapy != null && !pTherapy.isEmpty()) {
-	                            fallbackData = pTherapy;
-	                        }
-	                    }
+            LocalDate startDate = LocalDate.parse(request.getStartDate());
 
-	                    if (fallbackData != null && !fallbackData.isEmpty()) {
+            List<ProgramResponseDTO> result = new ArrayList<>();
 
-	                        ProgramResponseDTO dto =
-	                                buildProgramDTO(fallbackData, startDate);
+            for (Map<String, Object> session : therapySessions) {
 
-	                        dto.setSourceType("PACKAGE");
-	                        dto.setPackageId(
-	                                session.get("packageId") != null
-	                                        ? session.get("packageId").toString()
-	                                        : ""
-	                        );
-	                        dto.setPackageName(
-	                                session.get("packageName") != null
-	                                        ? session.get("packageName").toString()
-	                                        : ""
-	                        );
+                List<Map<String, Object>> programs =
+                        (List<Map<String, Object>>) session.get("programs");
 
-	                        result.add(dto);
-	                    }
-	                }
+                List<Map<String, Object>> packageData =
+                        (List<Map<String, Object>>) session.get("packageData");
 
-	                // =========================================
-	                // THERAPY
-	                // =========================================
-	                List<Map<String, Object>> therapyData =
-	                        (List<Map<String, Object>>) session.get("therapyData");
+                List<Map<String, Object>> therapyData =
+                        (List<Map<String, Object>>) session.get("therapyData");
 
-	                if (therapyData != null && !therapyData.isEmpty()) {
+                // A session is treated as a PACKAGE session if it has packageData,
+                // or a packageId/packageName marker, even when packageData itself
+                // is empty and the real data has to be pulled from a fallback source.
+                boolean isPackageSession =
+                        (packageData != null && !packageData.isEmpty())
+                                || session.get("packageId") != null
+                                || session.get("packageName") != null;
 
-	                    ProgramResponseDTO dto =
-	                            buildProgramDTO(therapyData, startDate);
+                // =========================================
+                // PACKAGE
+                // Mutually exclusive with PROGRAM and THERAPY below -
+                // this is what stops "programs" (or a duplicate "therapy"
+                // entry) from also showing up when a package is selected.
+                // =========================================
+                if (isPackageSession) {
 
-	                    dto.setSourceType("THERAPY");
-	                    result.add(dto);
-	                }
+                    List<Map<String, Object>> sourceData = packageData;
 
-	                // =========================================
-	                // EXERCISE
-	                // =========================================
-	                List<Map<String, Object>> exercises =
-	                        (List<Map<String, Object>>) session.get("exercises");
+                    if (sourceData == null || sourceData.isEmpty()) {
 
-	                if (exercises != null && !exercises.isEmpty()) {
+                        if (therapyData != null && !therapyData.isEmpty()) {
+                            sourceData = therapyData;
 
-	                    List<Map<String, Object>> singleTherapy = new ArrayList<>();
-	                    Map<String, Object> therapyMap = new HashMap<>();
+                        } else if (programs != null && !programs.isEmpty()) {
 
-	                    String therapyId = "";
-	                    String therapyName = "";
+                            List<Map<String, Object>> pTherapy =
+                                    (List<Map<String, Object>>) programs.get(0).get("therapyData");
 
-	                    if (therapyData != null && !therapyData.isEmpty()) {
+                            if (pTherapy != null && !pTherapy.isEmpty()) {
+                                sourceData = pTherapy;
+                            }
+                        }
+                    }
 
-	                        therapyId = therapyData.get(0).get("therapyId") != null
-	                                ? therapyData.get(0).get("therapyId").toString()
-	                                : "";
+                    if (sourceData != null && !sourceData.isEmpty()) {
 
-	                        therapyName = therapyData.get(0).get("therapyName") != null
-	                                ? therapyData.get(0).get("therapyName").toString()
-	                                : "";
+                        ProgramResponseDTO dto =
+                                buildProgramDTO(sourceData, startDate);
+
+                        dto.setSourceType("PACKAGE");
+                        dto.setPackageId(
+                                session.get("packageId") != null
+                                        ? session.get("packageId").toString()
+                                        : ""
+                        );
+                        dto.setPackageName(
+                                session.get("packageName") != null
+                                        ? session.get("packageName").toString()
+                                        : ""
+                        );
 
-	                    } else if (packageData != null && !packageData.isEmpty()) {
+                        result.add(dto);
+                    }
+
+                } else {
 
-	                        therapyId = packageData.get(0).get("therapyId") != null
-	                                ? packageData.get(0).get("therapyId").toString()
-	                                : "";
+                    // =========================================
+                    // PROGRAM
+                    // =========================================
+                    if (programs != null && !programs.isEmpty()) {
 
-	                        therapyName = packageData.get(0).get("therapyName") != null
-	                                ? packageData.get(0).get("therapyName").toString()
-	                                : "";
+                        for (Map<String, Object> program : programs) {
 
-	                    } else if (programs != null && !programs.isEmpty()) {
+                            List<Map<String, Object>> therapyDataList =
+                                    (List<Map<String, Object>>) program.get("therapyData");
 
-	                        List<Map<String, Object>> pTherapy =
-	                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
+                            if (therapyDataList != null && !therapyDataList.isEmpty()) {
 
-	                        if (pTherapy != null && !pTherapy.isEmpty()) {
+                                ProgramResponseDTO dto =
+                                        buildProgramDTO(therapyDataList, startDate);
 
-	                            therapyId = pTherapy.get(0).get("therapyId") != null
-	                                    ? pTherapy.get(0).get("therapyId").toString()
-	                                    : "";
+                                dto.setSourceType("PROGRAM");
+                                dto.setProgramId(
+                                        program.get("programId") != null
+                                                ? program.get("programId").toString()
+                                                : ""
+                                );
+                                dto.setProgramName(
+                                        program.get("programName") != null
+                                                ? program.get("programName").toString()
+                                                : ""
+                                );
 
-	                            therapyName = pTherapy.get(0).get("therapyName") != null
-	                                    ? pTherapy.get(0).get("therapyName").toString()
-	                                    : "";
-	                        }
-	                    }
+                                result.add(dto);
+                            }
+                        }
+                    }
 
-	                    therapyMap.put("therapyId", therapyId);
-	                    therapyMap.put("therapyName", therapyName);
-	                    therapyMap.put("exercises", exercises);
+                    // =========================================
+                    // THERAPY
+                    // =========================================
+                    if (therapyData != null && !therapyData.isEmpty()) {
 
-	                    singleTherapy.add(therapyMap);
+                        ProgramResponseDTO dto =
+                                buildProgramDTO(therapyData, startDate);
 
-	                    ProgramResponseDTO dto =
-	                            buildProgramDTO(singleTherapy, startDate);
+                        dto.setSourceType("THERAPY");
+                        result.add(dto);
+                    }
+                }
 
-	                    dto.setSourceType("EXERCISE");
-	                    result.add(dto);
-	                }
-	            }
+                // =========================================
+                // EXERCISE
+                // Stays independent of the branch above - these are
+                // ad-hoc exercises attached directly to the session.
+                // =========================================
+                List<Map<String, Object>> exercises =
+                        (List<Map<String, Object>>) session.get("exercises");
 
-	            response.setSuccess(true);
-	            response.setData(result);
-	            response.setStatus(200);
-	            response.setMessage("Table generated successfully");
+                if (exercises != null && !exercises.isEmpty()) {
 
-	        } catch (Exception e) {
+                    List<Map<String, Object>> singleTherapy = new ArrayList<>();
+                    Map<String, Object> therapyMap = new HashMap<>();
 
-	            response.setSuccess(false);
-	            response.setMessage(e.getMessage());
-	            response.setStatus(500);
-	        }
+                    String therapyId = "";
+                    String therapyName = "";
 
-	        return response;
-	    }
+                    if (therapyData != null && !therapyData.isEmpty()) {
 
-	    private ProgramResponseDTO buildProgramDTO(
-	            List<Map<String, Object>> therapyDataList,
-	            LocalDate startDate) {
+                        therapyId = therapyData.get(0).get("therapyId") != null
+                                ? therapyData.get(0).get("therapyId").toString()
+                                : "";
 
-	        ProgramResponseDTO programDTO = new ProgramResponseDTO();
-	        programDTO.setTherapyData(new ArrayList<>());
+                        therapyName = therapyData.get(0).get("therapyName") != null
+                                ? therapyData.get(0).get("therapyName").toString()
+                                : "";
 
-	        for (Map<String, Object> therapyData : therapyDataList) {
+                    } else if (packageData != null && !packageData.isEmpty()) {
 
-	            TherapyResponseDTO therapyDTO = new TherapyResponseDTO();
+                        therapyId = packageData.get(0).get("therapyId") != null
+                                ? packageData.get(0).get("therapyId").toString()
+                                : "";
 
-	            therapyDTO.setTherapyId(
-	                    therapyData.get("therapyId") != null
-	                            ? therapyData.get("therapyId").toString()
-	                            : ""
-	            );
+                        therapyName = packageData.get(0).get("therapyName") != null
+                                ? packageData.get(0).get("therapyName").toString()
+                                : "";
 
-	            therapyDTO.setTherapyName(
-	                    therapyData.get("therapyName") != null
-	                            ? therapyData.get("therapyName").toString()
-	                            : ""
-	            );
+                    } else if (programs != null && !programs.isEmpty()) {
 
-	            List<Map<String, Object>> exercises =
-	                    (List<Map<String, Object>>) therapyData.get("exercises");
+                        List<Map<String, Object>> pTherapy =
+                                (List<Map<String, Object>>) programs.get(0).get("therapyData");
 
-	            List<ExerciseResponseDTO> exerciseList = new ArrayList<>();
+                        if (pTherapy != null && !pTherapy.isEmpty()) {
 
-	            if (exercises != null && !exercises.isEmpty()) {
+                            therapyId = pTherapy.get(0).get("therapyId") != null
+                                    ? pTherapy.get(0).get("therapyId").toString()
+                                    : "";
 
-	                for (Map<String, Object> ex : exercises) {
+                            therapyName = pTherapy.get(0).get("therapyName") != null
+                                    ? pTherapy.get(0).get("therapyName").toString()
+                                    : "";
+                        }
+                    }
 
-	                    ExerciseResponseDTO exDTO = new ExerciseResponseDTO();
+                    therapyMap.put("therapyId", therapyId);
+                    therapyMap.put("therapyName", therapyName);
+                    therapyMap.put("exercises", exercises);
 
-	                    exDTO.setExerciseId(
-	                            ex.get("exerciseId") != null
-	                                    ? ex.get("exerciseId").toString()
-	                                    : "EX"
-	                    );
+                    singleTherapy.add(therapyMap);
 
-	                    exDTO.setExerciseName(
-	                            ex.get("exerciseName") != null
-	                                    ? ex.get("exerciseName").toString()
-	                                    : ""
-	                    );
+                    ProgramResponseDTO dto =
+                            buildProgramDTO(singleTherapy, startDate);
 
-	                    exDTO.setSets(
-	                            ex.get("sets") != null
-	                                    ? ((Number) ex.get("sets")).intValue()
-	                                    : 0
-	                    );
+                    dto.setSourceType("EXERCISE");
+                    result.add(dto);
+                }
+            }
 
-	                    exDTO.setRepetitions(
-	                            ex.get("repetitions") != null
-	                                    ? ((Number) ex.get("repetitions")).intValue()
-	                                    : 0
-	                    );
+            response.setSuccess(true);
+            response.setData(result);
+            response.setStatus(200);
+            response.setMessage("Table generated successfully");
 
-	                    String frequency =
-	                            ex.get("frequency") != null
-	                                    ? ex.get("frequency").toString()
-	                                    : "1";
-
-	                    frequency = frequency.trim();
+        } catch (Exception e) {
 
-	                    if (frequency.matches("\\d+")) {
-	                        frequency = frequency + "day";
-	                    }
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+            response.setStatus(500);
+        }
 
-	                    frequency = frequency.toLowerCase().replace(" ", "");
-	                    
-	                    
+        return response;
+    }
 
-	                    exDTO.setFrequency(frequency);
-
-	                    int totalSessions =
-	                            ex.get("noOfSessions") != null
-	                                    ? Integer.parseInt(
-	                                    ex.get("noOfSessions").toString())
-	                                    : 1;
-
-	                    exDTO.setNoOfSessions(totalSessions);
-	                    
-	                    exDTO.setNoOfSessions(totalSessions);
-
-	                 exDTO.setPricePerSession(
-	                         ex.get("pricePerSession") != null
-	                                 ? Double.parseDouble(ex.get("pricePerSession").toString())
-	                                 : 0.0
-	                 );
-	                 exDTO.setTotalPricePerSession(
-	                         ex.get("totalPrice") != null
-	                                 ? Double.parseDouble(ex.get("totalPrice").toString())
-	                                 : 0.0
-	                 );
-	                    List<SessionDTO> sessions = new ArrayList<>();
-
-	                    List<Map<String, Object>> existingSessions =
-	                            (List<Map<String, Object>>) ex.get("sessions");
-
-	                    if (existingSessions != null && !existingSessions.isEmpty()) {
-
-	                        for (Map<String, Object> s : existingSessions) {
-
-	                            SessionDTO sessionDTO = new SessionDTO();
-
-	                            sessionDTO.setSessionId(
-	                                    s.get("sessionId") != null
-	                                            ? s.get("sessionId").toString()
-	                                            : ""
-	                            );
-
-	                            sessionDTO.setDate(
-	                                    s.get("date") != null
-	                                            ? s.get("date").toString()
-	                                            : ""
-	                            );
-
-	                            sessionDTO.setStatus(
-	                                    s.get("status") != null
-	                                            ? s.get("status").toString()
-	                                            : "Pending"
-	                            );
-
-	                            sessionDTO.setPaymentStatus(
-	                                    s.get("paymentStatus") != null
-	                                            ? s.get("paymentStatus").toString()
-	                                            : "unpaid"
-	                            );
+    @SuppressWarnings("unchecked")
+    private ProgramResponseDTO buildProgramDTO(
+            List<Map<String, Object>> therapyDataList,
+            LocalDate startDate) {
 
-	                            sessions.add(sessionDTO);
-	                        }
+        ProgramResponseDTO programDTO = new ProgramResponseDTO();
+        programDTO.setTherapyData(new ArrayList<>());
 
-	                    } else {
-
-	                        sessions = generateSessions(
-	                                startDate,
-	                                frequency,
-	                                totalSessions
-	                        );
-	                    }
+        for (Map<String, Object> therapyData : therapyDataList) {
 
-	                    exDTO.setSessions(sessions);
-	                    exerciseList.add(exDTO);
-	                }
-	            }
-
-	            therapyDTO.setExercises(exerciseList);
-	            programDTO.getTherapyData().add(therapyDTO);
-	        }
-
-	        return programDTO;
-	    }
-	
-	 // ==================================================
-	 // SESSION GENERATION
-	 // ==================================================
-	 private List<SessionDTO> generateSessions(
-	         LocalDate startDate,
-	         String frequency,
-	         int total
-	 ) {
-
-	     List<SessionDTO> list = new ArrayList<>();
-
-	     // Normalize frequency
-	     // Examples:
-	     // 2times/week
-	     // 3times/day
-	     // 1time/month
-	     frequency = frequency.toLowerCase().replace(" ", "");
-
-	     int times = 1;          // Number of sessions in one period
-	     String period = "day";  // day / week / month
-
-	     // ==========================================
-	     // Parse frequency
-	     // ==========================================
-	     if (frequency.matches("\\d+times?/\\w+")) {
-	         // Example: 2times/week, 1time/day
-	         String[] parts = frequency.split("times?/");
-	         times = Integer.parseInt(parts[0]);
-	         period = parts[1];
-
-	     } else if (frequency.matches("\\d+/\\w+")) {
-	         // Example: 2/week
-	         String[] parts = frequency.split("/");
-	         times = Integer.parseInt(parts[0]);
-	         period = parts[1];
-
-	     } else {
-	         // Fallback to old logic
-	         String number = frequency.replaceAll("[^0-9]", "");
-	         period = frequency.replaceAll("[0-9]", "");
-
-	         times = number.isEmpty() ? 1 : Integer.parseInt(number);
-
-	         period = period.replace("times/", "")
-	                        .replace("time/", "")
-	                        .replace("/", "");
-
-	         if (period.isEmpty()) {
-	             period = "day";
-	         }
-	     }
-
-	     LocalDate date = startDate;
-
-	     for (int i = 1; i <= total; i++) {
-
-	         SessionDTO s = new SessionDTO();
-
-	         s.setDate(
-	                 date.getMonthValue() + "/"
-	                         + date.getDayOfMonth() + "/"
-	                         + date.getYear()
-	         );
-
-	         s.setStatus("Pending");
-	         s.setPaymentStatus("unpaid");
-	         s.setSessionId(generateSessionId(date, i));
-
-	         list.add(s);
-
-//	          ==========================================
-	         // Date calculation based on frequency
-	         // ==========================================
-
-	         if (period.equalsIgnoreCase("day")
-	                 || period.equalsIgnoreCase("days")) {
-
-	             // For 2times/day with total=2:
-	             // Session 1 -> 16-May
-	             // Session 2 -> 17-May
-	             // Session 3 -> 18-May
-	             date = date.plusDays(1);
-
-	         } else if (period.equalsIgnoreCase("week")
-	                 || period.equalsIgnoreCase("weeks")) {
-
-	             // Example:
-	             // 2times/week -> every 3 days
-	             // 3times/week -> every 2 days
-	             int gap = Math.max(1, 7 / times);
-	             date = date.plusDays(gap);
-
-	         } else if (period.equalsIgnoreCase("month")
-	                 || period.equalsIgnoreCase("months")) {
-
-	             // Example:
-	             // 2times/month -> every 15 days
-	             int gap = Math.max(1, 30 / times);
-	             date = date.plusDays(gap);
-
-	         } else {
-	             // Default: next day
-	             date = date.plusDays(1);
-	         }
-	     }
-
-	     return list;
-	 }
-	
-	    // ==================================================
-	    // SESSION ID GENERATOR
-	    // ==================================================
-	    private String generateSessionId(LocalDate date, int index) {
-	
-	        String month =
-	                date.getMonth().toString().substring(0, 3);
-	
-	        String day =
-	                String.format("%02d", date.getDayOfMonth());
-	
-	        return "S"
-	                + String.format("%02d", index)
-	                + "-"
-	                + day
-	                + month
-	                + "-"
-	                + generateShortCode();
-	    }
-	
-	    private String generateShortCode() {
-	
-	        String chars =
-	                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-	
-	        StringBuilder code = new StringBuilder();
-	
-	        for (int i = 0; i < 4; i++) {
-	
-	            int idx =
-	                    (int) (Math.random() * chars.length());
-	
-	            code.append(chars.charAt(idx));
-	        }
-	
-	        return code.toString();
-	    }
-	}
+            TherapyResponseDTO therapyDTO = new TherapyResponseDTO();
+
+            therapyDTO.setTherapyId(
+                    therapyData.get("therapyId") != null
+                            ? therapyData.get("therapyId").toString()
+                            : ""
+            );
+
+            therapyDTO.setTherapyName(
+                    therapyData.get("therapyName") != null
+                            ? therapyData.get("therapyName").toString()
+                            : ""
+            );
+
+            List<Map<String, Object>> exercises =
+                    (List<Map<String, Object>>) therapyData.get("exercises");
+
+            List<ExerciseResponseDTO> exerciseList = new ArrayList<>();
+
+            if (exercises != null && !exercises.isEmpty()) {
+
+                for (Map<String, Object> ex : exercises) {
+
+                    ExerciseResponseDTO exDTO = new ExerciseResponseDTO();
+
+                    exDTO.setExerciseId(
+                            ex.get("exerciseId") != null
+                                    ? ex.get("exerciseId").toString()
+                                    : "EX"
+                    );
+
+                    exDTO.setExerciseName(
+                            ex.get("exerciseName") != null
+                                    ? ex.get("exerciseName").toString()
+                                    : ""
+                    );
+
+                    exDTO.setSets(
+                            ex.get("sets") != null
+                                    ? ((Number) ex.get("sets")).intValue()
+                                    : 0
+                    );
+
+                    exDTO.setRepetitions(
+                            ex.get("repetitions") != null
+                                    ? ((Number) ex.get("repetitions")).intValue()
+                                    : 0
+                    );
+
+                    String frequency =
+                            ex.get("frequency") != null
+                                    ? ex.get("frequency").toString()
+                                    : "1";
+
+                    frequency = frequency.trim();
+
+                    if (frequency.matches("\\d+")) {
+                        frequency = frequency + "day";
+                    }
+
+                    frequency = frequency.toLowerCase().replace(" ", "");
+
+                    exDTO.setFrequency(frequency);
+
+                    int totalSessions =
+                            ex.get("noOfSessions") != null
+                                    ? Integer.parseInt(
+                                    ex.get("noOfSessions").toString())
+                                    : 1;
+
+                    exDTO.setNoOfSessions(totalSessions);
+
+                    exDTO.setPricePerSession(
+                            ex.get("pricePerSession") != null
+                                    ? Double.parseDouble(ex.get("pricePerSession").toString())
+                                    : 0.0
+                    );
+
+                    exDTO.setTotalPricePerSession(
+                            ex.get("totalPrice") != null
+                                    ? Double.parseDouble(ex.get("totalPrice").toString())
+                                    : 0.0
+                    );
+
+                    List<SessionDTO> sessions = new ArrayList<>();
+
+                    List<Map<String, Object>> existingSessions =
+                            (List<Map<String, Object>>) ex.get("sessions");
+
+                    if (existingSessions != null && !existingSessions.isEmpty()) {
+
+                        for (Map<String, Object> s : existingSessions) {
+
+                            SessionDTO sessionDTO = new SessionDTO();
+
+                            sessionDTO.setSessionId(
+                                    s.get("sessionId") != null
+                                            ? s.get("sessionId").toString()
+                                            : ""
+                            );
+
+                            sessionDTO.setDate(
+                                    s.get("date") != null
+                                            ? s.get("date").toString()
+                                            : ""
+                            );
+
+                            sessionDTO.setStatus(
+                                    s.get("status") != null
+                                            ? s.get("status").toString()
+                                            : "Pending"
+                            );
+
+                            sessionDTO.setPaymentStatus(
+                                    s.get("paymentStatus") != null
+                                            ? s.get("paymentStatus").toString()
+                                            : "unpaid"
+                            );
+
+                            sessions.add(sessionDTO);
+                        }
+
+                    } else {
+
+                        sessions = generateSessions(
+                                startDate,
+                                frequency,
+                                totalSessions
+                        );
+                    }
+
+                    exDTO.setSessions(sessions);
+                    exerciseList.add(exDTO);
+                }
+            }
+
+            therapyDTO.setExercises(exerciseList);
+            programDTO.getTherapyData().add(therapyDTO);
+        }
+
+        return programDTO;
+    }
+
+    // ==================================================
+    // SESSION GENERATION
+    // ==================================================
+    private List<SessionDTO> generateSessions(
+            LocalDate startDate,
+            String frequency,
+            int total
+    ) {
+
+        List<SessionDTO> list = new ArrayList<>();
+
+        // Normalize frequency
+        // Examples:
+        // 2times/week
+        // 3times/day
+        // 1time/month
+        frequency = frequency.toLowerCase().replace(" ", "");
+
+        int times = 1;          // Number of sessions in one period
+        String period = "day";  // day / week / month
+
+        // ==========================================
+        // Parse frequency
+        // ==========================================
+        if (frequency.matches("\\d+times?/\\w+")) {
+            // Example: 2times/week, 1time/day
+            String[] parts = frequency.split("times?/");
+            times = Integer.parseInt(parts[0]);
+            period = parts[1];
+
+        } else if (frequency.matches("\\d+/\\w+")) {
+            // Example: 2/week
+            String[] parts = frequency.split("/");
+            times = Integer.parseInt(parts[0]);
+            period = parts[1];
+
+        } else {
+            // Fallback to old logic
+            String number = frequency.replaceAll("[^0-9]", "");
+            period = frequency.replaceAll("[0-9]", "");
+
+            times = number.isEmpty() ? 1 : Integer.parseInt(number);
+
+            period = period.replace("times/", "")
+                    .replace("time/", "")
+                    .replace("/", "");
+
+            if (period.isEmpty()) {
+                period = "day";
+            }
+        }
+
+        LocalDate date = startDate;
+
+        for (int i = 1; i <= total; i++) {
+
+            SessionDTO s = new SessionDTO();
+
+            s.setDate(
+                    date.getMonthValue() + "/"
+                            + date.getDayOfMonth() + "/"
+                            + date.getYear()
+            );
+
+            s.setStatus("Pending");
+            s.setPaymentStatus("unpaid");
+            s.setSessionId(generateSessionId(date, i));
+
+            list.add(s);
+
+            // ==========================================
+            // Date calculation based on frequency
+            // ==========================================
+
+            if (period.equalsIgnoreCase("day")
+                    || period.equalsIgnoreCase("days")) {
+
+                // For 2times/day with total=2:
+                // Session 1 -> 16-May
+                // Session 2 -> 17-May
+                // Session 3 -> 18-May
+                date = date.plusDays(1);
+
+            } else if (period.equalsIgnoreCase("week")
+                    || period.equalsIgnoreCase("weeks")) {
+
+                // Example:
+                // 2times/week -> every 3 days
+                // 3times/week -> every 2 days
+                int gap = Math.max(1, 7 / times);
+                date = date.plusDays(gap);
+
+            } else if (period.equalsIgnoreCase("month")
+                    || period.equalsIgnoreCase("months")) {
+
+                // Example:
+                // 2times/month -> every 15 days
+                int gap = Math.max(1, 30 / times);
+                date = date.plusDays(gap);
+
+            } else {
+                // Default: next day
+                date = date.plusDays(1);
+            }
+        }
+
+        return list;
+    }
+
+    // ==================================================
+    // SESSION ID GENERATOR
+    // ==================================================
+    private String generateSessionId(LocalDate date, int index) {
+
+        String month =
+                date.getMonth().toString().substring(0, 3);
+
+        String day =
+                String.format("%02d", date.getDayOfMonth());
+
+        return "S"
+                + String.format("%02d", index)
+                + "-"
+                + day
+                + month
+                + "-"
+                + generateShortCode();
+    }
+
+    private String generateShortCode() {
+
+        String chars =
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        StringBuilder code = new StringBuilder();
+
+        for (int i = 0; i < 4; i++) {
+
+            int idx =
+                    (int) (Math.random() * chars.length());
+
+            code.append(chars.charAt(idx));
+        }
+
+        return code.toString();
+    }
+}

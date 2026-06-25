@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.ResponseStructure;
@@ -23,6 +24,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= CREATE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapyExercisesDTO> createTherapyExercises(TherapyExercisesDTO dto) {
 
         TherapyExercises entity = toEntity(dto);
@@ -40,6 +42,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= GET BY ID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapyExercisesDTO> getTherapyExercisesById(String therapyExercisesId) {
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)
@@ -55,6 +58,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= GET BY clinicId + branchId =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<TherapyExercisesDTO>> getByClinicIdAndBranchId(
             String clinicId, String branchId) {
 
@@ -74,6 +78,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
  // ================= UPDATE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapyExercisesDTO> updateTherapyExercisesById(
             String therapyExercisesId, TherapyExercisesDTO dto) {
 
@@ -154,6 +159,9 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
         if (dto.getUnit() != null)
             entity.setUnit(dto.getUnit());
+        
+        if (dto.getBodyPart() != null)
+            entity.setBodyPart(dto.getBodyPart());
 
         if (dto.getActivityType() != null)
             entity.setActivityType(dto.getActivityType());
@@ -188,6 +196,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= GET BY clinicId + branchId + therapyExercisesId =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<TherapyExercisesDTO> getByClinicIdBranchIdAndTherapyId(
             String clinicId, String branchId, String therapyExercisesId) {
 
@@ -206,6 +215,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= DELETE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<String> deleteTherapyExercisesById(String therapyExercisesId) {
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)

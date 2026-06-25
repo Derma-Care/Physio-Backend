@@ -13,7 +13,6 @@ public interface PhysiotherapyDoctorDetails {
 	 
 //	============From Doctor service ccms======================================= 
 	 
-	  ///  Response login(DoctorLoginDTO loginDTO);
 //		Response registerDoctor(DoctorDTO doctorDTO);
 //		Response changePassword(ChangeDoctorPasswordDTO updateDTO);
 		Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO);
@@ -24,9 +23,11 @@ public interface PhysiotherapyDoctorDetails {
 		public ResponseEntity<?> getDoctorByClinicAndDoctorId(String clinicId,
 				String doctorId);
 		public ResponseEntity<?> getDoctorsByHospitalById(String clinicId);
-		public ResponseEntity<?> getDoctorsBySubServiceId(String hsptlId,String subServiceId);
-		public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId);
+//		public ResponseEntity<?> getDoctorsBySubServiceId(String hsptlId,String subServiceId);
+//		public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId);
+//
 		public ResponseEntity<?> getDoctorFutureAppointments(String doctorId, int page);
+
 		public ResponseEntity<Response> getDiseasesFromClinicAdmin(String hospitalId);
 		public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId);
 

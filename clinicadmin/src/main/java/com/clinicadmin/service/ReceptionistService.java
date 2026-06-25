@@ -1,11 +1,15 @@
 package com.clinicadmin.service;
 
+import com.clinicadmin.dto.DashboardRequest;
 import com.clinicadmin.dto.OnBoardResponse;
 import com.clinicadmin.dto.ReceptionistRequestDTO;
 import com.clinicadmin.dto.ReceptionistRestPassword;
+import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 
 import java.util.List;
+
+import org.springframework.http.ResponseEntity;
 
 public interface ReceptionistService {
 
@@ -33,4 +37,11 @@ public interface ReceptionistService {
     ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranch(String clinicId, String branchId);
 
     ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndId(String clinicId, String receptionistId);
+
+	
+//	Response getReceptionistDashboard(String clinicId, String branchId, String role, DashboardRequest request);
+
+	Response updateReceptionistDashboard(String clinicId, String branchId, String role, DashboardRequest request);
+
+	ResponseEntity<Response> getReceptionistDashboard(String clinicId, String branchId, String role);
 }

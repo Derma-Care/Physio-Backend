@@ -14,4 +14,6 @@ public class MonthlyTherapistResponse {
     private String logTime;
     private String workingHours;
     private String idleTime;
+		
+	
 }

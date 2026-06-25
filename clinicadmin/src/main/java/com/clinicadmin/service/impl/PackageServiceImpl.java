@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.PackageDTO;
@@ -27,6 +28,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= CREATE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<PackageDTO> createPackage(PackageDTO dto) {
 
         log.info("Creating package for clinicId: {}, branchId: {}", dto.getClinicId(), dto.getBranchId());
@@ -51,6 +53,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= GET BY ID =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<PackageDTO> getPackageById(String id) {
 
         log.info("Fetching package id: {}", id);
@@ -67,6 +70,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= GET ALL =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<PackageDTO>> getAllPackages() {
 
         log.info("Fetching all packages");
@@ -86,6 +90,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= GET BY CLINIC & BRANCH =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<List<PackageDTO>> getByClinicAndBranch(String clinicId, String branchId) {
 
         log.info("Fetching packages for clinicId: {}, branchId: {}", clinicId, branchId);
@@ -105,6 +110,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= GET BY CLINIC + BRANCH + PACKAGE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<PackageDTO> getByClinicBranchAndPackageId(
             String clinicId, String branchId, String packageId) {
 
@@ -129,6 +135,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= UPDATE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<PackageDTO> updatepackagebyid(String id, PackageDTO dto) {
 
         log.info("Updating package id: {}", id);
@@ -205,6 +212,7 @@ public class PackageServiceImpl implements PackageService {
 
     // ================= DELETE =================
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseStructure<String> deletepackagebyid(String id) {
 
         log.info("Deleting package id: {}", id);

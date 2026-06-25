@@ -78,6 +78,7 @@ public class BookingResponse {
 	private double partAmount;
 	private double dueAmount;
 	private String referredByType;
+
 	private String referredByName;
 	private String paymentStatus;
 	private String previousInjuries;
@@ -89,7 +90,7 @@ public class BookingResponse {
 	private List<String> activityLevels;
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
-	private List<Session> session;
+	private List<SessionForBooking> session;
 	//private List<FollowupBookingDto> follwupBookings;
 
 	public void setIsFollowupStatus(boolean followupStatus) {

@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 
 public interface BookingService {
 
+
 	public ResponseEntity<?> getAppointmentsByPatientId(String clinicId,
 														String patientId,
 														int page
@@ -22,16 +23,21 @@ public interface BookingService {
 
 	ResponseEntity<?> getInProgressAppointments(String mobileNumber);
 
+
 	public ResponseEntity<?> getAllBookedServicesByDoctorId(String doctorId,
 															int page);
 	ResponseEntity<?> getDoctorFutureAppointments(String doctorId, int page);
 	 public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 	    		String bookingId);
+
 	public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,
 															String branchId,
 															String doctorId,
 															String status,
 															int page) ;
+
+	ResponseEntity<?> searchPatient(String clinicId, String input);
+
 	        
 }
 

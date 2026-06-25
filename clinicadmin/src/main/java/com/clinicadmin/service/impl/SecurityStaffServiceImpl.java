@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,7 @@ import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.SecurityStaffRepository;
 import com.clinicadmin.service.SecurityStaffService;
 import com.clinicadmin.utils.IdGenerator;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.clinicadmin.utils.SecurityStaffMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -45,12 +47,17 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-	AdminServiceClient adminServiceClient;
+	private AdminServiceClient adminServiceClient;
 
 	@Autowired
-	ObjectMapper objectMapper;
+	private ObjectMapper objectMapper;
+	
+	 @Autowired	
+	private KeyCloakTokenStore keyCloakTokenStore;
+		
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<SecurityStaffDTO> addSecurityStaff(SecurityStaffDTO dto) {
 		log.info("Add SecurityStaff request | contactNumber={}, branchId={}",
 				dto.getContactNumber(), dto.getBranchId());
@@ -72,7 +79,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	
 		log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
 
-		ResponseEntity<Response> res = adminServiceClient.getBranchById(dto.getBranchId());
+		ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
 		Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
 
 		SecurityStaff staff = SecurityStaffMapper.toEntity(dto);
@@ -103,6 +110,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<SecurityStaff> updateSecurityStaff(SecurityStaff staff) {
 		log.info("Update SecurityStaff request | securityStaffId={}", staff.getSecurityStaffId());
 
@@ -168,6 +176,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<SecurityStaffDTO> getSecurityStaffById(String staffId) {
 		log.info("Fetching SecurityStaff by ID | securityStaffId={}", staffId);
 
@@ -191,6 +200,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<List<SecurityStaffDTO>> getAllByClinicId(String clinicId) {
 		log.info("Fetching all SecurityStaff by clinicId={}", clinicId);
 		List<SecurityStaff> staffList = repository.findByClinicId(clinicId);
@@ -205,6 +215,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	}
 
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<String> deleteSecurityStaff(String staffId) {
 		log.info("Delete SecurityStaff request | securityStaffId={}", staffId);
 
@@ -242,6 +253,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	
 	@Override
+	@Secured("ROLE_CLINICADMIN")
 	public ResponseStructure<List<SecurityStaffDTO>> getSecurityStaffByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching SecurityStaff | clinicId={}, branchId={}", clinicId, branchId);
 

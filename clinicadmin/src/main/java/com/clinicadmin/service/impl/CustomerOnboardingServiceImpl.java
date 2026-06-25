@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -44,13 +45,14 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	@Autowired
 	private SequenceGeneratorService sequenceGeneratorService;
 	
-	@Autowired
-	private MongoTemplate mongoTemplate;
+//	@Autowired
+//	private MongoTemplate mongoTemplate;
 
 	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	// ----------------- CREATE (ONBOARD) -----------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response onboardCustomer(CustomerOnbordingDTO dto) {
 		Response response = new Response();
 
@@ -119,6 +121,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	// ----------------- READ ALL -----------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getAllCustomers() {
 		Response response = new Response();
 		try {
@@ -138,6 +141,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getCustomerById(String id) {
 		Response response = new Response();
 		try {
@@ -162,6 +166,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	
 	@Override
+	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name) {		
 		Map<String,String> details = new LinkedHashMap<>();
 		try {
@@ -182,6 +187,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getCustomerByMobiileNumber(String mobilenumber) {
 		Response response = new Response();
 		try {
@@ -205,6 +211,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId) {	
 		try {
 			CustomerOnbording optional = onboardingRepository.findByMobileNumberAndHospitalId(mobilenumber,clinicId);
@@ -222,6 +229,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	// ----------------- UPDATE -----------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response updateCustomer(String customerId, CustomerOnbordingDTO dto) {
 		Response response = new Response();
 
@@ -293,6 +301,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	// ----------------- DELETE -----------------
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response deleteCustomer(String id) {
 		Response response = new Response();
 
@@ -325,6 +334,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getCustomersByHospitalId(String hospitalId,String branchId) {
 	    Response response = new Response();
 	    try {
@@ -347,6 +357,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getCustomersByPatientId(String patientId,String clinicId) {
 	    Response response = new Response();
 	    try {
@@ -373,6 +384,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getCustomersByBranchId(String branchId) {
 	    Response response = new Response();
 	    try {
@@ -394,6 +406,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public Response getCustomersByHospitalIdAndBranchId(String hospitalId, String branchId) {
 	    Response response = new Response();
 	    try {
@@ -484,6 +497,19 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 //		return response;
 //	}
 
+	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
+	public String customerDeviceId(String customerId) {
+		try {
+			Optional<CustomerCredentials> cs = credentialsRepository.findByUserName(customerId);	
+			if(cs.isPresent()) {
+				return cs.get().getDeviceId();
+			}else {
+				return null;
+			}
+		}catch(Exception e) {
+			return null;
+		}
+	}
 	// ----------------- RESET PASSWORD -----------------
 //	@Override
 //	public Response resetPassword(ChangeDoctorPasswordDTO dto) {
@@ -571,7 +597,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		return dto;
 	}
 	
-	
+	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
 	public CustomerOnbordingDTO getCustomerByToken(String token){
 		try {	
 			CustomerOnbording cstmr = onboardingRepository.findByDeviceId(token);
@@ -587,6 +613,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	
 	@Override
+	 @Secured("ROLE_CLINICADMIN")
 	public List<BookingInfoByInput> bookingByInput(String input,String clinicId) {
 		   BookingInfoByInput bkng = new BookingInfoByInput();
 		   CustomerOnbordingDTO b = null;

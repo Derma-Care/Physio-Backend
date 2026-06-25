@@ -42,7 +42,7 @@ public class TherapistDTO {
 	private String dateofJoining;
 	private String emergencyContact;
     private String aadharID;
-   
+    private int totalSessionCount;
     private String userName;
     private String password;
 }

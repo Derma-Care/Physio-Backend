@@ -38,7 +38,7 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public Booking findByMobileNumberAndPatientIdAndBookingId(String mobileNumber, String patientId,String bid);
 	public List<Booking> findByClinicIdAndBranchId(String clinicId, String branchId);
 	public List<Booking> findByClinicIdAndBranchIdAndServiceDateOrderByServicetimeAsc(String clinicId,String branchId,String serviceDate);
-	public List<Booking> findByCustomerId(String customerId);
+	public List<Booking> findByCustomerIdAndBranchId(String customerId, String branchId);
 	public Booking findByPatientIdAndFollowupDate(String pId,String followupdate);
 	public List<Booking> findByNameIgnoreCase(String input);
 	public Booking findByServiceDateAndServicetimeAndDoctorId(String date, String time, String doctorId);
@@ -57,7 +57,9 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 			String today, List<String> validStatus);
 	public List<Booking> findByPatientIdAndBookingId(String patientId,String bookingId);
 //	@Query("{ 'bookingId': { $regex: ?0, $options: 'i' } }")
+
 	Optional<Booking> findByBookingIdIgnoreCase(String bookingId);
+
 	
 	public List<Booking> findByBookingIdIn(List<String> followup);
 	@Query("{ 'clinicId': ?0, 'branchId': ?1, 'doctorId': ?2, "
@@ -80,6 +82,7 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 			String requiredStatus);
 	public List<Booking> findByClinicIdAndDoctorIdAndFollowupStatusIgnoreCase(String clinicId, String doctorId,
 			String status);
+
 	public Page<Booking> findByClinicIdAndDoctorIdAndServiceDateAndStatusIgnoreCase(String clinicId, String doctorId,
 			String todayDate, String string, Pageable pageable);
 	public Page<Booking> findByMobileNumber(String mobileNumber, Pageable pageable);
@@ -106,5 +109,22 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 	public Page<Booking> findByClinicId(String clinicId, Pageable pageable);
 	public Page<Booking> findByCustomerId(String customerId, Pageable pageable);
 	//public Optional<Booking> findByBookingIdIgnoreCase(String bookingId);
+	public List<Booking> findByCustomerId(String customerId);
+
+	//public Optional<Booking> findByBookingIdIgnoreCase(String bookingId);
+	public List<Booking> findByBookingIdInAndClinicIdAndBranchId(List<String> followupIds, String clinicId,
+			String branchId);
+	@Query("{ 'clinicId': ?0, '$or': [ "
+	        + "{ 'patientId': ?1 }, "
+	        + "{ 'mobileNumber': ?1 }, "
+	        + "{ 'patientMobileNumber': ?1 }, "
+	        + "{ 'name': { $regex: ?2, $options: 'i' } } "
+	        + "] }")
+	List<Booking> searchBookings(
+	        String clinicId,
+	        String exactValue,
+	        String nameValue);
+	public List<Booking> findByPatientMobileNumberAndClinicId(String input, String clinicId);
+
 	}
 

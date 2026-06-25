@@ -11,6 +11,7 @@ import com.AdminService.feign.CustomerFeign;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.AdminService.dto.BookingRequset;
@@ -42,6 +43,7 @@ public class BookingServiceImpl implements BookingService {
     
    
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<?> physioAppointment(BookingRequset req) {
         ResponseEntity<Response> res = null;
         Response response = new Response();
@@ -84,16 +86,16 @@ public class BookingServiceImpl implements BookingService {
                         }
                     }
                 }
-                res = bookingFeign.bookPhysioAppointment(req);
+                res = bookingFeign.bookPhysioAppointment(keyCloakTokenStore.getAccess_token(),req);
             }else {
-                res = bookingFeign.bookPhysioAppointment(req);}
+                res = bookingFeign.bookPhysioAppointment(keyCloakTokenStore.getAccess_token(),req);}
             //System.out.println(res);
             if(res.getBody().getStatus() == 200) {
 //    		 System.out.println( req.getDoctorId());
 //    		 System.out.println(req.getBranchId());
 //    		 System.out.println( req.getServiceDate());
 //    		 System.out.println( req.getServicetime() );
-                clinicAdminFeign.updateDoctorSlotWhileBooking(
+                clinicAdminFeign.updateDoctorSlotWhileBooking(keyCloakTokenStore.getAccess_token(),
                         req.getDoctorId(),
                         req.getBranchId(),
                         req.getServiceDate(),
@@ -116,10 +118,11 @@ public class BookingServiceImpl implements BookingService {
 
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<Page<BookingResponse>>  getAllBookedServices(int page) {
         try {
-        	System.out.println(keyCloakTokenStore.access_token);
-            ResponseEntity<Page<BookingResponse>> res = bookingFeign.getAllBookings(page,10);
+        	System.out.println(keyCloakTokenStore.getAccess_token());
+            ResponseEntity<Page<BookingResponse>> res = bookingFeign.getAllBookings(keyCloakTokenStore.getAccess_token(),page,10);
             return res; // return exactly what BookingService sends
         } catch (FeignException e) {
             throw e; // propagate exception to controller
@@ -127,9 +130,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response deleteBookedService(String id) {
         try {
-            ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.deleteBookedService(id);
+            ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.deleteBookedService(keyCloakTokenStore.getAccess_token(),id);
             Response response = new Response();
             response.setData(res.getBody());
             response.setStatus(res.getBody() != null ? res.getBody().getStatusCode() : res.getStatusCode().value());
@@ -140,20 +144,22 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public ResponseEntity<?> getBookingByDoctorId(String doctorId,
                                          int page,
                                          int size) {
         try {
-           return  bookingFeign.bookingByDoctorId(doctorId,page,10);
+           return  bookingFeign.bookingByDoctorId(keyCloakTokenStore.getAccess_token(),doctorId,page,10);
         } catch (FeignException e) {
             throw e;
         }
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response getBookedServiceById(String bookingId) {
         try {
-            ResponseEntity<ResponseStructure<BookingResponseDTO>> res = bookingFeign.getBookedService(bookingId);
+            ResponseEntity<ResponseStructure<BookingResponseDTO>> res = bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
             Response response = new Response();
             response.setData(res.getBody());
             response.setStatus(res.getBody() != null ? res.getBody().getStatusCode() : res.getStatusCode().value());
@@ -164,9 +170,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response getAppointmentsByPatientId(String clinicId,String patientId,int page) {
         try {
-            ResponseEntity<?> res = bookingFeign.bookingByPatientId(clinicId,patientId,page,10);
+            ResponseEntity<?> res = bookingFeign.bookingByPatientId(keyCloakTokenStore.getAccess_token(),clinicId,patientId,page,10);
             Response response = new Response();
             response.setData(res.getBody());
             response.setStatus(res.getStatusCode().value());
@@ -177,9 +184,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response updateAppointment(BookingResponseDTO bookingResponseDTO) {
         try {
-            ResponseEntity<?> res = bookingFeign.updateAppointmentBasedOnBookingId(bookingResponseDTO);
+            ResponseEntity<?> res = bookingFeign.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),bookingResponseDTO);
             Response response = new Response();
             response.setData(res.getBody());
             response.setStatus(res.getStatusCode().value());
@@ -190,9 +198,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response getPatientDetailsForConsent(String bookingId, String patientId, String mobileNumber) {
         try {
-            ResponseEntity<Response> res = bookingFeign.getPatientDetailsForConsentForm(bookingId, patientId, mobileNumber);
+            ResponseEntity<Response> res = bookingFeign.getPatientDetailsForConsentForm(keyCloakTokenStore.getAccess_token(),bookingId, patientId, mobileNumber);
             Response response = new Response();
             response.setData(res.getBody());
             response.setStatus(res.getStatusCode().value());
@@ -203,9 +212,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+	@Secured("ROLE_ADMIN")
     public Response getInProgressAppointments(String mobileNumber) {
         try {
-            ResponseEntity<?> res = bookingFeign.inProgressAppointments(mobileNumber);
+            ResponseEntity<?> res = bookingFeign.inProgressAppointments(keyCloakTokenStore.getAccess_token(),mobileNumber);
             Response response = new Response();
             response.setData(res.getBody());
             response.setStatus(res.getStatusCode().value());

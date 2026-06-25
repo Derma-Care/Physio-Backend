@@ -1,5 +1,8 @@
 package physiotherapydoctor.serviceImpl;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,14 +30,18 @@ public class CustomDoctorLoginDetailsService implements UserDetailsService {
 	
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		
-		DoctorLoginDTO doctorLoginDTO = new DoctorLoginDTO();
-		doctorLoginDTO.setUserName(username);
-		doctorLoginDTO.setDeviceId(deviceId);
-		  Response res = clinicAdminFeign.doctorLogin(doctorLoginDTO).getBody();
+		if(deviceId == null) {
+			deviceId = " ";}
+		 Map<String,String> credentials = new LinkedHashMap<>();
+		 credentials.put("username",username);
+		 credentials.put("deviceId",deviceId);
+		 //System.out.println(credentials);
+		  Response res = clinicAdminFeign.doctorLogin(credentials).getBody();
+		  //System.out.println(res);
 		  if(res.getData()!=null) {
-			  DoctorLoginDTO dto = new ObjectMapper().convertValue(res,DoctorLoginDTO.class );
+			  DoctorLoginDTO dto = new ObjectMapper().convertValue(res.getData(),DoctorLoginDTO.class );
 			  rolesStore.setRoles(dto.getRoles()); 
+			  	//System.out.println(dto);
 			  return dto;
 		  }else {
 			  return null;

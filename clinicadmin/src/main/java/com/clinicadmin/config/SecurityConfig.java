@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -19,13 +20,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.clinicadmin.service.impl.CustomClinicAdminLoginDetailsService;
+import com.clinicadmin.service.impl.CustomOtherRoleUserDetailsService;
 import com.clinicadmin.utils.JWTAthenticationEntryPoint;
 import com.clinicadmin.utils.JwtAuthFilter;
 
 
 @Configuration
 @EnableWebSecurity
-//@EnableMethodSecurity(securedEnabled = true)
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 	
 	 @Autowired 
@@ -40,7 +42,8 @@ public class SecurityConfig {
 	        http.csrf(csrf -> csrf.disable())
 	            .authorizeHttpRequests(auth -> auth
 	                .requestMatchers("/clinic-admin/clinicLogin","/clinic-admin/doctorLogin",
-	                "/clinic-admin/customers/login","/clinic-admin/newAccessTokenForClinicAdminService")
+	                "/clinic-admin/customers/login","/clinic-admin/newAccessTokenForClinicAdminService",
+	                "/clinic-admin/loginUsingRoles")
 	                .permitAll()
 	                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 	                .anyRequest().authenticated()
@@ -64,7 +67,14 @@ public class SecurityConfig {
 	    }
 	    
 	    
-	    @Bean	    
+	    @Bean
+	    public UserDetailsService otherRolesuserDetailsService() {
+	    	return new CustomOtherRoleUserDetailsService();
+	    }
+	    
+	    	    
+	    @Bean	
+	    @Primary
 	    public AuthenticationManager customAuthenticationManager(UserDetailsService userDetailsService,
 	    		PasswordEncoder passwordEncoder) {
 	    	DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -73,6 +83,15 @@ public class SecurityConfig {
 	    	return new ProviderManager(authProvider);
 	    }
 	    
+	    
+	    @Bean	    
+	    public AuthenticationManager customAuthenticationManageForOtherRoles(UserDetailsService otherRolesuserDetailsService,
+	    		PasswordEncoder passwordEncoder) {
+	    	DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+	    	authProvider.setUserDetailsService(otherRolesuserDetailsService);
+	    	authProvider.setPasswordEncoder(passwordEncoder);
+	    	return new ProviderManager(authProvider);
+	    }
 
 }
 

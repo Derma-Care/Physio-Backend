@@ -139,6 +139,12 @@ public class CustomerOnboardingController {
  			 @PathVariable String token ){
  	   return customerOnboardingService.getCustomerByToken(token);
   }
+    
+    @GetMapping("/deviceIdByCustomerId/{customerId}")
+    public String customerDeviceId(
+ 			 @PathVariable String customerId ){
+ 	   return customerOnboardingService.customerDeviceId(customerId);
+  } 
 
     @GetMapping("/bookings/byInput/{input}/{clinicId}")	
 			public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId){

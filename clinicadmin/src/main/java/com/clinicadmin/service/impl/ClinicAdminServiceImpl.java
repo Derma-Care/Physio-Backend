@@ -1,35 +1,75 @@
 package com.clinicadmin.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.ClinicDTO;
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.dto.StaffInfoDTO;
 import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
 import com.clinicadmin.entity.ClinicAdminDeviceTokenEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
+import com.clinicadmin.repository.AdministratorRepository;
+import com.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
+import com.clinicadmin.repository.DoctorsRepository;
+import com.clinicadmin.repository.ReceptionistRepository;
+import com.clinicadmin.repository.SecurityStaffRepository;
+import com.clinicadmin.repository.TherapistRepository;
+import com.clinicadmin.repository.WardBoyRepository;
 import com.clinicadmin.service.ClinicAdminService;
 import com.clinicadmin.utils.ExtractFeignMessage;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
+
 @Service
 public class ClinicAdminServiceImpl implements ClinicAdminService {
-    
-	@Autowired
+	
+    @Autowired
     private AdminServiceClient adminServiceClient;
-
+    
+    @Autowired
+    private  AdministratorRepository administratorRepository;
+    
+    @Autowired
+    private DoctorsRepository doctorsRepository;
+    
+    @Autowired
+    private ReceptionistRepository receptionistRepository;
+    
+    @Autowired
+    private SecurityStaffRepository securityStaffRepository;
+    
+    @Autowired
+    private TherapistRepository therapistRepository;
+    
+    @Autowired
+    private WardBoyRepository wardBoyRepository;
+    
+    @Autowired
+    private KeyCloakTokenStore keyCloakTokenStore;
+   
     @Autowired
     private ObjectMapper objectMapper;
     
     @Autowired
     private ClinicAdminWebFcmTokenRepository deviceIdRepo;
-  
+    
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateClinicCredentials(UpdateClinicLoginCredentialsDTO updatedCredentials, String userName) {
     	try {
-        	Response response=adminServiceClient.updateClinicCredentials(updatedCredentials, userName);
+        	Response response=adminServiceClient.updateClinicCredentials(keyCloakTokenStore.getAccess_token(),updatedCredentials, userName);
         	return response;
         	}catch(FeignException e) {
         	Response res = new Response();
@@ -40,9 +80,10 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
         }
 
     @Override
+    @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
     public Response getClinicById(String hospitalId) {
     	try {
-        	ResponseEntity<Response> response=adminServiceClient.getClinicById(hospitalId);
+        	ResponseEntity<Response> response=adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),hospitalId);
         	return response.getBody();
         	}catch(FeignException e) {
         	Response res = new Response();
@@ -54,9 +95,10 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
         }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response updateClinic(String hospitalId, ClinicDTO dto) {
     	try {
-        	Response response=adminServiceClient.updateClinic(hospitalId, dto);
+        	Response response=adminServiceClient.updateClinic(keyCloakTokenStore.getAccess_token(),hospitalId, dto);
         	return response;
         	}catch(FeignException e) {
         	Response res = new Response();
@@ -67,9 +109,10 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
         }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public Response deleteClinic(String hospitalId) {
     	try {
-        	Response response=adminServiceClient.deleteClinic(hospitalId);
+        	Response response=adminServiceClient.deleteClinic(keyCloakTokenStore.getAccess_token(),hospitalId);
         	return response;
         	}catch(FeignException e) {
         	Response res = new Response();
@@ -85,30 +128,11 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
 
     
     @Override
-    public ResponseEntity<?> getDeviceId(String username) {
-    	 Response fallback = new Response();
-    	try {
-          
-        	ClinicAdminDeviceTokenEntity obj =  deviceIdRepo.findByUsername(username);
-        	 fallback.setSuccess(true);
-             fallback.setMessage("successful");
-             fallback.setStatus(HttpStatus.OK.value());
-             return ResponseEntity.status(HttpStatus.OK).body(fallback);         
-        } catch (Exception e) {
-                fallback.setSuccess(false);
-                fallback.setMessage(e.getMessage());
-                fallback.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(fallback);
-            }
-        }
-    
-    
-
-    @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<?> getBranchesByClinicId(String clinicId) {
         try {
           
-            return adminServiceClient.getBranchByClinicId(clinicId);
+            return adminServiceClient.getBranchByClinicId(keyCloakTokenStore.getAccess_token(),clinicId);
 
         } catch (FeignException e) {
             try {
@@ -127,4 +151,115 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
             }
         }
     }
+    
+    
+    @Override
+    @Secured("ROLE_CLINICADMIN")
+    public Response getStaffInfo(String hospitalId, String branchId) {
+
+        Response response = new Response();
+
+        try {
+
+            Map<String, List<StaffInfoDTO>> staffMap = new HashMap<>();
+
+            // Administrators
+            List<StaffInfoDTO> admins = new ArrayList<>();
+            administratorRepository.findByClinicIdAndBranchId(hospitalId, branchId)
+                    .forEach(admin -> admins.add(
+                            new StaffInfoDTO(
+                                    admin.getAdminId(),
+                                    admin.getFullName(),
+                                    admin.getRole()
+                            )));
+            staffMap.put("ADMINISTRATOR", admins);
+
+            // Doctors
+            List<StaffInfoDTO> doctors = new ArrayList<>();
+            doctorsRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
+                    .forEach(doc -> doctors.add(
+                            new StaffInfoDTO(
+                                    doc.getDoctorId(),
+                                    doc.getDoctorName(),
+                                    doc.getRole()
+                            )));
+            staffMap.put("DOCTOR", doctors);
+
+            // Receptionists
+            List<StaffInfoDTO> receptionists = new ArrayList<>();
+            receptionistRepository.findByClinicIdAndBranchId(hospitalId, branchId)
+                    .forEach(rec -> receptionists.add(
+                            new StaffInfoDTO(
+                                    rec.getId(),
+                                    rec.getFullName(),
+                                    rec.getRole()
+                            )));
+            staffMap.put("RECEPTIONIST", receptionists);
+
+            // Security Staff
+            List<StaffInfoDTO> securityStaffs = new ArrayList<>();
+            securityStaffRepository.findByClinicIdAndBranchId(hospitalId, branchId)
+                    .forEach(sec -> securityStaffs.add(
+                            new StaffInfoDTO(
+                                    sec.getSecurityStaffId(),
+                                    sec.getFullName(),
+                                    sec.getRole()
+                            )));
+            staffMap.put("SECURITY_STAFF", securityStaffs);
+
+            // Therapists
+            List<StaffInfoDTO> therapists = new ArrayList<>();
+            therapistRepository.findByClinicIdAndBranchId(hospitalId, branchId)
+                    .forEach(therapist -> therapists.add(
+                            new StaffInfoDTO(
+                                    therapist.getTherapistId(),
+                                    therapist.getFullName(),
+                                    therapist.getRole()
+                            )));
+            staffMap.put("THERAPIST", therapists);
+
+            // Ward Boys
+            List<StaffInfoDTO> wardBoys = new ArrayList<>();
+            wardBoyRepository.findByClinicIdAndBranchId(hospitalId, branchId)
+                    .forEach(wardBoy -> wardBoys.add(
+                            new StaffInfoDTO(
+                                    wardBoy.getWardBoyId(),
+                                    wardBoy.getFullName(),
+                                    wardBoy.getRole()
+                            )));
+            staffMap.put("WARD_BOY", wardBoys);
+
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Staff information fetched successfully");
+            response.setData(staffMap);
+
+        } catch (Exception e) {
+
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage(e.getMessage());
+        }
+
+        return response;
+    }
+    
+    @Override
+    @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
+    public String getDeviceId(String clinicId,String branchId) {
+    	Optional<ClinicAdminDeviceTokenEntity> obj = null;
+    	String deviceId = null;
+    	try {         
+        	obj =  deviceIdRepo.findByUsername(clinicId);
+        	if(obj.isPresent()) {
+        		 deviceId = obj.get().getClinicAdminWebFcmToken();
+        	}else {
+        		obj =  deviceIdRepo.findByUsername(branchId);	
+        		if(obj.isPresent()) {
+        			 deviceId = obj.get().getClinicAdminWebFcmToken();
+            	}}} catch (Exception e) {
+            		System.out.println(e.getMessage());
+        		return null;
+        	}
+    	///System.out.println(deviceId);
+    	return  deviceId;
+        }
 }

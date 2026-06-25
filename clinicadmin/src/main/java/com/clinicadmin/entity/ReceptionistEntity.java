@@ -61,7 +61,7 @@ public class ReceptionistEntity {
 	private String computerSkillsProof;
 	private String previousEmploymentHistory;
     private String createdBy;
-    
+    private Boolean dashboardStatus = false;
     private String createdAt;
     
     private String updatedDate;

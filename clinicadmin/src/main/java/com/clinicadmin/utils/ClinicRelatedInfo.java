@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Component;
+
+import com.clinicadmin.dto.DoctorLoginDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +19,7 @@ public class ClinicRelatedInfo {
 	
 	private List<String> roles;	
 	private Map<String, Map<String, List<String>>> permissions;
+	private DoctorLoginDTO doctorLoginDTO;
 
 
 }

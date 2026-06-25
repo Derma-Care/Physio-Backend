@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.BookingResponse;
@@ -21,6 +22,7 @@ import com.clinicadmin.entity.Vitals;
 import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.VitalsRepository;
 import com.clinicadmin.service.VitalService;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 
 @Service
 public class VitalServiceImpl implements VitalService {
@@ -28,12 +30,16 @@ public class VitalServiceImpl implements VitalService {
     private static final Logger log = LoggerFactory.getLogger(VitalServiceImpl.class);
 
     @Autowired
-    VitalsRepository vitalsRepository;
+    private VitalsRepository vitalsRepository;
 
     @Autowired
-    BookingFeign bookingFeign;
+    private BookingFeign bookingFeign;
+    
+	@Autowired	
+	public KeyCloakTokenStore keyCloakTokenStore;
 
     @Override
+    @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
     public Response postVitals(String bookingId, VitalsDTO dto) {
         log.info("Post vitals request received | bookingId={}", bookingId);
 
@@ -51,7 +57,7 @@ public class VitalServiceImpl implements VitalService {
 //            }
 
             ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
-                    bookingFeign.getBookedService(bookingId);
+                    bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
 
             BookingResponse resbody = bookingResponse.getBody().getData();
 
@@ -115,6 +121,7 @@ public class VitalServiceImpl implements VitalService {
     }
 
     @Override
+    @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
     public Response getPatientByBookingIdAndPatientId(String bookingId, String patientId) {
 
         log.info("Fetching vitals | bookingId={}, patientId={}", bookingId, patientId);
@@ -179,6 +186,7 @@ public class VitalServiceImpl implements VitalService {
         }
     }
     @Override
+    @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
     public Response updateVitals(String bookingId, String patientId, VitalsDTO dto) {
 
         log.info("Update vitals request | bookingId={}, patientId={}", bookingId, patientId);
@@ -243,6 +251,7 @@ public class VitalServiceImpl implements VitalService {
     }
 
     @Override
+    @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
     public Response deleteVitals(String bookingId, String patientId) {
 
         log.info("Delete vitals request received | bookingId={}, patientId={}", bookingId, patientId);

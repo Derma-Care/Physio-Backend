@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
@@ -24,21 +25,21 @@ import com.clinicadmin.dto.TempBlockingSlot;
 public interface BookingFeign {
 
 	@GetMapping("/api/v1/getBookedServiceById/{id}")
-	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id);
+	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@RequestHeader("Authorization") String token,@PathVariable String id);
 	
 	
 	@GetMapping("/api/v1/appointments/{patientId}/{page}/{size}")
-	public ResponseEntity<?> getAppointmentsByPatientId(
+	public ResponseEntity<?> getAppointmentsByPatientId(@RequestHeader("Authorization") String token,
 	        @PathVariable String patientId,
 	        @PathVariable int page,
 	        @PathVariable int size);
 	//---------------------------to get patientdetails by bookingId,pateintId,mobileNumber---------------------------
 	@GetMapping("/api/v1/getPatientDetailsForConsetForm/{bookingId}/{patientId}/{mobileNumber}")
-	public ResponseEntity<Response> getPatientDetailsForConsentForm(@PathVariable String bookingId,@PathVariable String patientId,@PathVariable String mobileNumber);
+	public ResponseEntity<Response> getPatientDetailsForConsentForm(@RequestHeader("Authorization") String token,@PathVariable String bookingId,@PathVariable String patientId,@PathVariable String mobileNumber);
 
 		
 	@PutMapping("/api/v1/updateAppointment")
-	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse );
+	public ResponseEntity<?> updateAppointment(@RequestHeader("Authorization") String token,@RequestBody BookingResponse bookingResponse );
 	
 //	@PostMapping("/api/v1/bookService")
 //	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestBody BookingRequset req);
@@ -48,18 +49,18 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(@PathVariable String id);
 	
 	@GetMapping("/api/v1/bookings/{mobileNumber}/{page}/{size}")
-	public ResponseEntity<?> getBookedServices(
+	public ResponseEntity<?> getBookedServices(@RequestHeader("Authorization") String token,
 	        @PathVariable String mobileNumber,
 	        @PathVariable int page,
 	        @PathVariable int size);
 	
 	@GetMapping("/api/v1/getAllBookedServices/{page}/{size}")
-	public ResponseEntity<Page<BookingResponse>> getAllBookings(
+	public ResponseEntity<Page<BookingResponse>> getAllBookings(@RequestHeader("Authorization") String token,
 			@PathVariable int page,
 			@PathVariable int size);
 	
 	@GetMapping("/api/v1/doctor/{doctorId}/{page}/{size}")
-	public ResponseEntity<?> bookingByDoctorId(
+	public ResponseEntity<?> bookingByDoctorId(@RequestHeader("Authorization") String token,
 	        @PathVariable String doctorId,
 	        @PathVariable int page,
 	        @PathVariable int size);
@@ -68,7 +69,7 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByServiceId(@PathVariable String serviceId);
 	
 	@GetMapping("/api/v1/clinic/{clinicId}/{page}/{size}")
-	public ResponseEntity<?> bookingByClinicId(
+	public ResponseEntity<?> bookingByClinicId(@RequestHeader("Authorization") String token,
 	        @PathVariable String clinicId,
 	        @PathVariable int page,
 	        @PathVariable int size);
@@ -76,52 +77,55 @@ public interface BookingFeign {
 	@GetMapping("/api/v1/getInProgressAppointments/{mobilenumber}")
 	public ResponseEntity<?> inProgressAppointments(@PathVariable String mobilenumber);
 	
+
 	@GetMapping("/api/v1/branch/{branchId}/{page}/{size}")
-	public ResponseEntity<?> bookingByBranchId(
+	public ResponseEntity<?> bookingByBranchId(@RequestHeader("Authorization") String token,
 	        @PathVariable String branchId,
 	        @PathVariable int page,
 	        @PathVariable int size);
 	@GetMapping("/api/v1/clinicBookings/{clinicId}/{branchId}/{page}/{size}")
-	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(
+	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(@RequestHeader("Authorization") String token,
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId,
 	        @PathVariable int page,
 	        @PathVariable int size) ;
 	
 	@GetMapping("/api/v1/retrieve-one-week-appointments/{clinicId}/{branchId}/{page}/{size}")
-	public ResponseEntity<?> retrieveOneWeekAppointments(
+	public ResponseEntity<?> retrieveOneWeekAppointments(@RequestHeader("Authorization") String token,
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId,
 	        @PathVariable int page,
 	        @PathVariable int size);
 	
 	@GetMapping("/api/v1/appointments/byIdsAndDate/{clinicId}/{branchId}/{date}")
-	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String date);
+	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(@RequestHeader("Authorization") String token,@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String date);
 	
 	@PutMapping("/api/v1/update/bookingId")
-	public ResponseEntity<ResponseStructure<BookingResponse>>  updateAppointmentBasedOnBookingId(@RequestBody BookingResponse bookingResponse );
+	public ResponseEntity<ResponseStructure<BookingResponse>>  updateAppointmentBasedOnBookingId(@RequestHeader("Authorization") String token,@RequestBody BookingResponse bookingResponse );
 	
 	@PostMapping("/api/v1/appointments/serviceDate/serviceTime/DoctorId")
-	public BookingResponse blockingSlot(@RequestBody TempBlockingSlot temp);
+	public BookingResponse blockingSlot(@RequestHeader("Authorization") String token,@RequestBody TempBlockingSlot temp);
 	
 	@GetMapping("/api/v1/appointments/byInput/{input}/{clinicId}")	
-	public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId);
+	public ResponseEntity<?> retrieveAppointnmentsByInput(@RequestHeader("Authorization") String token,@PathVariable String input,@PathVariable String clinicId);
 //-----------------------------New Api for clinic admin  coummunicating from booking service for front end--------------------	
 	@GetMapping("/api/v1/appointments/patientId/{patientId}")	
-	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByPatientId(@PathVariable String patientId);
+	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByPatientId(@RequestHeader("Authorization") String token,@PathVariable String patientId);
 	
 	@PostMapping("/api/v1/bookService")
-	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestBody BookingResponse req);
+
+	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestHeader("Authorization") String token,@RequestBody BookingResponse req);
+
 	
 	@GetMapping("/api/v1/appointments/Inprogress/patientId/{patientId}")
-	public ResponseEntity<?> getInprogressAppointmentsByPatientId(@PathVariable String patientId);
+	public ResponseEntity<?> getInprogressAppointmentsByPatientId(@RequestHeader("Authorization") String token,@PathVariable String patientId);
 	
 	@GetMapping("/api/v1/appointments/Inprogress/patientId/{patientId}/{clinicId}")
-	public ResponseEntity<?> getInprogressAppointmentsByPatientIdAndClinicId(@PathVariable String patientId,@PathVariable String clinicId );
+	public ResponseEntity<?> getInprogressAppointmentsByPatientIdAndClinicId(@RequestHeader("Authorization") String token,@PathVariable String patientId,@PathVariable String clinicId );
 	
 	
 	@GetMapping("/api/v1/report/{clinicId}/{branchId}/{number}/{startDate}/{endDate}")
-	public ResponseEntity<Response> getReport(
+	public ResponseEntity<Response> getReport(@RequestHeader("Authorization") String token,
 			@PathVariable String clinicId,
 			@PathVariable String branchId,
 			@PathVariable Integer number,
@@ -129,50 +133,52 @@ public interface BookingFeign {
 			@PathVariable String endDate);
 	
 	@PostMapping("/api/v1/bookPhysioAppointment")
-	public  ResponseEntity<Response> bookPhysioAppointment(@RequestBody BookingRequset req);
+	public  ResponseEntity<Response> bookPhysioAppointment(@RequestHeader("Authorization") String token,@RequestBody BookingRequset req);
 	
 	  @GetMapping("/api/v1/today/{clinicId}/{branchId}")
-	    public ResponseEntity<Response> getTodayPhysioBookings(
+	    public ResponseEntity<Response> getTodayPhysioBookings(@RequestHeader("Authorization") String token,
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId);
 	  
 	  @GetMapping("/api/v1/upcoming/{clinicId}/{branchId}/{option}")
-	    public ResponseEntity<Response> getUpcomingBookings(
+	    public ResponseEntity<Response> getUpcomingBookings(@RequestHeader("Authorization") String token,
 	    		  @PathVariable String clinicId,
 	    		  @PathVariable String branchId,
 	    		  @PathVariable int option);
 	  
 	  @GetMapping("/api/v1//basedOnDate/{clinicId}/{branchId}/{date}")
-	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(
+	    public ResponseEntity<Response> getPhysioBookingBasedOnDate(@RequestHeader("Authorization") String token,
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId,
 	            @PathVariable String date);
 	  
 	  @GetMapping("/api/v1/customeRange/{clinicId}/{branchId}/{start}/{end}")
-	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(
+	    public ResponseEntity<Response> getPhysioBookingsByCustomeRange(@RequestHeader("Authorization") String token,
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId,
 	            @PathVariable String start,
 	            @PathVariable String end);
 	  
 	  @GetMapping("/api/v1/getBookingById/{bookingId}")
-	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId);
+	    public ResponseEntity<Response> getBookingById(@RequestHeader("Authorization") String token,@PathVariable String bookingId);
 	    
 	  
 		@GetMapping("/api/v1/todayBookings/{clinicId}/{branchId}/{page}/{size}")
-		public ResponseEntity<?> getTodayBookings(
+		public ResponseEntity<?> getTodayBookings(@RequestHeader("Authorization") String token,
 		        @PathVariable String clinicId,
 		        @PathVariable String branchId,
 		        @PathVariable int page,
 		        @PathVariable int size);
-	  
+	
+  
 	  @GetMapping("/api/v1/in-progress/appointments/{patientId}/{bookingId}")
-		public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@PathVariable String patientId,@PathVariable String bookingId);
+		public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@RequestHeader("Authorization") String token,@PathVariable String patientId,@PathVariable String bookingId);
 		
 	  @GetMapping("/api/v1/reports/patientId/{patientId}")
-	    public ResponseEntity<Response> getReportsByPatientId(@PathVariable String patientId);
+	    public ResponseEntity<Response> getReportsByPatientId(@RequestHeader("Authorization") String token,@PathVariable String patientId);
 	 
 	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
-	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index);
+      public void deleteReport(@RequestHeader("Authorization") String token,@PathVariable String bookingId,@PathVariable String index);
+
 	   	  
 }

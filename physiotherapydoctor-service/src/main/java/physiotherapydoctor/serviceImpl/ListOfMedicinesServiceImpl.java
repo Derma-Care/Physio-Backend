@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Create
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response create(ListOfMedicinesDTO dto) {
 		ListOfMedicines saved = repository.save(convertToEntity(dto));
 		return new Response(true, convertToDTO(saved), "Medicine list created successfully",
@@ -30,6 +32,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Update
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response update(String id, ListOfMedicinesDTO dto) {
 		ListOfMedicines existing = repository.findById(id)
 				.orElseThrow(() -> new RuntimeException("Medicine list not found with id: " + id));
@@ -43,6 +46,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Delete
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 		repository.deleteById(id);
 		return new Response(true, null, "Medicine list deleted successfully", HttpStatus.OK.value());
@@ -50,6 +54,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Get by ID
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 		return repository.findById(id)
 				.map(entity -> new Response(true, convertToDTO(entity), "Medicine list fetched successfully",
@@ -60,6 +65,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Get all
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response getAll() {
 		List<ListOfMedicinesDTO> medicines = repository.findAll().stream().map(this::convertToDTO)
 				.collect(Collectors.toList());
@@ -68,6 +74,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Get by clinic ID
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response getByClinicId(String clinicId) {
 		List<ListOfMedicinesDTO> medicines = repository.findByClinicId(clinicId).stream().map(this::convertToDTO)
 				.collect(Collectors.toList());
@@ -76,6 +83,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Add or search medicine (using only ListOfMedicinesDTO)
 	@Override
+	 @Secured("ROLE_DOCTOR")
 	public Response addOrSearchMedicine(ListOfMedicinesDTO dto) {
 		String clinicId = dto.getClinicId();
 		List<String> medicinesToAdd = dto.getListOfMedicines();

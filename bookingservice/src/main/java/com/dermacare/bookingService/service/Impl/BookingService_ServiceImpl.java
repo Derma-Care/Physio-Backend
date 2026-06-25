@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
@@ -38,6 +40,7 @@ import com.dermacare.bookingService.dto.RelationInfoDTO;
 import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.dto.ReportsDtoList;
 import com.dermacare.bookingService.dto.Session;
+import com.dermacare.bookingService.dto.SessionForBooking;
 import com.dermacare.bookingService.entity.Booking;
 import com.dermacare.bookingService.entity.ConsultationFees;
 import com.dermacare.bookingService.entity.FollowupBooking;
@@ -51,6 +54,7 @@ import com.dermacare.bookingService.feign.PhysioDoctorFeign;
 import com.dermacare.bookingService.repository.BookingServiceRepository;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.service.S3Service;
+import com.dermacare.bookingService.util.KeyCloakTokenStore;
 import com.dermacare.bookingService.util.Response;
 import com.dermacare.bookingService.util.ResponseStructure;
 import com.dermacare.bookingService.util.geneateIds;
@@ -59,7 +63,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Autowired
@@ -71,14 +78,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private ClinicAdminFeign clinnicfeign;
 
-
 //	@Autowired
 //	private KafkaProducer kafkaProducer;
 
 	@Autowired
 	private NotificationFeign notificationFeign;
-//	@Autowired
-//	private DoctorFeign doctorFeign;
+
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
 	@Autowired
@@ -86,10 +91,17 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Autowired
 	private S3Service s3Service;
+	
+	@Autowired
+	private KeyCloakTokenStore keyCloakTokenStore;
+	
+	@Autowired
+	private WhatsAppService whatsAppService;
 
 	@Override
-	public ResponseEntity<?> addService(BookingResponse request) {
-		ResponseStructure<Booking> response = new ResponseStructure<>();
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	public ResponseEntity<?> followUpBooking(BookingResponse request) {
+		ResponseStructure<BookingResponse> response = new ResponseStructure<>();
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.registerModule(new JavaTimeModule());
 		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -97,8 +109,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			Booking updatedBooking =
 					updateForFollowup(request);
 			if (updatedBooking != null) {
+				
 				response = ResponseStructure.buildResponse(
-						updatedBooking,
+						mapper.convertValue(updatedBooking, BookingResponse.class),				
 						"Last follow-up booking retrieved successfully",
 						HttpStatus.CREATED,
 						HttpStatus.CREATED.value());
@@ -140,7 +153,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			Map<String,String> res = new LinkedHashMap<>();
 			try {
 				if(request.getCustomerId().isEmpty() ||request.getPatientId().isEmpty() ) {
-					res = clinnicfeign.getCustomerByMobilenumberAndName(request.getMobileNumber(), request.getName());
+					res = clinnicfeign.getCustomerByMobilenumberAndName(keyCloakTokenStore.getAccess_token(),request.getMobileNumber(), request.getName());
 					customerId = res.get("customerId");
 					patientId = res.get("patientId");}
 			}catch(Exception e) {System.out.println(e.getMessage());}
@@ -297,15 +310,15 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		    // ── ✅ NEW: Sign report file keys → signed URLs ──
 		    try {
 		        if (response.getReports() != null) {
-		            for (com.dermacare.bookingService.dto.ReportsDtoList reportsDtoList : response.getReports()) {
+		            for (ReportsDtoList reportsDtoList : response.getReports()) {
 		                if (reportsDtoList.getReportsList() == null) continue;
-		                for (com.dermacare.bookingService.dto.ReportsDTO report : reportsDtoList.getReportsList()) {
+		                for (ReportsDTO report : reportsDtoList.getReportsList()) {
 		                    if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
 		                    List<String> signedUrls = report.getReportFile().stream()
 		                            .filter(key -> key != null && !key.isBlank())
 		                            .map(key -> {
 		                                try {
-		                                    return clinicAdminFeign.getSignedUrl(key); // ✅ calls Clinic Admin
+		                                    return clinicAdminFeign.getSignedUrl(keyCloakTokenStore.getAccess_token(),key); // ✅ calls Clinic Admin
 		                                } catch (Exception ex) {
 		                                    System.out.println("report sign error: " + ex.getMessage());
 		                                    return key; // fallback to raw key
@@ -332,7 +345,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	private String getPrescriptionpdf(String bid) {
 		try {
-			String res = physioDoctorFeign.getByBookingId(bid);
+			String res = physioDoctorFeign.getByBookingId(keyCloakTokenStore.getAccess_token(),bid);
 			return res;
 		}catch(Exception e) {
 			return null;
@@ -391,7 +404,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                                .filter(key -> key != null && !key.isBlank())
 	                                .map(key -> {
 	                                    try {
-	                                        return clinicAdminFeign.getSignedUrl(key); // ✅ Clinic Admin signs it
+	                                        return clinicAdminFeign.getSignedUrl(keyCloakTokenStore.getAccess_token(),key); // ✅ Clinic Admin signs it
 	                                    } catch (Exception ex) {
 	                                        System.out.println("report sign error: " + ex.getMessage());
 	                                        return key; // fallback to raw key
@@ -417,16 +430,15 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
 	 public ResponseEntity<?> physioAppointment(BookingRequset request) {
 		 Response res = new Response();
 		  ObjectMapper mapper = new ObjectMapper();
 	         mapper.registerModule(new JavaTimeModule());
 	         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		 ResponseEntity<?> repnse = null;
+		// ResponseEntity<?> repnse = null;
 		 try {
-			 if (request.getFreeFollowUps() == null) {
-			        throw new RuntimeException("Free FollowUps is mandatory");
-			    }
+			
 			 if (request.getClinicName() == null || request.getClinicName().isEmpty() ) {
 			        throw new RuntimeException("ClinicName is mandatory");
 			    }
@@ -441,12 +453,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			        throw new RuntimeException("patientmobilenumber or Mobile Number is mandatory");
 			    }}
 
-			    if (request.getConsultationExpiration() == null
-			            || request.getConsultationExpiration().trim().isEmpty()) {
-
-			        throw new RuntimeException("Consultation Expiration is mandatory");
-			    }
-
 			    if (request.getClinicId() == null || request.getClinicId().trim().isEmpty()) {
 			        throw new RuntimeException("Clinic Id is mandatory");
 			    }
@@ -459,45 +465,117 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			        throw new RuntimeException("Doctor Id is mandatory");
 			    }
 
-			    if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
-			        throw new RuntimeException("Service Date is mandatory");
-			    }
-			 if (request.getServicetime() == null || request.getServicetime().trim().isEmpty()) {
-				 throw new RuntimeException("Service Time is mandatory");
-			 }
-	     Booking entity = toEntity(request);
-	     //System.out.println(entity);
-	     Booking updatedBooking = repository.save(entity);   
-	     if(updatedBooking != null) {
-	     int status = 0;
-	    	  try {
-	          Response respnse =  notificationFeign.createNotification(mapper.convertValue(updatedBooking,BookingResponse.class )).getBody();
-	          status = respnse.getStatus();
-	    	  }catch (Exception e) {}	    	  
-	    	 /// res.setData(mapper.convertValue(updatedBooking,BookingResponse.class ) );
-	    	  if(status == 200) {
-	    	  res.setMessage("Appointment Booked Successfully and notification sent");}
-	    	  else {
-	    		  res.setMessage("Appointment Booked Successfully but notification not sent");}}
-	    	  res.setStatus(200);
-	    	  res.setSuccess(true);
-	    	 // BookingResponse bookingResponse = toResponse(updatedBooking);
-	    	  //Map<String,Object> map = new LinkedHashMap<>();
-//	    	  map.put("DoctorId",updatedBooking.getDoctorId() );
-//	    	  map.put("BranchId", updatedBooking.getBranchId());
-//	    	  map.put("ServiceDate", updatedBooking.getServiceDate());
-//	    	  map.put("ServiceTime", updatedBooking.getServicetime());
-	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);
-		     }catch (Exception e) {
-	    		  res.setMessage(e.getMessage());
-    	    	  res.setStatus(500);
-    	    	  res.setSuccess(false);
-    	    	  repnse = ResponseEntity.status(res.getStatus()).body(res);
+			if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
+				throw new RuntimeException("Service Date is mandatory");
+			}
+
+			if (request.getServicetime() == null || request.getServicetime().trim().isEmpty()) {
+				throw new RuntimeException("Service Time is mandatory");
+			}
+
+			if (request.getConsultationExpiration() == null || request.getConsultationExpiration().trim().isEmpty()) {
+				throw new RuntimeException("Consultation Expiration is mandatory");
+			}
+
+			boolean hasPatientMobile = request.getPatientMobileNumber() != null
+					&& !request.getPatientMobileNumber().trim().isEmpty();
+
+			boolean hasMobile = request.getMobileNumber() != null && !request.getMobileNumber().trim().isEmpty();
+
+			if (!hasPatientMobile && !hasMobile) {
+				throw new RuntimeException("Patient Mobile Number or Mobile Number is mandatory");
+			}
+
+			// =====================================================
+			// SAVE BOOKING
+			// =====================================================
+
+			Booking entity = toEntity(request);
+
+			Booking updatedBooking = repository.save(entity);
+
+			if (updatedBooking == null) {
+				throw new RuntimeException("Unable to save appointment");
+			}
+
+			// =====================================================
+			// SEND NOTIFICATION
+			// =====================================================
+
+			int notificationStatus = 0;
+
+			try {
+
+				Response notificationResponse = notificationFeign
+						.createNotification(keyCloakTokenStore.getAccess_token(),mapper.convertValue(updatedBooking, BookingResponse.class)).getBody();
+				if (notificationResponse != null) {
+					notificationStatus = notificationResponse.getStatus();
+				}
+
+			} catch (Exception e) {
+
+				log.warn("Notification service failed for booking {} : {}", updatedBooking.getBookingId(),
+						e.getMessage());
+			}
+
+			// =====================================================
+			// SEND WHATSAPP
+			// =====================================================
+
+			try {
+
+				request.setBookingId(updatedBooking.getBookingId());
+
+				request.setClinicId(updatedBooking.getClinicId());
+
+				request.setBranchId(updatedBooking.getBranchId());
+
+				whatsAppService.sendBookingConfirmation(request);
+
+				log.info("WhatsApp sent successfully for booking {}", updatedBooking.getBookingId());
+
+			} catch (Exception e) {
+
+				log.warn("WhatsApp notification failed for booking {} : {}", updatedBooking.getBookingId(),
+						e.getMessage());
+
+				// Do not fail booking if WhatsApp fails
+			}
+
+			// =====================================================
+			// SUCCESS RESPONSE
+			// =====================================================
+
+			res.setStatus(200);
+			res.setSuccess(true);
+
+			if (notificationStatus == 200) {
+
+				res.setMessage("Appointment Booked Successfully and notification sent");
+
+			} else {
+
+				res.setMessage("Appointment Booked Successfully but Notification not sent");
+			}
+
+			return ResponseEntity.ok(res);
+
+		} catch (Exception e) {
+
+			log.error("Appointment booking failed : {}", e.getMessage(), e);
+
+			res.setStatus(500);
+			res.setSuccess(false);
+			res.setMessage(e.getMessage());
+
+			return ResponseEntity.status(500).body(res);
+
 		}
-		return repnse;
+		
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<?> getAppointsByPatientId(String patientId, int page, int size) {
 
 		ResponseStructure<Map<String, Object>> res =
@@ -598,6 +676,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<?> getAppointsByInput(
 			String input,
 			int page,
@@ -659,73 +738,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 	}
 
-
-	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(String clinicId,
-																  String doctorId) {
-		List<Map<String,Object>> list = new ArrayList<>();
-		ResponseStructure<List<Map<String,Object>>> res = new ResponseStructure<>();
-		List<BookingResponse> responseList = new ArrayList<>();
-		try {
-// Fetch bookings based on clinicId and doctorId
-			List<Booking> existingBookings =
-					repository.findByClinicIdAndDoctorId(clinicId, doctorId);
-
-			DateTimeFormatter dateFormatter =
-					DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-			LocalDate currentDate =
-					LocalDate.now(ZoneId.of("Asia/Kolkata"));
-
-			if (existingBookings != null && !existingBookings.isEmpty()) {
-
-				for (Booking b : existingBookings) {
-
-					if (b.getServiceDate() != null &&
-							b.getStatus() != null) {
-
-						LocalDate bookingDate =
-								LocalDate.parse(b.getServiceDate(), dateFormatter);
-
-if (bookingDate.equals(currentDate)
-&& b.getStatus().equalsIgnoreCase("Confirmed") || b.getStatus().equalsIgnoreCase("pending") ) {
-
-							BookingResponse temp = toResponse(b);
-
-							responseList.add(temp);
-						}
-					}
-				}
-				responseList.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
-					map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
-					map.put("name", n.getName()); map.put("mobileNumber",  !n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber()); map.put("doctorId", n.getDoctorId());
-					map.put("doctorName", n.getDoctorName()); map.put("paymentType", n.getPaymentType()); map.put("visitType", n.getVisitType());
-					map.put("status", n.getStatus()); map.put("followupStatus", n.getFollowupStatus()); map.put("patientId", n.getPatientId());
-					map.put("clinicId", n.getClinicId()); map.put("customerId", n.getCustomerId());  map.put("branchId", n.getBranchId());
-					map.put("age", n.getAge());map.put("gender", n.getGender()); map.put("branchName", n.getBranchname());	map.put("problem", n.getProblem());
-					list.add(map);
-					return n;
-				}).toList();
-				res.setStatusCode(200);
-				res.setHttpStatus(HttpStatus.OK);
-				res.setData(list);
-				if (!list.isEmpty()) {
-					res.setMessage("Today's Appointments Found");
-				} else {
-					res.setMessage("No Appointments for Today");
-				}} else {
-				res.setStatusCode(200);
-				res.setHttpStatus(HttpStatus.OK);
-				res.setMessage("Appointments Not Found");
-			}} catch (Exception e) {
-			res.setStatusCode(500);
-			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-			res.setMessage("Error occurred : " + e.getMessage());
-		}
-
-		return ResponseEntity.status(res.getStatusCode()).body(res);
-	}
-
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(
 			String clinicId,
 			String doctorId,
@@ -846,6 +860,7 @@ if (bookingDate.equals(currentDate)
 
 
 @Override
+@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
         String hospitalId,
         String doctorId,
@@ -927,7 +942,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
     return ResponseEntity.status(res.getStatusCode()).body(res);
 }
 
-
+@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public ResponseEntity<?> getCompletedApntsByDoctorId(String hospitalId,String doctorId) {
 		Map<String,Object> m = new LinkedHashMap<>();
 		try {
@@ -952,6 +967,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 
+@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public ResponseEntity<?> getSizeOfConsultationTypesByDoctorId(String hospitalId,String doctorId) {
 		Map<String,Object> m = new LinkedHashMap<>();
 		try {
@@ -985,16 +1001,16 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 
-
+@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public BookingResponse getBookedService(String bookingId) {
 		try {
 			Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();
 			System.out.println(entity);
 			if(entity != null) {
 				BookingResponse res = toResponse(entity);
-				List<Session> lst = new ArrayList<>();
+				List<SessionForBooking> lst = new ArrayList<>();
 				try {
-					lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
+					lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate()).getBody();
 					res.setSession(lst);
 				}catch(Exception e) {}
 				return res;
@@ -1006,7 +1022,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}
 	}
 
-
+@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public void deleteBookedServiceReports(String bookingId,String index) {
 		try {
 			Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();
@@ -1023,6 +1039,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public BookingResponse deleteService(String id) {
 		Booking entity = repository.findByBookingIdIgnoreCase(id)
 				.orElseThrow(() -> new RuntimeException("Invalid Booking Id Please provide Valid Id"));
@@ -1031,6 +1048,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Page<BookingResponse> getBookedServices(
 			String mobileNumber,
 			int page,
@@ -1056,6 +1074,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Page<BookingResponse> getAllBookedServices(int page, int size) {
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -1070,6 +1089,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Page<BookingResponse> bookingByDoctorId(
 			String doctorId,
 			int page,
@@ -1214,6 +1234,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
 	public List<Map<String, Object>> bookingByCustomerId(String customerId) {
 
 	    List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -1265,6 +1286,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public Page<BookingResponse> bookingByPatientId(String clincId,String patientId, int page, int size) {
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -1281,6 +1303,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Page<BookingResponse> bookingByPatientIdAndBookingId(
 			String patientId,
 			String bookingId,
@@ -1311,6 +1334,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 
 	 @Override
+	 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	  public List<ReportsDTO> getReportsByPatientId(String patientId) {
 		  ObjectMapper mapper = new ObjectMapper();
 	         mapper.registerModule(new JavaTimeModule());
@@ -1327,7 +1351,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	        return responseList;
 	    }
 		
-
+	 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
 	public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId) {
 
 	    List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -1387,6 +1411,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<?> bookingByClinicId(
 			String clinicId,
 			int page,
@@ -1741,6 +1766,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 					.build();}}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<?> getInProgressAppointments(
 			String number,
 			int page,
@@ -1802,6 +1828,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 		@Override
+		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 		public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId) {
 
 		    try {
@@ -1866,6 +1893,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 		@Override
+		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 		public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId, String clinicId) {
 
 		    try {
@@ -2015,6 +2043,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR","ROLE_DOCTOR"})
 	public ResponseEntity<?> getDoctorFutureAppointments(
 			String doctorId,
 			int page,
@@ -2132,6 +2161,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Page<BookingResponse> bookingByBranchId(
 			String branchId,
 			int page,
@@ -2165,6 +2195,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(
 			String clinicId,
 			String branchId,
@@ -2280,7 +2311,9 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 
+	
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
 			String clinicId,
 			String branchId,
@@ -3084,6 +3117,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //		}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public ResponseEntity<?> retrieveOneWeekAppointments(
 			String clinicId,
 			String branchId,
@@ -3245,6 +3279,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
 	public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(
 			BookingResponse dto) {
 
@@ -3431,8 +3466,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 			if (dto.getPrescriptionPdf() != null && !dto.getPrescriptionPdf().isEmpty())
 				entity.setPrescriptionPdf(
-						mapper.convertValue(dto.getPrescriptionPdf(),
-								new TypeReference<List<byte[]>>() {}));
+						dto.getPrescriptionPdf());
 
 			// -------- PAYMENT --------
 
@@ -3607,6 +3641,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public BookingResponse checkBookingByDateAndTime(String date,String time,String doctorId) {
 		Booking booking = repository.findByServiceDateAndServicetimeAndDoctorId(date, time, doctorId);
 		if(booking != null) {
@@ -3619,6 +3654,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<Response> getPatientAndPriceInfo(
 			String clinicId,
 			String branchId,
@@ -3714,17 +3750,17 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 			double grandTotal = totalConsultation + totalTherapy + totalDue;
 			double afterExpenses = 0.0;
 			if(number.equals(1) ) {
-				Double value = clinicAdminFeign.getTodayExpenses(clinicId, branchId);
+				Double value = clinicAdminFeign.getTodayExpenses(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
 				afterExpenses = grandTotal - value;
 			}else if(number.equals(2) ){
-				Double value = clinicAdminFeign.getWeeklyExpenses(clinicId, branchId);
+				Double value = clinicAdminFeign.getWeeklyExpenses(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
 				afterExpenses = grandTotal - value;
 			}else if(number.equals(3) ) {
-				Double value = clinicAdminFeign.getMonthlyExpenses(clinicId, branchId);
+				Double value = clinicAdminFeign.getMonthlyExpenses(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
 				afterExpenses = grandTotal - value;
 			}else {
 				if(!startDate.isEmpty() && !endDate.isEmpty()) {
-					Double value = clinicAdminFeign.customFilter(startDate, endDate);
+					Double value = clinicAdminFeign.customFilter(keyCloakTokenStore.getAccess_token(),startDate, endDate);
 					afterExpenses = afterExpenses - value;
 				}
 			}
@@ -3758,6 +3794,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<?> getTodayBookings(
 			String cId,
 			String bId,
@@ -4000,6 +4037,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //}
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<Response> getTodayAllBookings(
 			String clinicId,
 			String branchId,
@@ -4036,7 +4074,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 			List<String> followup =
 					physioDoctorFeign
-							.getTodayFollowUpBookingIds();
+							.getTodayFollowUpBookingIds(keyCloakTokenStore.getAccess_token());
 
 			List<Booking> bkngs =
 					repository.findByBookingIdIn(followup);
@@ -4098,9 +4136,9 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 					bookingres = bookingres.stream().map(n -> {
 
-						List<Session> lst =
+						List<SessionForBooking> lst =
 								physioDoctorFeign
-										.getPhysioByBookingId(
+										.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),
 												n.getBookingId(),
 												n.getServiceDate()
 										)
@@ -4275,6 +4313,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	// ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<Response> getUpcomingBookings(
 			String clinicId,
 			String branchId,
@@ -4359,9 +4398,9 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 				response = response.stream().map(n -> {
 
-					List<Session> lst =
+					List<SessionForBooking> lst =
 							physioDoctorFeign
-									.getPhysioByBookingId(
+									.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),
 											n.getBookingId(),
 											n.getServiceDate()
 									)
@@ -4519,6 +4558,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}
 	}
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<Response> getBookingByDate(String clinicId,
 													 String branchId,
 													 String date) {
@@ -4539,8 +4579,8 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 			// ✅ Enrich with session details
 			try {
 				res = res.stream().map(n -> {
-					List<Session> lst = physioDoctorFeign
-							.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
+					List<SessionForBooking> lst = physioDoctorFeign
+							.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),n.getBookingId(), n.getServiceDate())
 							.getBody();
 					if(lst != null ) {
 						n.setSession(lst);
@@ -4599,6 +4639,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<Response> getBookingByCustomRange(
 			String clinicId,
 			String branchId,
@@ -4664,9 +4705,9 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 				response = response.stream().map(n -> {
 
-					List<Session> lst =
+					List<SessionForBooking> lst =
 							physioDoctorFeign
-									.getPhysioByBookingId(
+									.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),
 											n.getBookingId(),
 											n.getServiceDate()
 									)
@@ -4826,6 +4867,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}
 	}
 
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public ResponseEntity<Response> getBookingById(String bookingId) {
 		try {
 			Optional<Booking> booking = repository.findByBookingIdIgnoreCase(bookingId);
@@ -4837,9 +4879,9 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 					BookingResponse res = null;
 					if(booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size()-1).getStatus().equalsIgnoreCase("in-progress")) {
 						res = mapper.convertValue(booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size()-1), BookingResponse.class);
-						List<Session> lst = new ArrayList<>();
+						List<SessionForBooking> lst = new ArrayList<>();
 						try {
-							lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(),res.getServiceDate()).getBody();
+							lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate()).getBody();
 							res.setSession(lst);
 						}catch(Exception e) {}}
 					return ResponseEntity.ok(
@@ -5137,4 +5179,245 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}catch (Exception e) {
 			///System.out.println(e.getMessage());
 			return null;
-		}}}
+		}}
+
+	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	public List<Map<String, Object>> searchBookings(String clinicId, String input) {
+
+		try {
+
+			List<Booking> bookings = new ArrayList<>();
+
+			// Mobile Number Search
+			if (input.matches("^[6-9]\\d{9}$")) {
+
+				bookings = repository.findByMobileNumberAndClinicId(input, clinicId);
+
+				// If patient mobile number is stored separately
+				if (bookings.isEmpty()) {
+					bookings = repository.findByPatientMobileNumberAndClinicId(input, clinicId);
+				}
+
+			} else {
+
+				// Patient Name validation
+				if (input.length() < 3) {
+					throw new IllegalArgumentException("Please enter at least 3 characters to search by patient name");
+				}
+
+				// Search by Patient Id first
+				bookings = repository.findByPatientIdAndClinicId(input, clinicId);
+
+				// If Patient Id not found, search by Name
+				if (bookings.isEmpty()) {
+					bookings = repository.findByNameContainingIgnoreCaseAndClinicId(input, clinicId);
+				}
+			}
+
+			if (bookings.isEmpty()) {
+				return new ArrayList<>();
+			}
+
+			List<BookingResponse> dto = toResponses(bookings);
+
+			List<Map<String, Object>> list = new ArrayList<>();
+
+			dto.forEach(n -> {
+
+				Map<String, Object> map = new LinkedHashMap<>();
+
+				map.put("bookingId", n.getBookingId());
+				map.put("serviceDate", n.getServiceDate());
+				map.put("servicetime", n.getServicetime());
+				map.put("name", n.getName());
+
+				map.put("mobileNumber",
+						n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+								? n.getPatientMobileNumber()
+								: n.getMobileNumber());
+
+				map.put("doctorId", n.getDoctorId());
+				map.put("doctorName", n.getDoctorName());
+				map.put("paymentType", n.getPaymentType());
+				map.put("visitType", n.getVisitType());
+				map.put("status", n.getStatus());
+				map.put("followupStatus", n.getFollowupStatus());
+				map.put("patientId", n.getPatientId());
+				map.put("clinicId", n.getClinicId());
+				map.put("customerId", n.getCustomerId());
+				map.put("branchId", n.getBranchId());
+				map.put("problem", n.getProblem());
+
+				list.add(map);
+			});
+
+			return list;
+
+		} catch (Exception e) {
+			throw e;
+		}}
+		
+		@Override
+		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+		public ResponseEntity<Response> getTodayBookings(String clinicId, String branchId) {
+			try {
+
+				String today = LocalDate.now().format(FORMATTER);
+
+				List<Map<String, Object>> responseList = new ArrayList<>();
+
+				// Today's bookings for logged-in clinic & branch
+				List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId, today);
+
+				// Follow-up booking IDs
+				List<String> followupIds = physioDoctorFeign.getTodayFollowUpBookingIds(keyCloakTokenStore.getAccess_token());
+
+				List<Booking> followupBookings = new ArrayList<>();
+
+				if (followupIds != null && !followupIds.isEmpty()) {
+
+					// IMPORTANT:
+					// Filter by clinicId & branchId also
+					followupBookings = repository.findByBookingIdInAndClinicIdAndBranchId(followupIds, clinicId, branchId);
+
+					if (!followupBookings.isEmpty()) {
+
+						followupBookings.forEach(b -> {
+
+							b.setStatus("follow-up");
+
+							List<Status> statusList = b.getCurrentStatus();
+
+							if (statusList == null) {
+								statusList = new ArrayList<>();
+							}
+
+							Status status = new Status();
+							status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+							status.setStatus("follow-up");
+
+							statusList.add(status);
+
+							b.setCurrentStatus(statusList);
+						});
+
+						repository.saveAll(followupBookings);
+					}
+				}
+
+				// Convert bookings
+				List<BookingResponse> bookingResponses = new ArrayList<>();
+
+				if (!bookings.isEmpty()) {
+					bookingResponses.addAll(toResponses(bookings));
+				}
+
+				if (!followupBookings.isEmpty()) {
+					bookingResponses.addAll(toResponses(followupBookings));
+				}
+
+				// Remove duplicate bookingIds
+				bookingResponses = bookingResponses.stream().collect(Collectors.toMap(BookingResponse::getBookingId,
+						Function.identity(), (oldValue, newValue) -> oldValue, LinkedHashMap::new)).values().stream()
+						.toList();
+
+				// Session details
+				for (BookingResponse booking : bookingResponses) {
+
+					try {
+
+						ResponseEntity<List<SessionForBooking>> sessionResponse = physioDoctorFeign
+								.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),booking.getBookingId(), booking.getServiceDate());
+
+						List<SessionForBooking> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
+
+						if (sessions != null && !sessions.isEmpty()) {
+
+							booking.setSession(sessions);
+							booking.setVisitType("session");
+
+						} else {
+
+							booking.setSession(null);
+						}
+
+					} catch (Exception ex) {
+
+						System.out.println("Session fetch failed for BookingId : " + booking.getBookingId() + " Error : "
+								+ ex.getMessage());
+					}
+				}
+
+				// Build response list
+				for (BookingResponse n : bookingResponses) {
+
+					Map<String, Object> map = new LinkedHashMap<>();
+
+					map.put("bookingId", n.getBookingId());
+					map.put("serviceDate", n.getServiceDate());
+					map.put("servicetime", n.getServicetime());
+					map.put("name", n.getName());
+
+					map.put("mobileNumber",
+							n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+									? n.getPatientMobileNumber()
+									: n.getMobileNumber());
+
+					map.put("doctorId", n.getDoctorId());
+					map.put("doctorName", n.getDoctorName());
+					map.put("paymentType", n.getPaymentType());
+					map.put("visitType", n.getVisitType());
+					map.put("status", n.getStatus());
+					map.put("followupStatus", n.getFollowupStatus());
+					map.put("patientId", n.getPatientId());
+					map.put("clinicId", n.getClinicId());
+					map.put("customerId", n.getCustomerId());
+					map.put("branchId", n.getBranchId());
+					map.put("session", n.getSession());
+					map.put("problem", n.getProblem());
+
+					responseList.add(map);
+				}
+
+				// Summary counts
+				long totalCount = bookingResponses.size();
+
+				long pendingCount = bookingResponses.stream()
+						.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+						.count();
+
+				long confirmedCount = bookingResponses.stream()
+						.filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+						.count();
+
+				long inProgressCount = bookingResponses.stream()
+						.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+						.count();
+
+				Map<String, Object> summary = new HashMap<>();
+				summary.put("totalAppointments", totalCount);
+				summary.put("pending", pendingCount);
+				summary.put("confirmed", confirmedCount);
+				summary.put("inProgress", inProgressCount);
+
+				if (bookingResponses.isEmpty()) {
+
+					return ResponseEntity
+							.ok(new Response(true, Collections.emptyList(), summary, "No bookings found", 200, null, null));
+				}
+
+				return ResponseEntity
+						.ok(new Response(true, responseList, summary, "Today bookings fetched", 200, null, null));
+
+			} catch (Exception e) {
+
+				e.printStackTrace();
+
+				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Response(false, null, null,
+						"Error fetching today bookings : " + e.getMessage(), 500, null, null));
+			}
+
+		}
+	}
+

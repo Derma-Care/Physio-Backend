@@ -62,12 +62,12 @@ public class DoctorSlotController {
     }
 
     // ---------------------- Delete All Doctor Slots by Date ---------------------- //
-    @DeleteMapping("/deleteDoctorSlotsByDate/{doctorId}/{date}")
-    public ResponseEntity<Response> deleteDoctorSlotsByDate(@PathVariable String doctorId,
-                                                            @PathVariable String date) {
-        Response response = doctorSlotService.deleteDoctorSlotsByDate(doctorId, date);
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
+//    @DeleteMapping("/deleteDoctorSlotsByDate/{doctorId}/{date}")
+//    public ResponseEntity<Response> deleteDoctorSlotsByDate(@PathVariable String doctorId,
+//                                                            @PathVariable String date) {
+//        Response response = doctorSlotService.deleteDoctorSlotsByDate(doctorId, date);
+//        return ResponseEntity.status(response.getStatus()).body(response);
+//    }
 
     // ---------------------- Delete All Doctor Slots by Date and Branch ---------------------- //
     @DeleteMapping("/deleteDoctorSlotsByDate/{doctorId}/{branchId}/{date}")

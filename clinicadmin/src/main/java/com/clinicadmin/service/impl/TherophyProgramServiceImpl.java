@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.ProgramWithTherophy;
 import com.clinicadmin.dto.Response;
@@ -49,6 +50,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> create(TherophyProgramsDTO dto) {
         try {
             TherophyProgramEntity saved = repository.save(mapToEntity(dto));
@@ -74,6 +76,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> getById(String id) {
         try {
             TherophyProgramEntity entity = repository.findById(id)
@@ -109,6 +112,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> getByclinicAndBranchIdAndId(String cid,String bid,String id) {
         try {
             TherophyProgramEntity entity = repository.findByClinicIdAndBranchIdAndId(cid, bid, id);
@@ -166,6 +170,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
         }
     }
 
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> getByclinicAndBranchId(String cid, String bid) {
 
         try {
@@ -186,7 +191,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
                     List<TheraphyNamesDTO> therapyList =
                             new LinkedList<>();
 
-                    double totalProgramAmount = 0;
+                    int totalProgramAmount = 0;
 
                     if (e.getTherophyIds() != null &&
                             !e.getTherophyIds().isEmpty()) {
@@ -195,11 +200,11 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
                             TherapyServiceDTO therapy =
                                     therapyServiceServiceImpl.getById(therapyId);
-                            System.out.println(therapy);
+                         //   System.out.println(therapy);
 
                             if (therapy != null) {
 
-                                double therapyTotalAmount = 0;
+                                int therapyTotalAmount = 0;
 
                                 // Calculate Therapy Total Price
                                 if (therapy.getExercises() != null &&
@@ -210,7 +215,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
                                         if (ex != null) {
                                           try {                                        
-                                            double exerciseAmount = (double)
+                                            int exerciseAmount = 
                                                     ex.getTotalPrice();
 
                                             therapyTotalAmount += exerciseAmount;
@@ -297,6 +302,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
     
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> getAll() {
         try {
             List<TherophyProgramsDTO> list = repository.findAll()
@@ -325,6 +331,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> update(String id, TherophyProgramsDTO dto) {
         try {
             TherophyProgramEntity existing = repository.findById(id)
@@ -367,6 +374,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
 
     @Override
+    @Secured("ROLE_CLINICADMIN")
     public ResponseEntity<Response> delete(String id) {
         try {
             if (!repository.existsById(id)) {

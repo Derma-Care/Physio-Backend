@@ -20,6 +20,7 @@ import com.dermaCare.customerService.feignClient.PhysioFeign;
 import com.dermaCare.customerService.repository.PhysiotherapyRepo;
 import com.dermaCare.customerService.util.ExtractFeignMessage;
 import com.dermaCare.customerService.util.GetByKey;
+import com.dermaCare.customerService.util.KeyCloakTokenStore;
 import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.SequenceGeneratorService;
 import com.dermaCare.customerService.util.PysioQuestionsRes;
@@ -45,6 +46,10 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	  
 	    @Autowired
 	    private SequenceGeneratorService sequenceGenerator;
+	    
+	    @Autowired
+	    private KeyCloakTokenStore keyCloakTokenStore;
+	   
 	    
 	    
 	    private QuestionsEntity mapToEntity(QuestionsDTO d) {
@@ -241,7 +246,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				String therapistRecordId) {
 	        Response response = new Response();
 	        try {
-	        	return physioFeign.getExerciseSessionsWithRecords(clinicId, branchId, bookingId, patientId,therapistId, therapistRecordId);
+	        	return physioFeign.getExerciseSessionsWithRecords(keyCloakTokenStore.getAccess_token(),clinicId, branchId, bookingId, patientId,therapistId, therapistRecordId);
 	        } catch (FeignException e) {      
 	            response.setStatus(e.status());
 	            response.setMessage(ExtractFeignMessage.clearMessage(e));

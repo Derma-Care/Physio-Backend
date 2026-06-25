@@ -12,10 +12,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FollowupBooking {
+
 	    private String visitType;
 	    private String doctorId;
 	    private String doctorName;
 	    private String serviceDate;
 	    private String servicetime;
 		private String status;
+
 }
