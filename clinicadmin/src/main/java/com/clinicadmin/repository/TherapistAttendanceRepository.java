@@ -17,5 +17,8 @@ List<TherapistAttendance> findByClinicIdAndBranchIdAndTherapistId(String clinicI
 
 void deleteByTherapistId(String therapistId);
 
+TherapistAttendance findByClinicIdAndBranchIdAndTherapistIdAndDate(String clinicId, String branchId, String therapistId,
+		String date);
+
 
 }

@@ -1,17 +1,14 @@
 package com.clinicadmin.service.impl;
-
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.springframework.stereotype.Service;
-
 import com.clinicadmin.dto.EquipmentDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Equipment;
 import com.clinicadmin.repository.EquipmentRepository;
 import com.clinicadmin.service.EquipmentService;
 import com.clinicadmin.service.S3Service;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -26,6 +23,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     public Response createEquipment(EquipmentDTO dto) {
 
         Equipment equipment = convertToEntity(dto);
+        equipment.setEquipmentId(generateEquipmentId());
 
         Equipment savedEquipment = repository.save(equipment);
 
@@ -37,11 +35,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return response;
     }
-   
-
-
-    
-
+  
     @Override
     public Response getEquipmentById(String equipmentId) {
 
@@ -63,12 +57,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return response;
     }
-
-
-
-
-    
-    		@Override
+ 		@Override
     		public Response getAllEquipment() {
 
     		    List<EquipmentDTO> equipmentList = repository.findAll()
@@ -92,8 +81,6 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     		    return response;
     		}
-    	
-    
     				@Override
     				public Response getEquipmentByClinicIdAndBranchId(
     				        String clinicId,
@@ -306,4 +293,12 @@ public class EquipmentServiceImpl implements EquipmentService {
         return dto;
     
     }
+
+private String generateEquipmentId() {
+    return "EQU-" + UUID.randomUUID()
+            .toString()
+            .replace("-", "")
+            .substring(0, 10)
+            .toUpperCase();
+}
 }

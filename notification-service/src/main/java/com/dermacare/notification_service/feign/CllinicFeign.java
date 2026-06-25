@@ -37,6 +37,8 @@ public interface CllinicFeign {
 	  @GetMapping("/clinic-admin/gcmToken/{token}")
 	    public CustomerOnbordingDTO getCustomerByToken(
 	 			 @PathVariable String token );
+
+
 	 	
 	  @GetMapping("/clinic-admin/deviceId/{clinicId}/{branchId}")
 		public String getDeviceId(@PathVariable String clinicId,@PathVariable String branchId);
@@ -46,5 +48,11 @@ public interface CllinicFeign {
 	 			 @PathVariable String customerId );
 	 	
 	
+	}
+
+
 	
-}
+
+	
+	
+

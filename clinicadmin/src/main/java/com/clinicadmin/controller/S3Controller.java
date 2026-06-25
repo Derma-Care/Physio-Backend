@@ -141,6 +141,14 @@ public class S3Controller {
                     IMAGE_EXTS,
                     IMAGE_MIMES
             );
+            
+            case "patientPdf" -> new FieldConfig(
+                    "patient-pdfs",
+                    MAX_PDF_SIZE,
+                    "10 MB",
+                    DOC_EXTS,
+                    DOC_MIMES
+            );
             default -> null;
         };
     }
