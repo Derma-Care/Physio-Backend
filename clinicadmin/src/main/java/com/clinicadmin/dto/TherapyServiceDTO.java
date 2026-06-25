@@ -23,6 +23,4 @@ public class TherapyServiceDTO {
     private String branchId;
     private int noExerciseIdCount;
     private List<TherapyExercises> exercises;
-
-
 }

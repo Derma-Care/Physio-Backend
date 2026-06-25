@@ -269,11 +269,11 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     	Optional<ClinicAdminDeviceTokenEntity> obj = null;
     	String deviceId = null;
     	try {         
-        	obj =  deviceIdRepo.findByUsername(clinicId);
+        	obj =  deviceIdRepo.findByUsername(branchId);
         	if(obj.isPresent()) {
         		 deviceId = obj.get().getClinicAdminWebFcmToken();
         	}else {
-        		obj =  deviceIdRepo.findByUsername(branchId);	
+        		obj =  deviceIdRepo.findByUsername(clinicId);	
         		if(obj.isPresent()) {
         			 deviceId = obj.get().getClinicAdminWebFcmToken();
             	}}} catch (Exception e) {
