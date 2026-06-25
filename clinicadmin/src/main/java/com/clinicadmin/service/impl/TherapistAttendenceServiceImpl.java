@@ -300,9 +300,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             List<TherapistRecord> records =
                     recordRepo.findByTherapistIdAndCompletedDate(therapistId, date);
 
-            if (records == null || records.isEmpty()) {
-                records = recordRepo.findByTherapistIdAndCompletedDateStartingWith(
-                        therapistId, date.substring(0, 7));
+            if (records == null) {
+                records = new ArrayList<>();
             }
 
             for (TherapistRecord record : records) {
@@ -634,9 +633,12 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
 	    try {
 
-	        // 🔹 Fetch attendance
-	        TherapistAttendance attendance =
-	                attendanceRepo.findByTherapistIdAndDate(therapistId, date);
+	    	TherapistAttendance attendance =
+	    	        attendanceRepo.findByClinicIdAndBranchIdAndTherapistIdAndDate(
+	    	                clinicId,
+	    	                branchId,
+	    	                therapistId,
+	    	                date);
 
 	        List<SessionData> sessions = new ArrayList<>();
 
