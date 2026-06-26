@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.ConsultationFeesDTO;
+import com.dermacare.bookingService.dto.DoctorPushNotificationDTO;
 import com.dermacare.bookingService.dto.DoctorSaveDetailsDTO;
 import com.dermacare.bookingService.dto.PatientAndPriceInfo;
 import com.dermacare.bookingService.dto.PatientInfo;
@@ -103,9 +104,38 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		try {
 			Booking updatedBooking = updateForFollowup(request);
 			if (updatedBooking != null) {
+
+				try {
+
+					DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
+
+					dto.setDoctorId(updatedBooking.getDoctorId());
+
+					dto.setBookingId(updatedBooking.getBookingId());
+
+					dto.setPatientName(updatedBooking.getName());
+
+					dto.setAppointmentDate(updatedBooking.getServiceDate());
+
+					dto.setAppointmentTime(updatedBooking.getServicetime());
+
+					dto.setAppointmentType(updatedBooking.getVisitType());
+
+					notificationFeign.sendDoctorPushNotification(dto);
+
+					log.info("Follow-up notification sent for booking {}", updatedBooking.getBookingId());
+
+				} catch (Exception ex) {
+
+					log.error("Failed to send follow-up notification for booking {} : {}",
+							updatedBooking.getBookingId(), ex.getMessage());
+				}
+			}
+			if (updatedBooking != null) {
 				response = ResponseStructure.buildResponse(updatedBooking,
 						"Last follow-up booking retrieved successfully", HttpStatus.CREATED,
 						HttpStatus.CREATED.value());
+
 			} else {
 				response = ResponseStructure.buildResponse(null, "No follow-up bookings found", HttpStatus.BAD_REQUEST,
 						HttpStatus.BAD_REQUEST.value());
@@ -509,6 +539,34 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				throw new RuntimeException("Unable to save appointment");
 			}
 
+			// Doctor Push Notification - New Appointment
+
+			try {
+
+				DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
+
+				dto.setDoctorId(updatedBooking.getDoctorId());
+
+				dto.setBookingId(updatedBooking.getBookingId());
+
+				dto.setPatientName(updatedBooking.getName());
+
+				dto.setAppointmentDate(updatedBooking.getServiceDate());
+
+				dto.setAppointmentTime(updatedBooking.getServicetime());
+
+				dto.setAppointmentType(updatedBooking.getVisitType());
+
+				notificationFeign.sendDoctorPushNotification(dto);
+
+				log.info("Doctor push notification sent successfully for booking {}", updatedBooking.getBookingId());
+
+			} catch (Exception ex) {
+
+				log.error("Failed to send doctor push notification for booking {} : {}", updatedBooking.getBookingId(),
+						ex.getMessage());
+			}
+
 			// =====================================================
 			// SEND NOTIFICATION
 			// =====================================================
@@ -696,10 +754,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					map.put("serviceDate", n.getServiceDate());
 					map.put("servicetime", n.getServicetime());
 					map.put("name", n.getName());
-					 map.put("mobileNumber",
-					            n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
-					                    ? n.getPatientMobileNumber()
-					                    : n.getMobileNumber());
+					map.put("mobileNumber",
+							n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+									? n.getPatientMobileNumber()
+									: n.getMobileNumber());
 					map.put("doctorId", n.getDoctorId());
 					map.put("doctorName", n.getDoctorName());
 					map.put("paymentType", n.getPaymentType());
@@ -714,12 +772,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					map.put("gender", n.getGender());
 					map.put("branchName", n.getBranchname());
 					map.put("problem", n.getProblem());
-					
+
 					// New fields
-				    map.put("consultationFee", n.getConsultationFee());
-				    map.put("freeFollowUpsLeft", n.getFreeFollowUpsLeft());
-				    map.put("freeFollowUps", n.getFreeFollowUps());
-				    
+					map.put("consultationFee", n.getConsultationFee());
+					map.put("freeFollowUpsLeft", n.getFreeFollowUpsLeft());
+					map.put("freeFollowUps", n.getFreeFollowUps());
+
 					list.add(map);
 					return n;
 				}).toList();

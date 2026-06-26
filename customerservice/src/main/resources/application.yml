@@ -82,8 +82,8 @@ management:
 # AWS S3
 # ===============================
 aws:
-   accessKeyId: 
-   secretAccessKey:
+   accessKeyId:     
+   secretAccessKey: 
    region: ap-south-1
    s3:
     bucket: physiocare-prod-storage
