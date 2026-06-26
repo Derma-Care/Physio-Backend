@@ -511,15 +511,15 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
                                 program.getTherophyData().forEach(therapy -> {
 
-                                    if (therapy != null && therapy.getExercises() != null) {
-
-                                        therapy.getExercises().forEach(exercise -> {
-                                            if (exercise != null) {
-                                                exercise.setImage(null); // ✅ REMOVE IMAGE
-                                            }
-                                        });
-
-                                    }
+//                                    if (therapy != null && therapy.getExercises() != null) {
+//
+//                                        therapy.getExercises().forEach(exercise -> {
+//                                            if (exercise != null) {
+//                                                exercise.setImage(null); // ✅ REMOVE IMAGE
+//                                            }
+//                                        });
+//
+//                                    }
                                 });
                             }
 

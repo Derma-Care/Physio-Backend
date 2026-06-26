@@ -89,8 +89,8 @@ aws:
 # ===============================
 # Firebase
 # ===============================
-app:
-  firebase-configuration-file: firebase-key.json
+#app:
+#  firebase-configuration-file: firebase-key.json
 
 # ===============================
 # Logging

@@ -209,8 +209,8 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
                                 int therapyTotalAmount = 0;
 
                                 // Calculate Therapy Total Price
-                                if (therapy.getExercises() != null &&
-                                        !therapy.getExercises().isEmpty()) {
+                                if (therapy.getExerciseIds() != null &&
+                                        !therapy.getExerciseIds().isEmpty()) {
 
                                     for (String ex :
                                             therapy.getExerciseIds()) {
@@ -218,7 +218,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
                                         if (ex != null) {
                                           try {   
                                         Optional<TherapyExercises> excercise = therapyExercisesRepository.findByTherapyExercisesId(ex);
-                                        if(excercise.isPresent()){
+                                          if(excercise.isPresent()){
                                             int exerciseAmount = 
                                             		excercise.get().getTotalPrice();
                                             therapyTotalAmount += exerciseAmount;
