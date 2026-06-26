@@ -510,6 +510,12 @@ public class TherapistServiceImpl implements TherapistService {
         entity.setAadharID(dto.getAadharID());
         entity.setDateofJoining(dto.getDateofJoining());
         entity.setEmergencyContact(dto.getEmergencyContact());
+        if (dto.getIsPresent() != null) {
+            entity.setIsPresent(dto.getIsPresent());
+        } else {
+            entity.setIsPresent(false);
+        }
+        
 
         // ================= S3 FILE KEYS =================
         if (dto.getDocuments() != null) {
@@ -557,7 +563,9 @@ public class TherapistServiceImpl implements TherapistService {
         dto.setAadharID(entity.getAadharID());
         dto.setDateofJoining(entity.getDateofJoining());
         dto.setEmergencyContact(entity.getEmergencyContact());
+        dto.setIsPresent(entity.getIsPresent());
 
+        
      // ================= S3 SIGNED URLS (RESPONSE) =================
      // Generate 1-hour signed URLs from stored S3 file keys
      if (entity.getDocuments() != null) {

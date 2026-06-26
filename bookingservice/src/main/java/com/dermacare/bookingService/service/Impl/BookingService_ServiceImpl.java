@@ -287,6 +287,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		// ── S3 signed URLs ──────────────────────────────
 		try {
 			if (entity.getPartImage() != null && !entity.getPartImage().isEmpty()) {
+				  String key = entity.getPartImage(); // plain key stored in DB
+			      response.setPartImageKey(key);  
 				response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
 			}
 		} catch (Exception e) {

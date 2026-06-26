@@ -53,6 +53,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
             if (attendance == null) {
                 attendance = new TherapistAttendance();
+//                attendance.setClinicId(body.get("clinicId"));    // ← ADD
+//                attendance.setBranchId(body.get("branchId"));
                 attendance.setTherapistId(therapistId);
                 attendance.setDate(date);
             }
@@ -212,6 +214,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             if (attendance == null) {
                 attendance = new TherapistAttendance();
                 attendance.setTherapistId(therapistId);
+//                attendance.setClinicId(body.get("clinicId"));    // ← ADD
+//                attendance.setBranchId(body.get("branchId")); 
                 attendance.setDate(date);
             }
 
@@ -633,35 +637,47 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
 	    try {
 
-	    	TherapistAttendance attendance =
-	    	        attendanceRepo.findByClinicIdAndBranchIdAndTherapistIdAndDate(
-	    	                clinicId,
-	    	                branchId,
-	    	                therapistId,
-	    	                date);
+	        // ✅ Try with clinicId+branchId first, fallback to therapistId+date
+	        TherapistAttendance attendance =
+	                attendanceRepo.findByClinicIdAndBranchIdAndTherapistIdAndDate(
+	                        clinicId, branchId, therapistId, date);
+
+	        if (attendance == null) {
+	            attendance = attendanceRepo.findByTherapistIdAndDate(therapistId, date);
+	        }
 
 	        List<SessionData> sessions = new ArrayList<>();
 
-	        // 🔹 Get ALL sessions
+	        // 🔹 AUTO sessions
+	        List<TherapistRecord> records =
+	                recordRepo.findByTherapistIdAndCompletedDate(therapistId, date);
+
+	        for (TherapistRecord r : records) {
+	            SessionData sd = new SessionData();
+	            sd.setSessionId(r.getSessionId());
+	            sd.setActivity(r.getServiceType());
+	            sd.setDuration(r.getDuration());
+	            sd.setLocation(r.getLocation());
+	            sd.setDescription(r.getDescription() != null
+	                    && !r.getDescription().trim().isEmpty()
+	                    ? r.getDescription() : "N/A");
+	            sessions.add(sd);
+	        }
+
+	        // 🔹 MANUAL sessions
 	        if (attendance != null && attendance.getSessions() != null) {
-
 	            for (Session s : attendance.getSessions()) {
-
-	                SessionData sd = new SessionData();
-	                sd.setSessionId(s.getSessionId());
-	                sd.setActivity(s.getActivity());
-	                sd.setDuration(s.getDuration());
-	                sd.setLocation(s.getLocation());
-	                
-	                sd.setDescription(
-	                        s.getDescription() != null
-	                                && !s.getDescription().trim().isEmpty()
-	                        ? s.getDescription()
-	                        : "N/A"
-	                    );
-
-
-	                sessions.add(sd);
+	                if (s.getSessionId() != null && s.getSessionId().startsWith("MANUAL")) {
+	                    SessionData sd = new SessionData();
+	                    sd.setSessionId(s.getSessionId());
+	                    sd.setActivity(s.getActivity());
+	                    sd.setDuration(s.getDuration());
+	                    sd.setLocation(s.getLocation());
+	                    sd.setDescription(s.getDescription() != null
+	                            && !s.getDescription().trim().isEmpty()
+	                            ? s.getDescription() : "N/A");
+	                    sessions.add(sd);
+	                }
 	            }
 	        }
 
