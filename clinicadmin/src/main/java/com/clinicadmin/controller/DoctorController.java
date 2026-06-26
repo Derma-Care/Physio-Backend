@@ -45,7 +45,8 @@ public class DoctorController {
 
 	@Autowired
 	private DoctorService doctorService;
-
+	
+	@Autowired
 	private DoctorsRepository doctorRespository;
 //	@Autowired
 //	private DoctorNoteService doctorNoteService;

@@ -66,4 +66,10 @@ public class FeedbackDetails {
 
   
     private String updatedAt;
+
+
+private boolean halfNotificationSent;
+private boolean fullNotificationSent;
+
+
 }

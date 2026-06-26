@@ -16,7 +16,9 @@ spring:
         config:
           default:
             connectTimeout: 30000
-            readTimeout: 60000
+            readTimeout: 60000						
+#  config:
+#   import: optional:classpath:application-secrets.yml  
 
 server:
   port: 8083
@@ -80,17 +82,17 @@ management:
 # AWS S3
 # ===============================
 aws:
-  accessKeyId: ${AWS_ACCESS_KEY_ID}
-  secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
-  region: ap-south-1
-  s3:
+   accessKeyId:     
+   secretAccessKey: 
+   region: ap-south-1
+   s3:
     bucket: physiocare-prod-storage
 
 # ===============================
 # Firebase
 # ===============================
-app:
-  firebase-configuration-file: firebase-key.json
+#app:
+#  firebase-configuration-file: firebase-key.json
 
 # ===============================
 # Logging

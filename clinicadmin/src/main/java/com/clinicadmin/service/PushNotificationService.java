@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 public class PushNotificationService {
 
     // ================= NOTIFICATION TYPES =================
-    // Add new constants here as new notification kinds are introduced
     public static final String TYPE_SESSION_FEEDBACK = "SESSION_FEEDBACK";
 
+    // ================= 50% SESSION COMPLETED =================
     public void sendHalfSessionNotification(
             String fcmToken,
             String bookingId,
@@ -22,8 +22,11 @@ public class PushNotificationService {
 
         sendNotification(
                 fcmToken,
-                "Halfway There! 💪",
-                "Dear " + patientName + ", you have completed 50% of your sessions.",
+                "Patient Feedback Reminder",
+                patientName
+                        + " has completed 50% of their sessions. "
+                        + "Please collect feedback and a rating from the patient "
+                        + "to help us monitor their treatment experience.",
                 bookingId,
                 patientName,
                 mobileNumber,
@@ -31,6 +34,7 @@ public class PushNotificationService {
                 "/session-feedback");
     }
 
+    // ================= 100% SESSION COMPLETED =================
     public void sendFullSessionNotification(
             String fcmToken,
             String bookingId,
@@ -39,8 +43,11 @@ public class PushNotificationService {
 
         sendNotification(
                 fcmToken,
-                "Sessions Completed! 🎉",
-                "Dear " + patientName + ", all your sessions are completed. Great job!",
+                "Treatment Completed – Feedback Required",
+                patientName
+                        + " has completed 100% of their sessions. "
+                        + "Please collect the patient's final feedback and rating "
+                        + "before closing the treatment.",
                 bookingId,
                 patientName,
                 mobileNumber,
@@ -60,6 +67,7 @@ public class PushNotificationService {
             String path) {
 
         try {
+
             Message message =
                     Message.builder()
                             .setToken(fcmToken)
@@ -74,7 +82,6 @@ public class PushNotificationService {
                                     patientName != null ? patientName : "")
                             .putData("mobileNumber",
                                     mobileNumber != null ? mobileNumber : "")
-                            // ================= TYPE + PATH for frontend routing =================
                             .putData("type", type)
                             .putData("path", path)
                             .build();
@@ -84,12 +91,21 @@ public class PushNotificationService {
 
             log.info(
                     "Notification sent | MessageId: {} | Type: {} | BookingId: {} | Name: {} | Mobile: {}",
-                    messageId, type, bookingId, patientName, mobileNumber);
+                    messageId,
+                    type,
+                    bookingId,
+                    patientName,
+                    mobileNumber);
 
         } catch (Exception e) {
+
             log.error(
                     "Notification failed | Type: {} | BookingId: {} | Name: {} | Mobile: {} | Error: {}",
-                    type, bookingId, patientName, mobileNumber, e.getMessage());
+                    type,
+                    bookingId,
+                    patientName,
+                    mobileNumber,
+                    e.getMessage());
         }
     }
 }

@@ -545,7 +545,7 @@ public class EmailService {
 
                     Regards,<br>
 
-                    <strong>Kintix Wellness Care</strong>
+                    <strong>Kinetix Wellness Care</strong>
 
                 </p>
 

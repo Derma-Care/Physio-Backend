@@ -42,7 +42,7 @@ public interface CllinicFeign {
 	@GetMapping("/clinic-admin/deviceIdByCustomerId/{customerId}")
 	public String customerDeviceId(@PathVariable String customerId);
 
-	@GetMapping("/clinic-admin/doctor/doctor/getDeviceId/{doctorId}")
+	@GetMapping("/clinic-admin/doctor/getDeviceId/{doctorId}")
 	String getDoctorDeviceId(@PathVariable String doctorId);
 
 }

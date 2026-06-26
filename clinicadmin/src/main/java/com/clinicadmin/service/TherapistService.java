@@ -7,6 +7,7 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistLoginDTO;
 import com.clinicadmin.dto.TherapistLoginResponseDTO;
+import com.clinicadmin.dto.TherapistPresenceRequest;
 
 public interface TherapistService {
 
@@ -39,4 +40,6 @@ public interface TherapistService {
 	Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year);
 
 	Response getTherapistData(String clinicId, String branchId);
+
+	Response updateTherapistPresence(String therapistId, TherapistPresenceRequest request);
 }

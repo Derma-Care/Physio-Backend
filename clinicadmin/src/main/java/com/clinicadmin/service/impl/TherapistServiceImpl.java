@@ -24,6 +24,7 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistDTO;
+import com.clinicadmin.dto.TherapistPresenceRequest;
 import com.clinicadmin.dto.TherapistResponseDTO;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Documents;
@@ -509,6 +510,12 @@ public class TherapistServiceImpl implements TherapistService {
         entity.setAadharID(dto.getAadharID());
         entity.setDateofJoining(dto.getDateofJoining());
         entity.setEmergencyContact(dto.getEmergencyContact());
+        if (dto.getIsPresent() != null) {
+            entity.setIsPresent(dto.getIsPresent());
+        } else {
+            entity.setIsPresent(false);
+        }
+        
 
         // ================= S3 FILE KEYS =================
         if (dto.getDocuments() != null) {
@@ -556,7 +563,9 @@ public class TherapistServiceImpl implements TherapistService {
         dto.setAadharID(entity.getAadharID());
         dto.setDateofJoining(entity.getDateofJoining());
         dto.setEmergencyContact(entity.getEmergencyContact());
+        dto.setIsPresent(entity.getIsPresent());
 
+        
      // ================= S3 SIGNED URLS (RESPONSE) =================
      // Generate 1-hour signed URLs from stored S3 file keys
      if (entity.getDocuments() != null) {
@@ -1567,5 +1576,46 @@ public class TherapistServiceImpl implements TherapistService {
         }
 
         return total;
+    }
+    
+    @Override
+    public Response updateTherapistPresence(
+            String therapistId,
+            TherapistPresenceRequest request) {
+
+        Response response = new Response();
+
+        try {
+
+            Therapist therapist = repository
+                    .findByClinicIdAndBranchIdAndTherapistId(
+                            request.getClinicId(),
+                            request.getBranchId(),
+                            therapistId)
+                    .orElseThrow(() ->
+                            new RuntimeException("Therapist not found"));
+
+            therapist.setIsPresent(request.getIsPresent());
+
+            repository.save(therapist);
+
+            // Return only isPresent
+            Map<String, Object> data = new HashMap<>();
+            data.put("isPresent", therapist.getIsPresent());
+
+            response.setSuccess(true);
+            response.setData(data);
+            response.setMessage("Therapist presence updated successfully");
+            response.setStatus(HttpStatus.OK.value());
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage(e.getMessage());
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+        }
+
+        return response;
     }
 }

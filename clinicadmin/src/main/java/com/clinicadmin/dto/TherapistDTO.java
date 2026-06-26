@@ -45,4 +45,5 @@ public class TherapistDTO {
     private int totalSessionCount;
     private String userName;
     private String password;
+    private Boolean isPresent;
 }
