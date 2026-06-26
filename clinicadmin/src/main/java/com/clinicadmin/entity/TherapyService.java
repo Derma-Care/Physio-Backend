@@ -35,6 +35,6 @@ public class TherapyService {
 
     private String branchId;
     private int noExerciseIdCount;
-   //// private List<TherapyExercises> exercises;
+    private List<TherapyExercises> exercises;
     
 }

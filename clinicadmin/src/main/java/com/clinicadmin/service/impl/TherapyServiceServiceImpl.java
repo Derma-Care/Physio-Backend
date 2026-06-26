@@ -179,9 +179,9 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
             existing.setNoExerciseIdCount(dto.getExerciseIds().size());
         }
 
-//        if (dto.getExercises() != null) {
-//            existing.setExercises(dto.getExercises());
-//        }
+        if (dto.getExercises() != null) {
+            existing.setExercises(dto.getExercises());
+        }
 
         TherapyService updated = repository.save(existing);
 
@@ -234,7 +234,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
         // Missing Fields
         therapy.setNoExerciseIdCount(dto.getNoExerciseIdCount());
-         ///therapy.setExercises(dto.getExercises());
+         therapy.setExercises(dto.getExercises());
 
         return therapy;
     }
@@ -247,7 +247,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         dto.setTherapyName(therapy.getTherapyName());
         dto.setClinicId(therapy.getClinicId());
         dto.setBranchId(therapy.getBranchId());
-        //dto.setExercises(therapy.getExercises());
+        dto.setExercises(therapy.getExercises());
 
         // ✅ AUTO COUNT LOGIC
         if (therapy.getExerciseIds() != null) {
@@ -273,9 +273,9 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         if (dto.getTherapyName() != null) {
             entity.setTherapyName(dto.getTherapyName());
         }
-//        if (dto.getExercises() != null || !dto.getExercises().isEmpty()) {
-//            entity.setExercises(dto.getExercises());;
-//        }
+        if (dto.getExercises() != null || !dto.getExercises().isEmpty()) {
+            entity.setExercises(dto.getExercises());;
+        }
     }
     @Override
     public Response getTherapyWithExercises(String id, String clinicId, String branchId) {
@@ -321,7 +321,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         TherapyServiceDTO dto = mapToDTO(therapy);
 
         // ✅ Set full exercise data
-        //dto.setExercises(exercises);
+        dto.setExercises(exercises);
 
         // 🔥 FIX: Always use DB data for count
         dto.setNoExerciseIdCount(exercises.size());
@@ -351,7 +351,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         	TherapyExercises ex  = exercisesRepository.findByTherapyExercisesId(s).get();
         	if(ex != null){
         exercisesDto.add(ex);}}
-       // theryServiceDto.setExercises(exercisesDto);
+      theryServiceDto.setExercises(exercisesDto);
         return theryServiceDto;
     }else {
     	return null;

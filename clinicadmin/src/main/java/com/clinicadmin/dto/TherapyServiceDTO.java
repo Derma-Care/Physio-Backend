@@ -24,5 +24,5 @@ public class TherapyServiceDTO {
     private String clinicId;
     private String branchId;
     private int noExerciseIdCount;
-    ///private List<TherapyExercises> exercises;
+    private List<TherapyExercises> exercises;
 }
