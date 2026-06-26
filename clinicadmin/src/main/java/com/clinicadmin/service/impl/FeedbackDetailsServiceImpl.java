@@ -1263,7 +1263,7 @@ public class FeedbackDetailsServiceImpl
 
             triggerSessionNotificationIfNeeded(feedback);
 
-            feedback.setHalfNotificationSent(true);
+//            feedback.setHalfNotificationSent(true);
 
             repository.save(feedback);
         }
@@ -1277,7 +1277,7 @@ public class FeedbackDetailsServiceImpl
 
             triggerSessionNotificationIfNeeded(feedback);
 
-            feedback.setFullNotificationSent(true);
+//            feedback.setFullNotificationSent(true);
 
             repository.save(feedback);
         }
