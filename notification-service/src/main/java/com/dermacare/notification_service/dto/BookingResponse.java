@@ -25,7 +25,10 @@ public class BookingResponse {
 	private Integer freeFollowUps;
 	private String patientAddress;
 	private String age;
+	private String doctorDeviceId;
+	private String subServiceName;
 	private String gender;
+	private String subServiceId;
 	private String mobileNumber;
 	private String customerId;
 	private String consultationExpiration;
