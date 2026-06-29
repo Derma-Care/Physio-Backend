@@ -22,9 +22,6 @@ import com.dermaCare.customerService.util.Response;
 @FeignClient(value = "clinicadmin")
 //@CircuitBreaker(name = "circuitBreaker", fallbackMethod = "clinicAdminServiceFallBack")
 public interface ClinicAdminFeign {
-
-	@GetMapping("/clinic-admin/doctor/{id}")
-	public ResponseEntity<Response> getDoctorById(@PathVariable String id);
 	
 	@GetMapping("/clinic-admin/getDoctorSlots/{hospitalId}/{branchId}/{doctorId}")
 	public ResponseEntity<Response> getDoctorSlot(
@@ -32,17 +29,10 @@ public interface ClinicAdminFeign {
 	        @PathVariable String branchId,
 	        @PathVariable String doctorId);
 	
-	@GetMapping("/clinic-admin/averageRatings/{branchId}/{doctorId}")
-	public ResponseEntity<Response> getAverageRatings(@PathVariable String branchId, @PathVariable String doctorId);
-	
 	@PutMapping("/clinic-admin/updateDoctorSlotWhileBooking/{doctorId}/{branchId}/{date}/{time}")
 	public boolean updateDoctorSlotWhileBooking(@RequestHeader("Authorization") String token,@PathVariable String doctorId,@PathVariable String branchId, @PathVariable String date,
 			@PathVariable String time);
-	
-	@PutMapping("/clinic-admin/updateDoctor/{doctorId}")
-	public ResponseEntity<Response> updateDoctorById(@PathVariable String doctorId,
-			@RequestBody DoctorsDTO dto);
-	
+
 	@GetMapping("/clinic-admin/getReportsBycustomerId/{customerId}")
     public ResponseEntity<Response> getReportsBycustomerId(@PathVariable String customerId);
    	
@@ -53,9 +43,6 @@ public interface ClinicAdminFeign {
 	 @GetMapping("/clinic-admin/getBestDoctorByKeyWords/{keyPoints}")
 	    public ResponseEntity<Response> getRecommendedClinicsAndOnDoctors(@PathVariable String keyPoints);
 	 
-	 @GetMapping("/clinic-admin/getAverageRatingsByDoctorId/{doctorId}")
-		public ResponseEntity<Response> getAverageRatingsByDoctorId( @PathVariable String doctorId) ;
-
 	 @PostMapping("/clinic-admin/block/slot")
 	  public boolean blockSlot(@RequestBody TempBlockingSlot tempBlockingSlot);
 	 

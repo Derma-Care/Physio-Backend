@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import com.clinicadmin.dto.ExpensesDTO;
 import com.clinicadmin.dto.Response;
@@ -42,6 +43,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "expensesApi", fallbackMethod = "createFallback")
 	public ResponseEntity<Response> create(ExpensesDTO dto) {
 
 	    try {
@@ -73,6 +75,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "expensesApi", fallbackMethod = "getAllFallback")
 	public ResponseEntity<Response> getAll() {
 
 	    try {
@@ -101,6 +104,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "expensesApi", fallbackMethod = "updateFallback")
 	public ResponseEntity<Response> update(String id, ExpensesDTO dto) {
 
 	    try {
@@ -183,6 +187,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "expensesApi", fallbackMethod = "deleteFallback")
 	public ResponseEntity<Response> delete(String id) {
 
 	    try {
@@ -217,6 +222,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "expensesApi", fallbackMethod = "getByClinicAndBranchFallback")
 	public ResponseEntity<Response> getByClinicAndBranch(String clinicId, String branchId) {
 
 	    try {
@@ -255,6 +261,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+	@RateLimiter(name = "expensesApi", fallbackMethod = "getTodayExpensesFallback")
 	public Double getTodayExpenses(String clinicId, String branchId) {
 
 	    LocalDate today = LocalDate.now();
@@ -278,6 +285,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+	@RateLimiter(name = "expensesApi", fallbackMethod = "getWeeklyExpensesFallback")
 	public Double getWeeklyExpenses(String clinicId, String branchId) {
 
 		try {
@@ -303,6 +311,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+	@RateLimiter(name = "expensesApi", fallbackMethod = "getMonthlyExpensesFallback")
 	public Double getMonthlyExpenses(String clinicId, String branchId) {
 
 		try {
@@ -328,6 +337,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+	@RateLimiter(name = "expensesApi", fallbackMethod = "customeFilterFallback")
 	public Double customeFilter(String startDate, String endDate) {
 		try {
 	    List<ExpensesEntity> entities = repository
@@ -347,5 +357,25 @@ public class ExpensesServiceImpl implements ExpensesService {
 		}}
 	
 	
+	////// FALLBACK METHODS //////
 	
+public ResponseEntity<Response> createFallback(ExpensesDTO dto, Exception ex){ return buildRateLimitResponse(); }
+public ResponseEntity<Response> getAllFallback(Exception ex){ return buildRateLimitResponse(); }
+public ResponseEntity<Response> updateFallback(String id, ExpensesDTO dto, Exception ex){ return buildRateLimitResponse(); }
+public ResponseEntity<Response> deleteFallback(String id, Exception ex){ return buildRateLimitResponse(); }
+public ResponseEntity<Response> getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex){ return buildRateLimitResponse(); }
+public Double getTodayExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
+public Double getWeeklyExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
+public Double getMonthlyExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
+public Double customeFilterFallback(String startDate, String endDate, Exception ex){ return 0.0; }
+
+public ResponseEntity<Response> buildRateLimitResponse() {
+    Response response = Response.builder()
+            .success(false)
+            .status(HttpStatus.TOO_MANY_REQUESTS.value())
+            .message("Too many requests. Please try again later.")
+            .build();
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+}
+
 }

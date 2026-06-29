@@ -19,6 +19,7 @@ import com.clinicadmin.repository.CustomConsentFormRepository;
 import com.clinicadmin.service.CustomConsentFormService;
 
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
@@ -171,6 +172,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
 	public Response getConsentForm(String hospitalId, String consentFormType) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -216,6 +218,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
 	public Response getProcedureConsentForm(String hospitalId, String subServiceId) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -280,6 +283,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
 	public Response getAllConsentFormsByHospital(String hospitalId) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -305,6 +309,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// ------------------------------- Delete Consent Form by ID -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
 	public Response deleteConsentFormById(String formId) {
 	    if (formId == null || formId.trim().isEmpty()) {
 	        return buildErrorResponse("Consent Form ID cannot be null or empty", 400);
@@ -324,5 +329,25 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	}
 
 	
+
+
+    
+    // ================= RATE LIMIT FALLBACK METHODS =================
+
+    public Response rateLimitFallback(String hospitalId, String consentFormType, Exception ex) {
+        return buildErrorResponse("Too many requests. Please try again later.", 429);
+    }
+
+    public Response rateLimitFallback(String hospitalId, String subServiceId, RuntimeException ex) {
+        return buildErrorResponse("Too many requests. Please try again later.", 429);
+    }
+
+    public Response rateLimitFallback(String hospitalId, Exception ex) {
+        return buildErrorResponse("Too many requests. Please try again later.", 429);
+    }
+
+    public Response rateLimitFallback(String formId, RuntimeException ex) {
+        return buildErrorResponse("Too many requests. Please try again later.", 429);
+    }
 
 }

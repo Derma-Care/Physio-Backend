@@ -14,6 +14,7 @@ import com.clinicadmin.repository.FollowOptionRepository;
 import com.clinicadmin.service.FollowOptionService;
 
 import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "followOptionService", fallbackMethod = "createFallback")
     public Response create(FollowOptionDTO dto) {
         FollowOption saved = repository.save(toEntity(dto));
         return Response.builder()
@@ -48,6 +50,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "followOptionService", fallbackMethod = "getAllFallback")
     public Response getAll() {
         List<FollowOptionDTO> all = repository.findAll()
                 .stream()
@@ -64,6 +67,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "followOptionService", fallbackMethod = "getByIdFallback")
     public Response getById(String id) {
         Optional<FollowOption> option = repository.findById(id);
         if (option.isPresent()) {
@@ -83,6 +87,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     }
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "followOptionService", fallbackMethod = "updateFallback")
     public Response update(String id, FollowOptionDTO dto) {
         if (dto == null || dto.getFollowOptions() == null || dto.getFollowOptions().isEmpty()) {
             return Response.builder()
@@ -140,6 +145,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "followOptionService", fallbackMethod = "deleteFallback")
     public Response delete(String id) {
         if (repository.existsById(id)) {
             repository.deleteById(id);
@@ -156,4 +162,34 @@ public class FollowOptionServiceImpl implements FollowOptionService {
                     .build();
         }
     }
+
+    public Response createFallback(FollowOptionDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAllFallback(Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateFallback(String id, FollowOptionDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response deleteFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response buildRateLimitResponse(Exception ex) {
+        return Response.builder()
+                .success(false)
+                .status(429)
+                .message("Too many requests. Please try again later.")
+                .data(null)
+                .build();
+    }
+
 }

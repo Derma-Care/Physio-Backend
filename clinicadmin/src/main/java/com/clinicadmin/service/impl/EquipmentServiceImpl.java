@@ -3,8 +3,10 @@ package com.clinicadmin.service.impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import com.clinicadmin.dto.EquipmentDTO;
 import com.clinicadmin.dto.Response;
@@ -25,6 +27,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
     public Response createEquipment(EquipmentDTO dto) {
 
         Equipment equipment = convertToEntity(dto);
@@ -39,13 +42,10 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return response;
     }
-   
-
-
-    
-
+  
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
     public Response getEquipmentById(String equipmentId) {
 
         Equipment equipment = repository.findById(equipmentId).orElse(null);
@@ -70,6 +70,7 @@ public class EquipmentServiceImpl implements EquipmentService {
  
     		@Override
     		 @Secured("ROLE_CLINICADMIN")
+    		  @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
     		public Response getAllEquipment() {
 
     		    List<EquipmentDTO> equipmentList = repository.findAll()
@@ -96,7 +97,8 @@ public class EquipmentServiceImpl implements EquipmentService {
     	
     
     				@Override
-    				 @Secured("ROLE_CLINICADMIN")
+    				 @Secured("ROLE_CLINICADMIN")			
+    				  @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
     				public Response getEquipmentByClinicIdAndBranchId(
     				        String clinicId,
     				        String branchId) {
@@ -128,6 +130,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
  @Override
  @Secured("ROLE_CLINICADMIN")
+ @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
  public Response updateEquipment(
     				        String equipmentId,
     				        EquipmentDTO dto) {
@@ -188,6 +191,7 @@ public class EquipmentServiceImpl implements EquipmentService {
    
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
     public Response deleteEquipment(String equipmentId) {
 
         Equipment equipment = repository.findById(equipmentId).orElse(null);
@@ -309,5 +313,53 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return dto;
     
+    }
+
+
+    // ================= RATE LIMITER FALLBACK METHODS =================
+
+    public Response rateLimitFallback(
+            EquipmentDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response rateLimitFallback(
+            String equipmentId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response rateLimitFallback(
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response rateLimitFallback(
+            String clinicId,
+            String branchId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response rateLimitFallback(
+            String equipmentId,
+            EquipmentDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response rateLimitFallbackDelete(
+            String equipmentId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response buildRateLimitResponse(Exception ex) {
+        return Response.builder()
+                .success(false)
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .message("Too many requests. Please try again later.")
+                .build();
     }
 }

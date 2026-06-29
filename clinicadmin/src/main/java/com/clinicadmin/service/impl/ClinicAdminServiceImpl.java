@@ -19,7 +19,6 @@ import com.clinicadmin.entity.ClinicAdminDeviceTokenEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
 import com.clinicadmin.repository.AdministratorRepository;
-import com.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
 import com.clinicadmin.repository.DoctorsRepository;
 import com.clinicadmin.repository.ReceptionistRepository;
 import com.clinicadmin.repository.SecurityStaffRepository;
@@ -30,6 +29,7 @@ import com.clinicadmin.utils.ExtractFeignMessage;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class ClinicAdminServiceImpl implements ClinicAdminService {
@@ -67,6 +67,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public Response updateClinicCredentials(UpdateClinicLoginCredentialsDTO updatedCredentials, String userName) {
     	try {
         	Response response=adminServiceClient.updateClinicCredentials(keyCloakTokenStore.getAccess_token(),updatedCredentials, userName);
@@ -81,6 +82,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public Response getClinicById(String hospitalId) {
     	try {
         	ResponseEntity<Response> response=adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),hospitalId);
@@ -96,6 +98,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public Response updateClinic(String hospitalId, ClinicDTO dto) {
     	try {
         	Response response=adminServiceClient.updateClinic(keyCloakTokenStore.getAccess_token(),hospitalId, dto);
@@ -110,6 +113,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public Response deleteClinic(String hospitalId) {
     	try {
         	Response response=adminServiceClient.deleteClinic(keyCloakTokenStore.getAccess_token(),hospitalId);
@@ -129,6 +133,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public ResponseEntity<?> getBranchesByClinicId(String clinicId) {
         try {
           
@@ -155,6 +160,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public Response getStaffInfo(String hospitalId, String branchId) {
 
         Response response = new Response();
@@ -244,6 +250,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
+    @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
     public String getDeviceId(String clinicId,String branchId) {
     	Optional<ClinicAdminDeviceTokenEntity> obj = null;
     	String deviceId = null;
@@ -262,4 +269,52 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     	///System.out.println(deviceId);
     	return  deviceId;
         }
+
+    
+    // ================= RATE LIMIT FALLBACK METHODS =================
+    
+    public Response rateLimitFallback(UpdateClinicLoginCredentialsDTO dto, String userName, Exception ex) {
+        Response res = new Response();
+        res.setSuccess(false);
+        res.setStatus(429);
+        res.setMessage("Too many requests. Please try again later.");
+        return res;
+    }
+
+    public Response rateLimitFallback(String hospitalId, Exception ex) {
+        Response res = new Response();
+        res.setSuccess(false);
+        res.setStatus(429);
+        res.setMessage("Too many requests. Please try again later.");
+        return res;
+    }
+
+    public Response rateLimitFallback(String hospitalId, ClinicDTO dto, Exception ex) {
+        Response res = new Response();
+        res.setSuccess(false);
+        res.setStatus(429);
+        res.setMessage("Too many requests. Please try again later.");
+        return res;
+    }
+
+    public ResponseEntity<?> rateLimitFallback(String clinicId, Exception ex, boolean entityResponse) {
+        Response res = new Response();
+        res.setSuccess(false);
+        res.setStatus(429);
+        res.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(res);
+    }
+
+    public Response rateLimitFallback(String hospitalId, String branchId, Exception ex) {
+        Response res = new Response();
+        res.setSuccess(false);
+        res.setStatus(429);
+        res.setMessage("Too many requests. Please try again later.");
+        return res;
+    }
+
+    public String rateLimitFallback(String clinicId, String branchId, RuntimeException ex) {
+        return null;
+    }
+
 }

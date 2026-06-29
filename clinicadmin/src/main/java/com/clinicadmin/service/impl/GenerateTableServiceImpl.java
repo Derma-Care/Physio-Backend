@@ -20,6 +20,7 @@ import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.service.GenerateTableService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 
 
@@ -38,6 +39,9 @@ public class GenerateTableServiceImpl implements GenerateTableService {
     @Override
     @SuppressWarnings("unchecked")
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(
+            name = "generateTableService",
+            fallbackMethod = "generateTableFallback")
     public Response generateTable(PhysiotherapyRecordDTO request) {
 
         Response response = new Response();
@@ -568,4 +572,14 @@ public class GenerateTableServiceImpl implements GenerateTableService {
 
         return code.toString();
     }
+    
+    public Response generateTableFallback(PhysiotherapyRecordDTO request, Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        response.setData(null);
+        return response;
+    }
+
 }

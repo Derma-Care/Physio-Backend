@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import physiotherapydoctor.dto.NotificationDTO;
 import physiotherapydoctor.dto.ResBody;
 
-
-
-
 @FeignClient(value = "notification-service")
 public interface NotificationFeign {
 	

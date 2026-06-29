@@ -23,7 +23,6 @@ import com.dermaCare.customerService.dto.VisitHistoryRequest;
 import com.dermaCare.customerService.entity.Customer;
 import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.entity.QuestionsEntity;
-import com.dermaCare.customerService.feignClient.AdminFeign;
 import com.dermaCare.customerService.feignClient.BookingFeign;
 import com.dermaCare.customerService.feignClient.ClinicAdminFeign;
 //import com.dermaCare.customerService.feignClient.DoctorServiceFeign;

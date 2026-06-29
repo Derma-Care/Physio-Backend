@@ -28,8 +28,10 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
+@RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
 public class AdministratorServiceImpl implements AdministratorService {
 	
 
@@ -892,5 +894,17 @@ public class AdministratorServiceImpl implements AdministratorService {
 
         return capitalizedWord + specialChar + numberPart;
     }
-}
 
+
+    // ================= RATE LIMIT FALLBACK METHODS =================
+
+    public Response rateLimitFallback(Exception ex) {
+        log.warn("Rate limit exceeded", ex);
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
+}

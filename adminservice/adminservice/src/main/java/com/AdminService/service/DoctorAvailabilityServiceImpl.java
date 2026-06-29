@@ -14,8 +14,11 @@ import com.AdminService.util.Response;
 
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService {
 
@@ -26,21 +29,38 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
     
 
     @Override
-	@Secured("ROLE_ADMIN")
+    @Secured("ROLE_ADMIN")
     public ResponseEntity<Response> doctorAvailabilityStatus(String doctorId, DoctorAvailabilityStatusDTO status) {
-        try {
-            // Call the existing Feign client logic here
-            // Assume your Feign client already has some method returning ResponseEntity<Response>
-            ResponseEntity<Response> responseEntity = clinicAdminFeign.doctorAvailabilityStatus(keyCloakTokenStore.getAccess_token(),doctorId, status);
 
-            // Return the same response
-            return ResponseEntity.status(responseEntity.getStatusCode()).body(responseEntity.getBody());
+        log.info("Received request to update doctor availability status. DoctorId: {}, Status: {}",
+                doctorId, status.isDoctorAvailabilityStatus());
+
+        try {
+
+            log.debug("Calling Clinic Admin Feign client to update doctor availability.");
+
+            ResponseEntity<Response> responseEntity = clinicAdminFeign.doctorAvailabilityStatus(
+                    keyCloakTokenStore.getAccess_token(),
+                    doctorId,
+                    status);
+
+            log.info("Doctor availability updated successfully. DoctorId: {}, Response Status: {}",
+                    doctorId, responseEntity.getStatusCode());
+
+            return ResponseEntity.status(responseEntity.getStatusCode())
+                    .body(responseEntity.getBody());
 
         } catch (FeignException e) {
+
+            log.error("Error while updating doctor availability. DoctorId: {}, Error: {}",
+                    doctorId, ExtractFeignMessage.clearMessage(e), e);
+
             Response errorResponse = new Response();
             errorResponse.setMessage(ExtractFeignMessage.clearMessage(e));
             errorResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
         }
     }
 }

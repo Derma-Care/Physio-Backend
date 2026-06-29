@@ -22,6 +22,7 @@ import com.clinicadmin.utils.ExtractFeignMessage;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -44,6 +45,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> deleteBookedService(String id) {
 		Response response = new Response();
 		try {
@@ -60,6 +62,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getAllBookedServicesDetailsByBranchId(String branchId,int page) {
 		Response response = new Response();
 		try {
@@ -77,6 +80,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getBookingsByClinicIdWithBranchId(String clinicId,
 			String branchId,int page) {
 
@@ -92,6 +96,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
    @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId,int page) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -104,6 +109,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(String clinicId, String branchId, String date) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -117,6 +123,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse response) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -142,6 +149,7 @@ public class BookingServiceImpl implements BookingService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId,int page) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -157,6 +165,7 @@ public class BookingServiceImpl implements BookingService {
 		// BOOKING MANAGEMENT
 		@Override
 		 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 		public Response bookService(BookingResponse req) throws JsonProcessingException {
 			Response response = new Response();
 			try {
@@ -199,6 +208,7 @@ public class BookingServiceImpl implements BookingService {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getInprogressBookingsByPatientId(String patientId) {
     ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
     try {
@@ -211,6 +221,7 @@ public ResponseEntity<?> getInprogressBookingsByPatientId(String patientId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getInprogressBookingsByPatientIdAndClinicId(String patientId, String clinicId) {
     ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
     try {
@@ -229,6 +240,7 @@ public ResponseEntity<?> getInprogressBookingsByPatientIdAndClinicId(String pati
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getReprts(String clinicId,
 		String branchId,
 		Integer number,
@@ -251,6 +263,7 @@ public ResponseEntity<?> getReprts(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
 		String branchId) {
 	Response response = new Response();
@@ -266,6 +279,7 @@ public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 		String bookingId) {
 	Response response = new Response();
@@ -282,6 +296,7 @@ public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getReportsByPatientId(String patientId) {
 	Response response = new Response();
     try {
@@ -296,6 +311,7 @@ public ResponseEntity<?> getReportsByPatientId(String patientId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getUpcomingBookings(String clinicId,
 		String branchId,int option) {
 	Response response = new Response();
@@ -311,6 +327,7 @@ public ResponseEntity<?> getUpcomingBookings(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookingsByDate(String clinicId,
 		String branchId, String date) {
 	Response response = new Response();
@@ -327,6 +344,7 @@ public ResponseEntity<?> getBookingsByDate(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 		String branchId,String start, String end) {
 	Response response = new Response();
@@ -343,6 +361,7 @@ public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookedServiceById(String bookingId) {
 	Response response = new Response();
     try {
@@ -358,6 +377,7 @@ public ResponseEntity<?> getBookedServiceById(String bookingId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookingById(String bookingId){
 	Response response = new Response();
     try {
@@ -373,6 +393,7 @@ public ResponseEntity<?> getBookingById(String bookingId){
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId,int page){
 	Response response = new Response();
     try {
@@ -387,6 +408,7 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
 
 @Override
 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> physioAppointment(BookingRequset req) {
     ResponseEntity<Response> res = null;
     //System.out.println(keyCloakTokenStore.access_token);
@@ -470,4 +492,64 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 			//response.setData(Collections.emptyList());
         return ResponseEntity.status(response.getStatus()).body(response);}
 }
+
+    
+    // ================= RATE LIMIT FALLBACK METHODS =================
+    
+    public ResponseEntity<?> rateLimitFallback(String id, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    public ResponseEntity<?> rateLimitFallback(String p1, String p2, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    public ResponseEntity<?> rateLimitFallback(String p1, String p2, int page, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    public ResponseEntity<?> rateLimitFallback(String p1, String p2, String p3, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    public ResponseEntity<?> rateLimitFallback(String p1, String p2, String p3, int page, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    public ResponseEntity<?> rateLimitFallback(BookingRequset req, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    public Response rateLimitFallback(BookingResponse req, Exception ex) {
+        Response response = new Response();
+        response.setStatus(429);
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
 }

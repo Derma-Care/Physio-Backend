@@ -26,11 +26,12 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.clinicadmin.service.PushNotificationService;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 
 @Slf4j
 @Service
-public class FeedbackDetailsServiceImpl
-        implements FeedbackDetailsServcie {
+public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
     @Autowired
     private PhysiotherapyFeignClient physiotherapyDoctorFeign;
@@ -52,6 +53,7 @@ public class FeedbackDetailsServiceImpl
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
     public Response createFeedback(
             FeedbackDetailsDTO feedbackDetailsDTO) {
 
@@ -116,6 +118,7 @@ public class FeedbackDetailsServiceImpl
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFeedbacksFallback")
     public Response getAllFeedbacks() {
 
         Response response = new Response();
@@ -148,6 +151,7 @@ public class FeedbackDetailsServiceImpl
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getFeedbackByIdFallback")
     public Response getFeedbackById(String id) {
 
         Response response = new Response();
@@ -181,6 +185,7 @@ public class FeedbackDetailsServiceImpl
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFeedbackFallback")
     public Response updateFeedback(
             String id,
             FeedbackDetailsDTO feedbackDetailsDTO) {
@@ -324,6 +329,7 @@ public class FeedbackDetailsServiceImpl
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFeedbackFallback")
     public Response deleteFeedback(String id) {
 
         Response response = new Response();
@@ -357,6 +363,7 @@ public class FeedbackDetailsServiceImpl
     }
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getFeedbackDetailsFallback")
     public Response getFeedbackDetails(
             String clinicId,
             String branchId) {
@@ -844,40 +851,43 @@ public class FeedbackDetailsServiceImpl
     }
 
 
-    @Override
-    public Response getAllFeedbacksByClinicIdAndBranchId(
-            String clinicId,
-            String branchId) {
+   @Override
+@RateLimiter(
+        name = "feedbackService",
+        fallbackMethod = "getAllFeedbacksByClinicIdAndBranchIdFallback")
+public Response getAllFeedbacksByClinicIdAndBranchId(
+        String clinicId,
+        String branchId) {
 
-        Response response = new Response();
+    Response response = new Response();
 
-        try {
+    try {
 
-            List<FeedbackDetailsDTO> feedbackList =
-                    repository.findByClinicIdAndBranchId(
-                                    clinicId,
-                                    branchId)
-                            .stream()
-                            .map(this::mapToDTO)
-                            .toList();
+        List<FeedbackDetailsDTO> feedbackList =
+                repository.findByClinicIdAndBranchId(
+                                clinicId,
+                                branchId)
+                        .stream()
+                        .map(this::mapToDTO)
+                        .toList();
 
-            response.setSuccess(true);
-            response.setStatus(200);
-            response.setMessage(
-                    "Feedbacks fetched successfully");
+        response.setSuccess(true);
+        response.setStatus(200);
+        response.setMessage(
+                "Feedbacks fetched successfully");
 
-            response.setData(feedbackList);
+        response.setData(feedbackList);
 
-        } catch (Exception e) {
+    } catch (Exception e) {
 
-            response.setSuccess(false);
-            response.setStatus(404);
-            response.setMessage(e.getMessage());
-            response.setData(null);
-        }
-
-        return response;
+        response.setSuccess(false);
+        response.setStatus(404);
+        response.setMessage(e.getMessage());
+        response.setData(null);
     }
+
+    return response;
+}
     
 //    @Override
 //    public Response getDoctorFeedbackSummary(
@@ -1049,4 +1059,47 @@ public class FeedbackDetailsServiceImpl
                             mobile);
         }
     }
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Rate limit exceeded. Please try again later.");
+        response.setData(null);
+        return response;
+    }
+
+    public Response createFeedbackFallback(FeedbackDetailsDTO feedbackDetailsDTO, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAllFeedbacksFallback(Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getFeedbackByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateFeedbackFallback(String id, FeedbackDetailsDTO feedbackDetailsDTO, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response deleteFeedbackFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getFeedbackDetailsFallback(String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAllFeedbacksByClinicIdAndBranchIdFallback(String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getDoctorFeedbackSummaryFallback(String doctorId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
 }

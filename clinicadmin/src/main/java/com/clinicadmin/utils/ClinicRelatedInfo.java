@@ -20,6 +20,7 @@ public class ClinicRelatedInfo {
 	private List<String> roles;	
 	private Map<String, Map<String, List<String>>> permissions;
 	private DoctorLoginDTO doctorLoginDTO;
-
+	private String hospitalId;
+	private String branchId;
 
 }

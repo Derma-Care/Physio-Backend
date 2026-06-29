@@ -1,5 +1,7 @@
+/* RateLimiter template version */
 package com.clinicadmin.service.impl;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -20,7 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -135,6 +136,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "doctorApi", fallbackMethod = "addDoctorFallback")
 	public Response addDoctor(DoctorsDTO dto) {
 		log.info("Add Doctor reqest received. moblie={}, hospitalId ={}, brancId ={}", dto.getDoctorMobileNumber(),
 				dto.getHospitalId(), dto.getBranchId());
@@ -466,6 +468,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getAllDoctorsFallback")
 	public Response getAllDoctors() {
 		log.info("Get All Doctors request received");
 		Response response = new Response();
@@ -502,6 +505,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorsByClinicIdFallback")
 	public Response getDoctorsByClinicId(String hospitalId) {
 		log.info("Get doctors by clinicId request received . hospitalId={}", hospitalId);
 		Response response = new Response();
@@ -539,6 +543,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorByIdFallback")
 	public Response getDoctorById(String id) {
 		log.info("Get Doctor by id request received :{}", id);
 		Response response = new Response();
@@ -573,6 +578,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "upDateDoctorByIdFallback")
 	public Response upDateDoctorById(String doctorId, DoctorsDTO dto) {
 		log.info("Update doctor request received for doctorId={}", doctorId);
 
@@ -777,6 +783,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorsByClinicIdAndDoctorIdFallback")
 	public Response getDoctorsByClinicIdAndDoctorId(String clinicId, String doctorId) {
 
 		log.info("Get Doctor request received. clinicId={}, doctorId={}", clinicId, doctorId);
@@ -847,6 +854,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorByIdFallback")
 	public Response deleteDoctorById(String doctorId) {
 
 		log.info("Delete doctor request received for doctorId={}", doctorId);
@@ -894,6 +902,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorFromBranchFallback")
 	public Response deleteDoctorFromBranch(String doctorId, String branchId) {
 
 		log.info("Delete doctor from branch request received. doctorId={}, branchId={}", doctorId, branchId);
@@ -960,6 +969,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorsByClinicFallback")
 	public Response deleteDoctorsByClinic(String hospitalId) {
 
 		log.info("Delete doctors by clinic request received. hospitalId={}", hospitalId);
@@ -1186,6 +1196,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// password-------------------------------------------------------------
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "changePasswordFallback")
 	public Response changePassword(ChangeDoctorPasswordDTO updateDTO) {
 
 		log.info("Change password request received for username={}", updateDTO.getUserName());
@@ -1297,6 +1308,7 @@ public class DoctorServiceImpl implements DoctorService {
 //    ---------------------Get DoctorsAll By hospitalId---------------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorsByClinicIdAndBranchIdFallback")
 	public Response getDoctorsByClinicIdAndBranchId(String hospitalId, String branchId) {
 
 		log.info("Get doctors request received for hospitalId={}, branchId={}", hospitalId, branchId);
@@ -1375,6 +1387,7 @@ public class DoctorServiceImpl implements DoctorService {
 //-------------------------------Doctor AvailabilityStatus--------------------------------------------------------------------------------
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "availabilityStatusFallback")
 	public Response availabilityStatus(String doctorId, DoctorAvailabilityStatusDTO status) {
 
 		log.info("Update availability status request received for doctorId={}", doctorId);
@@ -1428,6 +1441,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// Slots---------------------------------------------------------------------------------------
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "saveDoctorSlotFallback")
 	public Response saveDoctorSlot(String hospitalId, String doctorId, DoctorSlotDTO dto) {
 		log.info("Save doctor slot request received hospitalId={}, doctorId={}", hospitalId, doctorId);
 		Response response = new Response();
@@ -1501,6 +1515,7 @@ public class DoctorServiceImpl implements DoctorService {
 //		-------------------------Get Slots by Doctors -------------------------------------------
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorSlotsFallback")
 	public Response getDoctorSlots(String hospitalId, String doctorId) {
 		log.info("Get doctor slot request received, hospitalId={}, doctorId={}", hospitalId, doctorId);
 		Response response = new Response();
@@ -1537,6 +1552,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// doctorId-----------------------------------------
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorSlotFallback")
 	public Response deleteDoctorSlot(String doctorId, String branchId, String date, String slotToDelete) {
 		log.info("Delete doctor slot request received , doctorId={}, branchId={}, date={}, slot={}", doctorId, branchId,
 				date, slotToDelete);
@@ -1601,6 +1617,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorSlotFallback")
 	public Response deleteDoctorSlot(String doctorId, String date, String slotToDelete) {
 		log.info("Delete doctor slot request received , doctorId={}, date={}, slot={}", doctorId, date, slotToDelete);
 		Response response = new Response();
@@ -1663,6 +1680,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// Slot---------------------------------------------------------------------------
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "updateDoctorSlotFallback")
 	public Response updateDoctorSlot(String doctorId, String date, String oldSlot, String newSlot) {
 		log.info("Update doctor slot request received, doctorId={}, date={}, oldSlot={}, newSlot={}", doctorId, date,
 				oldSlot, newSlot);
@@ -1729,6 +1747,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorSlotbyDateFallback")
 	public Response deleteDoctorSlotbyDate(String doctorId, String date) {
 		log.info("Delete doctor slots by date request received, doctorId={}, date={}", doctorId, date);
 		try {
@@ -1766,6 +1785,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "deleteDoctorSlotbyDateFallback")
 	public Response deleteDoctorSlotbyDate(String doctorId, String branchId, String date) {
 		log.info("Delete doctor slot by branch and date request received | doctorId={}, branchId={}, date={}", doctorId,
 				branchId, date);
@@ -1831,6 +1851,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 	
 	 @Secured({"ROLE_CLINICADMIN","ROLE_CUSTOMER"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "updateSlotFallback")
 	public boolean updateSlot(String doctorId, String branchId, String date, String time) {
 		log.info("Update slot request | doctorId={}, branchId={}, date={}, time={}", doctorId, branchId, date, time);
 		if (doctorId == null || date == null || time == null) {
@@ -1876,6 +1897,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 	
 	 @Secured({"ROLE_CLINICADMIN","ROLE_CUSTOMER"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "makingFalseDoctorSlotFallback")
 	public boolean makingFalseDoctorSlot(String doctorId, String branchId, String date, String time) {
 		log.info("Unbook slot request | doctorId={}, branchId={}, date={}, time={}", doctorId, branchId, date, time);
 		if (doctorId == null || date == null || time == null) {
@@ -2087,6 +2109,7 @@ public class DoctorServiceImpl implements DoctorService {
 //
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "saveDoctorSlotFallback")
 	public Response saveDoctorSlot(String hospitalId, String branchId, String doctorId, DoctorSlotDTO dto) {
 		log.info("Saved doctor slot called, hospitalId={}, branchId={}, date={}", hospitalId, branchId, doctorId);
 		Response response = new Response();
@@ -2206,6 +2229,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "generateDoctorSlotsFallback")
 	public Response generateDoctorSlots(String doctorId, String branchId, String date, int intervalMinutes,
 			String openingTime, String closingTime) {
 
@@ -2381,6 +2405,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR","ROLE_CUSTOMER"})
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorSlotsFallback")
 	public Response getDoctorSlots(String hospitalId, String branchId, String doctorId) {
 		List<DoctorSlot> slots = slotRepository.findByHospitalIdAndBranchIdAndDoctorId(hospitalId, branchId, doctorId);
 
@@ -2665,7 +2690,7 @@ public class DoctorServiceImpl implements DoctorService {
 //	}
 
 	/// NOTIFICATIONOFDOCTOR
-
+    @RateLimiter(name = "doctorApi", fallbackMethod = "notificationToClinicFallback")
 	public ResponseEntity<?> notificationToClinic(String hospitalId) {
 		try {
 			return notificationFeign.sendNotificationToClinic(hospitalId);
@@ -2679,6 +2704,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// -----------------------------GET CLINICS AND DOCTORS BY RECOMMENDATION ==
 	// TRUE---------------------------------
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getRecommendedClinicsAndDoctorsFallback")
 	public Response getRecommendedClinicsAndDoctors() {
 		Response finalResponse = new Response();
 
@@ -2907,6 +2933,7 @@ public class DoctorServiceImpl implements DoctorService {
 //	    return response;
 //	}
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getRecommendedClinicsAndOneDoctorsFallback")
 	public Response getRecommendedClinicsAndOneDoctors(List<String> keyPointsFromUser) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
@@ -3034,6 +3061,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 //---------------- get All doctors with respective their clinics --------------------------
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getAllDoctorsWithRespectiveClinicFallback")
 	public Response getAllDoctorsWithRespectiveClinic() {
 		Response response = new Response();
 
@@ -3079,6 +3107,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getAllDoctorsWithRespectiveClinicFallback")
 	public Response getAllDoctorsWithRespectiveClinic(int consultationType) {
 		Response response = new Response();
 
@@ -3138,6 +3167,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getAllDoctorsWithRespectiveClinicFallback")
 	public Response getAllDoctorsWithRespectiveClinic(String hospitalId, int consultationType) {
 		Response response = new Response();
 
@@ -3419,6 +3449,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 //-----------------------best one doctor using key word-------------------------------------------
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getRecommendedClinicsAndDoctorsFallback")
 	public Response getRecommendedClinicsAndDoctors(List<String> keyPointsFromUser) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
@@ -3536,6 +3567,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getRecommendedClinicsAndDoctorsFallback")
 	public Response getRecommendedClinicsAndDoctors(List<String> keyPointsFromUser, int consultationType) {
 		Logger log = LoggerFactory.getLogger(getClass());
 
@@ -3610,6 +3642,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getRecommendedClinicsAndDoctorsFallback")
 	public Response getRecommendedClinicsAndDoctors(String hospitalId, List<String> keyPointsFromUser,
 			int consultationType) {
 		Logger log = LoggerFactory.getLogger(getClass());
@@ -3667,6 +3700,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Override
+    @RateLimiter(name = "doctorApi", fallbackMethod = "getDoctorsByHospitalIdAndBranchIdFallback")
 	public Response getDoctorsByHospitalIdAndBranchId(String hospitalId, String branchId) {
 		Response response = new Response();
 		try {
@@ -3700,7 +3734,8 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 		return response;
 	}
-
+	
+    @RateLimiter(name = "doctorApi", fallbackMethod = "blockingSlotFallback")
 	public boolean blockingSlot(TempBlockingSlot tempBlockingSlot) {
 		// Validate input
 		if (tempBlockingSlot == null || tempBlockingSlot.getDoctorId() == null
@@ -3745,6 +3780,7 @@ public class DoctorServiceImpl implements DoctorService {
 	}
 
 	@Scheduled(fixedRate = 30000)
+    //@RateLimiter(name = "doctorApi", fallbackMethod = "checkingSlotsFallback")
 	public void checkingSlots() {
 		try {
 			long currentMillis = System.currentTimeMillis();
@@ -3784,6 +3820,253 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 	}
 
-	
-	
+// ================= AUTO GENERATED METHOD-SPECIFIC FALLBACKS =================
+
+private Response buildRateLimitResponse(Exception ex){
+    log.error("Rate limit exceeded", ex);
+    return Response.builder()
+            .success(false)
+            .status(HttpStatus.TOO_MANY_REQUESTS.value())
+            .message("Too many requests. Please try again later.")
+            .build();
+}
+
+//================= RATE LIMITER FALLBACKS =================
+
+public Response addDoctorFallback(DoctorsDTO dto, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getAllDoctorsFallback(Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorsByClinicIdFallback(String hospitalId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorByIdFallback(String id, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response upDateDoctorByIdFallback(String doctorId, DoctorsDTO dto, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorsByClinicIdAndDoctorIdFallback(
+        String clinicId,
+        String doctorId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorByIdFallback(String doctorId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorFromBranchFallback(
+        String doctorId,
+        String branchId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorsByClinicFallback(
+        String hospitalId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response changePasswordFallback(
+        ChangeDoctorPasswordDTO updateDTO,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorsByClinicIdAndBranchIdFallback(
+        String hospitalId,
+        String branchId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response saveDoctorSlotFallback(
+        String hospitalId,
+        String branchId,
+        String doctorId,
+        DoctorSlotDTO dto,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response saveDoctorSlotFallback(
+        String hospitalId,
+        String doctorId,
+        DoctorSlotDTO dto,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response generateDoctorSlotsFallback(
+        String doctorId,
+        String branchId,
+        String date,
+        int intervalMinutes,
+        String openingTime,
+        String closingTime,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorSlotsFallback(
+        String hospitalId,
+        String branchId,
+        String doctorId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorSlotsFallback(
+        String hospitalId,
+        String doctorId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response notificationToClinicFallback(
+        String hospitalId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getRecommendedClinicsAndDoctorsFallback(
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getRecommendedClinicsAndDoctorsFallback(
+        List<String> keyPointsFromUser,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getRecommendedClinicsAndDoctorsFallback(
+        List<String> keyPointsFromUser,
+        int consultationType,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getRecommendedClinicsAndDoctorsFallback(
+        String hospitalId,
+        List<String> keyPointsFromUser,
+        int consultationType,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getDoctorsByHospitalIdAndBranchIdFallback(
+        String hospitalId,
+        String branchId,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public boolean blockingSlotFallback(
+        TempBlockingSlot tempBlockingSlot,
+        Exception ex) {
+    return false;
+}
+
+public Response getRecommendedClinicsAndOneDoctorsFallback(
+        List<String> keyPointsFromUser,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getAllDoctorsWithRespectiveClinicFallback(
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getAllDoctorsWithRespectiveClinicFallback(
+        int consultationType,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response getAllDoctorsWithRespectiveClinicFallback(
+        String hospitalId,
+        int consultationType,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response availabilityStatusFallback(
+        String doctorId,
+        DoctorAvailabilityStatusDTO status,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorSlotFallback(
+        String doctorId,
+        String branchId,
+        String date,
+        String slotToDelete,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorSlotFallback(
+        String doctorId,
+        String date,
+        String slotToDelete,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response updateDoctorSlotFallback(
+        String doctorId,
+        String date,
+        String oldSlot,
+        String newSlot,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorSlotbyDateFallback(
+        String doctorId,
+        String date,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public Response deleteDoctorSlotbyDateFallback(
+        String doctorId,
+        String branchId,
+        String date,
+        Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+public boolean updateSlotFallback(
+        String doctorId,
+        String branchId,
+        String date,
+        String time,
+        Exception ex) {
+    return false;
+}
+
+public boolean makingFalseDoctorSlotFallback(
+        String doctorId,
+        String branchId,
+        String date,
+        String time,
+        Exception ex) {
+    return false;
+}
+
+
 }

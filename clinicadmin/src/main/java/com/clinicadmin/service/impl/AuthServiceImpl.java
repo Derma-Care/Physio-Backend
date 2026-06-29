@@ -44,8 +44,7 @@ public class AuthServiceImpl implements AuthService {
 		
 	@Autowired
 	private JwtUtil jwtUtil;
-	
-	
+		
 	@Autowired
 	private DoctorLoginCredentialsRepository credentialsRepository;
 	
@@ -73,6 +72,8 @@ public class AuthServiceImpl implements AuthService {
 					  String refreshToken = jwtUtil.generateRefreshToken(clinicCredentialsDTO.getUsername(),roles);
 					   response.setMessage("Login successful");
 					   response.setStatus(200);
+					   response.setBranchId(rolesStore.getBranchId());
+					   response.setHospitalId(rolesStore.getHospitalId());
 					   response.setPermissions(rolesStore.getPermissions());
 					  // System.out.println(rolesStore.getPermissions());
 					   AccessTokenAndRefreshToken tokens = new AccessTokenAndRefreshToken();

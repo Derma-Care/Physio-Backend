@@ -33,5 +33,7 @@ public class CustomClinicAdminLoginDetailsService implements UserDetailsService 
 		 //System.out.println(credentials);
 		 rolesStore.setRoles(credentials.getRoles());
 		 rolesStore.setPermissions(credentials.getPermissions());
+		 rolesStore.setHospitalId(credentials.getHospitalId());
+		 rolesStore.setBranchId(credentials.getBranchId());
 		 return credentials;}
 	}

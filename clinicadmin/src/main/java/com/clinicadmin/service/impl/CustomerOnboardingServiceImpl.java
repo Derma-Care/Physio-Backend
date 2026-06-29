@@ -32,6 +32,7 @@ import com.clinicadmin.service.CustomerOnboardingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class CustomerOnboardingServiceImpl implements CustomerOnboardingService {
@@ -53,6 +54,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- CREATE (ONBOARD) -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response onboardCustomer(CustomerOnbordingDTO dto) {
 		Response response = new Response();
 
@@ -122,6 +124,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- READ ALL -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getAllCustomers() {
 		Response response = new Response();
 		try {
@@ -142,6 +145,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getCustomerById(String id) {
 		Response response = new Response();
 		try {
@@ -167,6 +171,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+    @RateLimiter(name = "customerApi", fallbackMethod = "CustomerByMobilenumberAndNameRateLimitFallback")
 	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name) {		
 		Map<String,String> details = new LinkedHashMap<>();
 		try {
@@ -188,6 +193,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getCustomerByMobiileNumber(String mobilenumber) {
 		Response response = new Response();
 		try {
@@ -212,6 +218,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId) {	
 		try {
 			CustomerOnbording optional = onboardingRepository.findByMobileNumberAndHospitalId(mobilenumber,clinicId);
@@ -230,6 +237,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- UPDATE -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response updateCustomer(String customerId, CustomerOnbordingDTO dto) {
 		Response response = new Response();
 
@@ -302,6 +310,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- DELETE -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response deleteCustomer(String id) {
 		Response response = new Response();
 
@@ -335,6 +344,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getCustomersByHospitalId(String hospitalId,String branchId) {
 	    Response response = new Response();
 	    try {
@@ -358,6 +368,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getCustomersByPatientId(String patientId,String clinicId) {
 	    Response response = new Response();
 	    try {
@@ -385,6 +396,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getCustomersByBranchId(String branchId) {
 	    Response response = new Response();
 	    try {
@@ -407,6 +419,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public Response getCustomersByHospitalIdAndBranchId(String hospitalId, String branchId) {
 	    Response response = new Response();
 	    try {
@@ -498,6 +511,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 //	}
 
 	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public String customerDeviceId(String customerId) {
 		try {
 			Optional<CustomerCredentials> cs = credentialsRepository.findByUserName(customerId);	
@@ -598,6 +612,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 	
 	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public CustomerOnbordingDTO getCustomerByToken(String token){
 		try {	
 			CustomerOnbording cstmr = onboardingRepository.findByDeviceId(token);
@@ -614,6 +629,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "customerApi", fallbackMethod = "rateLimitFallback")
 	public List<BookingInfoByInput> bookingByInput(String input,String clinicId) {
 		   BookingInfoByInput bkng = new BookingInfoByInput();
 		   CustomerOnbordingDTO b = null;
@@ -674,4 +690,60 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	    }
 	    return lst;
 	}
+
+    
+    // ================= RATE LIMIT FALLBACK METHODS =================
+
+    public Response rateLimitFallback(CustomerOnbordingDTO dto, Exception ex){
+        Response r = new Response();
+        r.setSuccess(false);
+        r.setStatus(429);
+        r.setMessage("Too many requests. Please try again later.");
+        return r;
+    }
+
+    public Response rateLimitFallback(Exception ex){
+        Response r = new Response();
+        r.setSuccess(false);
+        r.setStatus(429);
+        r.setMessage("Too many requests. Please try again later.");
+        return r;
+    }
+
+    public Response rateLimitFallback(String id, Exception ex){
+        Response r = new Response();
+        r.setSuccess(false);
+        r.setStatus(429);
+        r.setMessage("Too many requests. Please try again later.");
+        return r;
+    }
+
+    public Response rateLimitFallback(String p1, String p2, Exception ex){
+        Response r = new Response();
+        r.setSuccess(false);
+        r.setStatus(429);
+        r.setMessage("Too many requests. Please try again later.");
+        return r;
+    }
+
+    public Map<String,String> CustomerByMobilenumberAndNameRateLimitFallback(String mobile, String name, RuntimeException ex){
+        return Collections.emptyMap();
+    }
+
+    public CustomerOnbordingDTO rateLimitFallback(String mobile, String clinicId, RuntimeException ex){
+        return null;
+    }
+
+    public String rateLimitFallback(String customerId, RuntimeException ex){
+        return null;
+    }
+
+    public CustomerOnbordingDTO rateLimitFallbackByToken(String token, RuntimeException ex){
+        return null;
+    }
+
+    public List<BookingInfoByInput> rateLimitFallback(String input, String clinicId, Throwable ex){
+        return Collections.emptyList();
+    }
+
 }

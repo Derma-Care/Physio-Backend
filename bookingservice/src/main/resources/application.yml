@@ -86,10 +86,23 @@ resilience4j:
         wait-duration-in-open-state: 10s
         failure-rate-threshold: 50
 
+  retry:
+   instances:
+    paymentService:
+    max-attempts: 3
+    wait-duration: 2s
+
   timelimiter:
     instances:
       bookingService:
         timeout-duration: 60s
+
+  ratelimiter:
+    instances:
+     bookingApi:
+      limit-for-period: 50
+      limit-refresh-period: 1m
+      timeout-duration: 1s
 
 # =========================================================
 # ACTUATOR

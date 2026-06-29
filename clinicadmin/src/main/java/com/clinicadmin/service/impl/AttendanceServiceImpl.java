@@ -38,6 +38,7 @@ import com.clinicadmin.service.AttendanceService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +59,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
     public Response save(AttendanceDTO dto) {
 
         Response response = new Response();
@@ -222,6 +224,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
     public Response updateActivity(AttendanceDTO dto) {
 
         Response response = new Response();
@@ -475,6 +478,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
     public Response getDaily(String userId, String date) {
 
         Response response = new Response();
@@ -634,6 +638,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
     public Response getMonthlyReport(String userId, String month) {
 
         Response response = new Response();
@@ -1122,6 +1127,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
     public Response getDailyByClinicAndBranch(
             String clinicId,
             String branchId,
@@ -1872,6 +1878,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
     public Response getMonthlyByClinicAndBranch(
             String clinicId,
             String branchId,
@@ -2011,4 +2018,57 @@ public class AttendanceServiceImpl implements AttendanceService {
         therapistAttendanceRepo.save(therapistAttendance);
     }
    
+
+    // ================= RATE LIMIT FALLBACK METHODS =================
+
+    public Response rateLimitFallback(AttendanceDTO dto, Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
+    public Response rateLimitFallback(String userId, String date, Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
+    public Response rateLimitFallback(String userId, String month, RuntimeException ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
+    public Response rateLimitFallback(
+            String clinicId,
+            String branchId,
+            String date,
+            Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
+    public Response rateLimitFallback(
+            String clinicId,
+            String branchId,
+            String userId,
+            String startDate,
+            String endDate,
+            Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Too many requests. Please try again later.");
+        return response;
+    }
+
 }

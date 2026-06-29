@@ -64,9 +64,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Autowired
@@ -100,6 +102,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> followUpBooking(BookingResponse request) {
 		ResponseStructure<BookingResponse> response = new ResponseStructure<>();
 		ObjectMapper mapper = new ObjectMapper();
@@ -431,6 +434,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	 public ResponseEntity<?> physioAppointment(BookingRequset request) {
 		 Response res = new Response();
 		  ObjectMapper mapper = new ObjectMapper();
@@ -576,6 +580,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getAppointsByPatientId(String patientId, int page, int size) {
 
 		ResponseStructure<Map<String, Object>> res =
@@ -677,6 +682,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getAppointsByInput(
 			String input,
 			int page,
@@ -740,6 +746,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(
 			String clinicId,
 			String doctorId,
@@ -861,6 +868,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 @Override
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
         String hospitalId,
         String doctorId,
@@ -943,6 +951,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 }
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getCompletedApntsByDoctorId(String hospitalId,String doctorId) {
 		Map<String,Object> m = new LinkedHashMap<>();
 		try {
@@ -968,6 +977,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getSizeOfConsultationTypesByDoctorId(String hospitalId,String doctorId) {
 		Map<String,Object> m = new LinkedHashMap<>();
 		try {
@@ -1002,6 +1012,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public BookingResponse getBookedService(String bookingId) {
 		try {
 			Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();
@@ -1023,6 +1034,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public void deleteBookedServiceReports(String bookingId,String index) {
 		try {
 			Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();
@@ -1040,6 +1052,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public BookingResponse deleteService(String id) {
 		Booking entity = repository.findByBookingIdIgnoreCase(id)
 				.orElseThrow(() -> new RuntimeException("Invalid Booking Id Please provide Valid Id"));
@@ -1049,6 +1062,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Page<BookingResponse> getBookedServices(
 			String mobileNumber,
 			int page,
@@ -1075,6 +1089,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Page<BookingResponse> getAllBookedServices(int page, int size) {
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -1090,6 +1105,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Page<BookingResponse> bookingByDoctorId(
 			String doctorId,
 			int page,
@@ -1235,6 +1251,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public List<Map<String, Object>> bookingByCustomerId(String customerId) {
 
 	    List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -1287,6 +1304,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Page<BookingResponse> bookingByPatientId(String clincId,String patientId, int page, int size) {
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -1304,6 +1322,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Page<BookingResponse> bookingByPatientIdAndBookingId(
 			String patientId,
 			String bookingId,
@@ -1335,6 +1354,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	 @Override
 	 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	  public List<ReportsDTO> getReportsByPatientId(String patientId) {
 		  ObjectMapper mapper = new ObjectMapper();
 	         mapper.registerModule(new JavaTimeModule());
@@ -1352,6 +1372,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	    }
 		
 	 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId) {
 
 	    List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -1412,6 +1433,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> bookingByClinicId(
 			String clinicId,
 			int page,
@@ -1692,7 +1714,8 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //
 
 	@Scheduled(fixedRate = 60 * 60 * 1000)
-	public void autoCalculatePatientCompletedAppointments() {
+		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+public void autoCalculatePatientCompletedAppointments() {
 		Map<String,Integer> map = new LinkedHashMap<>();
 		Set<String> ids = new LinkedHashSet<>();
 		try {
@@ -1733,6 +1756,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	//---------------------------to get patientdetails by bookingId,pateintId,mobileNumber---------------------------
 	@Override
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Response getPatientDetailsForConsetForm(String bookingId, String patientId, String mobileNumber) {
 		try {
 			Optional<Booking> optionalBooking = repository.findByBookingIdAndPatientIdAndMobileNumber(bookingId, patientId, mobileNumber);
@@ -1767,6 +1791,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getInProgressAppointments(
 			String number,
 			int page,
@@ -1829,6 +1854,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 		public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId) {
 
 		    try {
@@ -1894,6 +1920,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 		public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId, String clinicId) {
 
 		    try {
@@ -1981,7 +2008,8 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}
 
 
-	public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(LocalDate exp,Booking booking, DoctorSaveDetailsDTO saveDetails ) {
+		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(LocalDate exp,Booking booking, DoctorSaveDetailsDTO saveDetails ) {
 		List<BookingResponse> finalList = new ArrayList<>();
 		try {
 			LocalDate today = LocalDate.now();
@@ -2044,6 +2072,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getDoctorFutureAppointments(
 			String doctorId,
 			int page,
@@ -2162,6 +2191,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public Page<BookingResponse> bookingByBranchId(
 			String branchId,
 			int page,
@@ -2196,6 +2226,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(
 			String clinicId,
 			String branchId,
@@ -2314,6 +2345,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
 			String clinicId,
 			String branchId,
@@ -3118,6 +3150,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveOneWeekAppointments(
 			String clinicId,
 			String branchId,
@@ -3255,7 +3288,8 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}
 	}
 
-	public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,String date){
+		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,String date){
 		ResponseStructure< List<BookingResponse>> res = new ResponseStructure< List<BookingResponse>>();
 		try {
 			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateOrderByServicetimeAsc(cinicId, branchId, date);
@@ -3280,6 +3314,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(
 			BookingResponse dto) {
 
@@ -3602,7 +3637,8 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 
 
-	public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
+		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 		ResponseStructure<Map<String, List<RelationInfoDTO>>> res = new ResponseStructure<>();
 		try {
 			List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -3642,6 +3678,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public BookingResponse checkBookingByDateAndTime(String date,String time,String doctorId) {
 		Booking booking = repository.findByServiceDateAndServicetimeAndDoctorId(date, time, doctorId);
 		if(booking != null) {
@@ -3655,6 +3692,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<Response> getPatientAndPriceInfo(
 			String clinicId,
 			String branchId,
@@ -3795,6 +3833,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getTodayBookings(
 			String cId,
 			String bId,
@@ -4038,6 +4077,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<Response> getTodayAllBookings(
 			String clinicId,
 			String branchId,
@@ -4314,6 +4354,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	// ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<Response> getUpcomingBookings(
 			String clinicId,
 			String branchId,
@@ -4559,6 +4600,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<Response> getBookingByDate(String clinicId,
 													 String branchId,
 													 String date) {
@@ -4640,6 +4682,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<Response> getBookingByCustomRange(
 			String clinicId,
 			String branchId,
@@ -4868,6 +4911,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<Response> getBookingById(String bookingId) {
 		try {
 			Optional<Booking> booking = repository.findByBookingIdIgnoreCase(bookingId);
@@ -5183,6 +5227,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 	public List<Map<String, Object>> searchBookings(String clinicId, String input) {
 
 		try {
@@ -5260,6 +5305,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 		public ResponseEntity<Response> getTodayBookings(String clinicId, String branchId) {
 			try {
 
@@ -5419,5 +5465,50 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 			}
 
 		}
-	}
+	
 
+    // ================= RATE LIMIT FALLBACK METHODS =================
+
+    public ResponseEntity<?> rateLimitFallback(Exception ex){
+        log.warn("Rate limit exceeded", ex);
+        return ResponseEntity.status(429).body("Too many requests. Please try again later.");
+    }
+
+    public BookingResponse rateLimitFallback(String bookingId, Exception ex){
+        log.warn("Rate limit exceeded for bookingId={}", bookingId, ex);
+        return new BookingResponse();
+    }
+
+    public Page<BookingResponse> rateLimitFallback(int page, int size, Exception ex){
+        log.warn("Rate limit exceeded", ex);
+        return Page.empty();
+    }
+
+    public List<Map<String,Object>> rateLimitFallback(String customerId, Exception ex, boolean dummy){
+        log.warn("Rate limit exceeded for customerId={}", customerId, ex);
+        return Collections.emptyList();
+    }
+
+    public List<ReportsDTO> rateLimitReportsFallback(String patientId, Exception ex){
+        log.warn("Rate limit exceeded for patientId={}", patientId, ex);
+        return Collections.emptyList();
+    }
+
+    public Response rateLimitResponseFallback(
+            String bookingId,
+            String patientId,
+            String mobileNumber,
+            Exception ex){
+        log.warn("Rate limit exceeded", ex);
+        return Response.builder()
+                .success(false)
+                .status(429)
+                .message("Too many requests. Please try again later.")
+                .build();
+    }
+
+    public void rateLimitVoidFallback(Exception ex){
+        log.warn("Rate limit exceeded", ex);
+    }
+
+}

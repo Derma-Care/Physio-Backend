@@ -140,6 +140,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
+    
     <dependency>
     <groupId>com.google.firebase</groupId>
     <artifactId>firebase-admin</artifactId>
@@ -157,6 +158,14 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+    <groupId>de.flapdoodle.embed</groupId>
+    <artifactId>de.flapdoodle.embed.mongo</artifactId>
+    <version>4.13.0</version>
+    <scope>test</scope>
+</dependency>
+
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
