@@ -7,10 +7,12 @@ import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -1658,6 +1660,17 @@ public class TherapistServiceImpl implements TherapistService {
                                     f -> f,
                                     (a, b) -> a));
 
+            Map<String, PatientFeedback> patientFeedbackMap =
+                    patientFeedbacks.stream()
+                            .collect(Collectors.toMap(
+                                    PatientFeedback::getPatientId,
+                                    p -> p,
+                                    (a, b) -> a));
+
+            Set<String> patientIds = new HashSet<>();
+            patientIds.addAll(detailsMap.keySet());
+            patientIds.addAll(patientFeedbackMap.keySet());
+
             List<TherapistFeedbackResponseDTO> result =
                     new ArrayList<>();
 
@@ -1667,10 +1680,13 @@ public class TherapistServiceImpl implements TherapistService {
             int sessionRatingCount = 0;
             int overallRatingCount = 0;
 
-            for (PatientFeedback feedback : patientFeedbacks) {
+            for (String patientId : patientIds) {
 
                 FeedbackDetails details =
-                        detailsMap.get(feedback.getPatientId());
+                        detailsMap.get(patientId);
+
+                PatientFeedback feedback =
+                        patientFeedbackMap.get(patientId);
 
                 TherapistFeedbackResponseDTO dto =
                         new TherapistFeedbackResponseDTO();
@@ -1681,11 +1697,8 @@ public class TherapistServiceImpl implements TherapistService {
                 if (details != null) {
 
                     dto.setPatientName(details.getPatientName());
-
                     dto.setAppointmentId(details.getBookingId());
-
                     dto.setAppointmentDate(details.getCreatedAt());
-
                     dto.setSubmittedDate(details.getUpdatedAt());
 
                     dto.setServiceName(
@@ -1697,59 +1710,67 @@ public class TherapistServiceImpl implements TherapistService {
                                             .collect(Collectors.joining(", "))
                                     : null);
 
-                    dto.setOverallRating(
-                            details.getRating());
-
-                    dto.setWhatWentWell(
-                            details.getWhatWentWell());
-
-                    dto.setImprovements(
-                            details.getImprovements());
+                    dto.setOverallRating(details.getRating());
+                    dto.setWhatWentWell(details.getWhatWentWell());
+                    dto.setImprovements(details.getImprovements());
 
                     if (details.getRating() != null
                             && !details.getRating().isEmpty()) {
 
                         overallRating =
-                                Double.parseDouble(
-                                        details.getRating());
+                                Double.parseDouble(details.getRating());
 
                         totalOverallRating += overallRating;
                         overallRatingCount++;
                     }
-
-                } else {
-
-                    dto.setPatientName(
-                            feedback.getPatientName());
                 }
 
-                if (feedback.getTherapistFeedback() != null) {
+                if (feedback != null) {
 
-                    dto.setSessionRating(
-                            feedback.getTherapistFeedback()
-                                    .getRating());
+                    if (dto.getPatientName() == null) {
+                        dto.setPatientName(
+                                feedback.getPatientName());
+                    }
 
-                    dto.setPatientFeedbackComment(
-                            feedback.getTherapistFeedback()
-                                    .getFeedbackText());
+                    if (feedback.getTherapistFeedback() != null) {
 
-                    if (feedback.getTherapistFeedback()
-                            .getRating() != null
-                            && !feedback.getTherapistFeedback()
-                                    .getRating().isEmpty()) {
+                        dto.setSessionRating(
+                                feedback.getTherapistFeedback()
+                                        .getRating());
 
-                        sessionRating =
-                                Double.parseDouble(
-                                        feedback.getTherapistFeedback()
-                                                .getRating());
+                        dto.setPatientFeedbackComment(
+                                feedback.getTherapistFeedback()
+                                        .getFeedbackText());
 
-                        totalSessionRating += sessionRating;
-                        sessionRatingCount++;
+                        if (feedback.getTherapistFeedback()
+                                .getRating() != null
+                                && !feedback.getTherapistFeedback()
+                                        .getRating().isEmpty()) {
+
+                            sessionRating =
+                                    Double.parseDouble(
+                                            feedback.getTherapistFeedback()
+                                                    .getRating());
+
+                            totalSessionRating += sessionRating;
+                            sessionRatingCount++;
+                        }
                     }
                 }
 
-                dto.setAverageRating(
-                        (sessionRating + overallRating) / 2);
+                if (sessionRating > 0 && overallRating > 0) {
+
+                    dto.setAverageRating(
+                            (sessionRating + overallRating) / 2);
+
+                } else if (sessionRating > 0) {
+
+                    dto.setAverageRating(sessionRating);
+
+                } else if (overallRating > 0) {
+
+                    dto.setAverageRating(overallRating);
+                }
 
                 result.add(dto);
             }
@@ -1770,7 +1791,7 @@ public class TherapistServiceImpl implements TherapistService {
             TherapistFeedbackSummaryDTO summary =
                     new TherapistFeedbackSummaryDTO();
 
-            summary.setTotalPatients(result.size());
+            summary.setTotalPatients(patientIds.size());
 
             summary.setAverageSessionRating(
                     averageSessionRating);
