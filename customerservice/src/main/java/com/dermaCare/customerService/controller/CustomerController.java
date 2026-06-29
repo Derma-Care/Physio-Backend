@@ -56,7 +56,7 @@ public class CustomerController {
 	
 	@Autowired
 	private PhysiotherapyService service;
-	
+
    
    @GetMapping("/getDoctorSlots/{hospitalId}/{branchId}/{doctorId}")
    public ResponseEntity<Response> getDoctorSlots(@PathVariable String hospitalId,@PathVariable String branchId,@PathVariable String doctorId){
@@ -81,6 +81,7 @@ public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws
 			 return null;
 		 }
 	}
+
 
    //NOTIFICATION
    
@@ -147,7 +148,6 @@ public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws
    public ResponseEntity<Response> getExerciseSessionsWithRecords(@RequestBody ExerciseSessionsWithRecords  dto) {
        return service.getExerciseSessionsWithRecords(dto.getClinicId(), dto.getBranchId(), dto.getBookingId(), dto.getPatientId(), dto.getTherapistId(), dto.getTherapistRecordId());
    }
-
    
    @GetMapping("/staff-info/{hospitalId}/{branchId}")
    public ResponseEntity<Response> getStaffInfo(
@@ -179,5 +179,6 @@ public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws
 	 }else {
 			return null;
 	}}
+
 
 }

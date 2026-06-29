@@ -160,5 +160,4 @@ public interface ClinicAdminFeign {
 	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
 	public Response getAllRecoverySupportsByClinicId(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
 
-
 }

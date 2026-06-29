@@ -1,6 +1,5 @@
 package com.dermacare.bookingService.feign;
 
-
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,7 +8,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.NotificationDTO;
 import com.dermacare.bookingService.util.Response;
@@ -17,6 +15,7 @@ import com.dermacare.bookingService.util.Response;
 
 @FeignClient(value = "notification-service")
 public interface NotificationFeign {
+
 
     @GetMapping("/api/notificationservice/getNotificationByBookingId/{id}")
     public NotificationDTO getNotificationByBookingId(@PathVariable String id);
@@ -28,7 +27,6 @@ public interface NotificationFeign {
 
     @PostMapping("/api/notificationservice/notifications")
     public ResponseEntity<Response> createNotification(@RequestHeader("Authorization") String token,@RequestBody BookingResponse booking);
-
 
 
 }

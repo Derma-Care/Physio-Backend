@@ -17,7 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Document(collection = "doctors") 
+@Document(collection = "doctors")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -61,6 +61,7 @@ public class Doctors {
 	private Map<String, List<String>> permissions;
 	private String dateofJoining;
 	private String emergencyContact;
+
     private String aadharID;
     private String dateofBirth;
     private String createdBy;
@@ -72,5 +73,6 @@ public class Doctors {
 	private String  Status;
 	private BankAccountDetails bankAccountDetails;
 		
-	}
+	private String fcmTokenUpdatedAt;
 
+}

@@ -13,6 +13,7 @@ import com.clinicadmin.service.PatientMessageService;
 @Service
 public class PatientMessageServiceImpl implements PatientMessageService {
 
+
     @Autowired
     private EmailService emailService;
 

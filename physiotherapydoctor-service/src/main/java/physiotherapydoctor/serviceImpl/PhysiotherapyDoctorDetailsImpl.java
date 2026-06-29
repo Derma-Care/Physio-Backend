@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.Response;
@@ -19,6 +18,7 @@ import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.PhysiotherapyDoctorDetails;
 import physiotherapydoctor.util.KeyCloakTokenStore;
+
 
 @Service
 public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetails {
@@ -31,7 +31,6 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
-	    
 
 	private ObjectMapper objectMapper;
 
@@ -39,6 +38,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	 @Secured("ROLE_DOCTOR")
 	public Response getPhysioDoctorDetails(String clinicId, String branchId) {
 		ResponseEntity<Response> clinicdata = clinicAdminServiceClient.getTherapistWithRequiredFileds(keyCloakTokenStore.getAccess_token(),clinicId,
+
 				branchId);
 		Object obj = clinicdata.getBody().getData();
 		ObjectMapper mapper = new ObjectMapper();
@@ -100,7 +100,6 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 		}
 
 		try {
-
 			return clinicAdminServiceClient.changePassword(keyCloakTokenStore.getAccess_token(),username, updateDTO);
 
 		} catch (Exception ex) {
@@ -138,6 +137,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 		}
 	}
 
+
 	 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorById(String id) {
 		try {
@@ -147,6 +147,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 		}
 	}
 
+
 	 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorByClinicAndDoctorId(String clinicId, String doctorId) {
 		try {
@@ -155,6 +156,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 			return ResponseEntity.status(500).body(e.getMessage());
 		}
 	}
+
 
 	 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorsByHospitalById(String clinicId) {
@@ -186,7 +188,6 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 		try {
 
 			return bookingFeignClient.getDoctorFutureAppointments(keyCloakTokenStore.getAccess_token(),doctorId,page,10);
-
 		} catch (Exception ex) {
 
 			if (ex instanceof feign.FeignException feignEx) {

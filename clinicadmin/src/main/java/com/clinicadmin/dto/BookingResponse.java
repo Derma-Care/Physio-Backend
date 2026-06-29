@@ -87,6 +87,7 @@ public class BookingResponse {
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
 	private List<Session> session;
+	private String partImageKey;  
 	//private List<FollowupBookingDto> follwupBookings;
 		
 	public void setIsFollowupStatus(boolean followupStatus) {

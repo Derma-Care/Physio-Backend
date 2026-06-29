@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 
 public interface CustomerService {
-	
     //BOOKING MANAGENET
     
    public Response bookService(BookingRequset req) throws JsonProcessingException ;
@@ -50,6 +49,7 @@ public interface CustomerService {
 
 	public Response createFeedback(
 	        PatientFeedbackDTO dto);
+
 	
 	public ResponseEntity<Response> getByClinicIdAndBranchId(
 		      String clinicId,
@@ -58,7 +58,6 @@ public interface CustomerService {
 
 	 public Response getDoctorsSlots(String hid,String hospitalId,String doctorId);
 	 public Response getReportsAndDoctorSaveDetails(String customerId);
-
 
 
 }

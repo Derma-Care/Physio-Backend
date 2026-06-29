@@ -247,6 +247,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        Response response = new Response();
 	        try {
 	        	return physioFeign.getExerciseSessionsWithRecords(keyCloakTokenStore.getAccess_token(),clinicId, branchId, bookingId, patientId,therapistId, therapistRecordId);
+
 	        } catch (FeignException e) {      
 	            response.setStatus(e.status());
 	            response.setMessage(ExtractFeignMessage.clearMessage(e));

@@ -93,6 +93,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
         return response;
     }
+    
     @Override
     @Secured("ROLE_CLINICADMIN")
     public Response getDailyReport(String therapistId, String date) {
@@ -464,7 +465,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
         return response;
     }
-    
+
     private int convertToMinutes(String time) {
 
         if (time == null || time.trim().isEmpty()) return 0;
@@ -552,6 +553,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	        return "Unknown";
 	    }
 	}
+
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
@@ -644,6 +646,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	    Response response = new Response();
 
 	    try {
+
 
 	        // 🔹 Fetch attendance
 	        TherapistAttendance attendance =

@@ -1,6 +1,5 @@
 package com.clinicadmin.service.impl;
 
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.FeedbackDetailsDTO;
@@ -686,7 +686,6 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
                 data.setNoOfSessionsCompleted(
                         completedSessions);
-
              // ================= HALF/FULL COMPLETED =================
 
                 boolean isFullCompleted =
@@ -772,7 +771,8 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
         entity.setRating(dto.getRating());
         entity.setServiceType(dto.getServiceType());
         entity.setService(dto.getService());
-
+        entity.setHalfNotificationSent(dto.isHalfNotificationSent());
+        entity.setFullNotificationSent(dto.isFullNotificationSent());
         entity.setTotalNoOfSessions(
                 dto.getTotalNoOfSessions());
 
@@ -847,6 +847,9 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
 
+        dto.setHalfNotificationSent(entity.isHalfNotificationSent());
+        dto.setFullNotificationSent(entity.isFullNotificationSent());
+
         return dto;
     }
 
@@ -888,6 +891,7 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
 
     return response;
 }
+
     
 //    @Override
 //    public Response getDoctorFeedbackSummary(
@@ -1102,4 +1106,260 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
         return buildRateLimitResponse(ex);
     }
 
+    @Override
+    public void processFeedbackNotification(
+            String clinicId,
+            String branchId) {
+
+        try {
+
+            log.info(
+                    "processFeedbackNotification started | ClinicId:{} | BranchId:{}",
+                    clinicId,
+                    branchId);
+
+            Response paymentResponse =
+                    physiotherapyDoctorFeign.getPayments(keyCloakTokenStore.getAccess_token(),
+                            clinicId,
+                            branchId);
+
+            log.info(
+                    "Payment Response : {}",
+                    paymentResponse);
+
+            if (paymentResponse == null
+                    || !paymentResponse.isSuccess()
+                    || paymentResponse.getData() == null) {
+
+                log.warn(
+                        "Payment response is empty");
+
+                return;
+            }
+
+            List<Map<String, Object>> payments =
+                    (List<Map<String, Object>>)
+                            paymentResponse.getData();
+
+            log.info(
+                    "Payments count : {}",
+                    payments.size());
+
+            for (Map<String, Object> payment : payments) {
+
+                FeedbackDetailsDTO data =
+                        new FeedbackDetailsDTO();
+
+                data.setClinicId(clinicId);
+
+                data.setBranchId(branchId);
+
+                data.setBookingId(
+                        String.valueOf(
+                                payment.get("bookingId")));
+
+                data.setPatientId(
+                        String.valueOf(
+                                payment.get("patientId")));
+
+                CustomerOnbording customer =
+                        customerOnboardingRepository
+                                .findByPatientIdAndHospitalIdAndBranchId(
+                                        data.getPatientId(),
+                                        clinicId,
+                                        branchId)
+                                .orElse(null);
+
+                if (customer != null) {
+
+                    data.setPatientName(
+                            customer.getFullName());
+
+                    data.setMobileNumber(
+                            customer.getMobileNumber());
+                }
+
+                int totalSessions = 0;
+
+                int completedSessions = 0;
+
+                List<Map<String, Object>> therapyWithSessions =
+                        (List<Map<String, Object>>)
+                                payment.get(
+                                        "therapyWithSessions");
+
+                if (therapyWithSessions == null) {
+
+                    log.warn(
+                            "therapyWithSessions is null | BookingId:{}",
+                            data.getBookingId());
+
+                    continue;
+                }
+
+                for (Map<String, Object> pkg
+                        : therapyWithSessions) {
+
+                    List<Map<String, Object>> programs =
+                            (List<Map<String, Object>>)
+                                    pkg.get("programs");
+
+                    if (programs == null) {
+                        continue;
+                    }
+
+                    for (Map<String, Object> program
+                            : programs) {
+
+                        List<Map<String, Object>> therapyData =
+                                (List<Map<String, Object>>)
+                                        program.get(
+                                                "therapyData");
+
+                        if (therapyData == null) {
+                            continue;
+                        }
+
+                        for (Map<String, Object> therapy
+                                : therapyData) {
+
+                            List<Map<String, Object>> exercises =
+                                    (List<Map<String, Object>>)
+                                            therapy.get(
+                                                    "exercises");
+
+                            if (exercises == null) {
+                                continue;
+                            }
+
+                            for (Map<String, Object> exercise
+                                    : exercises) {
+
+                                List<Map<String, Object>> sessions =
+                                        (List<Map<String, Object>>)
+                                                exercise.get(
+                                                        "sessions");
+
+                                if (sessions == null) {
+                                    continue;
+                                }
+
+                                totalSessions +=
+                                        sessions.size();
+
+                                for (Map<String, Object> session
+                                        : sessions) {
+
+                                    String status =
+                                            String.valueOf(
+                                                    session.get(
+                                                            "status"));
+
+                                    if ("Completed"
+                                            .equalsIgnoreCase(
+                                                    status)) {
+
+                                        completedSessions++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                log.info(
+                        "BookingId:{} | Total:{} | Completed:{}",
+                        data.getBookingId(),
+                        totalSessions,
+                        completedSessions);
+
+                checkAndSendNotification(
+                        data,
+                        totalSessions,
+                        completedSessions);
+            }
+
+        } catch (Exception e) {
+
+            log.error(
+                    "Notification processing failed | ClinicId:{} | BranchId:{}",
+                    clinicId,
+                    branchId,
+                    e);
+
+            e.printStackTrace();
+        }
+    }
+    
+    private void checkAndSendNotification(
+            FeedbackDetailsDTO data,
+            int totalSessions,
+            int completedSessions) {
+
+        log.info("Entered checkAndSendNotification");
+
+        boolean isFullCompleted =
+                totalSessions > 0
+                && completedSessions == totalSessions;
+
+        boolean isHalfCompleted =
+                totalSessions > 0
+                && !isFullCompleted
+                && completedSessions >= Math.ceil(totalSessions / 2.0);
+
+        log.info(
+                "Half:{} | Full:{}",
+                isHalfCompleted,
+                isFullCompleted);
+
+        if (!(isHalfCompleted || isFullCompleted)) {
+
+            log.info("Notification not required");
+            return;
+        }
+
+        // Fetch existing feedback by bookingId
+        FeedbackDetails feedback =
+                repository.findByBookingId(data.getBookingId())
+                        .orElseGet(() -> mapToEntity(data));
+
+        feedback.setClinicId(data.getClinicId());
+        feedback.setBranchId(data.getBranchId());
+        feedback.setPatientId(data.getPatientId());
+        feedback.setPatientName(data.getPatientName());
+        feedback.setMobileNumber(data.getMobileNumber());
+        feedback.setBookingId(data.getBookingId());
+
+        feedback.setTotalNoOfSessions(totalSessions);
+        feedback.setNoOfSessionsCompleted(completedSessions);
+
+        // Send Half Notification Only Once
+        if (isHalfCompleted && !feedback.isHalfNotificationSent()) {
+
+            feedback.setHalfSessionsCompleted(true);
+
+            log.info("Sending Half Session Notification");
+
+            triggerSessionNotificationIfNeeded(feedback);
+
+//            feedback.setHalfNotificationSent(true);
+
+            repository.save(feedback);
+        }
+
+        // Send Full Notification Only Once
+        if (isFullCompleted && !feedback.isFullNotificationSent()) {
+
+            feedback.setFullSessionsCompleted(true);
+
+            log.info("Sending Full Session Notification");
+
+            triggerSessionNotificationIfNeeded(feedback);
+
+//            feedback.setFullNotificationSent(true);
+
+            repository.save(feedback);
+        }
+    }
 }
+    

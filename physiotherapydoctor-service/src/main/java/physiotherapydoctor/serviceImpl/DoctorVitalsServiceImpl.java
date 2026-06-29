@@ -10,6 +10,7 @@ import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.DoctorVitalsService;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
+
 @Service
 public class DoctorVitalsServiceImpl implements DoctorVitalsService {
 
@@ -19,7 +20,6 @@ public class DoctorVitalsServiceImpl implements DoctorVitalsService {
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
 	    
-
 	/**
 	 * Add Vitals for a booking
 	 */
@@ -28,6 +28,7 @@ public class DoctorVitalsServiceImpl implements DoctorVitalsService {
 	public ResponseEntity<Response> addVitals(String bookingId, VitalsDTO dto) {
 		// Directly forward Clinic Admin response
 		return clinicAdminServiceClient.addVitals(keyCloakTokenStore.getAccess_token(),bookingId, dto);
+
 	}
 
 	/**

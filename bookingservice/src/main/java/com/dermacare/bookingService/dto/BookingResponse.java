@@ -66,9 +66,6 @@ public class BookingResponse {
 	private String focReason;
 	private String followupStatus;
 	private String treatmentName;
-	// ✅ Add treatments info
-	// private TreatmentResponseDTO treatments;
-	// ✅ Add this new field
 	private String updatedTreatment;
 	private String bodyPartId;
 	private String bodyPartName;
@@ -78,7 +75,6 @@ public class BookingResponse {
 	private double partAmount;
 	private double dueAmount;
 	private String referredByType;
-
 	private String referredByName;
 	private String paymentStatus;
 	private String previousInjuries;
@@ -91,6 +87,8 @@ public class BookingResponse {
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
 	private List<SessionForBooking> session;
+	private String partImageKey;   
+
 	//private List<FollowupBookingDto> follwupBookings;
 
 	public void setIsFollowupStatus(boolean followupStatus) {

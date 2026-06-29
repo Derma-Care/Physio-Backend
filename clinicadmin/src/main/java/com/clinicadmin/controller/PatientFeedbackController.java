@@ -82,7 +82,6 @@ public class PatientFeedbackController {
     }
     
 
-
     @GetMapping("/getByPatientFeedbackClinicIdAndBranchId/{clinicId}/{branchId}/{patientId}")
     public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntId(
             @PathVariable String clinicId,

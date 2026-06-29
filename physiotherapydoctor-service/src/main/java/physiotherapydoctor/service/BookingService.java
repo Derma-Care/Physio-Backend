@@ -14,7 +14,6 @@ public interface BookingService {
 	public  ResponseEntity<?> getTodaysAppointments(String clinicId,
 													String doctorId,
 													int page);
-
     ResponseEntity<?> getFilteredAppointments(String clinicId, String doctorId, String number);
 
     ResponseEntity<?> getCompletedAppointments(String clinicId, String doctorId);

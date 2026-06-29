@@ -68,7 +68,6 @@ public class ClinicAdminController {
 		return clinicAdminService.getBranchesByClinicId(clinicId);
 	}
 	
-	
 	@GetMapping("/staff-info/{hospitalId}/{branchId}")
 	public ResponseEntity<Response> getStaffInfo(
 	        @PathVariable String hospitalId,
@@ -79,7 +78,6 @@ public class ClinicAdminController {
 	    return ResponseEntity
 	            .status(response.getStatus())
 	            .body(response);
-
 	}
 	
 	@GetMapping("/deviceId/{clinicId}/{branchId}")

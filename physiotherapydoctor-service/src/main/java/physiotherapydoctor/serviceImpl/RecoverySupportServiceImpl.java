@@ -15,6 +15,7 @@ import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.RecoverySupportService;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
+
 @Service
 public class RecoverySupportServiceImpl implements RecoverySupportService {
 

@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import com.clinicadmin.dto.TherapyServiceDTO;
 import com.clinicadmin.dto.TherophyProgramsDTO;
 import com.clinicadmin.entity.TherapyExercises;
 import com.clinicadmin.entity.TherophyProgramEntity;
+import com.clinicadmin.repository.TherapyExercisesRepository;
 import com.clinicadmin.repository.TherophyProgramRepository;
 import com.clinicadmin.service.TherophyProgramService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,9 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     private final TherophyProgramRepository repository;
     
     private final TherapyServiceServiceImpl therapyServiceServiceImpl;
+    
+    @Autowired
+    private TherapyExercisesRepository therapyExercisesRepository;
 
     private TherophyProgramEntity mapToEntity(TherophyProgramsDTO dto) {
         return new TherophyProgramEntity(
@@ -207,6 +214,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
                                 int therapyTotalAmount = 0;
 
                                 // Calculate Therapy Total Price
+
                                 if (therapy.getExercises() != null &&
                                         !therapy.getExercises().isEmpty()) {
 
@@ -221,6 +229,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
                                             therapyTotalAmount += exerciseAmount;
                                           }catch(Exception exception) {}
                                         }}}
+
                                 // Add therapy total to program total
                                 totalProgramAmount += therapyTotalAmount;
 

@@ -113,7 +113,6 @@ public interface BookingFeign {
 	public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingByPatientId(@RequestHeader("Authorization") String token,@PathVariable String patientId);
 	
 	@PostMapping("/api/v1/bookService")
-
 	public ResponseEntity<ResponseStructure<BookingResponse>> bookService(@RequestHeader("Authorization") String token,@RequestBody BookingResponse req);
 
 	
@@ -170,7 +169,7 @@ public interface BookingFeign {
 		        @PathVariable int page,
 		        @PathVariable int size);
 	
-  
+ 
 	  @GetMapping("/api/v1/in-progress/appointments/{patientId}/{bookingId}")
 		public ResponseEntity<?> getInProgressAppointmentByPatientIdAndBookingId(@RequestHeader("Authorization") String token,@PathVariable String patientId,@PathVariable String bookingId);
 		
@@ -180,5 +179,4 @@ public interface BookingFeign {
 	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
       public void deleteReport(@RequestHeader("Authorization") String token,@PathVariable String bookingId,@PathVariable String index);
 
-	   	  
 }

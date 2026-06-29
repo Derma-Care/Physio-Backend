@@ -38,7 +38,7 @@ public class BookingServiceController {
 	@PostMapping("/bookService")
 	public  ResponseEntity<?> bookService(@RequestBody BookingResponse req) {
 		return service.followUpBooking(req);}
-		
+	
 
 	@DeleteMapping("/deleteService/{id}")
 	public ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(@PathVariable String id) {
@@ -51,7 +51,6 @@ public class BookingServiceController {
 						HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}}
 	
 	
-
 	///modified 
 	@GetMapping("/todayBookings/{clinicId}/{branchId}/{page}/{size}")
 	public ResponseEntity<?> getTodayBookings(
@@ -67,7 +66,6 @@ public class BookingServiceController {
 	            size
 	    );
 	}
-	
 	
 
 	@GetMapping("/getBookedServiceById/{id}")
@@ -207,6 +205,7 @@ public class BookingServiceController {
 	// }
 	
 	
+
 	@GetMapping("/clinic/{clinicId}/{page}/{size}")
 	public ResponseEntity<?> bookingByClinicId(
 	        @PathVariable String clinicId,
@@ -276,7 +275,6 @@ public class BookingServiceController {
 	            page,
 	            size
 	    );
-
 	}
 
 	
@@ -559,6 +557,7 @@ public class BookingServiceController {
 	        return ResponseEntity.ok(response);
 	    }
 
+
 	  ///modified	
 	    @GetMapping("/appointments/{clinicId}/{branchId}/{doctorId}/{status}/{page}/{size}")
 	    public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
@@ -585,7 +584,6 @@ public class BookingServiceController {
 	    public ResponseEntity<?> searchBookings(
 	            @PathVariable String clinicId,
 	            @PathVariable String input) {
-
 	        try {
 
 	            List<Map<String, Object>> data =
@@ -617,4 +615,5 @@ public class BookingServiceController {
 	        return service.getTodayBookings(clinicId, branchId);
 	    }
 	    
+
   }

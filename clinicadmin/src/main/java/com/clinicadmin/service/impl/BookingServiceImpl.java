@@ -170,7 +170,6 @@ public class BookingServiceImpl implements BookingService {
 			Response response = new Response();
 			try {
 				ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(keyCloakTokenStore.getAccess_token(),req);
-
 				BookingResponse bookingResponse = res.getBody().getData();
 				if (bookingResponse != null) {
 					 doctorServiceImpl.updateSlot(         

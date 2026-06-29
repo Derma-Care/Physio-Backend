@@ -12,14 +12,13 @@ import org.springframework.stereotype.Service;
 
 import feign.FeignException;
 import org.springframework.web.bind.annotation.PathVariable;
-
-
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.service.BookingService;
 import physiotherapydoctor.util.ExtractFeignMessage;
 import physiotherapydoctor.util.KeyCloakTokenStore;
+
 
 
 @Service
@@ -41,7 +40,6 @@ public class BookingServiceImpl implements BookingService {
     	 Response res = new Response();
     	try {
             return bookingFeignClient.bookingByPatientId(keyCloakTokenStore.getAccess_token(),clinicId,patientId,page,10);
-
         } catch (FeignException ex) {
         	res.setStatus(ex.status());
         	res.setMessage(ExtractFeignMessage.clearMessage(ex));
@@ -125,6 +123,7 @@ public class BookingServiceImpl implements BookingService {
             return ResponseEntity.status(ex.status()).body(res);
         }
     }
+    
     @Override
     @Secured("ROLE_DOCTOR")
     public ResponseEntity<?> getInProgressAppointments(String mobileNumber) {
@@ -193,7 +192,6 @@ public class BookingServiceImpl implements BookingService {
         	 Response res = new Response();
         	try {
                 return bookingFeignClient.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(keyCloakTokenStore.getAccess_token(),clinicId,branchId,doctorId,status,page,10);
-
             } catch (FeignException ex) {
             	res.setStatus(ex.status());
             	res.setMessage(ExtractFeignMessage.clearMessage(ex));
@@ -201,6 +199,7 @@ public class BookingServiceImpl implements BookingService {
                 return ResponseEntity.status(ex.status()).body(res);
             }
         }
+
         
         @Override
         @Secured("ROLE_DOCTOR")

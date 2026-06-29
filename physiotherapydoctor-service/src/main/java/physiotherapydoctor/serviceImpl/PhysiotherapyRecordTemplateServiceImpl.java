@@ -1113,6 +1113,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 		return response;
 	}
 
+	
 	 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
 

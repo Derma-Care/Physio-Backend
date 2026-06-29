@@ -62,13 +62,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import lombok.extern.slf4j.Slf4j;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Autowired
@@ -86,8 +85,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private NotificationFeign notificationFeign;
 
+//	@Autowired
+//	private DoctorFeign doctorFeign;
+
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
+
 	@Autowired
 	private geneateIds sequenceGeneratorService;
 
@@ -511,7 +514,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			try {
 
 				Response notificationResponse = notificationFeign
+
 						.createNotification(keyCloakTokenStore.getAccess_token(),mapper.convertValue(updatedBooking, BookingResponse.class)).getBody();
+
 				if (notificationResponse != null) {
 					notificationStatus = notificationResponse.getStatus();
 				}
@@ -570,6 +575,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			res.setStatus(500);
 			res.setSuccess(false);
+
+
 			res.setMessage(e.getMessage());
 
 			return ResponseEntity.status(500).body(res);
@@ -739,10 +746,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			res.setStatusCode(500);
 			res.setMessage(e.getMessage());
-
 			return ResponseEntity.status(500).body(res);
 		}
 	}
+
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
@@ -792,12 +799,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 					Map<String, Object> map =
 							new LinkedHashMap<>();
-
 					map.put("bookingId", n.getBookingId());
 					map.put("serviceDate", n.getServiceDate());
 					map.put("servicetime", n.getServicetime());
 					map.put("name", n.getName());
-
 					map.put(
 							"mobileNumber",
 							n.getPatientMobileNumber() != null
@@ -805,7 +810,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									? n.getPatientMobileNumber()
 									: n.getMobileNumber()
 					);
-
 					map.put("doctorId", n.getDoctorId());
 					map.put("doctorName", n.getDoctorName());
 					map.put("paymentType", n.getPaymentType());
@@ -820,7 +824,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					map.put("gender", n.getGender());
 					map.put("branchName", n.getBranchname());
 					map.put("problem", n.getProblem());
-
 					list.add(map);
 
 					return n;
@@ -839,7 +842,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				res.setStatusCode(200);
 				res.setHttpStatus(HttpStatus.OK);
 				res.setData(responseMap);
-
 				if (!list.isEmpty()) {
 					res.setMessage("Today's Appointments Found");
 				} else {
@@ -854,12 +856,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			}
 
 		} catch (Exception e) {
-
 			res.setStatusCode(500);
 			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			res.setMessage("Error occurred : " + e.getMessage());
 		}
-
 		return ResponseEntity
 				.status(res.getStatusCode())
 				.body(res);
@@ -1102,6 +1102,19 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 		return bookingPage.map(this::toResponse);
 	}
+
+	// @Override
+	// public List<BookingResponse> bookingByServiceId(String serviceId) {
+	// List<Booking> bookings = repository.findBySubServiceId(serviceId);
+	// List<Booking> reversedBookings = new ArrayList<>();
+	// for(int i = bookings.size()-1; i >= 0; i--) {
+	// reversedBookings.add(bookings.get(i));
+	// }
+	// if (bookings == null || bookings.isEmpty()) {
+	// return null;
+	// }
+	// return toResponses(reversedBookings);
+	// }
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
@@ -1918,6 +1931,7 @@ public void autoCalculatePatientCompletedAppointments() {
 		}
 
 
+
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
@@ -2008,7 +2022,7 @@ public void autoCalculatePatientCompletedAppointments() {
 		}
 
 
-		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(LocalDate exp,Booking booking, DoctorSaveDetailsDTO saveDetails ) {
 		List<BookingResponse> finalList = new ArrayList<>();
 		try {
@@ -2119,7 +2133,6 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 
 					Map<String, Object> map =
 							new LinkedHashMap<>();
-
 					map.put("bookingId", n.getBookingId());
 					map.put("serviceDate", n.getServiceDate());
 					map.put("servicetime", n.getServicetime());
@@ -2132,7 +2145,6 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 									? n.getPatientMobileNumber()
 									: n.getMobileNumber()
 					);
-
 					map.put("doctorId", n.getDoctorId());
 					map.put("doctorName", n.getDoctorName());
 					map.put("paymentType", n.getPaymentType());
@@ -4480,7 +4492,6 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 				map.put("serviceDate", n.getServiceDate());
 				map.put("servicetime", n.getServicetime());
 				map.put("name", n.getName());
-
 				map.put(
 						"mobileNumber",
 						n.getPatientMobileNumber() != null
@@ -4548,7 +4559,6 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			Map<String, Object> summary =
 					new HashMap<>();
-
 			summary.put("totalAppointments", totalCount);
 			summary.put("pending", pendingCount);
 			summary.put("confirmed", confirmedCount);
@@ -4604,17 +4614,12 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 	public ResponseEntity<Response> getBookingByDate(String clinicId,
 													 String branchId,
 													 String date) {
-
 		try {
 			LocalDate dte = LocalDate.parse(date);
 
 			// ✅ Fetch ALL bookings for the date (no status filter)
-			List<Booking> bookings =
-					repository.findByClinicIdAndBranchIdAndServiceDate(
-							clinicId,
-							branchId,
-							dte.format(FORMATTER)
-					);
+			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId,
+					dte.format(FORMATTER));
 
 			List<BookingResponse> res = toResponses(bookings);
 
@@ -4641,21 +4646,15 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			// ✅ Status counts (case-insensitive + null-safe)
 			long pendingCount = bookings.stream()
-					.filter(b -> "PENDING".equalsIgnoreCase(
-							Optional.ofNullable(b.getFollowupStatus()).orElse("")
-					))
+					.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
 			long confirmedCount = bookings.stream()
-					.filter(b -> "CONFIRMED".equalsIgnoreCase(
-							Optional.ofNullable(b.getFollowupStatus()).orElse("")
-					))
+					.filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
 			long inProgressCount = bookings.stream()
-					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(
-							Optional.ofNullable(b.getFollowupStatus()).orElse("")
-					))
+					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
 			// ✅ Summary
@@ -4665,20 +4664,15 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			summary.put("confirmed", confirmedCount);
 			summary.put("inProgress", inProgressCount);
 
-			return ResponseEntity.ok(
-					new Response(true, res, summary,
-							"Bookings fetched", 200, null, null)
-			);
+			return ResponseEntity.ok(new Response(true, res, summary, "Bookings fetched", 200, null, null));
 
 		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(new Response(false, null, null,
-							"Error fetching bookings: " + e.getMessage(),
-							500, null, null));
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+					new Response(false, null, null, "Error fetching bookings: " + e.getMessage(), 500, null, null));
 		}
 	}
 
-
+	
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
@@ -4927,37 +4921,25 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 						try {
 							lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate()).getBody();
 							res.setSession(lst);
-						}catch(Exception e) {}}
-					return ResponseEntity.ok(
-							new Response(
-									true,                      // success
-									res,null,            // data
-									"Booking fetched successfully", // message
-									200,null, null                      // status
-							));}else {
-					return ResponseEntity.status(HttpStatus.NOT_FOUND)
-							.body(new Response(
-									false,
-									null,null,
-									"follow up appoiintment not found",
-									404,null,null
-							));
-				}}else{
-				return ResponseEntity.status(HttpStatus.OK)
-						.body(new Response(
-								false,
-								null,null,
-								"Booking not found",
-								200,null,null
-						));
-			}} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(new Response(
-							false,
-							null,null,
-							e.getMessage(),
-							500,null,null
+						} catch (Exception e) {
+						}
+					}
+					return ResponseEntity.ok(new Response(true, // success
+							res, null, // data
+							"Booking fetched successfully", // message
+							200, null, null // status
 					));
+				} else {
+					return ResponseEntity.status(HttpStatus.NOT_FOUND)
+							.body(new Response(false, null, null, "follow up appoiintment not found", 404, null, null));
+				}
+			} else {
+				return ResponseEntity.status(HttpStatus.OK)
+						.body(new Response(false, null, null, "Booking not found", 200, null, null));
+			}
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(new Response(false, null, null, e.getMessage(), 500, null, null));
 		}
 	}
 
@@ -5099,6 +5081,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			// -------- PAYMENT --------
 			if( dto.getPaymentType() != null && !dto.getPaymentType().isEmpty()) {
 				entity.setPaymentType(dto.getPaymentType());}
+
 			if (dto.getPaymentStatus() != null && !dto.getPaymentStatus().isEmpty())
 				entity.setPaymentStatus(dto.getPaymentStatus());
 
@@ -5120,6 +5103,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			// -------- THERAPY --------
 			if (dto.getTheraphyAnswers() != null)
+
 				entity.setTheraphyAnswers(new ObjectMapper().convertValue(dto.getTheraphyAnswers(),new TypeReference<Map<String,List<TheraphyAnswersEntity>>>() {
 				}));
 
@@ -5200,6 +5184,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 //           if(dto.getConsultationFee() == 0.0 && dto.getPaymentType() != null) {
 //           	entity.setStatus("confirmed");
 //           	}}
+
 			if(dto.getFoc() != null && dto.getPaymentType() != null) {
 				if ("paid".equalsIgnoreCase(dto.getFoc())&&"not paid".equalsIgnoreCase(dto.getPaymentType())) {
 					entity.setStatus("pending");
@@ -5208,6 +5193,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 				}else {
 					if("paid".equalsIgnoreCase(dto.getFoc()) && !dto.getPaymentType().isEmpty()){
 						entity.setStatus("confirmed");}}}
+
 			FollowupBooking followup = new FollowupBooking();
 			followup.setDoctorId(entity.getDoctorId());
 			followup.setDoctorName(entity.getDoctorName());
@@ -5512,3 +5498,4 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
     }
 
 }
+

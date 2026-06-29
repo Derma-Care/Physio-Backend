@@ -29,6 +29,7 @@ public interface AdminServiceClient {
 
 	// Get Clinic by ID
 	@GetMapping("/admin/getClinicById/{clinicId}")
+
 	 public ResponseEntity<Response> getClinicById(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
 	
 	 @GetMapping("/admin/getAllClinics")
@@ -60,6 +61,7 @@ public interface AdminServiceClient {
 	
 	  @GetMapping("/admin/getAllBranches")
 	    public ResponseEntity<Response> getAllBranches(@RequestHeader("Authorization") String token);
+
 
 	 @GetMapping("/admin/getDefaultAdminPermissions")
 	    ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions(@RequestHeader("Authorization") String token);

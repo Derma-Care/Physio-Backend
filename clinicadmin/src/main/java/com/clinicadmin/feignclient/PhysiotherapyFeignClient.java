@@ -32,7 +32,7 @@ public interface PhysiotherapyFeignClient {
     );
     
     @GetMapping("/api/physiotherapy-doctor/getPayments/{clinicId}/{branchId}")
-    Response getPayments(
+    Response getPayments(	
     		@RequestHeader("Authorization") String token,  @PathVariable String clinicId,
             @PathVariable String branchId);
     

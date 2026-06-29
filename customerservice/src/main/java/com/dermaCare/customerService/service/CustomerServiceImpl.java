@@ -28,8 +28,6 @@ import com.dermaCare.customerService.feignClient.ClinicAdminFeign;
 //import com.dermaCare.customerService.feignClient.DoctorServiceFeign;
 import com.dermaCare.customerService.feignClient.NotificationFeign;
 import com.dermaCare.customerService.feignClient.PhysioFeign;
-import com.dermaCare.customerService.repository.ConsultationRep;
-import com.dermaCare.customerService.repository.CustomerRatingRepository;
 import com.dermaCare.customerService.repository.CustomerRepository;
 import com.dermaCare.customerService.util.ExtractFeignMessage;
 import com.dermaCare.customerService.util.GetByKey;
@@ -42,7 +40,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +67,7 @@ public class CustomerServiceImpl implements CustomerService {
     
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;
-    
+
      
     @Secured("ROLE_CUSTOMER")
 	public Response getDoctorsSlots(String hid, String branchId, String doctorId) {
@@ -193,6 +190,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 	    return response;
 	}
+
 	
 
 //private static final double EARTH_RADIUS_KM = 6371.0;
@@ -472,7 +470,6 @@ public ResponseEntity<Response> getByClinicIdAndBranchId(
         res.setMessage(ExtractFeignMessage.clearMessage(e));
         res.setSuccess(false);
     } return ResponseEntity.status(res.getStatus()).body(res);}
-
 
 @Secured("ROLE_CUSTOMER")
 public Response getReportsAndDoctorSaveDetails(String customerId) {

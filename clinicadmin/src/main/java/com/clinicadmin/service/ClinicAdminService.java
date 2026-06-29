@@ -20,9 +20,4 @@ public interface ClinicAdminService {
 		   
 	 public Response getStaffInfo(String hospitalId, String branchId);
 	
-
-
-		  
-
-
 }

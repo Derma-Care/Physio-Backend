@@ -3,7 +3,6 @@ package physiotherapydoctor.serviceImpl;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +19,7 @@ import physiotherapydoctor.entity.PhysiotherapyRecord;
 import physiotherapydoctor.feign.AdminFeignClient;
 import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.util.KeyCloakTokenStore;
+
 
 @Service
 @Slf4j
@@ -57,7 +57,6 @@ public class FollowUpWhatsAppService {
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;
     
-
 
     // =====================================================
     // PUBLIC API
@@ -173,6 +172,7 @@ public class FollowUpWhatsAppService {
 
         try {
             ResponseEntity<ResponseStructure<BookingResponse>> response =
+
                     bookingFeignClient.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
 
             if (response == null

@@ -92,14 +92,13 @@ public class DoctorMapper {
 
 			bankDetails.setBranchName(
 					dto.getBankAccountDetails().getBranchName());
-
+			
 		    bankDetails.setIfscCode(
 		            dto.getBankAccountDetails().getIfscCode());	
 		    
 		    bankDetails.setPanCardNumber(dto.getBankAccountDetails().getPanCardNumber());
 		    
 		    doctor.setBankAccountDetails(bankDetails);
-
 		}
 		return doctor;
 	}
@@ -195,6 +194,7 @@ public class DoctorMapper {
 		           		    
 		    dto.setBankAccountDetails(bankDetails);
 		}
+
 
 		if (doctor.getBankAccountDetails() != null) {
 

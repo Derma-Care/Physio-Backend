@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
+import physiotherapydoctor.dto.Complaints;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.DoctorsDTO;
@@ -160,7 +161,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        try {
 
 	            ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
+
 	                    bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),dto.getBookingId());
+
 
 	            if (bookingResponse != null && bookingResponse.getBody().getData() != null) {
 
@@ -672,7 +675,14 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		// ✅ COMPLAINTS
 		// =========================
 		if (dto.getComplaints() != null) {
-			entity.setComplaints(dto.getComplaints());
+		    Complaints complaints = dto.getComplaints();
+
+		    // ✅ Strip signed URL → store only S3 key
+		    if (complaints.getPainAssessmentImage() != null && !complaints.getPainAssessmentImage().isBlank()) {
+		        complaints.setPainAssessmentImage(extractS3Key(complaints.getPainAssessmentImage()));
+		    }
+
+		    entity.setComplaints(complaints);
 		}
 
 		// =========================
@@ -734,38 +744,65 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@Override
 	 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
 	public Response getByMultipleFields(String clinicId, String branchId, String patientId, String bookingId,
-			String therapistRecordId) {
+	        String therapistRecordId) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		if (clinicId == null || branchId == null || patientId == null || bookingId == null
-				|| therapistRecordId == null) {
+	    if (clinicId == null || branchId == null || patientId == null || bookingId == null
+	            || therapistRecordId == null) {
+	        response.setSuccess(false);
+	        response.setMessage("All fields are required");
+	        response.setStatus(400);
+	        return response;
+	    }
 
-			response.setSuccess(false);
-			response.setMessage("All fields are required");
-			response.setStatus(400);
-			return response;
-		}
+	    Optional<PhysiotherapyRecord> record = repository
+	            .findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingIdAndTherapistRecordId(clinicId, branchId,
+	                    patientId, bookingId, therapistRecordId);
 
-		Optional<PhysiotherapyRecord> record = repository
-				.findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingIdAndTherapistRecordId(clinicId, branchId,
-						patientId, bookingId, therapistRecordId);
+	    if (record.isEmpty()) {
+	        response.setSuccess(false);
+	        response.setMessage("Record not found");
+	        response.setStatus(404);
+	        return response;
+	    }
 
-		if (record.isEmpty()) {
-			response.setSuccess(false);
-			response.setMessage("Record not found");
-			response.setStatus(404);
-			return response;
-		}
+	    PhysiotherapyRecord rec = record.get();
 
-		response.setSuccess(true);
-		response.setData(record.get());
-		response.setMessage("Record fetched successfully");
-		response.setStatus(200);
+	    // ✅ Refresh prescriptionPdf
+	    if (rec.getPrescriptionPdf() != null && !rec.getPrescriptionPdf().isBlank()) {
+	        rec.setPrescriptionPdf(s3Service.generateSignedUrl(rec.getPrescriptionPdf()));
+	    }
 
-		return response;
+	    // ✅ Refresh painAssessmentImage — extractS3Key handles both old full URLs and plain keys in DB
+	    if (rec.getComplaints() != null) {
+	        String painImage = rec.getComplaints().getPainAssessmentImage();
+	        if (painImage != null && !painImage.isBlank()) {
+	            rec.getComplaints().setPainAssessmentImage(
+	                s3Service.generateSignedUrl(extractS3Key(painImage))
+	            );
+	        }
+	    }
+
+	    response.setSuccess(true);
+	    response.setData(rec);
+	    response.setMessage("Record fetched successfully");
+	    response.setStatus(200);
+
+	    return response;
 	}
-
+	
+	private String extractS3Key(String input) {
+	    if (input == null || input.isBlank()) return input;
+	    if (!input.startsWith("http")) return input;
+	    try {
+	        String path = new java.net.URI(input).getPath(); // "/part-images/abc.png"
+	        return path.startsWith("/") ? path.substring(1) : path; // "part-images/abc.png"
+	    } catch (Exception e) {
+	        return input;
+	    }
+	}
+	
 	@Override
 	 @Secured("ROLE_DOCTOR")
 	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String patientId,

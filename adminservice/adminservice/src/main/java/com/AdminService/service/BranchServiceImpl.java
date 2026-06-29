@@ -148,7 +148,7 @@ public class BranchServiceImpl implements BranchService {
 
             if (emailToUse == null || emailToUse.isBlank()) {
                 log.info("Branch email not provided. Using clinic email.");
-                emailToUse = clinic.getEmailAddress();
+            emailToUse = clinic.getEmailAddress();
             }
 
             if (emailToUse == null || emailToUse.isBlank()) {
@@ -489,17 +489,17 @@ public class BranchServiceImpl implements BranchService {
                 if (branchDto.getClinicId() != null && !branchDto.getClinicId().isBlank()) {
                     branch.setClinicId(branchDto.getClinicId());
                     log.info("Clinic ID updated.");
-                }
+          }
 
                 if (branchDto.getBranchName() != null && !branchDto.getBranchName().isBlank()) {
                     branch.setBranchName(branchDto.getBranchName());
                     log.info("Branch Name updated.");
-                }
+               }
 
                 if (branchDto.getAddress() != null && !branchDto.getAddress().isBlank()) {
                     branch.setAddress(branchDto.getAddress());
                     log.info("Address updated.");
-                }
+               }
 
                 if (branchDto.getCity() != null && !branchDto.getCity().isBlank()) {
                     branch.setCity(branchDto.getCity());
@@ -508,28 +508,28 @@ public class BranchServiceImpl implements BranchService {
 
                 if (branchDto.getContactNumber() != null && !branchDto.getContactNumber().isBlank()) {
                     branch.setContactNumber(branchDto.getContactNumber());
-                    log.info("Contact Number updated.");
-                }
+                  log.info("Contact Number updated.");
+            }
 
                 if (branchDto.getEmail() != null && !branchDto.getEmail().isBlank()) {
                     branch.setEmail(branchDto.getEmail());
-                    log.info("Email updated.");
-                }
+                  log.info("Email updated.");
+               }
 
                 if (branchDto.getLatitude() != null && !branchDto.getLatitude().isBlank()) {
                     branch.setLatitude(branchDto.getLatitude());
                     log.info("Latitude updated.");
-                }
+               }
 
                 if (branchDto.getLongitude() != null && !branchDto.getLongitude().isBlank()) {
                     branch.setLongitude(branchDto.getLongitude());
-                    log.info("Longitude updated.");
+                   log.info("Longitude updated.");
                 }
 
                 if (branchDto.getVirtualClinicTour() != null
                         && !branchDto.getVirtualClinicTour().isBlank()) {
                     branch.setVirtualClinicTour(branchDto.getVirtualClinicTour());
-                    log.info("Virtual Clinic Tour updated.");
+                log.info("Virtual Clinic Tour updated.");
                 }
 
                 if (branchDto.getBranchOverallRating() != 0.0) {
@@ -538,7 +538,7 @@ public class BranchServiceImpl implements BranchService {
                 }
 
                 // Save Branch
-                Branch updatedBranch = branchRepository.save(branch);
+            Branch updatedBranch = branchRepository.save(branch);
                 log.info("Branch details saved successfully for Branch ID: {}", branchId);
 
                 // Update embedded branch in Clinic document
@@ -548,7 +548,7 @@ public class BranchServiceImpl implements BranchService {
 
                     log.info("Updating embedded branch inside Clinic document.");
 
-                    List<Branch> clinicBranches = clinic.getBranches();
+                  List<Branch> clinicBranches = clinic.getBranches();
 
                     for (Branch b : clinicBranches) {
 
@@ -565,9 +565,9 @@ public class BranchServiceImpl implements BranchService {
                             b.setVirtualClinicTour(updatedBranch.getVirtualClinicTour());
                             b.setBranchOverallRating(updatedBranch.getBranchOverallRating());
 
-                            log.info("Embedded branch updated successfully.");
+                        log.info("Embedded branch updated successfully.");
 
-                            break;
+                          break;
                         }
                     }
 
@@ -591,7 +591,7 @@ public class BranchServiceImpl implements BranchService {
 
                 log.warn("Branch not found for Branch ID: {}", branchId);
 
-                response.setSuccess(false);
+               response.setSuccess(false);
                 response.setStatus(404);
                 response.setMessage("Branch not found");
             }
@@ -605,7 +605,7 @@ public class BranchServiceImpl implements BranchService {
             response.setMessage("Error updating branch: " + e.getMessage());
         }
 
-        log.info("===== Update Branch API Completed =====");
+       log.info("===== Update Branch API Completed =====");
 
         return response;
     }

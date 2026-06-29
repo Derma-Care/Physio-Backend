@@ -20,16 +20,16 @@ public interface ServiceInterface {
 //	public ResBody<List<NotificationDTO>> notificationtodoctor( String hospitalId,
 //			 String doctorId);
 //
-//    ResBody<List<NotificationDTO>> sendNotificationToClinic(String clinicId);
+    ResBody<List<NotificationDTO>> sendNotificationToClinic(String clinicId);
 //
-//    ResBody<NotificationDTO> notificationResponse(NotificationResponse notificationResponse);
+   ResBody<NotificationDTO> notificationResponse(NotificationResponse notificationResponse);
 //
-//    NotificationDTO getNotificationByBookingId(String bookingId);
+   NotificationDTO getNotificationByBookingId(String bookingId);
 //
-//    NotificationDTO updateNotification(NotificationDTO notificationDTO);
+   NotificationDTO updateNotification(NotificationDTO notificationDTO);
 //
-//    public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
-//			 String customerMobileNumber);
+   public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
+			 String customerMobileNumber);
 //    
 //    public void sendAlertNotifications();
 //    
@@ -47,6 +47,22 @@ public interface ServiceInterface {
 //	         String clinicId,
 //	        String branchId,
 //	        String id);
+    
+    
+    public ResponseEntity<?> sendImageNotifications(PriceDropAlertDto priceDropAlertDto);
+   
+    public ResponseEntity<?> priceDropNotifications(String clinicId,String branchId);
+    
+    public ResponseEntity<?> updatePriceDropAlert(
+	         String clinicId,
+	        String branchId,
+	        String id,
+	        PriceDropAlertDto dto) ;
+    
+    public ResponseEntity<?> deletePriceDropAlerts(
+	         String clinicId,
+	        String branchId,
+	        String id);
     
     
     	

@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -524,6 +525,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			return null;
 		}
 	}
+
 	// ----------------- RESET PASSWORD -----------------
 //	@Override
 //	public Response resetPassword(ChangeDoctorPasswordDTO dto) {
@@ -747,3 +749,4 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
     }
 
 }
+

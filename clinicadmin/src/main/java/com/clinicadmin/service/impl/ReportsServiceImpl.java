@@ -196,6 +196,7 @@ public class ReportsServiceImpl implements ReportsService {
 
             // ── Fetch booking & sync ────────────────────────────────
             ResponseEntity<ResponseStructure<BookingResponse>> response =
+
                     bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
             BookingResponse bookingData =
                     response.getBody() != null ? response.getBody().getData() : null;
@@ -213,6 +214,7 @@ public class ReportsServiceImpl implements ReportsService {
                 dto.setPatientId(bookingData.getPatientId());
 
                 bookingFeign.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),bookingData);
+
             }
 
             // ── Save to MongoDB ─────────────────────────────────────
@@ -595,6 +597,7 @@ public class ReportsServiceImpl implements ReportsService {
                     }
 
                     fileKeys.remove(fileIndex);
+
                     bookingFeign.deleteReport(keyCloakTokenStore.getAccess_token(),bookingId, String.valueOf(fileIndex));
 
                     if (fileKeys.isEmpty()) {

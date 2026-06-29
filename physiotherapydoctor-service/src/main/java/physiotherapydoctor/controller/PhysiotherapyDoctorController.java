@@ -39,7 +39,6 @@ public class PhysiotherapyDoctorController {
 		return response;
 	}
 
-
 //	@PostMapping("/login")
 //	public ResponseEntity<Response> login(@Valid @RequestBody DoctorLoginDTO dto) {
 //		Response res = doctorService.login(dto);
@@ -104,7 +103,6 @@ public class PhysiotherapyDoctorController {
 	@GetMapping("/getDoctorFutureAppointments/{doctorId}/{page}")
 	public ResponseEntity<?> getDoctorFutureAppointments(@PathVariable String doctorId,@PathVariable int page) {
 		return doctorService.getDoctorFutureAppointments(doctorId,page);
-
 	}
 
 	@GetMapping("/getDiseasesByHospitalId/{hospitalId}")

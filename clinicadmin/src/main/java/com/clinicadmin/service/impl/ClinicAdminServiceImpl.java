@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -30,6 +31,7 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 
 @Service
 public class ClinicAdminServiceImpl implements ClinicAdminService {
@@ -63,7 +65,7 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     
     @Autowired
     private ClinicAdminWebFcmTokenRepository deviceIdRepo;
-    
+  
 
     @Override
     @Secured("ROLE_CLINICADMIN")
@@ -318,3 +320,4 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     }
 
 }
+

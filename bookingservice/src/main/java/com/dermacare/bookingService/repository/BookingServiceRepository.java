@@ -82,7 +82,6 @@ public interface BookingServiceRepository extends MongoRepository<Booking,String
 			String requiredStatus);
 	public List<Booking> findByClinicIdAndDoctorIdAndFollowupStatusIgnoreCase(String clinicId, String doctorId,
 			String status);
-
 	public Page<Booking> findByClinicIdAndDoctorIdAndServiceDateAndStatusIgnoreCase(String clinicId, String doctorId,
 			String todayDate, String string, Pageable pageable);
 	public Page<Booking> findByMobileNumber(String mobileNumber, Pageable pageable);

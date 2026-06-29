@@ -19,5 +19,4 @@ public class FollowupBooking {
 	    private String serviceDate;
 	    private String servicetime;
 		private String status;
-
 }

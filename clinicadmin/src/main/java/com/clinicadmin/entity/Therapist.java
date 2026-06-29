@@ -49,4 +49,6 @@ public class Therapist {
     
     private String userName;
     private String password;
+    
+    private Boolean isPresent = false;
 }

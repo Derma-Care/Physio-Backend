@@ -45,7 +45,6 @@ public interface CustomerFeign {
 	//FALLBACK METHOD
 	
 	default ResponseEntity<?> customerServiceFallBack(Throwable e){		 
-
      return ResponseEntity.status(503).body(new Response(false,null,"CUSTOMER SERVICE NOT AVAILABLE",503,null,null, null, null, null));}
 
 

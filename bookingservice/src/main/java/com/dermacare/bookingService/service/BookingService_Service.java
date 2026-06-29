@@ -33,7 +33,6 @@ public interface BookingService_Service {
 	        int page,
 	        int size);
 
-
 	//public ResponseEntity<?> updateAppointment(BookingResponse bookingResponse);
 	public Page<BookingResponse> bookingByBranchId(
 	        String branchId,
@@ -53,6 +52,7 @@ public interface BookingService_Service {
 	public ResponseEntity<?> getCompletedApntsByDoctorId(String hospitalId,String doctorId);
 	public ResponseEntity<?> getSizeOfConsultationTypesByDoctorId(String hospitalId,String doctorId);
 	public Response getPatientDetailsForConsetForm(String bookingId, String patientId, String mobileNumber);
+
 
 	public ResponseEntity<?> getInProgressAppointments(
 	        String number,
@@ -83,7 +83,6 @@ public interface BookingService_Service {
 
 	public Page<BookingResponse> bookingByPatientId(String clincId,String patientId, int page, int size) ;
 		//public BookingInfoByInput bookingByInput(String input,String clinicId);
-
 	public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId);
 	public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId,String clinicId);
 	public BookingResponse checkBookingByDateAndTime(String date,String time,String doctorId);
@@ -123,6 +122,7 @@ public ResponseEntity<Response> getBookingByCustomRange(
         int size);
 public ResponseEntity<Response> getBookingById(String bookingId);
 
+
 public Page<BookingResponse> bookingByPatientIdAndBookingId(
         String patientId,
         String bookingId,
@@ -135,7 +135,6 @@ public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndSt
         String clinicId,
         String branchId,
         String doctorId,
-
         String status,
         int page,
         int size);
@@ -146,6 +145,7 @@ List<Map<String, Object>> searchBookings(String clinicId, String input);
 public List<Map<String, Object>> bookingByCustomerId(String customerId);
 
 public ResponseEntity<Response> getTodayBookings(String clinicId, String branchId) ;
+
 
 
 	   	

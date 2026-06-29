@@ -7,7 +7,7 @@ import com.clinicadmin.dto.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface BookingService {
-	
+
 	public ResponseEntity<?>  deleteBookedService(String id);
 
 	public ResponseEntity<?> getAllBookedServicesDetailsByBranchId(String branchId,int page);

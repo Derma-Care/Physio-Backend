@@ -23,6 +23,7 @@ public interface PhysiotherapyDoctorDetails {
 		public ResponseEntity<?> getDoctorByClinicAndDoctorId(String clinicId,
 				String doctorId);
 		public ResponseEntity<?> getDoctorsByHospitalById(String clinicId);
+
 //		public ResponseEntity<?> getDoctorsBySubServiceId(String hsptlId,String subServiceId);
 //		public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId);
 //

@@ -12,11 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-
 import physiotherapydoctor.dto.BookingRequset;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.ResponseStructure;
-
 
 @FeignClient(name = "bookingservice")
 public interface  BookingFeignClient {
@@ -66,6 +64,7 @@ public interface  BookingFeignClient {
 			@PathVariable int page,
 			@PathVariable int size);
 
+
 	@PostMapping("/api/v1/bookService")
 	ResponseEntity<?> bookService(@RequestBody BookingRequset bookingRequest);
 	
@@ -84,7 +83,6 @@ public interface  BookingFeignClient {
 			@PathVariable String status,
 			@PathVariable int page,
 			@PathVariable int size);
-
 
 	 @GetMapping("/api/v1/searchBookings/{clinicId}/{input}")
 	 ResponseEntity<ResponseStructure<List<Map<String, Object>>>> searchBookings(

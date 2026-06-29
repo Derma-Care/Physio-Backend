@@ -24,6 +24,7 @@ import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
+import com.clinicadmin.service.FeedbackDetailsServcie;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
@@ -44,6 +45,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     @Autowired	
    	public KeyCloakTokenStore keyCloakTokenStore;
    	
+    @Autowired
+    private FeedbackDetailsServcie feedbackDetailsService;
 
     @Override
     @Secured("ROLE_CLINICADMIN")
@@ -93,10 +96,16 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                     && dto.getSessionId() != null
                     && !dto.getSessionId().trim().isEmpty()) {
 
-                physiotherapyFeignClient.updateSessionStatus(keyCloakTokenStore.getAccess_token(),
+    physiotherapyFeignClient.updateSessionStatus(keyCloakTokenStore.getAccess_token(),
                         dto.getTherapistRecordId().trim(),
                         dto.getSessionId().trim()
                 );
+                
+                feedbackDetailsService.processFeedbackNotification(
+                        dto.getClinicId(),
+                        dto.getBranchId()
+                );
+            
 
             }
         } catch (Exception e) {
@@ -309,8 +318,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
                 200
         );
     }
-    
-    
+
     private String getCityFromLatLong(String lat, String lon) {
 
         try {

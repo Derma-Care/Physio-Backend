@@ -40,6 +40,9 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import lombok.RequiredArgsConstructor;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
+import lombok.RequiredArgsConstructor;
+
+
 @Service
 @RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
@@ -53,7 +56,6 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;
     
- 
     @Autowired
     private DoctorLoginCredentialsRepository credentialsRepository;
 
@@ -222,6 +224,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return response;
     }
+    
     @Override
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
@@ -476,9 +479,12 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return response;
     }
+    
+    
     @Override
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+
     public Response getDaily(String userId, String date) {
 
         Response response = new Response();
@@ -981,7 +987,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             return "Unknown";
         }
     }
-    
+
     private void validateLoginDistance(
             String clinicId,
             String branchId,
@@ -993,7 +999,6 @@ public class AttendanceServiceImpl implements AttendanceService {
             // 🔥 Get complete clinic details
             ResponseEntity<Response> responseEntity =
                     adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),clinicId);
-
             if (responseEntity == null
                     || responseEntity.getBody() == null
                     || responseEntity.getBody().getData() == null) {
@@ -1327,6 +1332,7 @@ public class AttendanceServiceImpl implements AttendanceService {
               try {
                   ResponseEntity<Response> clinicRes =
                           adminServiceClient.getAllClinics(keyCloakTokenStore.getAccess_token());
+
                   if (clinicRes.getBody() != null
                           && clinicRes.getBody().getData() != null) {
                       List<Map<String, Object>> cls =
@@ -2018,6 +2024,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         therapistAttendanceRepo.save(therapistAttendance);
     }
    
+
 
     // ================= RATE LIMIT FALLBACK METHODS =================
 

@@ -43,6 +43,7 @@
 //		Response response = pharmacistService.getAllPharmacistsByHospitalId(hospitalId);
 //		return ResponseEntity.status(response.getStatus()).body(response);
 //	}
+
 //
 //	// ------------------- Get Single Pharmacist -------------------
 //	@GetMapping("/getPharmacist/{pharmacistId}")
@@ -165,3 +166,4 @@
 ////        return pharmacistService.getAllMedicineTypes();
 ////    }
 //}
+

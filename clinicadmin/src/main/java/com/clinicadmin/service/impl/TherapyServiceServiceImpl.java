@@ -357,7 +357,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         	TherapyExercises ex  = exercisesRepository.findByTherapyExercisesId(s).get();
         	if(ex != null){
         exercisesDto.add(ex);}}
-        theryServiceDto.setExercises(exercisesDto);
+      theryServiceDto.setExercises(exercisesDto);
         return theryServiceDto;
     }else {
     	return null;

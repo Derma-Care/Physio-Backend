@@ -267,7 +267,6 @@ public class PhysiotherapyController {
 
 	 		@PathVariable String doctorId,@PathVariable String status,@PathVariable int page){
 	 		return service.getDoctorAppointmentsonStatus(clinicId, branchId, doctorId, status,page);
-
 	 		   
 	 	 }
 	    

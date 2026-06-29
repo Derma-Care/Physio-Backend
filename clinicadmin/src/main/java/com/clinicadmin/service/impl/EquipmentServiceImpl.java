@@ -1,20 +1,19 @@
 package com.clinicadmin.service.impl;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-
 import com.clinicadmin.dto.EquipmentDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Equipment;
 import com.clinicadmin.repository.EquipmentRepository;
 import com.clinicadmin.service.EquipmentService;
 import com.clinicadmin.service.S3Service;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -67,6 +66,7 @@ public class EquipmentServiceImpl implements EquipmentService {
         return response;
     }
 
+
  
     		@Override
     		 @Secured("ROLE_CLINICADMIN")
@@ -94,9 +94,9 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     		    return response;
     		}
-    	
-    
-    				@Override
+
+    	   
+      				@Override
     				 @Secured("ROLE_CLINICADMIN")			
     				  @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
     				public Response getEquipmentByClinicIdAndBranchId(
@@ -362,4 +362,12 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .message("Too many requests. Please try again later.")
                 .build();
     }
+    
+private String generateEquipmentId() {
+    return "EQU-" + UUID.randomUUID()
+            .toString()
+            .replace("-", "")
+            .substring(0, 10)
+            .toUpperCase();
+}
 }

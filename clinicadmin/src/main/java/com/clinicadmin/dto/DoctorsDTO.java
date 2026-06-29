@@ -132,10 +132,9 @@ public class DoctorsDTO {
 	private String createdAt;
 
 	private String updatedDate;
-
+	
 	private BankAccountDetails bankAccountDetails;
 	
-
 	public void trimAllDoctorFields() {
 		id = trim(id);
 		doctorId = trim(doctorId);

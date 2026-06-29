@@ -116,8 +116,6 @@ public class DoctorServiceImpl implements DoctorService {
 	
 	@Autowired
 	private S3Service s3Service;
-	
-	
 
 	private List<TempBlockingSlot> slots = new CopyOnWriteArrayList<>();
 
@@ -276,6 +274,7 @@ public class DoctorServiceImpl implements DoctorService {
 						            "Please use the below credentials to login.\n\n" +
 						            "Doctor ID: " + savedDoctor.getDoctorId()
 						    );
+
 
 			    mailData.put("username", username);
 			    mailData.put("password", rawPassword);

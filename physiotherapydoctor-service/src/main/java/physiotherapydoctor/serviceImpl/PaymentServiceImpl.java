@@ -1430,7 +1430,6 @@ public class PaymentServiceImpl implements PaymentService {
 	        System.out.println("Failed to refresh signed URL: " + e.getMessage());
 	    }
 	    return signedUrl; // fallback: return existing URL
-
 	}
 
 	private String extractKey(String signedUrl) {

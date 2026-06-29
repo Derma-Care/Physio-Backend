@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-
-import com.dermaCare.customerService.dto.CustomerLoginDTO;
-import com.dermaCare.customerService.dto.DoctorsDTO;
 import com.dermaCare.customerService.dto.PatientFeedbackDTO;
 import com.dermaCare.customerService.dto.TempBlockingSlot;
 import com.dermaCare.customerService.dto.TherapistRecordRequest;

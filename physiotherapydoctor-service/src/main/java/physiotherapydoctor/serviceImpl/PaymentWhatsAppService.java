@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -58,7 +57,6 @@ public class PaymentWhatsAppService {
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;
     
-
     // =====================================================
     // PUBLIC API
     // =====================================================
@@ -128,6 +126,7 @@ public class PaymentWhatsAppService {
 
         try {
             ResponseEntity<ResponseStructure<BookingResponse>> response =
+
                     bookingFeignClient.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
 
             if (response == null ||

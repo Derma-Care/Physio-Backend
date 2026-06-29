@@ -19,6 +19,8 @@ public interface FeedbackDetailsServcie {
 
 	Response deleteFeedback(String id);
 
+	void processFeedbackNotification(String clinicId, String branchId);
+
 //	Response getDoctorFeedbackSummary(String clinicId, String doctorId);
 
 
