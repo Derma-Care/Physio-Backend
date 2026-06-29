@@ -23,12 +23,16 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
+import com.clinicadmin.dto.ServiceInfo;
 import com.clinicadmin.dto.TherapistDTO;
+import com.clinicadmin.dto.TherapistFeedbackResponseDTO;
+import com.clinicadmin.dto.TherapistFeedbackSummaryDTO;
 import com.clinicadmin.dto.TherapistPresenceRequest;
 import com.clinicadmin.dto.TherapistResponseDTO;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Documents;
 import com.clinicadmin.entity.FeedbackDetails;
+import com.clinicadmin.entity.PatientFeedback;
 import com.clinicadmin.entity.Session;
 import com.clinicadmin.entity.Therapist;
 import com.clinicadmin.entity.TherapistAttendance;
@@ -37,6 +41,7 @@ import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
+import com.clinicadmin.repository.PatientFeedbackRepository;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.repository.TherapistRepository;
@@ -83,6 +88,10 @@ public class TherapistServiceImpl implements TherapistService {
 	
 	@Autowired
 	private S3Service s3Service;
+	
+	  @Autowired
+	    private PatientFeedbackRepository patientFeedbackRepository;
+	  
     @Override
 
     public Response therapistOnboarding(TherapistDTO dto) {
@@ -1614,6 +1623,180 @@ public class TherapistServiceImpl implements TherapistService {
             response.setData(null);
             response.setMessage(e.getMessage());
             response.setStatus(HttpStatus.NOT_FOUND.value());
+        }
+
+        return response;
+    }
+    @Override
+    public Response getTherapistFeedback(
+            String clinicId,
+            String branchId,
+            String therapistId) {
+
+        Response response = new Response();
+
+        try {
+
+            List<PatientFeedback> patientFeedbacks =
+                    patientFeedbackRepository
+                            .findByClinicIdAndBranchIdAndTherapistFeedbackTargetId(
+                                    clinicId,
+                                    branchId,
+                                    therapistId);
+
+            List<FeedbackDetails> feedbackDetails =
+                    feedbackDetailsRepository
+                            .findByClinicIdAndBranchIdAndTherapistId(
+                                    clinicId,
+                                    branchId,
+                                    therapistId);
+
+            Map<String, FeedbackDetails> detailsMap =
+                    feedbackDetails.stream()
+                            .collect(Collectors.toMap(
+                                    FeedbackDetails::getPatientId,
+                                    f -> f,
+                                    (a, b) -> a));
+
+            List<TherapistFeedbackResponseDTO> result =
+                    new ArrayList<>();
+
+            double totalSessionRating = 0.0;
+            double totalOverallRating = 0.0;
+
+            int sessionRatingCount = 0;
+            int overallRatingCount = 0;
+
+            for (PatientFeedback feedback : patientFeedbacks) {
+
+                FeedbackDetails details =
+                        detailsMap.get(feedback.getPatientId());
+
+                TherapistFeedbackResponseDTO dto =
+                        new TherapistFeedbackResponseDTO();
+
+                double sessionRating = 0.0;
+                double overallRating = 0.0;
+
+                if (details != null) {
+
+                    dto.setPatientName(details.getPatientName());
+
+                    dto.setAppointmentId(details.getBookingId());
+
+                    dto.setAppointmentDate(details.getCreatedAt());
+
+                    dto.setSubmittedDate(details.getUpdatedAt());
+
+                    dto.setServiceName(
+                            details.getService() != null
+                            && !details.getService().isEmpty()
+                                    ? details.getService()
+                                            .stream()
+                                            .map(ServiceInfo::getServiceName)
+                                            .collect(Collectors.joining(", "))
+                                    : null);
+
+                    dto.setOverallRating(
+                            details.getRating());
+
+                    dto.setWhatWentWell(
+                            details.getWhatWentWell());
+
+                    dto.setImprovements(
+                            details.getImprovements());
+
+                    if (details.getRating() != null
+                            && !details.getRating().isEmpty()) {
+
+                        overallRating =
+                                Double.parseDouble(
+                                        details.getRating());
+
+                        totalOverallRating += overallRating;
+                        overallRatingCount++;
+                    }
+
+                } else {
+
+                    dto.setPatientName(
+                            feedback.getPatientName());
+                }
+
+                if (feedback.getTherapistFeedback() != null) {
+
+                    dto.setSessionRating(
+                            feedback.getTherapistFeedback()
+                                    .getRating());
+
+                    dto.setPatientFeedbackComment(
+                            feedback.getTherapistFeedback()
+                                    .getFeedbackText());
+
+                    if (feedback.getTherapistFeedback()
+                            .getRating() != null
+                            && !feedback.getTherapistFeedback()
+                                    .getRating().isEmpty()) {
+
+                        sessionRating =
+                                Double.parseDouble(
+                                        feedback.getTherapistFeedback()
+                                                .getRating());
+
+                        totalSessionRating += sessionRating;
+                        sessionRatingCount++;
+                    }
+                }
+
+                dto.setAverageRating(
+                        (sessionRating + overallRating) / 2);
+
+                result.add(dto);
+            }
+
+            double averageSessionRating =
+                    sessionRatingCount > 0
+                            ? totalSessionRating / sessionRatingCount
+                            : 0.0;
+
+            double averageOverallRating =
+                    overallRatingCount > 0
+                            ? totalOverallRating / overallRatingCount
+                            : 0.0;
+
+            double overallAverageRating =
+                    (averageSessionRating + averageOverallRating) / 2;
+
+            TherapistFeedbackSummaryDTO summary =
+                    new TherapistFeedbackSummaryDTO();
+
+            summary.setTotalPatients(result.size());
+
+            summary.setAverageSessionRating(
+                    averageSessionRating);
+
+            summary.setAverageOverallRating(
+                    averageOverallRating);
+
+            summary.setOverallAverageRating(
+                    overallAverageRating);
+
+            summary.setFeedbacks(result);
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage(
+                    "Therapist feedback fetched successfully");
+            response.setData(summary);
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            response.setData(null);
+
+            e.printStackTrace();
         }
 
         return response;

@@ -137,4 +137,21 @@ public class TherapistController {
 
 	    return ResponseEntity.status(response.getStatus()).body(response);
 	}
+	
+	// ================= GET THERAPIST FEEDBACK =================
+	@GetMapping("/getTherapistFeedback/{clinicId}/{branchId}/{therapistId}")
+	public ResponseEntity<Response> getTherapistFeedback(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId,
+	        @PathVariable String therapistId) {
+
+	    Response response = service.getTherapistFeedback(
+	            clinicId,
+	            branchId,
+	            therapistId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+	}
 }
