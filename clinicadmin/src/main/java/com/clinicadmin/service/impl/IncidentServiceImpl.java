@@ -18,6 +18,8 @@ import com.clinicadmin.enumclasses.IncidentStatus;
 import com.clinicadmin.repository.IncidentRepository;
 import com.clinicadmin.service.IncidentService;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 @Service
 public class IncidentServiceImpl implements IncidentService {
 	@Autowired
@@ -25,6 +27,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "incidentService", fallbackMethod = "createIncidentFallback")
 	public Response createIncident(IncidentDTO dto) {
 		Response response = new Response();
 		if (dto.getTitle() == null || dto.getTitle().isEmpty()) {
@@ -50,6 +53,7 @@ public class IncidentServiceImpl implements IncidentService {
 	}
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "incidentService", fallbackMethod = "getAllIncidentsFallback")
 	public Response getAllIncidents() {
 	    Response response = new Response();
 	    try {
@@ -83,6 +87,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "incidentService", fallbackMethod = "updateIncidentStatuFallback")
 	public Response UpdateIncidentStatu(String id, String status) {
 		Response response = new Response();
 		try {
@@ -124,6 +129,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "incidentService", fallbackMethod = "deleteIncidentFallback")
 	public Response deleteIncident(String id) {
 		Response response = new Response();
 		try {
@@ -159,6 +165,34 @@ public class IncidentServiceImpl implements IncidentService {
 				.createdAt(incident.getCreatedAt() != null ? incident.getCreatedAt().formatted(formatter) : null)
 				.updatedAt(incident.getUpdatedAt() != null ? incident.getUpdatedAt().formatted(formatter) : null)
 				.build();
+	}
+	
+	public Response createIncidentFallback(IncidentDTO dto, Exception ex) {
+	    return buildRateLimitResponse(ex);
+	}
+
+	public Response getAllIncidentsFallback(Exception ex) {
+	    return buildRateLimitResponse(ex);
+	}
+
+	public Response updateIncidentStatuFallback(String id, String status, Exception ex) {
+	    return buildRateLimitResponse(ex);
+	}
+
+	public Response deleteIncidentFallback(String id, Exception ex) {
+	    return buildRateLimitResponse(ex);
+	}
+
+	public Response buildRateLimitResponse(Exception ex) {
+
+	    Response response = new Response();
+
+	    response.setSuccess(false);
+	    response.setStatus(429);
+	    response.setMessage("Too many requests. Please try again later.");
+	    response.setData(null);
+
+	    return response;
 	}
 
 }

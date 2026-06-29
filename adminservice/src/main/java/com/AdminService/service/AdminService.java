@@ -18,9 +18,9 @@ public interface AdminService {
 
 //ADMIN
 	
-public Response adminRegister(AdminHelper helperAdmin);
-	
-public Response adminLogin(String userName,String password);
+//public Response adminRegister(AdminHelper helperAdmin);
+//	
+//public Response adminLogin(String userName,String password);
 	
 //CLINIC MANAGEMENT
 public Response createClinic(ClinicDTO clinic);
@@ -47,16 +47,16 @@ public Response updateClinicCredentials(UpdateClinicCredentials credentials,Stri
 
 public Response deleteClinicCredentials(String userName );
 
-public Response login(ClinicCredentialsDTO credentials);
+///public Response login(ClinicCredentialsDTO credentials);
 
 
 //CUSTOMER MANAGEMENT
-public Response saveCustomerBasicDetails(CustomerDTO customerDTO );
-public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input);
-public Response getCustomerBasicDetails(String mobileNumber );
-public Response getAllCustomers();
-public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber );
-public Response deleteCustomerBasicDetails(String mobileNumber);
+//public Response saveCustomerBasicDetails(CustomerDTO customerDTO );
+//public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input);
+//public Response getCustomerBasicDetails(String mobileNumber );
+//public Response getAllCustomers();
+//public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber );
+//public Response deleteCustomerBasicDetails(String mobileNumber);
 
 //SUBSERVICES
 //public Response getAllSubServicesFromClincAdmin();

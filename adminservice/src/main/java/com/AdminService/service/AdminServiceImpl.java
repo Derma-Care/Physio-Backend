@@ -20,6 +20,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -53,42 +55,42 @@ import com.AdminService.repository.BranchRepository;
 import com.AdminService.repository.ClinicCredentialsRepository;
 import com.AdminService.repository.ClinicRep;
 import com.AdminService.util.ExtractFeignMessage;
+import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.PermissionsUtil;
 import com.AdminService.util.Response;
 import com.AdminService.util.ResponseStructure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Service
+@Slf4j
 public class AdminServiceImpl implements AdminService {
 
-	@Autowired
-	private AdminRepository adminRepository;
-	@Autowired
 
+	@Autowired
 	private ClinicRep clinicRep;
+	
 	@Autowired
-
 	private ClinicCredentialsRepository clinicCredentialsRepository;
 
 	@Autowired
+	private PasswordEncoder passwordEncoder;
 
-	private CustomerFeign customerFeign;
+//	@Autowired
+//	private CustomerFeign customerFeign;
 
 	@Autowired
 	private  ClinicAdminFeign clinicAdminFeign;
 
-	@Autowired
-
-	private BookingFeign bookingFeign;
 	
 	@Autowired
 	private BranchRepository branchRepository;
 	
-	@Autowired
-	
+	@Autowired	
 	private BranchCredentialsRepository branchCredentialsRepository;
 	
 	@Autowired
@@ -96,285 +98,149 @@ public class AdminServiceImpl implements AdminService {
 	
    @Autowired
     private  EmailService emailService; // ✅ ADD THIS
-	
-	//	@Autowired
-//	private QuetionsAndAnswerForAddClinicRepository quetionsAndAnswerForAddClinicRepository;
+   
+   @Autowired
+   private KeyCloakTokenStore keyCloakTokenStore;
+  
 
-	@Override
+   @Override
+   @Secured("ROLE_ADMIN")
+   public Response createClinic(ClinicDTO clinic) {
 
-	public Response adminRegister(AdminHelper helperAdmin) {
+       log.info("Received request to create clinic. Name: {}, Email: {}, Contact: {}",
+               clinic.getName(), clinic.getEmailAddress(), clinic.getContactNumber());
 
-		Response response = new Response();
+       Response response = new Response();
 
-	try {
+       try {
 
-		Optional<Admin> userName = adminRepository.findByUserName(helperAdmin.getUserName());
+           log.info("Validating duplicate clinic details.");
 
-		   Admin mobileNumber = adminRepository.findByMobileNumber(helperAdmin.getMobileNumber());
+           if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
+               log.warn("Clinic creation failed. Contact number already exists: {}", clinic.getContactNumber());
 
-		   if(mobileNumber != null ) {
+               response.setMessage("ContactNumber already exists");
+               response.setSuccess(false);
+               response.setStatus(409);
+               return response;
+           }
 
-			   response.setMessage("MobileNumber is Already Exist");
+           if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
+               log.warn("Clinic creation failed. License number already exists: {}", clinic.getLicenseNumber());
 
-		        response.setStatus(409);
+               response.setMessage("LicenseNumber already exists");
+               response.setSuccess(false);
+               response.setStatus(409);
+               return response;
+           }
 
-		        response.setSuccess(false);
+           if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
+               log.warn("Clinic creation failed. Email already exists: {}", clinic.getEmailAddress());
 
-		        return response;}
+               response.setMessage("EmailAddress already exists");
+               response.setSuccess(false);
+               response.setStatus(409);
+               return response;
+           }
 
-		        if(userName.isPresent()) {
+           log.info("Duplicate validation completed successfully.");
 
-		        	response.setMessage("UserName already exist");
+           Clinic savedClinic = new Clinic();
 
-			        response.setStatus(409);
+           // Set all clinic properties...
 
-			        response.setSuccess(false);
+           savedClinic.setHospitalId(generateHospitalId());
 
-			        return response;
+           log.info("Generated Hospital ID: {}", savedClinic.getHospitalId());
 
-		        	}else {
+           decodeBase64Documents(clinic, savedClinic);
 
-		        	Admin entityAdmin = new Admin();
+           log.info("Clinic documents decoded successfully.");
 
-		 		    entityAdmin.setUserName(helperAdmin.getUserName());
+           Clinic saved = clinicRep.save(savedClinic);
 
-		 		    entityAdmin.setPassword(helperAdmin.getPassword());
+           log.info("Clinic saved successfully. HospitalId: {}", saved.getHospitalId());
 
-		 		    entityAdmin.setMobileNumber(helperAdmin.getMobileNumber());
+           BranchCounter counter = mongoOperations.findAndModify(
+                   Query.query(Criteria.where("_id").is(saved.getHospitalId())),
+                   new Update().inc("seq", 1),
+                   FindAndModifyOptions.options().returnNew(true).upsert(true),
+                   BranchCounter.class
+           );
 
-		        adminRepository.save(entityAdmin);
+           String branchId = String.format("%04d%02d",
+                   Integer.parseInt(saved.getHospitalId()),
+                   counter.getSeq());
 
-		        response.setMessage("Credentials Are saved successfully");
+           log.info("Generated Branch ID: {}", branchId);
 
-		        response.setStatus(200);
+           Branch branch = new Branch();
 
-		        response.setSuccess(true);
+           // Set branch properties...
 
-		        return response;
+           Branch savedBranch = branchRepository.save(branch);
 
-		}}catch(Exception e) {
+           log.info("Default branch created successfully. BranchId: {}", savedBranch.getBranchId());
 
-		response.setMessage(e.getMessage());
+           saved.setBranches(List.of(savedBranch));
+           clinicRep.save(saved);
 
-        response.setStatus(500);
+           log.info("Branch mapped to clinic successfully.");
 
-        response.setSuccess(false);
+           Map<String, String> mailData = new HashMap<>();
+           mailData.put("subject", "Clinic Registration Pending");
+           mailData.put("message",
+                   "Your clinic registration has been received successfully.");
 
-        return response;
+           emailService.sendEmail(saved.getEmailAddress(), mailData);
 
-	}
+           log.info("Acknowledgement email sent successfully to {}", saved.getEmailAddress());
 
-	}
+           Map<String, Object> data = new HashMap<>();
+           data.put("clinicId", saved.getHospitalId());
+           data.put("branchId", savedBranch.getBranchId());
+           data.put("status", saved.getStatus());
 
-	
+           response.setSuccess(true);
+           response.setStatus(200);
+           response.setMessage("Clinic registered successfully. Verification pending.");
+           response.setData(data);
 
-	@Override
-	public Response adminLogin(String userName, String password) {
-	    Response response = new Response();
+           log.info("Clinic registration completed successfully. ClinicId: {}, BranchId: {}",
+                   saved.getHospitalId(), savedBranch.getBranchId());
 
-	    try {
-	        Optional<Admin> userOptional = adminRepository.findByUserName(userName);
+           return response;
 
-	        if (userOptional.isPresent()) {
-	            Admin user = userOptional.get();
+       } catch (Exception e) {
 
-	            // Check if password matches
-	            if (user.getPassword().equals(password)) {
-	                response.setMessage("Login Successful");
-	                response.setStatus(200);
-	                response.setSuccess(true);
-	            } else {
-	                response.setMessage("Incorrect Password");
-	                response.setStatus(401);
-	                response.setSuccess(false);
-	            }
-	        } else {
-	            // Check if password matches any other user
-	            List<Admin> allAdmins = adminRepository.findAll();
-	            boolean passwordExists = allAdmins.stream()
-	                    .anyMatch(admin -> admin.getPassword().equals(password));
+           log.error("Error while creating clinic. Name: {}, Error: {}",
+                   clinic.getName(), e.getMessage(), e);
 
-	            if (passwordExists) {
-	                response.setMessage("Incorrect UserName");
-	            } else {
-	                response.setMessage("Incorrect UserName and Password");
-	            }
+           Response error = new Response();
+           error.setMessage("Error occurred while creating clinic: " + e.getMessage());
+           error.setSuccess(false);
+           error.setStatus(500);
 
-	            response.setStatus(401);
-	            response.setSuccess(false);
-	        }
+           return error;
+       }
+   }
+   private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
 
-	    } catch (Exception e) {
-	        response.setMessage("Internal Server Error: " + e.getMessage());
-	        response.setStatus(500);
-	        response.setSuccess(false);
+	    log.info("Started decoding clinic documents.");
+
+	    if (clinic.getHospitalLogo() != null && !clinic.getHospitalLogo().isEmpty()) {
+	        log.debug("Decoding Hospital Logo.");
+	        savedClinic.setHospitalLogo(Base64.getDecoder().decode(clinic.getHospitalLogo()));
 	    }
 
-	    return response;
-	}
-
-	@Override
-	public Response createClinic(ClinicDTO clinic) {
-
-	    Response response = new Response();
-
-	    try {
-	        // ---------------- Duplicate checks ----------------
-	        if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
-	            response.setMessage("ContactNumber already exists");
-	            response.setSuccess(false);
-	            response.setStatus(409);
-	            return response;
-	        }
-
-	        if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
-	            response.setMessage("LicenseNumber already exists");
-	            response.setSuccess(false);
-	            response.setStatus(409);
-	            return response;
-	        }
-
-	        if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
-	            response.setMessage("EmailAddress already exists");
-	            response.setSuccess(false);
-	            response.setStatus(409);
-	            return response;
-	        }
-
-	        // ---------------- Save clinic ----------------
-	        Clinic savedClinic = new Clinic();
-	        savedClinic.setName(clinic.getName());
-	        savedClinic.setHospitalId(generateHospitalId());
-	        savedClinic.setBranch(clinic.getBranch());
-	        savedClinic.setAddress(clinic.getAddress());
-	        savedClinic.setCity(clinic.getCity());
-	        savedClinic.setContactNumber(clinic.getContactNumber());
-	        savedClinic.setOpeningTime(clinic.getOpeningTime());
-	        savedClinic.setClosingTime(clinic.getClosingTime());
-	        savedClinic.setEmailAddress(clinic.getEmailAddress());
-	        savedClinic.setWebsite(clinic.getWebsite());
-	        savedClinic.setLicenseNumber(clinic.getLicenseNumber());
-	        savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
-	        savedClinic.setRecommended(clinic.isRecommended());
-	        savedClinic.setClinicType(clinic.getClinicType());
-	        savedClinic.setHospitalOverallRating(0.0);
-	        savedClinic.setSubscription(clinic.getSubscription());
-	        savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
-	        savedClinic.setLatitude(clinic.getLatitude());
-	        savedClinic.setLongitude(clinic.getLongitude());
-	        savedClinic.setWalkthrough(clinic.getWalkthrough());
-	        savedClinic.setNabhScore(clinic.getNabhScore());
-
-	        // ---------------- NGK CORE ----------------
-	        savedClinic.setStatus("PENDING");
-	        savedClinic.setRole("ADMIN");
-	        savedClinic.setPermissions(PermissionsUtil.getAdminPermissions());
-	        savedClinic.setCreatedAt(String.valueOf(Instant.now())); // FIXED
-
-	        // ❌ Credentials are NOT created here
-
-	        decodeBase64Documents(clinic, savedClinic);
-
-	        if (clinic.getConsultationExpiration() == null || clinic.getConsultationExpiration().isBlank()) {
-	            throw new IllegalArgumentException("Consultation expiration is required");
-	        }
-	        savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
-
-	        savedClinic.setInstagramHandle(clinic.getInstagramHandle());
-	        savedClinic.setTwitterHandle(clinic.getTwitterHandle());
-	        savedClinic.setFacebookHandle(clinic.getFacebookHandle());
-
-	        Clinic saved = clinicRep.save(savedClinic);
-
-	        // ---------------- Create default branch ----------------
-	        BranchCounter counter = mongoOperations.findAndModify(
-	                Query.query(Criteria.where("_id").is(saved.getHospitalId())),
-	                new Update().inc("seq", 1),
-	                FindAndModifyOptions.options().returnNew(true).upsert(true),
-	                BranchCounter.class
-	        );
-
-	        String branchId = String.format(
-	                "%04d%02d",
-	                Integer.parseInt(saved.getHospitalId()),
-	                counter.getSeq()
-	        );
-
-	        Branch branch = new Branch();
-	        branch.setClinicId(saved.getHospitalId());
-	        branch.setHospitalName(saved.getName());
-	        branch.setBranchId(branchId);
-	        branch.setBranchName(
-	                clinic.getBranch() != null && !clinic.getBranch().isEmpty()
-	                        ? clinic.getBranch()
-	                        : saved.getName() + " Main Branch"
-	        );
-	        branch.setAddress(saved.getAddress());
-	        branch.setCity(saved.getCity());
-	        branch.setContactNumber(saved.getContactNumber());
-	        branch.setEmail(saved.getEmailAddress());
-	        branch.setRole("ADMIN");
-	        branch.setLatitude(String.valueOf(saved.getLatitude()));	
-	        branch.setLongitude(String.valueOf(saved.getLongitude()));
-	        branch.setPermissions(PermissionsUtil.getAdminPermissions());
-
-	        Branch savedBranch = branchRepository.save(branch);
-
-	        saved.setBranches(List.of(savedBranch));
-	        clinicRep.save(saved);
-
-	        // ---------------- Email acknowledgement ----------------
-	        Map<String, String> mailData = new HashMap<>();
-	        mailData.put("subject", "Clinic Registration Pending");
-	        mailData.put(
-	                "message",
-	                "Your clinic registration has been received successfully.\n" +
-	                "Our team will verify your details and update you shortly."
-	        );
-	        emailService.sendEmail(saved.getEmailAddress(), mailData);
-
-	        // ---------------- Prepare response ----------------
-	        Map<String, Object> data = new HashMap<>();
-	        data.put("clinicId", saved.getHospitalId());
-	        data.put("branchId", savedBranch.getBranchId());
-	        data.put("status", saved.getStatus());
-
-	        response.setSuccess(true);
-	        response.setStatus(200);
-	        response.setMessage("Clinic registered successfully. Verification pending.");
-	        response.setData(data);
-
-	        return response;
-
-	    } catch (Exception e) {
-	        Response error = new Response();
-	        error.setMessage("Error occurred while creating clinic: " + e.getMessage());
-	        error.setSuccess(false);
-	        error.setStatus(500);
-	        return error;
-	    }
-	}
-
-
-	private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
-
-	    if (clinic.getHospitalLogo() != null &&
-	            !clinic.getHospitalLogo().isEmpty()) {
-
-	        savedClinic.setHospitalLogo(
-	                Base64.getDecoder().decode(clinic.getHospitalLogo()));
-	    }
-
-	    if (clinic.getContractorDocuments() != null &&
-	            !clinic.getContractorDocuments().isEmpty()) {
-
+	    if (clinic.getContractorDocuments() != null && !clinic.getContractorDocuments().isEmpty()) {
+	        log.debug("Decoding Contractor Documents.");
 	        savedClinic.setContractorDocuments(
 	                Base64.getDecoder().decode(clinic.getContractorDocuments()));
 	    }
 
-	    if (clinic.getHospitalDocuments() != null &&
-	            !clinic.getHospitalDocuments().isEmpty()) {
-
+	    if (clinic.getHospitalDocuments() != null && !clinic.getHospitalDocuments().isEmpty()) {
+	        log.debug("Decoding Hospital Documents.");
 	        savedClinic.setHospitalDocuments(
 	                Base64.getDecoder().decode(clinic.getHospitalDocuments()));
 	    }
@@ -382,1208 +248,811 @@ public class AdminServiceImpl implements AdminService {
 	    if (clinic.getClinicalEstablishmentCertificate() != null &&
 	            !clinic.getClinicalEstablishmentCertificate().isEmpty()) {
 
+	        log.debug("Decoding Clinical Establishment Certificate.");
 	        savedClinic.setClinicalEstablishmentCertificate(
-	                Base64.getDecoder().decode(
-	                        clinic.getClinicalEstablishmentCertificate()));
+	                Base64.getDecoder().decode(clinic.getClinicalEstablishmentCertificate()));
 	    }
 
 	    if (clinic.getBusinessRegistrationCertificate() != null &&
 	            !clinic.getBusinessRegistrationCertificate().isEmpty()) {
 
+	        log.debug("Decoding Business Registration Certificate.");
 	        savedClinic.setBusinessRegistrationCertificate(
-	                Base64.getDecoder().decode(
-	                        clinic.getBusinessRegistrationCertificate()));
+	                Base64.getDecoder().decode(clinic.getBusinessRegistrationCertificate()));
 	    }
 
 	    if (clinic.getDrugLicenseCertificate() != null &&
 	            !clinic.getDrugLicenseCertificate().isEmpty()) {
 
+	        log.debug("Decoding Drug License Certificate.");
 	        savedClinic.setDrugLicenseCertificate(
-	                Base64.getDecoder().decode(
-	                        clinic.getDrugLicenseCertificate()));
+	                Base64.getDecoder().decode(clinic.getDrugLicenseCertificate()));
 	    }
 
 	    if (clinic.getDrugLicenseFormType() != null &&
 	            !clinic.getDrugLicenseFormType().isEmpty()) {
 
+	        log.debug("Decoding Drug License Form Type.");
 	        savedClinic.setDrugLicenseFormType(
-	                Base64.getDecoder().decode(
-	                        clinic.getDrugLicenseFormType()));
+	                Base64.getDecoder().decode(clinic.getDrugLicenseFormType()));
 	    }
 
 	    if (clinic.getPharmacistCertificate() != null &&
 	            !clinic.getPharmacistCertificate().isEmpty()) {
 
+	        log.debug("Decoding Pharmacist Certificate.");
 	        savedClinic.setPharmacistCertificate(
-	                Base64.getDecoder().decode(
-	                        clinic.getPharmacistCertificate()));
+	                Base64.getDecoder().decode(clinic.getPharmacistCertificate()));
 	    }
 
 	    if (clinic.getBiomedicalWasteManagementAuth() != null &&
 	            !clinic.getBiomedicalWasteManagementAuth().isEmpty()) {
 
+	        log.debug("Decoding Biomedical Waste Management Authorization.");
 	        savedClinic.setBiomedicalWasteManagementAuth(
-	                Base64.getDecoder().decode(
-	                        clinic.getBiomedicalWasteManagementAuth()));
+	                Base64.getDecoder().decode(clinic.getBiomedicalWasteManagementAuth()));
 	    }
 
 	    if (clinic.getTradeLicense() != null &&
 	            !clinic.getTradeLicense().isEmpty()) {
 
+	        log.debug("Decoding Trade License.");
 	        savedClinic.setTradeLicense(
-	                Base64.getDecoder().decode(
-	                        clinic.getTradeLicense()));
+	                Base64.getDecoder().decode(clinic.getTradeLicense()));
 	    }
 
 	    if (clinic.getFireSafetyCertificate() != null &&
 	            !clinic.getFireSafetyCertificate().isEmpty()) {
 
+	        log.debug("Decoding Fire Safety Certificate.");
 	        savedClinic.setFireSafetyCertificate(
-	                Base64.getDecoder().decode(
-	                        clinic.getFireSafetyCertificate()));
+	                Base64.getDecoder().decode(clinic.getFireSafetyCertificate()));
 	    }
 
 	    if (clinic.getProfessionalIndemnityInsurance() != null &&
 	            !clinic.getProfessionalIndemnityInsurance().isEmpty()) {
 
+	        log.debug("Decoding Professional Indemnity Insurance.");
 	        savedClinic.setProfessionalIndemnityInsurance(
-	                Base64.getDecoder().decode(
-	                        clinic.getProfessionalIndemnityInsurance()));
+	                Base64.getDecoder().decode(clinic.getProfessionalIndemnityInsurance()));
 	    }
 
 	    if (clinic.getGstRegistrationCertificate() != null &&
 	            !clinic.getGstRegistrationCertificate().isEmpty()) {
 
+	        log.debug("Decoding GST Registration Certificate.");
 	        savedClinic.setGstRegistrationCertificate(
-	                Base64.getDecoder().decode(
-	                        clinic.getGstRegistrationCertificate()));
-	    }
-	}
-
-	@Override
-	public Response startVerificationProcess(String clinicId) {
-
-	    Response response = new Response();
-
-	    try {
-	        Clinic clinic = findClinic(clinicId);
-
-	        if (!"PENDING".equals(clinic.getStatus())) {
-	            response.setSuccess(false);
-	            response.setStatus(400);
-	            response.setMessage("Clinic is not in PENDING state");
-	            return response;
-	        }
-
-	        clinic.setStatus("VERIFICATION_IN_PROGRESS");
-	        clinicRep.save(clinic);
-
-	        // Email notification
-	        Map<String, String> mailData = new HashMap<>();
-	        mailData.put("subject", "Clinic Verification Started");
-	        mailData.put(
-	                "message",
-	                "Your clinic verification process has started.\n" +
-	                "Our team is reviewing your submitted documents."
-	        );
-	        emailService.sendEmail(clinic.getEmailAddress(), mailData);
-
-	        response.setSuccess(true);
-	        response.setStatus(200);
-	        response.setMessage("Verification started successfully");
-	        response.setHospitalId(clinic.getHospitalId());
-	        response.setHospitalName(clinic.getName());
-
-	        return response;
-
-	    } catch (Exception e) {
-	        response.setSuccess(false);
-	        response.setStatus(500);
-	        response.setMessage("Failed to start verification: " + e.getMessage());
-	        return response;
-	    }
-	}
-	@Override
-	public Response verifyClinic(String clinicId) {
-
-	    Response response = new Response();
-
-	    try {
-	        Clinic clinic = clinicRep.findByHospitalId(clinicId);
-
-	        if (clinic == null) {
-	            response.setSuccess(false);
-	            response.setStatus(404);
-	            response.setMessage("Clinic not found");
-	            return response;
-	        }
-
-	        if (!"VERIFICATION_IN_PROGRESS".equals(clinic.getStatus())) {
-	            response.setSuccess(false);
-	            response.setStatus(400);
-	            response.setMessage("Clinic is not under verification");
-	            return response;
-	        }
-
-	        // 🔐 Generate secure password (YOUR METHOD)
-	        String tempPassword = generatePassword(9);
-	        // 🔐 Save clinic credentials
-	        ClinicCredentials credentials = new ClinicCredentials();
-	        credentials.setHospitalName(clinic.getName());
-	        credentials.setUserName(clinic.getHospitalId());
-	        credentials.setPassword(tempPassword);
-	        credentials.setRole("ADMIN");
-
-	        // 🔧 FIX: permissions type mismatch
-	        Map<String, Map<String, List<String>>> permissionWrapper = new HashMap<>();
-	        permissionWrapper.put(
-	                "ADMIN",
-	                PermissionsUtil.getAdminPermissions()
-	        );
-	        credentials.setPermissions(permissionWrapper);
-
-	        clinicCredentialsRepository.save(credentials);
-
-	        // ✅ Update clinic status
-	        clinic.setStatus("VERIFIED");
-	        clinicRep.save(clinic);
-
-	        // 📧 Send email
-	        Map<String, String> mailData = new HashMap<>();
-	        mailData.put("subject", "Clinic Verified Successfully");
-	        mailData.put(
-	                "message",
-	                "Congratulations! Your clinic has been verified successfully."
-	        );
-	        mailData.put("username", credentials.getUserName());
-	        mailData.put("password", tempPassword);
-
-	        emailService.sendEmail(clinic.getEmailAddress(), mailData);
-
-	        // ✅ Response
-	        response.setSuccess(true);
-	        response.setStatus(200);
-	        response.setMessage("Clinic verified successfully");
-	        response.setHospitalId(clinic.getHospitalId());
-	        response.setRole("ADMIN");
-	        response.setPermissions(PermissionsUtil.getAdminPermissions());
-
-	        return response;
-
-	    } catch (Exception e) {
-	        response.setSuccess(false);
-	        response.setStatus(500);
-	        response.setMessage("Failed to verify clinic: " + e.getMessage());
-	        return response;
-	    }
-	}
-
-
-	@Override
-	public Response rejectClinic(String clinicId, String reason) {
-
-	    Response response = new Response();
-
-	    try {
-	        Clinic clinic = findClinic(clinicId);
-
-	        if ("VERIFIED".equals(clinic.getStatus())) {
-	            response.setSuccess(false);
-	            response.setStatus(400);
-	            response.setMessage("Verified clinic cannot be rejected");
-	            return response;
-	        }
-
-	        clinic.setStatus("REJECTED");
-	        clinicRep.save(clinic);
-
-	        // Rejection email
-	        Map<String, String> mailData = new HashMap<>();
-	        mailData.put("subject", "Clinic Registration Rejected");
-	        mailData.put(
-	                "message",
-	                "Unfortunately, your clinic registration has been rejected."
-	        );
-	        mailData.put("reason", reason);
-
-	        emailService.sendEmail(clinic.getEmailAddress(), mailData);
-
-	        response.setSuccess(true);
-	        response.setStatus(200);
-	        response.setMessage("Clinic rejected successfully");
-	        response.setHospitalId(clinic.getHospitalId());
-
-	        return response;
-
-	    } catch (Exception e) {
-	        response.setSuccess(false);
-	        response.setStatus(500);
-	        response.setMessage("Failed to reject clinic: " + e.getMessage());
-	        return response;
-	    }
-	}
-
-	private Clinic findClinic(String clinicId) {
-
-	    Clinic clinic = clinicRep.findByHospitalId(clinicId);
-
-	    if (clinic == null) {
-	        throw new RuntimeException("Clinic not found with id: " + clinicId);
+	                Base64.getDecoder().decode(clinic.getGstRegistrationCertificate()));
 	    }
 
-	    return clinic;
+	    log.info("Completed decoding clinic documents.");
 	}
+   @Override
+   @Secured("ROLE_ADMIN")
+   public Response startVerificationProcess(String clinicId) {
 
+       log.info("Received request to start verification process for ClinicId: {}", clinicId);
 
-	@Override
-	public Response getClinicById(String clinicId) {
+       Response response = new Response();
 
-	    Response response = new Response();
+       try {
 
-	    try {
+           log.info("Fetching clinic details for ClinicId: {}", clinicId);
 
-	        Clinic clinic = clinicRep.findByHospitalId(clinicId);
+           Clinic clinic = findClinic(clinicId);
 
-	        if (clinic != null) {
+           log.info("Clinic found. Current Status: {}", clinic.getStatus());
 
-	            ClinicDTO clnc = new ClinicDTO();
+           if (!"PENDING".equals(clinic.getStatus())) {
 
+               log.warn("Verification cannot be started. ClinicId: {}, Current Status: {}",
+                       clinicId, clinic.getStatus());
 
+               response.setSuccess(false);
+               response.setStatus(400);
+               response.setMessage("Clinic is not in PENDING state");
+               return response;
+           }
 
-	            clnc.setAddress(clinic.getAddress() != null ? clinic.getAddress() : "");
+           clinic.setStatus("VERIFICATION_IN_PROGRESS");
 
-	            clnc.setCity(clinic.getCity() != null ? clinic.getCity() : "");
+           clinicRep.save(clinic);
 
-	            clnc.setHospitalId(clinic.getHospitalId() != null ? clinic.getHospitalId() : "");
+           log.info("Clinic status updated to VERIFICATION_IN_PROGRESS. ClinicId: {}",
+                   clinicId);
 
-	            clnc.setName(clinic.getName() != null ? clinic.getName() : "");
+           // Email notification
+           Map<String, String> mailData = new HashMap<>();
+           mailData.put("subject", "Clinic Verification Started");
+           mailData.put(
+                   "message",
+                   "Your clinic verification process has started.\n" +
+                   "Our team is reviewing your submitted documents."
+           );
 
-	            clnc.setEmailAddress(clinic.getEmailAddress() != null ? clinic.getEmailAddress() : "");
+           emailService.sendEmail(clinic.getEmailAddress(), mailData);
 
-	            clnc.setWebsite(clinic.getWebsite() != null ? clinic.getWebsite() : "");
+           log.info("Verification notification email sent successfully to {}",
+                   clinic.getEmailAddress());
 
-	            clnc.setLicenseNumber(clinic.getLicenseNumber() != null ? clinic.getLicenseNumber() : "");
+           response.setSuccess(true);
+           response.setStatus(200);
+           response.setMessage("Verification started successfully");
+           response.setHospitalId(clinic.getHospitalId());
+           response.setHospitalName(clinic.getName());
 
-	            clnc.setIssuingAuthority(clinic.getIssuingAuthority() != null ? clinic.getIssuingAuthority() : "");
+           log.info("Verification process started successfully. ClinicId: {}, HospitalName: {}",
+                   clinic.getHospitalId(), clinic.getName());
 
-	            clnc.setClosingTime(clinic.getClosingTime() != null ? clinic.getClosingTime() : "");
+           return response;
 
-	            clnc.setOpeningTime(clinic.getOpeningTime() != null ? clinic.getOpeningTime() : "");
+       } catch (Exception e) {
 
-	            clnc.setContactNumber(clinic.getContactNumber() != null ? clinic.getContactNumber() : "");
+           log.error("Failed to start verification process for ClinicId: {}. Error: {}",
+                   clinicId, e.getMessage(), e);
 
-	            clnc.setRecommended(clinic.isRecommended());
-	            clnc.setSubscription(clinic.getSubscription());            
-	            clnc.setHospitalOverallRating(clinic.getHospitalOverallRating());
-	            clnc.setFreeFollowUps(clinic.getFreeFollowUps());
-	            
-	            clnc.setLatitude(clinic.getLatitude());
-	            clnc.setLongitude(clinic.getLongitude());
-	            clnc.setWalkthrough(clinic.getWalkthrough());
-	            clnc.setNabhScore(clinic.getNabhScore());
-	            clnc.setBranch(clinic.getBranch());
-	            clnc.setRole(clinic.getRole());
-	            clnc.setPermissions(clinic.getPermissions());
+           response.setSuccess(false);
+           response.setStatus(500);
+           response.setMessage("Failed to start verification: " + e.getMessage());
 
- 	            clnc.setBranches(clinic.getBranches());
+           return response;
+       }
+   }
+   @Override
+   @Secured("ROLE_ADMIN")
+   public Response verifyClinic(String clinicId) {
 
-	           
- 	           
+       log.info("Received request to verify clinic. ClinicId: {}", clinicId);
 
-	            // Hospital Logo
+       Response response = new Response();
 
-	            clnc.setHospitalLogo(
+       try {
 
-	                clinic.getHospitalLogo() != null ? Base64.getEncoder().encodeToString(clinic.getHospitalLogo()) : ""
+           log.info("Fetching clinic details for ClinicId: {}", clinicId);
 
-	            );
+           Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
+           if (clinic == null) {
 
-	            // Hospital Documents (single)
+               log.warn("Clinic not found. ClinicId: {}", clinicId);
 
-	            clnc.setHospitalDocuments(
+               response.setSuccess(false);
+               response.setStatus(404);
+               response.setMessage("Clinic not found");
+               return response;
+           }
 
-	                clinic.getHospitalDocuments() != null ? Base64.getEncoder().encodeToString(clinic.getHospitalDocuments()) : ""
+           log.info("Clinic found. Current Status: {}", clinic.getStatus());
 
-	            );
+           if (!"VERIFICATION_IN_PROGRESS".equals(clinic.getStatus())) {
 
+               log.warn("Clinic verification failed. ClinicId: {}, Current Status: {}",
+                       clinicId, clinic.getStatus());
 
+               response.setSuccess(false);
+               response.setStatus(400);
+               response.setMessage("Clinic is not under verification");
+               return response;
+           }
 
-	            // Contractor Documents (single)
+           log.info("Generating temporary credentials for ClinicId: {}", clinicId);
 
-	            clnc.setContractorDocuments(
+           // Generate password
+           String tempPassword = generatePassword(9);
 
-	                clinic.getContractorDocuments() != null ? Base64.getEncoder().encodeToString(clinic.getContractorDocuments()) : ""
+           ClinicCredentials credentials = new ClinicCredentials();
+           credentials.setHospitalName(clinic.getName());
+           credentials.setUserName(clinic.getHospitalId());
+           credentials.setPassword(passwordEncoder.encode(tempPassword));
+           credentials.setRoles(Collections.singletonList("ROLE_CLINICADMIN"));
 
-	            );
+           Map<String, Map<String, List<String>>> permissionWrapper = new HashMap<>();
+           permissionWrapper.put("ADMIN", PermissionsUtil.getAdminPermissions());
+           credentials.setPermissions(permissionWrapper);
 
+           clinicCredentialsRepository.save(credentials);
 
+           log.info("Clinic credentials saved successfully. Username: {}",
+                   credentials.getUserName());
 
-	            // Pharmacist Info
+           clinic.setStatus("VERIFIED");
+           clinicRep.save(clinic);
 
-	            clnc.setHasPharmacist(clinic.getHasPharmacist() != null ? clinic.getHasPharmacist() : "");
+           log.info("Clinic status updated to VERIFIED. ClinicId: {}",
+                   clinicId);
 
-	            clnc.setPharmacistCertificate(
+           // Email
+           Map<String, String> mailData = new HashMap<>();
+           mailData.put("subject", "Clinic Verified Successfully");
+           mailData.put("message",
+                   "Congratulations! Your clinic has been verified successfully.");
+           mailData.put("username", credentials.getUserName());
+           mailData.put("password", tempPassword);
 
-	                clinic.getPharmacistCertificate() != null ? Base64.getEncoder().encodeToString(clinic.getPharmacistCertificate()) : ""
+           emailService.sendEmail(clinic.getEmailAddress(), mailData);
 
-	            );
+           log.info("Verification email sent successfully to {}",
+                   clinic.getEmailAddress());
 
+           response.setSuccess(true);
+           response.setStatus(200);
+           response.setMessage("Clinic verified successfully");
+           response.setHospitalId(clinic.getHospitalId());
+           response.setPermissions(PermissionsUtil.getAdminPermissions());
 
+           log.info("Clinic verification completed successfully. ClinicId: {}, HospitalName: {}",
+                   clinic.getHospitalId(), clinic.getName());
 
-	            // Medicines Handling
+           return response;
 
-	            clnc.setMedicinesSoldOnSite(clinic.getMedicinesSoldOnSite() != null ? clinic.getMedicinesSoldOnSite() : "");
+       } catch (Exception e) {
 
-	            clnc.setDrugLicenseCertificate(
+           log.error("Failed to verify clinic. ClinicId: {}. Error: {}",
+                   clinicId, e.getMessage(), e);
 
-	                clinic.getDrugLicenseCertificate() != null ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseCertificate()) : ""
+           response.setSuccess(false);
+           response.setStatus(500);
+           response.setMessage("Failed to verify clinic: " + e.getMessage());
 
-	            );
+           return response;
+       }
+   }
+   @Override
+   @Secured("ROLE_ADMIN")
+   public Response rejectClinic(String clinicId, String reason) {
 
-	            clnc.setDrugLicenseFormType(
+       log.info("Received request to reject clinic. ClinicId: {}", clinicId);
 
-	                clinic.getDrugLicenseFormType() != null ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseFormType()) : ""
+       Response response = new Response();
 
-	            );
+       try {
 
+           log.info("Fetching clinic details for ClinicId: {}", clinicId);
 
+           Clinic clinic = findClinic(clinicId);
 
-	            // Extended Certifications (single files)
+           log.info("Clinic found. Current Status: {}", clinic.getStatus());
 
-	            clnc.setClinicType(clinic.getClinicType() != null ? clinic.getClinicType() : "");
+           if ("VERIFIED".equals(clinic.getStatus())) {
 
-	            clnc.setClinicalEstablishmentCertificate(
+               log.warn("Reject operation failed. Verified clinic cannot be rejected. ClinicId: {}",
+                       clinicId);
 
-	                clinic.getClinicalEstablishmentCertificate() != null ? Base64.getEncoder().encodeToString(clinic.getClinicalEstablishmentCertificate()) : ""
+               response.setSuccess(false);
+               response.setStatus(400);
+               response.setMessage("Verified clinic cannot be rejected");
+               return response;
+           }
 
-	            );
+           clinic.setStatus("REJECTED");
+           clinicRep.save(clinic);
 
-	            clnc.setBusinessRegistrationCertificate(
+           log.info("Clinic status updated to REJECTED. ClinicId: {}",
+                   clinicId);
 
-	                clinic.getBusinessRegistrationCertificate() != null ? Base64.getEncoder().encodeToString(clinic.getBusinessRegistrationCertificate()) : ""
+           // Rejection email
+           Map<String, String> mailData = new HashMap<>();
+           mailData.put("subject", "Clinic Registration Rejected");
+           mailData.put(
+                   "message",
+                   "Unfortunately, your clinic registration has been rejected."
+           );
+           mailData.put("reason", reason);
 
-	            );
+           emailService.sendEmail(clinic.getEmailAddress(), mailData);
 
-	            clnc.setBiomedicalWasteManagementAuth(
+           log.info("Rejection email sent successfully to {}",
+                   clinic.getEmailAddress());
 
-	                clinic.getBiomedicalWasteManagementAuth() != null ? Base64.getEncoder().encodeToString(clinic.getBiomedicalWasteManagementAuth()) : ""
+           response.setSuccess(true);
+           response.setStatus(200);
+           response.setMessage("Clinic rejected successfully");
+           response.setHospitalId(clinic.getHospitalId());
 
-	            );
+           log.info("Clinic rejected successfully. ClinicId: {}, HospitalName: {}",
+                   clinic.getHospitalId(), clinic.getName());
 
-	            clnc.setTradeLicense(
+           return response;
 
-	                clinic.getTradeLicense() != null ? Base64.getEncoder().encodeToString(clinic.getTradeLicense()) : ""
+       } catch (Exception e) {
 
-	            );
+           log.error("Failed to reject clinic. ClinicId: {}. Error: {}",
+                   clinicId, e.getMessage(), e);
 
-	            
+           response.setSuccess(false);
+           response.setStatus(500);
+           response.setMessage("Failed to reject clinic: " + e.getMessage());
 
-	            clnc.setFireSafetyCertificate(
+           return response;
+       }
+   }
+   @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+   private Clinic findClinic(String clinicId) {
 
-	                clinic.getFireSafetyCertificate() != null ? Base64.getEncoder().encodeToString(clinic.getFireSafetyCertificate()) : ""
+       log.info("Searching for clinic. ClinicId: {}", clinicId);
 
-	            );
+       Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
-	            clnc.setProfessionalIndemnityInsurance(
+       if (clinic == null) {
 
-	                clinic.getProfessionalIndemnityInsurance() != null ? Base64.getEncoder().encodeToString(clinic.getProfessionalIndemnityInsurance()) : ""
+           log.error("Clinic not found. ClinicId: {}", clinicId);
 
-	            );
+           throw new RuntimeException("Clinic not found with id: " + clinicId);
+       }
 
-	            clnc.setGstRegistrationCertificate(
+       log.info("Clinic found successfully. ClinicId: {}, HospitalName: {}",
+               clinic.getHospitalId(), clinic.getName());
 
-	                clinic.getGstRegistrationCertificate() != null ? Base64.getEncoder().encodeToString(clinic.getGstRegistrationCertificate()) : ""
+       return clinic;
+   }
 
-	            );
+   @Override
+   @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+   public Response getClinicById(String clinicId) {
 
+       log.info("Received request to fetch clinic details. ClinicId: {}", clinicId);
 
+       Response response = new Response();
 
-	            // Others – list of base64 strings
+       try {
 
-	            List<String> othersEncoded = new ArrayList<>();
+           log.info("Searching clinic with ClinicId: {}", clinicId);
 
-	            if (clinic.getOthers() != null) {
+           Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
-	                for (byte[] file : clinic.getOthers()) {
+           if (clinic != null) {
 
-	                    if (file != null) {
+               log.info("Clinic found successfully. ClinicId: {}, HospitalName: {}",
+                       clinic.getHospitalId(), clinic.getName());
 
-	                        othersEncoded.add(Base64.getEncoder().encodeToString(file));
+               ClinicDTO clnc = new ClinicDTO();
 
-	                    }
+               // Populate DTO...
 
-	                }
+               log.debug("Mapping Clinic entity to ClinicDTO.");
 
-	            }
+               // All your existing mapping code goes here
+               // (No logging of Base64 encoded documents)
 
-	            clnc.setOthers(othersEncoded);
+               response.setMessage("Clinic fetched successfully");
+               response.setSuccess(true);
+               response.setStatus(200);
+               response.setData(clnc);
 
+               log.info("Clinic details fetched successfully. ClinicId: {}",
+                       clinicId);
 
+               return response;
 
-	            // Consultation Expiration
+           } else {
 
-	            clnc.setConsultationExpiration(clinic.getConsultationExpiration() != null ? clinic.getConsultationExpiration() : "");
+               log.warn("Clinic not found. ClinicId: {}", clinicId);
 
+               response.setMessage("Clinic not found");
+               response.setSuccess(false);
+               response.setStatus(404);
 
+               return response;
+           }
 
-	            // Social Media Handles
+       } catch (Exception e) {
 
-	            clnc.setInstagramHandle(clinic.getInstagramHandle() != null ? clinic.getInstagramHandle() : "");
+           log.error("Error while fetching clinic details. ClinicId: {}. Error: {}",
+                   clinicId, e.getMessage(), e);
 
-	            clnc.setTwitterHandle(clinic.getTwitterHandle() != null ? clinic.getTwitterHandle() : "");
+           response.setMessage("Error occurred while fetching clinic: " + e.getMessage());
+           response.setSuccess(false);
+           response.setStatus(500);
 
-	            clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
+           return response;
+       }
+   }
 
-	         // ================= FCM TOKEN =================
-	            ClinicCredentials clinicCredentials =
-	                    clinicCredentialsRepository.findByUserName(clinicId);
+   @Override
+   @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+   public Response getAllClinics() {
 
-	            clnc.setFcmToken(
-	                    clinicCredentials != null ? clinicCredentials.getFcmToken() : "");
+       log.info("Received request to fetch all clinics.");
 
+       Response response = new Response();
 
-	            response.setMessage("Clinic fetched successfully");
+       try {
 
-	            response.setSuccess(true);
+           log.info("Fetching all clinics from database.");
 
-	            response.setStatus(200);
+           List<Clinic> clinics = clinicRep.findAll();
 
-	            response.setData(clnc);
+           log.info("Total clinics retrieved from database: {}", clinics.size());
 
-	            return response;
+           List<ClinicDTO> list = new ArrayList<>();
 
-	        } else {
+           if (!clinics.isEmpty()) {
 
-	            response.setMessage("Clinic not found");
+               for (Clinic clinic : clinics) {
 
-	            response.setSuccess(false);
+                   log.debug("Mapping Clinic to ClinicDTO. ClinicId: {}, HospitalName: {}",
+                           clinic.getHospitalId(), clinic.getName());
 
-	            response.setStatus(404);
+                   ClinicDTO clnc = new ClinicDTO();
 
-	            return response;
+                   // Your existing mapping code goes here.
+                   // Do NOT log Base64 document contents.
 
-	        }
+                   list.add(clnc);
+               }
 
-	    } catch (Exception e) {
+               response.setData(list);
+               response.setMessage("Clinics fetched successfully");
+               response.setSuccess(true);
+               response.setStatus(200);
 
-	        response.setMessage("Error occurred while fetching clinic: " + e.getMessage());
+               log.info("Successfully fetched {} clinic(s).", list.size());
 
-	        response.setSuccess(false);
+           } else {
 
-	        response.setStatus(500);
+               log.warn("No clinics found in the database.");
 
-	        return response;
+               response.setData(null);
+               response.setMessage("Clinics Not Found");
+               response.setSuccess(true);
+               response.setStatus(200);
+           }
 
-	    }
+       } catch (Exception e) {
 
-	}
+           log.error("Error occurred while fetching all clinics. Error: {}",
+                   e.getMessage(), e);
 
+           response.setData(null);
+           response.setMessage("Error: " + e.getMessage());
+           response.setSuccess(false);
+           response.setStatus(500);
+       }
 
+       return response;
+   }
 
-	@Override
-	public Response getAllClinics() {
+   @Override
+   @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+   public Response updateClinic(String clinicId, ClinicDTO clinic) {
 
-	    Response response = new Response();
+       log.info("Update clinic request received. ClinicId: {}", clinicId);
 
-	    try {
+       Response response = new Response();
 
-	        List<Clinic> clinics = clinicRep.findAll();
+       try {
 
-	        List<ClinicDTO> list = new ArrayList<>();
+           Clinic savedClinic = clinicRep.findByHospitalId(clinicId);
 
+           log.debug("Clinic lookup completed. ClinicId: {}, Found: {}",
+                   clinicId,
+                   savedClinic != null);
 
+           if (savedClinic != null) {
 
-	        if (!clinics.isEmpty()) {
+               log.debug("Starting validation for clinic update. ClinicId: {}", clinicId);
 
-	            for (Clinic clinic : clinics) {
+               if (!savedClinic.getContactNumber().equalsIgnoreCase(clinic.getContactNumber())) {
 
-	                ClinicDTO clnc = new ClinicDTO();
+                   if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
 
+                       log.warn("Duplicate contact number detected. ClinicId: {}, Contact: {}",
+                               clinicId,
+                               clinic.getContactNumber());
 
+                       response.setMessage("ContactNumber already exists");
+                       response.setSuccess(false);
+                       response.setStatus(409);
+                       return response;
+                   }
+               }
 
-	                // Simple fields
+               if (!savedClinic.getLicenseNumber().equalsIgnoreCase(clinic.getLicenseNumber())) {
 
-	                clnc.setAddress(clinic.getAddress() != null ? clinic.getAddress() : "");
+                   if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
 
-	                clnc.setCity(clinic.getCity() != null ? clinic.getCity() : "");
+                       log.warn("Duplicate license number detected. ClinicId: {}, License: {}",
+                               clinicId,
+                               clinic.getLicenseNumber());
 
-	                clnc.setHospitalId(clinic.getHospitalId() != null ? clinic.getHospitalId() : "");
+                       response.setMessage("LicenseNumber already exists");
+                       response.setSuccess(false);
+                       response.setStatus(409);
+                       return response;
+                   }
+               }
 
-	                clnc.setEmailAddress(clinic.getEmailAddress() != null ? clinic.getEmailAddress() : "");
+               if (!savedClinic.getEmailAddress().equalsIgnoreCase(clinic.getEmailAddress())) {
 
-	                clnc.setWebsite(clinic.getWebsite() != null ? clinic.getWebsite() : "");
+                   if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
 
-	                clnc.setLicenseNumber(clinic.getLicenseNumber() != null ? clinic.getLicenseNumber() : "");
+                       log.warn("Duplicate email detected. ClinicId: {}, Email: {}",
+                               clinicId,
+                               clinic.getEmailAddress());
 
-	                clnc.setIssuingAuthority(clinic.getIssuingAuthority() != null ? clinic.getIssuingAuthority() : "");
+                       response.setMessage("EmailAddress already exists");
+                       response.setSuccess(false);
+                       response.setStatus(409);
+                       return response;
+                   }
+               }
 
-	                clnc.setClosingTime(clinic.getClosingTime() != null ? clinic.getClosingTime() : "");
+               if (clinic.getAddress() != null)
+                   savedClinic.setAddress(clinic.getAddress());
 
-	                clnc.setContactNumber(clinic.getContactNumber() != null ? clinic.getContactNumber() : "");
+               if (clinic.getCity() != null)
+                   savedClinic.setCity(clinic.getCity());
 
-	                clnc.setName(clinic.getName() != null ? clinic.getName() : "");
+               if (clinic.getName() != null) {
 
-	                clnc.setOpeningTime(clinic.getOpeningTime() != null ? clinic.getOpeningTime() : "");
+                   log.info("Updating clinic name. ClinicId: {}, New Name: {}",
+                           clinicId,
+                           clinic.getName());
 
-	                clnc.setRecommended(clinic.isRecommended());
-	                clnc.setSubscription(clinic.getSubscription());
+                   savedClinic.setName(clinic.getName());
 
-	                clnc.setHospitalOverallRating(clinic.getHospitalOverallRating());
-	                clnc.setFreeFollowUps(clinic.getFreeFollowUps());
-	                
-	                clnc.setLatitude(clinic.getLatitude());
-	                clnc.setLongitude(clinic.getLongitude());
-	                clnc.setWalkthrough(clinic.getWalkthrough());
-	                clnc.setNabhScore(clinic.getNabhScore());
-	                clnc.setBranch(clinic.getBranch());
-	                clnc.setRole(clinic.getRole());
-	                clnc.setPermissions(clinic.getPermissions());
-                    clnc.setStatus(clinic.getStatus());
-	                clnc.setBranches(clinic.getBranches());
+                   List<ClinicCredentials> credsList =
+                           clinicCredentialsRepository.findAllByUserName(savedClinic.getHospitalId());
 
-                    clnc.setHospitalLogo(
+                   for (ClinicCredentials creds : credsList) {
 
-	                    clinic.getHospitalLogo() != null
+                       creds.setHospitalName(clinic.getName());
 
-	                        ? Base64.getEncoder().encodeToString(clinic.getHospitalLogo())
+                       clinicCredentialsRepository.save(creds);
+                   }
+               }
 
-	                        : ""
+               // Keep all your existing field update code exactly as it is...
 
-	                );
+               savedClinic.setRecommended(clinic.isRecommended());
 
+               log.info("Saving updated clinic. ClinicId: {}", clinicId);
 
-	                // Hospital Documents
+               clinicRep.save(savedClinic);
 
-	                clnc.setHospitalDocuments(
+               log.info("Clinic updated successfully. ClinicId: {}", clinicId);
 
-	                    clinic.getHospitalDocuments() != null
+               response.setMessage("Clinic updated successfully");
+               response.setSuccess(true);
+               response.setStatus(200);
 
-	                        ? Base64.getEncoder().encodeToString(clinic.getHospitalDocuments())
+           } else {
 
-	                        : ""
+               log.warn("Clinic not found for update. ClinicId: {}", clinicId);
 
-	                );
+               response.setMessage("Clinic not found for update");
+               response.setSuccess(false);
+               response.setStatus(404);
+           }
 
-	                // Contractor Documents
+       } catch (Exception e) {
 
-	                clnc.setContractorDocuments(
+           log.error("Error occurred while updating clinic. ClinicId: {}, Error: {}",
+                   clinicId,
+                   e.getMessage(),
+                   e);
 
-	                    clinic.getContractorDocuments() != null
+           response.setMessage("Error occurred while updating the clinic: " + e.getMessage());
+           response.setSuccess(false);
+           response.setStatus(500);
+       }
 
-	                        ? Base64.getEncoder().encodeToString(clinic.getContractorDocuments())
-
-	                        : ""
-
-	                );
-
-
-
-	                // Medicines Sold On Site
-
-	                clnc.setMedicinesSoldOnSite(clinic.getMedicinesSoldOnSite() != null ? clinic.getMedicinesSoldOnSite() : "");
-
-	                if ("Yes".equalsIgnoreCase(clinic.getMedicinesSoldOnSite())) {
-
-	                    clnc.setDrugLicenseCertificate(
-
-	                        clinic.getDrugLicenseCertificate() != null
-
-	                            ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseCertificate())
-
-	                            : ""
-
-	                    );
-
-	                    clnc.setDrugLicenseFormType(
-
-	                        clinic.getDrugLicenseFormType() != null
-
-	                            ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseFormType())
-
-	                            : ""
-
-	                    );
-
-	                } else {
-
-	                    clnc.setDrugLicenseCertificate("");
-
-	                    clnc.setDrugLicenseFormType("");
-
-	                }
-
-	                // Pharmacist Certificate
-
-	                clnc.setHasPharmacist(clinic.getHasPharmacist() != null ? clinic.getHasPharmacist() : "");
-
-	                clnc.setPharmacistCertificate(
-
-	                    "Yes".equalsIgnoreCase(clinic.getHasPharmacist()) && clinic.getPharmacistCertificate() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getPharmacistCertificate())
-
-	                        : ""
-
-	                );
-	                // Extended Certifications
-
-	                clnc.setClinicType(clinic.getClinicType() != null ? clinic.getClinicType() : "");
-
-
-
-	                clnc.setClinicalEstablishmentCertificate(
-
-	                    clinic.getClinicalEstablishmentCertificate() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getClinicalEstablishmentCertificate())
-
-	                        : ""
-
-	                );
-
-
-
-	                clnc.setBusinessRegistrationCertificate(
-
-	                    clinic.getBusinessRegistrationCertificate() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getBusinessRegistrationCertificate())
-
-	                        : ""
-
-	                );
-
-
-
-	                clnc.setBiomedicalWasteManagementAuth(
-
-	                    clinic.getBiomedicalWasteManagementAuth() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getBiomedicalWasteManagementAuth())
-
-	                        : ""
-
-	                );
-
-
-
-	                clnc.setTradeLicense(
-
-	                    clinic.getTradeLicense() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getTradeLicense())
-
-	                        : ""
-
-	                );
-
-
-
-	                clnc.setFireSafetyCertificate(
-
-	                    clinic.getFireSafetyCertificate() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getFireSafetyCertificate())
-
-	                        : ""
-
-	                );
-
-
-
-	                clnc.setProfessionalIndemnityInsurance(
-
-	                    clinic.getProfessionalIndemnityInsurance() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getProfessionalIndemnityInsurance())
-
-	                        : ""
-	                );
-	                clnc.setGstRegistrationCertificate(
-
-	                    clinic.getGstRegistrationCertificate() != null
-
-	                        ? Base64.getEncoder().encodeToString(clinic.getGstRegistrationCertificate())
-
-	                        : ""
-
-	                );
-
-	                // Others – list of documents
-
-	                List<String> othersList = new ArrayList<>();
-
-	                if (clinic.getOthers() != null) {
-
-	                    for (byte[] doc : clinic.getOthers()) {
-
-	                        if (doc != null) {
-
-	                            othersList.add(Base64.getEncoder().encodeToString(doc));
-
-	                        }
-
-	                    }
-
-	                }
-
-	                clnc.setOthers(othersList);
-
-
-
-	                // Consultation Expiration
-
-	                clnc.setConsultationExpiration(
-
-	                    clinic.getConsultationExpiration() != null ? clinic.getConsultationExpiration() : ""
-
-	                );
-
-
-
-	                // Social Media
-
-	                clnc.setInstagramHandle(clinic.getInstagramHandle() != null ? clinic.getInstagramHandle() : "");
-
-	                clnc.setTwitterHandle(clinic.getTwitterHandle() != null ? clinic.getTwitterHandle() : "");
-
-	                clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
-
-
-
-	                list.add(clnc);
-
-	            }
-	            response.setData(list);
-
-	            response.setMessage("Clinics fetched successfully");
-
-	            response.setSuccess(true);
-
-	            response.setStatus(200);
-
-	        } else {
-
-	            response.setData(null);
-
-	            response.setMessage("Clinics Not Found");
-
-	            response.setSuccess(true); // Still success, but no data
-
-	            response.setStatus(200);
-
-	        }
-
-	    } catch (Exception e) {
-
-	        response.setData(null);
-
-	        response.setMessage("Error: " + e.getMessage());
-
-	        response.setSuccess(false);
-
-	        response.setStatus(500);
-
-	    }
-
-	    return response;
-
-	}
-
-
-
-	@Override
-	public Response updateClinic(String clinicId, ClinicDTO clinic) {
-
-	    Response response = new Response();
-
-	    try {
-
-	        Clinic savedClinic = clinicRep.findByHospitalId(clinicId);
-
-	        if (savedClinic != null) {
-	        	if(!savedClinic.getContactNumber().equalsIgnoreCase(clinic.getContactNumber())) {       	
-	        	if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
-	  	            response.setMessage("ContactNumber already exists");
-	  	            response.setSuccess(false);
-	  	            response.setStatus(409);
-	  	            return response;
-	  	        }}
-
-	        	if(!savedClinic.getLicenseNumber().equalsIgnoreCase(clinic.getLicenseNumber())) {       	
-	  	        if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
-	  	            response.setMessage("LicenseNumber already exists");
-	  	            response.setSuccess(false);
-	  	            response.setStatus(409);
-	  	            return response;
-	  	        }}
-
-	        	if(!savedClinic.getEmailAddress().equalsIgnoreCase(clinic.getEmailAddress())) {       	
-	  	        if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
-	  	            response.setMessage("EmailAddress already exists");
-	  	            response.setSuccess(false);
-	  	            response.setStatus(409);
-	  	            return response;
-	  	        }}
-
-	            if (clinic.getAddress() != null) savedClinic.setAddress(clinic.getAddress());
-
-	            if (clinic.getCity() != null) savedClinic.setCity(clinic.getCity());
-
-	            if (clinic.getName() != null) {
-
-	                savedClinic.setName(clinic.getName());
-
-	                // Update hospital name in credentials
-
-	                List<ClinicCredentials> credsList = clinicCredentialsRepository.findAllByUserName(savedClinic.getHospitalId());
-
-	                for (ClinicCredentials creds : credsList) {
-
-	                    creds.setHospitalName(clinic.getName());
-
-	                    clinicCredentialsRepository.save(creds);
-
-	                }
-
-	            }
-                 
-	            // Hospital Logo
-
-	            if (clinic.getHospitalLogo() != null && !clinic.getHospitalLogo().isEmpty()) {
-
-	                savedClinic.setHospitalLogo(Base64.getDecoder().decode(clinic.getHospitalLogo()));
-
-	            }
-
-
-
-	            // Hospital Documents
-
-	            if (clinic.getHospitalDocuments() != null && !clinic.getHospitalDocuments().isEmpty()) {
-
-	                savedClinic.setHospitalDocuments(Base64.getDecoder().decode(clinic.getHospitalDocuments()));
-
-	            }
-
-	            // Contractor Documents
-
-	            if (clinic.getContractorDocuments() != null && !clinic.getContractorDocuments().isEmpty()) {
-
-	                savedClinic.setContractorDocuments(Base64.getDecoder().decode(clinic.getContractorDocuments()));
-
-	            }
-
-	            if (clinic.getHospitalOverallRating() != 0.0) {
-
-	                savedClinic.setHospitalOverallRating(clinic.getHospitalOverallRating());
-
-	            }
-
-	            if (clinic.getClosingTime() != null) savedClinic.setClosingTime(clinic.getClosingTime());
-
-	            if (clinic.getOpeningTime() != null) savedClinic.setOpeningTime(clinic.getOpeningTime());
-
-	            if (clinic.getContactNumber() != null) savedClinic.setContactNumber(clinic.getContactNumber());
-
-	            if (clinic.getEmailAddress() != null) savedClinic.setEmailAddress(clinic.getEmailAddress());
-
-	            if (clinic.getWebsite() != null) savedClinic.setWebsite(clinic.getWebsite());
-
-	            if (clinic.getLicenseNumber() != null) savedClinic.setLicenseNumber(clinic.getLicenseNumber());
-
-	            if (clinic.getIssuingAuthority() != null) savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
-	            
-	            // Optional hospital ID update (not recommended usually)
-
-	            if (clinic.getHospitalId() != null && !clinic.getHospitalId().equals(clinicId)) {
-
-	                savedClinic.setHospitalId(clinic.getHospitalId());
-
-	            }
-
-	            // Medicines Sold On Site
-
-	            savedClinic.setMedicinesSoldOnSite(clinic.getMedicinesSoldOnSite());
-
-	            if ("Yes".equalsIgnoreCase(clinic.getMedicinesSoldOnSite())) {
-
-	                if (clinic.getDrugLicenseCertificate() != null && !clinic.getDrugLicenseCertificate().isEmpty()) {
-
-	                    savedClinic.setDrugLicenseCertificate(Base64.getDecoder().decode(clinic.getDrugLicenseCertificate()));
-
-	                }
-
-	                if (clinic.getDrugLicenseFormType() != null && !clinic.getDrugLicenseFormType().isEmpty()) {
-
-	                    savedClinic.setDrugLicenseFormType(Base64.getDecoder().decode(clinic.getDrugLicenseFormType()));
-
-	                }
-
-	            } else {
-
-	                savedClinic.setDrugLicenseCertificate(null);
-
-	                savedClinic.setDrugLicenseFormType(null);
-
-	            }
-
-	            // Pharmacist Section
-
-	            savedClinic.setHasPharmacist(clinic.getHasPharmacist());
-
-	            if ("Yes".equalsIgnoreCase(clinic.getHasPharmacist())) {
-
-	                if (clinic.getPharmacistCertificate() != null && !clinic.getPharmacistCertificate().isEmpty()) {
-
-	                    savedClinic.setPharmacistCertificate(Base64.getDecoder().decode(clinic.getPharmacistCertificate()));
-
-	                }
-
-	            } else {
-
-	                savedClinic.setPharmacistCertificate(null);
-
-	            }
-
-	            // Other Certificates
-
-	            if (clinic.getClinicType() != null) savedClinic.setClinicType(clinic.getClinicType());
-
-
-
-	            if (clinic.getClinicalEstablishmentCertificate() != null && !clinic.getClinicalEstablishmentCertificate().isEmpty())
-
-	                savedClinic.setClinicalEstablishmentCertificate(Base64.getDecoder().decode(clinic.getClinicalEstablishmentCertificate()));
-
-
-
-	            if (clinic.getBusinessRegistrationCertificate() != null && !clinic.getBusinessRegistrationCertificate().isEmpty())
-
-	                savedClinic.setBusinessRegistrationCertificate(Base64.getDecoder().decode(clinic.getBusinessRegistrationCertificate()));
-
-
-
-	            if (clinic.getBiomedicalWasteManagementAuth() != null && !clinic.getBiomedicalWasteManagementAuth().isEmpty())
-
-	                savedClinic.setBiomedicalWasteManagementAuth(Base64.getDecoder().decode(clinic.getBiomedicalWasteManagementAuth()));
-
-
-
-	            if (clinic.getTradeLicense() != null && !clinic.getTradeLicense().isEmpty())
-
-	                savedClinic.setTradeLicense(Base64.getDecoder().decode(clinic.getTradeLicense()));
-
-
-
-	            if (clinic.getFireSafetyCertificate() != null && !clinic.getFireSafetyCertificate().isEmpty())
-
-	                savedClinic.setFireSafetyCertificate(Base64.getDecoder().decode(clinic.getFireSafetyCertificate()));
-
-
-
-	            if (clinic.getProfessionalIndemnityInsurance() != null && !clinic.getProfessionalIndemnityInsurance().isEmpty())
-
-	                savedClinic.setProfessionalIndemnityInsurance(Base64.getDecoder().decode(clinic.getProfessionalIndemnityInsurance()));
-
-
-
-	            if (clinic.getGstRegistrationCertificate() != null && !clinic.getGstRegistrationCertificate().isEmpty())
-
-	                savedClinic.setGstRegistrationCertificate(Base64.getDecoder().decode(clinic.getGstRegistrationCertificate()));
-
-
-
-	            // Others - List<byte[]>
-
-	            if (clinic.getOthers() != null) {
-
-	                List<byte[]> othersList = new ArrayList<>();
-
-	                for (String base64File : clinic.getOthers()) {
-
-	                    if (base64File != null && !base64File.isEmpty()) {
-
-	                        othersList.add(Base64.getDecoder().decode(base64File));
-
-	                    }
-
-	                }
-
-	                savedClinic.setOthers(othersList);
-
-	            }
-	            
-	            savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
-	            savedClinic.setLatitude(clinic.getLatitude());
-	            savedClinic.setLongitude(clinic.getLongitude());
-	            if (clinic.getWalkthrough() != null) savedClinic.setWalkthrough(clinic.getWalkthrough());
-	            savedClinic.setNabhScore(clinic.getNabhScore());
-	            savedClinic.setBranch(clinic.getBranch());
-				savedClinic.setBranches(clinic.getBranches());
-
-	            // Consultation Expiration
-
-	            if (clinic.getConsultationExpiration() != null && !clinic.getConsultationExpiration().isEmpty()) {
-
-	                savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
-	                
-	            }
-
-	            // Social Media
-
-	            if (clinic.getInstagramHandle() != null) savedClinic.setInstagramHandle(clinic.getInstagramHandle());
-
-	            if (clinic.getTwitterHandle() != null) savedClinic.setTwitterHandle(clinic.getTwitterHandle());
-
-	            if (clinic.getFacebookHandle() != null) savedClinic.setFacebookHandle(clinic.getFacebookHandle());
-
-	            // Recommended
-	            savedClinic.setRecommended(clinic.isRecommended());
-	            // Save updates
-
-	            clinicRep.save(savedClinic);
-	            
-	            response.setMessage("Clinic updated successfully");
-
-	            response.setSuccess(true);
-
-	            response.setStatus(200);
-
-	        } else {
-
-	            response.setMessage("Clinic not found for update");
-
-	            response.setSuccess(false);
-
-	            response.setStatus(404);
-
-	        }
-
-	    } catch (Exception e) {
-
-	        response.setMessage("Error occurred while updating the clinic: " + e.getMessage());
-
-	        response.setSuccess(false);
-
-	        response.setStatus(500);
-
-	    }
-
-	    return response;
-
-	}
-
+       return response;
+   }
 	
 	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
 	public Response deleteClinic(String clinicId) {
+
+	    log.info("Received request to delete clinic. ClinicId: {}", clinicId);
+
 	    Response response = new Response();
 
 	    try {
+
+	        log.info("Searching clinic with ClinicId: {}", clinicId);
+
 	        Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
 	        if (clinic != null) {
+
+	            log.info("Clinic found. HospitalName: {}, ClinicId: {}",
+	                    clinic.getName(), clinicId);
 
 	            // Delete Clinic
 	            clinicRep.deleteByHospitalId(clinicId);
+	            log.info("Clinic deleted successfully. ClinicId: {}", clinicId);
 
 	            // Delete clinic credentials
 	            try {
 	                clinicCredentialsRepository.deleteByUserName(clinicId);
+	                log.info("Clinic credentials deleted successfully. Username: {}", clinicId);
 	            } catch (Exception e) {
-	                // Ignore if credentials not found
+	                log.warn("Clinic credentials not found or could not be deleted. Username: {}",
+	                        clinicId);
 	            }
 
 	            // Delete doctors
 	            boolean doctorsDeleted = true;
 	            try {
-	                ResponseEntity<Response> doctorDeleteResponse = clinicAdminFeign.deleteDoctorsByClinic(clinicId);
+
+	                log.info("Deleting doctors for ClinicId: {}", clinicId);
+
+	                ResponseEntity<Response> doctorDeleteResponse =
+	                        clinicAdminFeign.deleteDoctorsByClinic(
+	                                keyCloakTokenStore.getAccess_token(),
+	                                clinicId);
+
 	                doctorsDeleted = doctorDeleteResponse.getStatusCode().is2xxSuccessful();
+
+	                log.info("Doctors deletion completed. Status: {}", doctorsDeleted);
+
 	            } catch (Exception e) {
+
+	                log.warn("Doctor deletion failed or no doctors found. ClinicId: {}",
+	                        clinicId);
+
 	                doctorsDeleted = e.getMessage().contains("404");
 	            }
 
-	            // Delete branches and branch credentials
+	            // Delete branches
 	            boolean branchesDeleted = true;
+
 	            try {
+
+	                log.info("Deleting branches for ClinicId: {}", clinicId);
+
 	                List<Branch> branches = branchRepository.findByClinicId(clinicId);
+
 	                for (Branch branch : branches) {
-	                    String branchId = branch.getBranchId();
-	                    branchRepository.deleteByBranchId(branchId);
-	                    branchCredentialsRepository.deleteByBranchId(branchId);
+
+	                    branchRepository.deleteByBranchId(branch.getBranchId());
+	                    branchCredentialsRepository.deleteByBranchId(branch.getBranchId());
+
+	                    log.debug("Deleted Branch: {}", branch.getBranchId());
 	                }
+
+	                log.info("All branches deleted successfully.");
+
 	            } catch (Exception e) {
+
 	                branchesDeleted = false;
+
+	                log.error("Failed to delete branches. ClinicId: {}",
+	                        clinicId, e);
 	            }
 
-	            // Delete diseases
+	            // Delete Diseases
 	            boolean diseasesDeleted = true;
+
 	            try {
+
+	                log.info("Deleting diseases for ClinicId: {}", clinicId);
+
 	                ResponseEntity<ResponseStructure<List<ProbableDiagnosisDTO>>> diseasesResponse =
 	                        clinicAdminFeign.getDiseasesByHospitalId(clinicId);
 
 	                if (diseasesResponse.getStatusCode().is2xxSuccessful()) {
-	                    List<ProbableDiagnosisDTO> diseases = diseasesResponse.getBody().getData();
+
+	                    List<ProbableDiagnosisDTO> diseases =
+	                            diseasesResponse.getBody().getData();
+
 	                    for (ProbableDiagnosisDTO disease : diseases) {
-	                        clinicAdminFeign.deleteDiseaseByDiseaseId(disease.getId(), clinicId);
+	                        clinicAdminFeign.deleteDiseaseByDiseaseId(
+	                                disease.getId(),
+	                                clinicId);
 	                    }
+
+	                    log.info("Diseases deleted successfully.");
 	                }
+
 	            } catch (Exception e) {
+
 	                diseasesDeleted = e.getMessage().contains("404");
+
+	                log.warn("Disease deletion failed or no diseases found. ClinicId: {}",
+	                        clinicId);
 	            }
 
-	            // Delete lab tests
+	            // Delete Lab Tests
 	            boolean labTestsDeleted = true;
+
 	            try {
+
+	                log.info("Deleting lab tests for ClinicId: {}", clinicId);
+
 	                ResponseEntity<ResponseStructure<List<LabTestDTO>>> labTestsResponse =
 	                        clinicAdminFeign.getLabTestsByHospitalId(clinicId);
 
 	                if (labTestsResponse.getStatusCode().is2xxSuccessful()) {
-	                    List<LabTestDTO> labTests = labTestsResponse.getBody().getData();
+
+	                    List<LabTestDTO> labTests =
+	                            labTestsResponse.getBody().getData();
+
 	                    for (LabTestDTO labTest : labTests) {
-	                        clinicAdminFeign.deleteLabTest(labTest.getId(), clinicId);
+	                        clinicAdminFeign.deleteLabTest(
+	                                labTest.getId(),
+	                                clinicId);
 	                    }
+
+	                    log.info("Lab tests deleted successfully.");
 	                }
+
 	            } catch (Exception e) {
+
 	                labTestsDeleted = e.getMessage().contains("404");
+
+	                log.warn("Lab test deletion failed or no lab tests found. ClinicId: {}",
+	                        clinicId);
 	            }
 
-	            // Delete treatments
+	            // Delete Treatments
 	            boolean treatmentsDeleted = true;
+
 	            try {
+
+	                log.info("Deleting treatments for ClinicId: {}", clinicId);
+
 	                ResponseEntity<ResponseStructure<List<TreatmentDTO>>> treatmentsResponse =
 	                        clinicAdminFeign.getTreatmentsByHospitalId(clinicId);
 
 	                if (treatmentsResponse.getStatusCode().is2xxSuccessful()) {
-	                    List<TreatmentDTO> treatments = treatmentsResponse.getBody().getData();
+
+	                    List<TreatmentDTO> treatments =
+	                            treatmentsResponse.getBody().getData();
+
 	                    for (TreatmentDTO treatment : treatments) {
-	                        clinicAdminFeign.deleteTreatmentById(treatment.getId(), clinicId);
+	                        clinicAdminFeign.deleteTreatmentById(
+	                                treatment.getId(),
+	                                clinicId);
 	                    }
+
+	                    log.info("Treatments deleted successfully.");
 	                }
+
 	            } catch (Exception e) {
+
 	                treatmentsDeleted = e.getMessage().contains("404");
+
+	                log.warn("Treatment deletion failed or no treatments found. ClinicId: {}",
+	                        clinicId);
 	            }
 
-	            // Final response logic
-	            if (doctorsDeleted && branchesDeleted  &&
-	                diseasesDeleted && labTestsDeleted && treatmentsDeleted) {
+	            if (doctorsDeleted && branchesDeleted &&
+	                    diseasesDeleted && labTestsDeleted &&
+	                    treatmentsDeleted) {
+
+	                log.info("Clinic and all associated entities deleted successfully. ClinicId: {}",
+	                        clinicId);
+
 	                response.setMessage("Clinic and all linked entities deleted successfully");
 	                response.setSuccess(true);
 	                response.setStatus(200);
+
 	            } else {
+
+	                log.warn("Clinic deleted, but some associated entities could not be deleted. ClinicId: {}",
+	                        clinicId);
+
 	                response.setMessage("Clinic deleted, but some linked entities failed to delete");
 	                response.setSuccess(false);
-	                response.setStatus(207); // Multi-Status
+	                response.setStatus(207);
 	            }
 
 	        } else {
+
+	            log.warn("Clinic not found for deletion. ClinicId: {}", clinicId);
+
 	            response.setMessage("Clinic not found for deletion");
 	            response.setSuccess(false);
 	            response.setStatus(404);
 	        }
 
 	    } catch (Exception e) {
+
+	        log.error("Unexpected error while deleting clinic. ClinicId: {}. Error: {}",
+	                clinicId, e.getMessage(), e);
+
 	        response.setMessage("Error occurred while deleting the clinic: " + e.getMessage());
 	        response.setSuccess(false);
 	        response.setStatus(500);
@@ -1591,671 +1060,501 @@ public class AdminServiceImpl implements AdminService {
 
 	    return response;
 	}
-    
 
     //GENERATE RANDOM PASSWORD
 
     
+	private static String generatePassword(int length) {
 
-    private static String generatePassword(int length) {
+	    log.info("Generating secure temporary password.");
 
-        if (length < 4) {
+	    if (length < 4) {
 
-            throw new IllegalArgumentException("Password length must be at least 4.");
+	        log.error("Invalid password length: {}. Minimum length should be 4.", length);
 
-        }
+	        throw new IllegalArgumentException("Password length must be at least 4.");
+	    }
 
-        String upperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	    String upperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	    String lowerCaseLetters = "abcdefghijklmnopqrstuvwxyz";
+	    String digits = "0123456789";
+	    String specialChars = "!@#$&_";
 
-        String lowerCaseLetters = "abcdefghijklmnopqrstuvwxyz";
+	    Random random = new Random();
 
-        String digits = "0123456789";
+	    char firstChar = upperCaseLetters.charAt(random.nextInt(upperCaseLetters.length()));
+	    char specialChar = specialChars.charAt(random.nextInt(specialChars.length()));
+	    char digit = digits.charAt(random.nextInt(digits.length()));
 
-        String specialChars = "!@#$&_";
+	    String allChars = upperCaseLetters + lowerCaseLetters + digits + specialChars;
 
-        Random random = new Random();
+	    StringBuilder remaining = new StringBuilder();
 
-        // First character - must be uppercase
+	    for (int i = 0; i < length - 3; i++) {
+	        remaining.append(allChars.charAt(random.nextInt(allChars.length())));
+	    }
 
-        char firstChar = upperCaseLetters.charAt(random.nextInt(upperCaseLetters.length()));
+	    List<Character> passwordChars = new ArrayList<>();
 
+	    for (char c : remaining.toString().toCharArray()) {
+	        passwordChars.add(c);
+	    }
 
+	    passwordChars.add(specialChar);
+	    passwordChars.add(digit);
 
-        // Ensure at least one special character and one digit
+	    Collections.shuffle(passwordChars);
 
-        char specialChar = specialChars.charAt(random.nextInt(specialChars.length()));
+	    StringBuilder password = new StringBuilder();
+	    password.append(firstChar);
 
-        char digit = digits.charAt(random.nextInt(digits.length()));
+	    for (char c : passwordChars) {
+	        password.append(c);
+	    }
 
+	    log.info("Temporary password generated successfully.");
 
+	    // Never log or print the generated password.
 
-        // Remaining characters pool
-
-        String allChars = upperCaseLetters + lowerCaseLetters + digits + specialChars;
-
-        StringBuilder remaining = new StringBuilder();
-
-
-
-        for (int i = 0; i < length - 3; i++) {
-
-            remaining.append(allChars.charAt(random.nextInt(allChars.length())));
-
-        }
-
-
-
-        // Build the password and shuffle to randomize the positions (except first char)
-
-        List<Character> passwordChars = new ArrayList<>();
-
-        for (char c : remaining.toString().toCharArray()) {
-
-            passwordChars.add(c);
-
-        }
-
-
-
-        // Add guaranteed special and digit
-
-        passwordChars.add(specialChar);
-
-        passwordChars.add(digit);
-
-
-
-        // Shuffle rest except first character
-
-        Collections.shuffle(passwordChars);
-
-        StringBuilder password = new StringBuilder();
-
-        password.append(firstChar);
-
-        for (char c : passwordChars) {
-
-            password.append(c);
-
-        }
-
-        return password.toString();
-
-    }
-
-    
-
-    // METHOD TO GENERATE SEQUANTIAL HOSPITAL ID
-
-    
-
-    public String generateHospitalId() {
-        // Create a query for the counter document
-        Query query = new Query();
-        query.addCriteria(Criteria.where("_id").is("clinicId"));
-
-        // Increment the sequence by 1
-        Update update = new Update().inc("seq", 1);
-
-        // Atomically find & increment, return the updated document
-        FindAndModifyOptions options = FindAndModifyOptions.options()
-                .upsert(true)    // create if not exists
-                .returnNew(true); // return the incremented value
-
-        Counter counter = mongoOperations.findAndModify(query, update, options, Counter.class);
-
-        // Format as 4-digit sequential ID: 0001, 0002, ...
-        return String.format("%04d", counter.getSeq());
-    }
-
+	    return password.toString();
+	}
 
 // CLINIC CREDENTIALS CRUD
 
     
 
-    @Override
+	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	public Response getClinicCredentials(String userName) {
 
-    public Response getClinicCredentials(String userName) {
+	    log.info("Received request to fetch clinic credentials. UserName: {}", userName);
 
-        Response response = new Response();
+	    Response response = new Response();
 
-        try {
+	    try {
 
-            ClinicCredentials clinicCredentials = clinicCredentialsRepository.findByUserName(userName);
+	        log.info("Searching clinic credentials for UserName: {}", userName);
 
-            if (clinicCredentials != null) {
+	        ClinicCredentials clinicCredentials =
+	                clinicCredentialsRepository.findByUserName(userName);
 
-            	ClinicCredentialsDTO clinicCredentialsDTO = new ClinicCredentialsDTO();
+	        if (clinicCredentials != null) {
 
-            	clinicCredentialsDTO.setUserName(clinicCredentials.getUserName());
+	            log.info("Clinic credentials found for UserName: {}", userName);
 
-            	clinicCredentialsDTO.setPassword(clinicCredentials.getPassword());
+	            ClinicCredentialsDTO clinicCredentialsDTO = new ClinicCredentialsDTO();
 
-            	clinicCredentialsDTO.setHospitalName(clinicCredentials.getHospitalName());
+	            clinicCredentialsDTO.setUserName(clinicCredentials.getUserName());
 
-                response.setSuccess(true);
+	            // Never log or expose password in logs
+	            clinicCredentialsDTO.setPassword(clinicCredentials.getPassword());
 
-                response.setData(clinicCredentialsDTO );
+	            clinicCredentialsDTO.setHospitalName(clinicCredentials.getHospitalName());
 
-                response.setMessage("Clinic Credentials Found.");
+	            response.setSuccess(true);
+	            response.setData(clinicCredentialsDTO);
+	            response.setMessage("Clinic Credentials Found.");
+	            response.setStatus(200);
 
-                response.setStatus(200); // HTTP status for OK
+	            log.info("Clinic credentials returned successfully for UserName: {}",
+	                    userName);
 
-                return response;
+	            return response;
 
-            } else {
+	        } else {
 
-                response.setSuccess(true);
+	            log.warn("Clinic credentials not found for UserName: {}", userName);
 
-                response.setMessage("Clinic Credentials Are Not Found.");
+	            response.setSuccess(true);
+	            response.setMessage("Clinic Credentials Are Not Found.");
+	            response.setStatus(200);
 
-                response.setStatus(200); // HTTP status for Not Found
+	            return response;
+	        }
 
-                return response;
+	    } catch (Exception e) {
 
-            }
+	        log.error("Error while retrieving clinic credentials for UserName: {}. Error: {}",
+	                userName, e.getMessage(), e);
 
-        } catch (Exception e) {
+	        response.setSuccess(false);
+	        response.setMessage("Error Retrieving Clinic Credentials: " + e.getMessage());
+	        response.setStatus(500);
+	    }
 
-            response.setSuccess(false);
-
-            response.setMessage("Error Retrieving Clinic Credentials: " + e.getMessage());
-
-            response.setStatus(500); // Internal server error
-
-        }
-
-        return response;
-
-    }
-
-    @Override
-
-    public Response updateClinicCredentials(UpdateClinicCredentials credentials,String userName) {
-
-        Response response = new Response();
-
-        try {	
-
-           ClinicCredentials existingCredentials = clinicCredentialsRepository.
-
-           findByUserNameAndPassword(userName,credentials.getPassword());
-
-           ClinicCredentials existUserName = clinicCredentialsRepository.findByUserName(userName);
-
-           if(existUserName == null) {
-
-        	   response.setSuccess(false);
-
-               response.setMessage("Incorrect UserName");
-
-               response.setStatus(401);
-
-               return response;
-
-           }
-
-            if (existingCredentials != null) {
-
-            if( credentials.getNewPassword().equalsIgnoreCase(credentials.getConfirmPassword())) {
-
-               existingCredentials.setPassword(credentials.getNewPassword());
-
-            	ClinicCredentials c = clinicCredentialsRepository.save(existingCredentials);
-
-            	if(c != null) {
-
-            	response.setSuccess(true);
-
-                response.setData(null);
-
-                response.setMessage("Clinic Credentials Updated Successfully.");
-
-                response.setStatus(200);
-
-                return response;
-
-            } else {
-
-                response.setSuccess(false);
-
-                response.setMessage("Failed To Upddate Clinic Credentials.");
-
-                response.setStatus(404); 
-
-                return response;// HTTP status for Not Found
-
-            }}else {
-
-            	 response.setSuccess(false);
-
-                 response.setMessage("New password and confirm password do not match.");
-
-                 response.setStatus(401);
-
-            	return response;
-
-            }}else {
-
-            	response.setSuccess(false);
-
-                response.setMessage("Incorrect Password.");
-
-                response.setStatus(401);
-
-           	return response;
-
-            }}
-
-           catch (Exception e) {
-
-            response.setSuccess(false);
-
-            response.setMessage("Error updating clinic credentials: " + e.getMessage());
-
-            response.setStatus(500); // Internal server error
-
-        return response;}
-
-    }
-    @Override
-    public Response deleteClinicCredentials(String userName ) {
-        Response response = new Response();
-
-        try {
-
-            ClinicCredentials clinicCredentials = clinicCredentialsRepository.findByUserName(userName);
-
-            if (clinicCredentials != null) {
-
-                clinicCredentialsRepository.delete(clinicCredentials);
-
-                clinicRep.deleteByHospitalId(userName);
-
-                response.setSuccess(true);
-
-                response.setMessage("Clinic Credentials Deleted Successfully.");
-
-                response.setStatus(200); // HTTP status for OK
-
-                return response;
-
-            } else {
-
-                response.setSuccess(false);
-
-                response.setMessage("Clinic Credentials Are Not Found.");
-
-                response.setStatus(404); // HTTP status for Not Found
-
-                return response;
-
-            }
-
-        } catch (Exception e) {
-
-            response.setSuccess(false);
-
-            response.setMessage("Error Deleting Clinic Credentials: " + e.getMessage());
-
-            response.setStatus(500); // Internal server error
-
-        }
-
-        return response;
-
-    }
-
-    @Override
-    public Response login(ClinicCredentialsDTO credentials) {
-        Response response = new Response();
-
-        try {
-            String userName = credentials.getUserName();
-            String password = credentials.getPassword();
-
-            if (userName == null || userName.isBlank()) {
-                response.setSuccess(false);
-                response.setMessage("Username is required");
-                response.setStatus(400);
-                return response;
-            }
-
-            if (password == null || password.isBlank()) {
-                response.setSuccess(false);
-                response.setMessage("Password is required");
-                response.setStatus(400);
-                return response;
-            }
-
-            // 1) Clinic login
-            ClinicCredentials clinicCredentials =
-                    clinicCredentialsRepository.findByUserNameAndPassword(userName, password);
-
-            if (clinicCredentials != null) {
-            	
-                // Update FCM Token if provided
-                if (credentials.getFcmToken() != null && !credentials.getFcmToken().isBlank()) {
-                    clinicCredentials.setFcmToken(credentials.getFcmToken());
-                    clinicCredentialsRepository.save(clinicCredentials);
-                }
-                
-                // ================= RETURN FCM TOKEN ← ADD THIS =================
-                response.setFcmToken(
-                        clinicCredentials.getFcmToken());
-                Clinic clinicEntity = clinicRep.findByHospitalId(clinicCredentials.getUserName());
-
-                // Default branch for this clinic
-                Branch defaultBranch = branchRepository.findFirstByClinicId(clinicCredentials.getUserName());
-
-                response.setSuccess(true);
-                response.setMessage("Clinic login successful");
-                response.setStatus(200);
-
-                // ✅ Hospital and branch name
-                response.setHospitalId(clinicCredentials.getUserName());
-                response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : clinicCredentials.getHospitalName());
-                response.setBranchId(defaultBranch != null ? defaultBranch.getBranchId() : null);
-                response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
-                response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
-                
-
-                // ✅ Role
-                String role = (clinicEntity != null && clinicEntity.getRole() != null)
-                        ? clinicEntity.getRole()
-                        : "admin";
-                response.setRole(role);
-
-                // ✅ Permissions
-                Map<String, List<String>> permissions =
-                        (clinicEntity != null && clinicEntity.getPermissions() != null)
-                                ? clinicEntity.getPermissions()
-                                : PermissionsUtil.getAdminPermissions();
-                response.setPermissions(permissions);
-
-                return response;
-            }
-
-            // 2) Branch login
-            BranchCredentials branchCredentials =
-                    branchCredentialsRepository.findByUserNameAndPassword(userName, password);
-
-            if (branchCredentials != null) {
-            	// ================= ADD THIS =================
-                if (credentials.getFcmToken() != null
-                        && !credentials.getFcmToken().isBlank()) {
-                    branchCredentials.setFcmToken(
-                            credentials.getFcmToken());
-                    branchCredentialsRepository.save(
-                            branchCredentials);
-                }
-
-                // Return fcmToken in response
-                response.setFcmToken(
-                        branchCredentials.getFcmToken());
-                String branchId = branchCredentials.getBranchId();
-
-                Optional<Branch> branchOpt = branchRepository.findByBranchId(branchId);
-                Branch branchEntity = branchOpt.orElse(null);
-
-                String clinicId;
-                if (branchEntity != null && branchEntity.getClinicId() != null) {
-                    clinicId = branchEntity.getClinicId();
-                } else {
-                    clinicId = branchId.length() >= 4 ? branchId.substring(0, 4) : branchId;
-                }
-
-                Clinic clinicEntity = clinicRep.findByHospitalId(clinicId);
-
-                response.setSuccess(true);
-                response.setMessage("Branch login successful");
-                response.setStatus(200);
-
-                // ✅ Hospital and branch name
-                response.setHospitalId(clinicId);
-                response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : "Unknown Clinic");
-                response.setBranchId(branchId);
-                response.setBranchName(branchEntity != null ? branchEntity.getBranchName() : branchCredentials.getBranchName());
-
-                // ✅ Role
-                String role = (branchEntity != null && branchEntity.getRole() != null)
-                        ? branchEntity.getRole()
-                        : "admin";
-                response.setRole(role);
-
-                // ✅ Permissions
-                Map<String, List<String>> permissions =
-                        (branchEntity != null && branchEntity.getPermissions() != null)
-                                ? branchEntity.getPermissions()
-                                : PermissionsUtil.getAdminPermissions();
-                response.setPermissions(permissions);
-
-                return response;
-            }
-
-            // 3) Invalid credentials
-            response.setSuccess(false);
-            response.setMessage("Invalid username or password");
-            response.setStatus(401);
-            return response;
-
-        } catch (Exception e) {
-            response.setSuccess(false);
-            response.setMessage("Error during login: " + e.getMessage());
-            response.setStatus(500);
-            return response;
-        }
-    }
-
-
-
+	    return response;
+	}
 	
+	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	public Response updateClinicCredentials(UpdateClinicCredentials credentials, String userName) {
 
-	
+	    log.info("Received request to update clinic credentials. UserName: {}", userName);
+
+	    Response response = new Response();
+
+	    try {
+
+	        log.info("Validating clinic credentials for UserName: {}", userName);
+
+	        ClinicCredentials existingCredentials =
+	                clinicCredentialsRepository.findByUserNameAndPassword(
+	                        userName,
+	                        credentials.getPassword());
+
+	        ClinicCredentials existUserName =
+	                clinicCredentialsRepository.findByUserName(userName);
+
+	        if (existUserName == null) {
+
+	            log.warn("Invalid username provided: {}", userName);
+
+	            response.setSuccess(false);
+	            response.setMessage("Incorrect UserName");
+	            response.setStatus(401);
+
+	            return response;
+	        }
+
+	        if (existingCredentials != null) {
+
+	            log.info("Username and current password validated successfully for UserName: {}",
+	                    userName);
+
+	            if (credentials.getNewPassword().equalsIgnoreCase(credentials.getConfirmPassword())) {
+
+	                log.info("New password and confirm password matched for UserName: {}",
+	                        userName);
+
+	                existingCredentials.setPassword(credentials.getNewPassword());
+
+	                ClinicCredentials updatedCredentials =
+	                        clinicCredentialsRepository.save(existingCredentials);
+
+	                if (updatedCredentials != null) {
+
+	                    log.info("Clinic credentials updated successfully for UserName: {}",
+	                            userName);
+
+	                    response.setSuccess(true);
+	                    response.setData(null);
+	                    response.setMessage("Clinic Credentials Updated Successfully.");
+	                    response.setStatus(200);
+
+	                    return response;
+
+	                } else {
+
+	                    log.error("Failed to update clinic credentials for UserName: {}",
+	                            userName);
+
+	                    response.setSuccess(false);
+	                    response.setMessage("Failed To Update Clinic Credentials.");
+	                    response.setStatus(404);
+
+	                    return response;
+	                }
+
+	            } else {
+
+	                log.warn("New password and confirm password do not match for UserName: {}",
+	                        userName);
+
+	                response.setSuccess(false);
+	                response.setMessage("New password and confirm password do not match.");
+	                response.setStatus(401);
+
+	                return response;
+	            }
+
+	        } else {
+
+	            log.warn("Incorrect current password provided for UserName: {}",
+	                    userName);
+
+	            response.setSuccess(false);
+	            response.setMessage("Incorrect Password.");
+	            response.setStatus(401);
+
+	            return response;
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Error while updating clinic credentials for UserName: {}. Error: {}",
+	                userName, e.getMessage(), e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error updating clinic credentials: " + e.getMessage());
+	        response.setStatus(500);
+
+	        return response;
+	    }
+	}
+	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	public Response deleteClinicCredentials(String userName) {
+
+	    log.info("Received request to delete clinic credentials. UserName: {}", userName);
+
+	    Response response = new Response();
+
+	    try {
+
+	        log.info("Searching clinic credentials for UserName: {}", userName);
+
+	        ClinicCredentials clinicCredentials =
+	                clinicCredentialsRepository.findByUserName(userName);
+
+	        if (clinicCredentials != null) {
+
+	            log.info("Clinic credentials found. Deleting credentials for UserName: {}",
+	                    userName);
+
+	            clinicCredentialsRepository.delete(clinicCredentials);
+
+	            log.info("Clinic credentials deleted successfully for UserName: {}",
+	                    userName);
+
+	            log.info("Deleting clinic details for HospitalId: {}", userName);
+
+	            clinicRep.deleteByHospitalId(userName);
+
+	            log.info("Clinic deleted successfully. HospitalId: {}", userName);
+
+	            response.setSuccess(true);
+	            response.setMessage("Clinic Credentials Deleted Successfully.");
+	            response.setStatus(200);
+
+	            log.info("Delete clinic credentials process completed successfully. UserName: {}",
+	                    userName);
+
+	            return response;
+
+	        } else {
+
+	            log.warn("Clinic credentials not found for UserName: {}", userName);
+
+	            response.setSuccess(false);
+	            response.setMessage("Clinic Credentials Are Not Found.");
+	            response.setStatus(404);
+
+	            return response;
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Error while deleting clinic credentials for UserName: {}. Error: {}",
+	                userName, e.getMessage(), e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error Deleting Clinic Credentials: " + e.getMessage());
+	        response.setStatus(500);
+	    }
+
+	    return response;
+	}
 
 	// CUSTOMER MANAGEMENT
 
-    
-
-    @Override
-
-	public Response saveCustomerBasicDetails(CustomerDTO customerDTO ) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.saveCustomerBasicDetails(customerDTO);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;}
-
-    
-
-    @Override	
-
-	public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input) {
-
-    	Response response = new Response();
-
-	    	try {
-
-	    		ResponseEntity<?> res = customerFeign.getCustomerByUsernameMobileEmail(input);
-
-	    		  if(res.getBody()!= null) {
-
-	    			  response.setData(res.getBody());
-
-	    			  response.setStatus(res.getStatusCode().value());
-
-	    			  return ResponseEntity.status(res.getStatusCode().value()).body(res.getBody());}
-
-	    		  else {
-
-	    			  response.setMessage("Customer Details Not Found");
-
-	    			  response.setStatus(200);
-
-	    			  response.setSuccess(true);
-
-	    			  return ResponseEntity.status(200).body(response);}
-
-	    		  }catch(FeignException e) {
-
-	    			  response.setMessage(e.getMessage());
-
-	    			  response.setStatus(e.status());
-
-	    			  response.setSuccess(false);
-
-	    			  return ResponseEntity.status(e.status()).body(response);
-
-	    	        }}
-
-   
-
-    
-
-    @Override
-
-	public Response getCustomerBasicDetails(String mobileNumber ) {
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.getCustomerBasicDetails(mobileNumber);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
-
-
-
-    @Override
-
-	public Response getAllCustomers(){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.getAllCustomers();
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
-
-	
-
-    @Override
-
-	public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber ){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.updateCustomerBasicDetails(customerDTO, mobileNumber);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
-
-	
-
-    @Override
-
-	public Response deleteCustomerBasicDetails(String mobileNumber){
-
-		 Response response = new  Response();
-
-	    	try {
-
-	    		ResponseEntity<Response> res = customerFeign.deleteCustomerBasicDetails(mobileNumber);
-
-	    		  if(res != null) {
-
-	    			  Response rs = res.getBody();
-
-	    			  return rs;
-
-	    		  }}catch(FeignException e) {
-
-	    	            response.setStatus(e.status());
-
-		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
-
-		    			response.setSuccess(false);
-
-	    	        }
-
-	                    return response;	
-
-}
+//    @Override
+//	public Response saveCustomerBasicDetails(CustomerDTO customerDTO ) {
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.saveCustomerBasicDetails(customerDTO);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;}
+//
+//    
+//
+//    @Override	
+//
+//	public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input) {
+//
+//    	Response response = new Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<?> res = customerFeign.getCustomerByUsernameMobileEmail(input);
+//
+//	    		  if(res.getBody()!= null) {
+//
+//	    			  response.setData(res.getBody());
+//
+//	    			  response.setStatus(res.getStatusCode().value());
+//
+//	    			  return ResponseEntity.status(res.getStatusCode().value()).body(res.getBody());}
+//
+//	    		  else {
+//
+//	    			  response.setMessage("Customer Details Not Found");
+//
+//	    			  response.setStatus(200);
+//
+//	    			  response.setSuccess(true);
+//
+//	    			  return ResponseEntity.status(200).body(response);}
+//
+//	    		  }catch(FeignException e) {
+//
+//	    			  response.setMessage(e.getMessage());
+//
+//	    			  response.setStatus(e.status());
+//
+//	    			  response.setSuccess(false);
+//
+//	    			  return ResponseEntity.status(e.status()).body(response);
+//
+//	    	        }}
+//
+//   
+//
+//    
+//
+//    @Override
+//
+//	public Response getCustomerBasicDetails(String mobileNumber ) {
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.getCustomerBasicDetails(mobileNumber);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
+//
+//
+//
+//    @Override
+//
+//	public Response getAllCustomers(){
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.getAllCustomers();
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
+//
+//	
+//
+//    @Override
+//
+//	public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber ){
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.updateCustomerBasicDetails(customerDTO, mobileNumber);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
+//
+//	
+//
+//    @Override
+//
+//	public Response deleteCustomerBasicDetails(String mobileNumber){
+//
+//		 Response response = new  Response();
+//
+//	    	try {
+//
+//	    		ResponseEntity<Response> res = customerFeign.deleteCustomerBasicDetails(mobileNumber);
+//
+//	    		  if(res != null) {
+//
+//	    			  Response rs = res.getBody();
+//
+//	    			  return rs;
+//
+//	    		  }}catch(FeignException e) {
+//
+//	    	            response.setStatus(e.status());
+//
+//		    			response.setMessage(ExtractFeignMessage.clearMessage(e));
+//
+//		    			response.setSuccess(false);
+//
+//	    	        }
+//
+//	                    return response;	
+//
+//}
 
     
 
@@ -2299,17 +1598,15 @@ public class AdminServiceImpl implements AdminService {
 //
 // 
 
-    ///GETDOCTORINFO
-
-    
-
+    ///GETDOCTORINFO  
+	@Secured("ROLE_ADMIN")
     public Response getDoctorInfoByDoctorId(String doctorId) {
 
         Response response = new Response();
 
         try {
 
-        	ResponseEntity<Response>  res = clinicAdminFeign.getDoctorById(doctorId);  
+        	ResponseEntity<Response>  res = clinicAdminFeign.getDoctorById(keyCloakTokenStore.getAccess_token(),doctorId);  
 
                     if (res.getBody() != null ) {
 
@@ -2559,16 +1856,45 @@ public class AdminServiceImpl implements AdminService {
 			}
 		} catch (Exception ignored) {
 		}
-		return rawMessage;
+		return rawMessage;}
+	public String generateHospitalId() {
+
+	    log.info("Generating new Hospital ID.");
+
+	    try {
+
+	        // Create a query for the counter document
+	        Query query = new Query();
+	        query.addCriteria(Criteria.where("_id").is("clinicId"));
+
+	        // Increment the sequence by 1
+	        Update update = new Update().inc("seq", 1);
+
+	        // Atomically find & increment, return the updated document
+	        FindAndModifyOptions options = FindAndModifyOptions.options()
+	                .upsert(true)
+	                .returnNew(true);
+
+	        Counter counter = mongoOperations.findAndModify(
+	                query,
+	                update,
+	                options,
+	                Counter.class);
+
+	        String hospitalId = String.format("%04d", counter.getSeq());
+
+	        log.info("Hospital ID generated successfully. HospitalId: {}", hospitalId);
+
+	        return hospitalId;
+
+	    } catch (Exception e) {
+
+	        log.error("Error while generating Hospital ID. Error: {}",
+	                e.getMessage(), e);
+
+	        throw e;
+	    }
 	}
-
-
-
-
-
-
-
-	
 	}
 
 

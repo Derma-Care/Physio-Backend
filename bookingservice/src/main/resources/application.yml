@@ -8,11 +8,6 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
-<<<<<<< HEAD
-
-=======
-  
->>>>>>> 90db9fcde5ac7a144a8188bc2e89845d304fe7e5
   cloud:
     openfeign:
       client:
@@ -20,12 +15,9 @@ spring:
           default:
             connectTimeout: 30000
             readTimeout: 60000
-<<<<<<< HEAD
 
   lifecycle:
     timeout-per-shutdown-phase: 30s
-=======
->>>>>>> 90db9fcde5ac7a144a8188bc2e89845d304fe7e5
 
 server:
 
@@ -43,18 +35,6 @@ server:
       - text/html
       - text/plain
 
-<<<<<<< HEAD
-# =========================================================
-# WHATSAPP
-# =========================================================
-
-#whatsapp:
-#  base-url: 
-#  auth-key: 
-#  phone-number-id:  123456789012345
-#  booking-confirmation-template-id:  booking_confirmation 
-
-=======
 spring.lifecycle:
   timeout-per-shutdown-phase: 30s
 
@@ -66,27 +46,17 @@ whatsapp:
   auth-key: 
   phone-number-id: 
   booking-confirmation-template-id: 
->>>>>>> 90db9fcde5ac7a144a8188bc2e89845d304fe7e5
 
 # =========================================================
 # AWS S3
 # =========================================================
 
-<<<<<<< HEAD
-#aws:
-#  accessKeyId: 
-#  secretAccessKey: 
-#  region: ap-south-1
-#  s3:
-#    bucket: physiocare-prod-storage
-=======
 aws:
   accessKeyId: 
   secretAccessKey: 
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage
->>>>>>> 90db9fcde5ac7a144a8188bc2e89845d304fe7e5
 
 # =========================================================
 # EUREKA
@@ -109,7 +79,6 @@ eureka:
 # =========================================================
 
 resilience4j:
-<<<<<<< HEAD
   circuitbreaker:
     instances:
       bookingService:
