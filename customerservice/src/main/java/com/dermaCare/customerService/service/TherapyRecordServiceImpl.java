@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import com.dermaCare.customerService.entity.TherapyRecord;
 import com.dermaCare.customerService.entity.TherophyRecordList;
 import com.dermaCare.customerService.repository.TherapyRecordRepository;
 import com.dermaCare.customerService.util.Response;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 
 @Service
@@ -29,6 +31,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	 
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "therapyRecordService", fallbackMethod = "createTherapyRecordFallback")
 	    public ResponseEntity<?> createTherapyRecord(TherapyRecordDTO dto) {
 
 	        Response response = new Response();
@@ -59,6 +63,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	 
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "updateTherapyRecordFallback")
 	 public ResponseEntity<?> updateTherapyRecord(
 	         String therapyrecordid,String excerciseId,
 	         TherapyRecordDTO dto) {
@@ -265,6 +271,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	 }
 	   
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getAllTherapyRecordsFallback")
 	 public ResponseEntity<?> getAllTherapyRecords() {
 
 	     Response response = new Response();
@@ -316,6 +324,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	 }
 
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getTherapyRecordByIdFallback")
 	 public ResponseEntity<?> getTherapyRecordById(String id) {
 
 	     Response response = new Response();
@@ -371,6 +381,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	   
 	    
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "deleteTherapyRecordFallback")
 	 public ResponseEntity<?> deleteTherapyRecord(String id) {
 
 	     Response response = new Response();
@@ -424,6 +436,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	 }
 
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getByClinicBranchAndPatientFallback")
 	 public ResponseEntity<?> getByClinicBranchAndPatient(
 	         String clinicId,
 	         String branchId,
@@ -485,6 +499,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	 
 	 @Override
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getByClinicBranchPatientAndTherapyRecordIdFallback")
 	 public ResponseEntity<?> getByClinicBranchPatientAndTherapyRecordId(
 	         String clinicId,
 	         String branchId,
@@ -553,6 +569,8 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	    
 	 @Transactional(readOnly = true)    
 	    @Override
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "therapyRecordService", fallbackMethod = "getTherapyRecordsByClinicAndBranchAndExerciseFallback")
 	    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
 	            String clinicId,
 	            String branchId,
@@ -734,4 +752,70 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        if (fileKey == null || fileKey.isBlank()) return null;
 	        return s3Service.generateSignedUrl(fileKey);
 	    }
-	}
+	
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseEntity<?> createTherapyRecordFallback(
+            TherapyRecordDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> updateTherapyRecordFallback(
+            String therapyrecordid,
+            String excerciseId,
+            TherapyRecordDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> getAllTherapyRecordsFallback(Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> getTherapyRecordByIdFallback(
+            String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> deleteTherapyRecordFallback(
+            String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> getByClinicBranchAndPatientFallback(
+            String clinicId,
+            String branchId,
+            String patientId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> getByClinicBranchPatientAndTherapyRecordIdFallback(
+            String clinicId,
+            String branchId,
+            String patientId,
+            String therapyRecordId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExerciseFallback(
+            String clinicId,
+            String branchId,
+            String therapistid,
+            String patientid,
+            String exerciseId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<Response> buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return ResponseEntity.status(429).body(response);
+    }
+
+}

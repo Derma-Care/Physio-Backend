@@ -12,6 +12,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -105,6 +106,7 @@ public class AdminServiceImpl implements AdminService {
 
    @Override
    @Secured("ROLE_ADMIN")
+	@RateLimiter(name = "adminService", fallbackMethod = "createClinicFallback")
    public Response createClinic(ClinicDTO clinic) {
 
        log.info("Received request to create clinic. Name: {}, Email: {}, Contact: {}",
@@ -329,6 +331,7 @@ public class AdminServiceImpl implements AdminService {
 	}
    @Override
    @Secured("ROLE_ADMIN")
+	@RateLimiter(name = "adminService", fallbackMethod = "startVerificationProcessFallback")
    public Response startVerificationProcess(String clinicId) {
 
        log.info("Received request to start verification process for ClinicId: {}", clinicId);
@@ -400,6 +403,7 @@ public class AdminServiceImpl implements AdminService {
    }
    @Override
    @Secured("ROLE_ADMIN")
+	@RateLimiter(name = "adminService", fallbackMethod = "verifyClinicFallback")
    public Response verifyClinic(String clinicId) {
 
        log.info("Received request to verify clinic. ClinicId: {}", clinicId);
@@ -499,6 +503,7 @@ public class AdminServiceImpl implements AdminService {
    }
    @Override
    @Secured("ROLE_ADMIN")
+	@RateLimiter(name = "adminService", fallbackMethod = "rejectClinicFallback")
    public Response rejectClinic(String clinicId, String reason) {
 
        log.info("Received request to reject clinic. ClinicId: {}", clinicId);
@@ -588,6 +593,7 @@ public class AdminServiceImpl implements AdminService {
 
    @Override
    @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "getClinicByIdFallback")
    public Response getClinicById(String clinicId) {
 
        log.info("Received request to fetch clinic details. ClinicId: {}", clinicId);
@@ -650,6 +656,7 @@ public class AdminServiceImpl implements AdminService {
 
    @Override
    @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "getAllClinicsFallback")
    public Response getAllClinics() {
 
        log.info("Received request to fetch all clinics.");
@@ -714,6 +721,7 @@ public class AdminServiceImpl implements AdminService {
 
    @Override
    @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "updateClinicFallback")
    public Response updateClinic(String clinicId, ClinicDTO clinic) {
 
        log.info("Update clinic request received. ClinicId: {}", clinicId);
@@ -842,6 +850,7 @@ public class AdminServiceImpl implements AdminService {
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "deleteClinicFallback")
 	public Response deleteClinic(String clinicId) {
 
 	    log.info("Received request to delete clinic. ClinicId: {}", clinicId);
@@ -1125,6 +1134,7 @@ public class AdminServiceImpl implements AdminService {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "getClinicCredentialsFallback")
 	public Response getClinicCredentials(String userName) {
 
 	    log.info("Received request to fetch clinic credentials. UserName: {}", userName);
@@ -1187,6 +1197,7 @@ public class AdminServiceImpl implements AdminService {
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "updateClinicCredentialsFallback")
 	public Response updateClinicCredentials(UpdateClinicCredentials credentials, String userName) {
 
 	    log.info("Received request to update clinic credentials. UserName: {}", userName);
@@ -1293,6 +1304,7 @@ public class AdminServiceImpl implements AdminService {
 	}
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "adminService", fallbackMethod = "deleteClinicCredentialsFallback")
 	public Response deleteClinicCredentials(String userName) {
 
 	    log.info("Received request to delete clinic credentials. UserName: {}", userName);
@@ -1600,6 +1612,7 @@ public class AdminServiceImpl implements AdminService {
 
     ///GETDOCTORINFO  
 	@Secured("ROLE_ADMIN")
+	@RateLimiter(name = "adminService", fallbackMethod = "getDoctorInfoByDoctorIdFallback")
     public Response getDoctorInfoByDoctorId(String doctorId) {
 
         Response response = new Response();
@@ -1657,6 +1670,7 @@ public class AdminServiceImpl implements AdminService {
     //-----------------------------GET CLINICS BUY RECOMMONDATION == TRUE---------------------------------
 
   	@Override
+	@RateLimiter(name = "adminService", fallbackMethod = "getClinicsByRecommondationFallback")
 
   	public Response getClinicsByRecommondation() {
 
@@ -1742,6 +1756,7 @@ public class AdminServiceImpl implements AdminService {
 
 //	---------------------------get All Clincs first recommonded then another clincs----------------------------------
   	@Override
+	@RateLimiter(name = "adminService", fallbackMethod = "getAllRecommendClinicThenAnotherClincsFallback")
   	public Response getAllRecommendClinicThenAnotherClincs() {
   	    Response response = new Response();
   	    try {
@@ -1857,6 +1872,8 @@ public class AdminServiceImpl implements AdminService {
 		} catch (Exception ignored) {
 		}
 		return rawMessage;}
+	
+	@RateLimiter(name = "adminService", fallbackMethod = "generateHospitalIdFallback")
 	public String generateHospitalId() {
 
 	    log.info("Generating new Hospital ID.");
@@ -1895,6 +1912,74 @@ public class AdminServiceImpl implements AdminService {
 	        throw e;
 	    }
 	}
+	
+
+	// Rate limiter fallback methods
+
+	public Response buildRateLimitResponse(Exception ex) {
+    Response response = new Response();
+    response.setStatus(429);
+    response.setMessage("Rate limit exceeded. Please try again after some time.");
+    response.setData(null);
+    return response;
+}
+
+	public Response createClinicFallback(ClinicDTO clinic, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response startVerificationProcessFallback(String clinicId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response verifyClinicFallback(String clinicId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+	public Response rejectClinicFallback(String clinicId, String reason, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response getClinicByIdFallback(String clinicId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response getAllClinicsFallback(Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response updateClinicFallback(String clinicId, ClinicDTO clinic, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response deleteClinicFallback(String clinicId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response getClinicCredentialsFallback(String userName, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response updateClinicCredentialsFallback(UpdateClinicCredentials credentials, String userName, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response deleteClinicCredentialsFallback(String userName, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response getDoctorInfoByDoctorIdFallback(String doctorId, Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response getClinicsByRecommondationFallback(Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
+	public Response getAllRecommendClinicThenAnotherClincsFallback(Exception ex) {
+    return buildRateLimitResponse(ex);
+}
+
 	}
+
 
 

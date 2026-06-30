@@ -35,6 +35,7 @@ import com.AdminService.util.PermissionsUtil;
 import com.AdminService.util.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
@@ -86,7 +87,8 @@ public class BranchServiceImpl implements BranchService {
  // ---------------------- CREATE BRANCH  ----------------------
     @Override
     @Transactional
-    @Secured("ROLE_ADMIN")
+@RateLimiter(name = "branchService", fallbackMethod = "createBranchFallback")
+@Secured("ROLE_ADMIN")
     public Response createBranch(BranchDTO dto) {
 
         Response res = new Response();
@@ -148,7 +150,7 @@ public class BranchServiceImpl implements BranchService {
 
             if (emailToUse == null || emailToUse.isBlank()) {
                 log.info("Branch email not provided. Using clinic email.");
-            emailToUse = clinic.getEmailAddress();
+                emailToUse = clinic.getEmailAddress();
             }
 
             if (emailToUse == null || emailToUse.isBlank()) {
@@ -419,8 +421,58 @@ public class BranchServiceImpl implements BranchService {
 
 
     // ---------------------- GET BRANCH BY ID ----------------------
+    
     @Override
     @Secured("ROLE_ADMIN")
+    @RateLimiter(name = "branchService", fallbackMethod = "getBranchByClinicIdFallback")
+    public ResponseEntity<?> getBranchByClinicId(String clinicId) {
+
+        log.info("===== Get Branches By Clinic ID API Started =====");
+        log.info("Fetching branches for Clinic ID: {}", clinicId);
+
+        Response response = new Response();
+
+        try {
+
+            List<Branch> branches = branchRepository.findByClinicId(clinicId);
+
+            if (branches != null && !branches.isEmpty()) {
+
+                log.info("Found {} branch(es) for Clinic ID: {}", branches.size(), clinicId);
+
+                response.setMessage("Branch found");
+                response.setSuccess(true);
+                response.setStatus(200);
+                response.setData(convertEntityListToDtoList(branches));
+
+                log.info("Branch details returned successfully.");
+
+            } else {
+
+                log.warn("No branches found for Clinic ID: {}", clinicId);
+
+                response.setMessage("Branch not found");
+                response.setSuccess(false);
+                response.setStatus(404);
+            }
+
+        } catch (Exception e) {
+
+            log.error("Error occurred while fetching branches for Clinic ID: {}", clinicId, e);
+
+            response.setMessage("Error fetching branch: " + e.getMessage());
+            response.setSuccess(false);
+            response.setStatus(500);
+        }
+
+        log.info("===== Get Branches By Clinic ID API Completed =====");
+
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+    
+    @Override
+    @Secured("ROLE_ADMIN")
+    @RateLimiter(name = "branchService", fallbackMethod = "getBranchByIdFallback")
     public ResponseEntity<?> getBranchById(String branchId) {
 
         log.info("===== Get Branch By ID API Started =====");
@@ -468,7 +520,8 @@ public class BranchServiceImpl implements BranchService {
 
     // ---------------------- UPDATE BRANCH ----------------------
     @Override
-    @Secured("ROLE_ADMIN")
+@RateLimiter(name = "branchService", fallbackMethod = "updateBranchFallback")
+@Secured("ROLE_ADMIN")
     public Response updateBranch(String branchId, BranchDTO branchDto) {
 
         log.info("===== Update Branch API Started =====");
@@ -489,17 +542,17 @@ public class BranchServiceImpl implements BranchService {
                 if (branchDto.getClinicId() != null && !branchDto.getClinicId().isBlank()) {
                     branch.setClinicId(branchDto.getClinicId());
                     log.info("Clinic ID updated.");
-          }
+                }
 
                 if (branchDto.getBranchName() != null && !branchDto.getBranchName().isBlank()) {
                     branch.setBranchName(branchDto.getBranchName());
                     log.info("Branch Name updated.");
-               }
+                }
 
                 if (branchDto.getAddress() != null && !branchDto.getAddress().isBlank()) {
                     branch.setAddress(branchDto.getAddress());
                     log.info("Address updated.");
-               }
+                }
 
                 if (branchDto.getCity() != null && !branchDto.getCity().isBlank()) {
                     branch.setCity(branchDto.getCity());
@@ -508,28 +561,28 @@ public class BranchServiceImpl implements BranchService {
 
                 if (branchDto.getContactNumber() != null && !branchDto.getContactNumber().isBlank()) {
                     branch.setContactNumber(branchDto.getContactNumber());
-                  log.info("Contact Number updated.");
-            }
+                    log.info("Contact Number updated.");
+                }
 
                 if (branchDto.getEmail() != null && !branchDto.getEmail().isBlank()) {
                     branch.setEmail(branchDto.getEmail());
-                  log.info("Email updated.");
-               }
+                    log.info("Email updated.");
+                }
 
                 if (branchDto.getLatitude() != null && !branchDto.getLatitude().isBlank()) {
                     branch.setLatitude(branchDto.getLatitude());
                     log.info("Latitude updated.");
-               }
+                }
 
                 if (branchDto.getLongitude() != null && !branchDto.getLongitude().isBlank()) {
                     branch.setLongitude(branchDto.getLongitude());
-                   log.info("Longitude updated.");
+                    log.info("Longitude updated.");
                 }
 
                 if (branchDto.getVirtualClinicTour() != null
                         && !branchDto.getVirtualClinicTour().isBlank()) {
                     branch.setVirtualClinicTour(branchDto.getVirtualClinicTour());
-                log.info("Virtual Clinic Tour updated.");
+                    log.info("Virtual Clinic Tour updated.");
                 }
 
                 if (branchDto.getBranchOverallRating() != 0.0) {
@@ -538,7 +591,7 @@ public class BranchServiceImpl implements BranchService {
                 }
 
                 // Save Branch
-            Branch updatedBranch = branchRepository.save(branch);
+                Branch updatedBranch = branchRepository.save(branch);
                 log.info("Branch details saved successfully for Branch ID: {}", branchId);
 
                 // Update embedded branch in Clinic document
@@ -548,7 +601,7 @@ public class BranchServiceImpl implements BranchService {
 
                     log.info("Updating embedded branch inside Clinic document.");
 
-                  List<Branch> clinicBranches = clinic.getBranches();
+                    List<Branch> clinicBranches = clinic.getBranches();
 
                     for (Branch b : clinicBranches) {
 
@@ -565,9 +618,9 @@ public class BranchServiceImpl implements BranchService {
                             b.setVirtualClinicTour(updatedBranch.getVirtualClinicTour());
                             b.setBranchOverallRating(updatedBranch.getBranchOverallRating());
 
-                        log.info("Embedded branch updated successfully.");
+                            log.info("Embedded branch updated successfully.");
 
-                          break;
+                            break;
                         }
                     }
 
@@ -591,7 +644,7 @@ public class BranchServiceImpl implements BranchService {
 
                 log.warn("Branch not found for Branch ID: {}", branchId);
 
-               response.setSuccess(false);
+                response.setSuccess(false);
                 response.setStatus(404);
                 response.setMessage("Branch not found");
             }
@@ -605,13 +658,14 @@ public class BranchServiceImpl implements BranchService {
             response.setMessage("Error updating branch: " + e.getMessage());
         }
 
-       log.info("===== Update Branch API Completed =====");
+        log.info("===== Update Branch API Completed =====");
 
         return response;
     }
     // ---------------------- DELETE BRANCH ----------------------
     @Override
-    @Secured("ROLE_ADMIN")
+@RateLimiter(name = "branchService", fallbackMethod = "deleteBranchFallback")
+@Secured("ROLE_ADMIN")
     public Response deleteBranch(String branchId) {
 
         log.info("===== Delete Branch API Started =====");
@@ -693,55 +747,10 @@ public class BranchServiceImpl implements BranchService {
         return response;
     }
     // ---------------------- GET BRANCHES BY CLINIC ID ----------------------
+   
     @Override
-    @Secured("ROLE_ADMIN")
-    public ResponseEntity<?> getBranchByClinicId(String clinicId) {
-
-        log.info("===== Get Branches By Clinic ID API Started =====");
-        log.info("Fetching branches for Clinic ID: {}", clinicId);
-
-        Response response = new Response();
-
-        try {
-
-            List<Branch> branches = branchRepository.findByClinicId(clinicId);
-
-            if (branches != null && !branches.isEmpty()) {
-
-                log.info("Found {} branch(es) for Clinic ID: {}", branches.size(), clinicId);
-
-                response.setMessage("Branch found");
-                response.setSuccess(true);
-                response.setStatus(200);
-                response.setData(convertEntityListToDtoList(branches));
-
-                log.info("Branch details returned successfully.");
-
-            } else {
-
-                log.warn("No branches found for Clinic ID: {}", clinicId);
-
-                response.setMessage("Branch not found");
-                response.setSuccess(false);
-                response.setStatus(404);
-            }
-
-        } catch (Exception e) {
-
-            log.error("Error occurred while fetching branches for Clinic ID: {}", clinicId, e);
-
-            response.setMessage("Error fetching branch: " + e.getMessage());
-            response.setSuccess(false);
-            response.setStatus(500);
-        }
-
-        log.info("===== Get Branches By Clinic ID API Completed =====");
-
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
-
-    @Override
-    @Secured("ROLE_ADMIN")
+@RateLimiter(name = "branchService", fallbackMethod = "getBranchesByClinicIdFallback")
+@Secured("ROLE_ADMIN")
     public Response getBranchesByClinicId(String clinicId) {
 
         log.info("===== Get Branches By Clinic ID Service Started =====");
@@ -854,7 +863,8 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
-    @Secured("ROLE_ADMIN")
+@RateLimiter(name = "branchService", fallbackMethod = "getAllBranchesFallback")
+@Secured("ROLE_ADMIN")
     public Response getAllBranches() {
 
         log.info("===== Get All Branches API Started =====");
@@ -895,7 +905,7 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
-    @Secured("ROLE_ADMIN")
+    @Secured("ROLE_ADMIN")@RateLimiter(name = "branchService", fallbackMethod = "getBranchByClinicAndBranchIdFallback")
     public ResponseEntity<?> getBranchByClinicAndBranchId(String clinicId, String branchId) {
 
         log.info("===== Get Branch By Clinic ID And Branch ID API Started =====");
@@ -942,4 +952,26 @@ public class BranchServiceImpl implements BranchService {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    
+    ////FALLBACK METHODS/////
+
+    private Response buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Rate limit exceeded. Please try again later.");
+        return response;
+    }
+
+    public Response createBranchFallback(BranchDTO dto, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response startBranchVerificationFallback(String branchId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response verifyBranchFallback(String branchId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response rejectBranchFallback(String branchId, String reason, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response updateBranchFallback(String branchId, BranchDTO branchDto, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response deleteBranchFallback(String branchId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getBranchesByClinicIdFallback(String clinicId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getAllBranchesFallback(Exception ex) { return buildRateLimitResponse(ex); }
+    public ResponseEntity<?> getBranchByClinicAndBranchIdFallback(String clinicId, String branchId, Exception ex) {return ResponseEntity.status(429).body(buildRateLimitResponse(ex));}
+    public ResponseEntity<?> getBranchByClinicIdFallback(String clinicId, Exception ex) {return ResponseEntity.status(429).body(buildRateLimitResponse(ex));}
+    
 }

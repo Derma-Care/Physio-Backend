@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import physiotherapydoctor.dto.DoctorPrescriptionDTO;
 import physiotherapydoctor.dto.MedicineDTO;
@@ -27,7 +28,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	private DoctorPrescriptionRepository repository;
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "createPrescriptionFallback")
+@Secured("ROLE_DOCTOR")
 	public Response createPrescription(DoctorPrescriptionDTO dto) {
 		try {
 			// 1. Validate input
@@ -141,7 +143,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getAllPrescriptionsFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getAllPrescriptions() {
 		try {
 			List<DoctorPrescriptionDTO> dtos = repository.findAll().stream().map(p -> {
@@ -170,7 +173,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getPrescriptionByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getPrescriptionById(String id) {
 		try {
 			Optional<DoctorPrescription> optional = repository.findById(id);
@@ -200,7 +204,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getMedicineByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getMedicineById(String medicineId) {
 		try {
 			List<Medicine> matches = repository.findAll().stream()
@@ -228,7 +233,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "deletePrescriptionFallback")
+@Secured("ROLE_DOCTOR")
 	public Response deletePrescription(String id) {
 		try {
 			if (repository.existsById(id)) {
@@ -244,7 +250,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "deleteMedicineByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response deleteMedicineById(String medicineId) {
 		try {
 			List<DoctorPrescription> allPrescriptions = repository.findAll();
@@ -277,7 +284,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "searchMedicinesByNameFallback")
+@Secured("ROLE_DOCTOR")
 	public Response searchMedicinesByName(String keyword) {
 		try {
 			if (keyword == null || keyword.trim().isEmpty()) {
@@ -313,7 +321,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getPrescriptionsByClinicIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getPrescriptionsByClinicId(String clinicId) {
 		try {
 			List<DoctorPrescription> prescriptions = repository.findByClinicId(clinicId);
@@ -344,7 +353,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "updatePrescriptionFallback")
+@Secured("ROLE_DOCTOR")
 	public Response updatePrescription(String id, DoctorPrescriptionDTO dto) {
 		try {
 			Optional<DoctorPrescription> optional = repository.findById(id);
@@ -440,7 +450,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "updateMedicineByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response updateMedicineById(String medicineId, MedicineDTO dto) {
 		try {
 			// Find the prescription that contains this medicine
@@ -519,5 +530,24 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 					HttpStatus.INTERNAL_SERVER_ERROR.value());
 		}
 	}
+
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        return new Response(false, null,
+                "Rate limit exceeded. Please try again later.",
+                429);
+    }
+
+    public Response createPrescriptionFallback(DoctorPrescriptionDTO dto, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response getAllPrescriptionsFallback(Exception ex){ return buildRateLimitResponse(ex); }
+    public Response getPrescriptionByIdFallback(String id, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response getMedicineByIdFallback(String medicineId, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response deletePrescriptionFallback(String id, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response deleteMedicineByIdFallback(String medicineId, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response searchMedicinesByNameFallback(String keyword, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response getPrescriptionsByClinicIdFallback(String clinicId, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response updatePrescriptionFallback(String id, DoctorPrescriptionDTO dto, Exception ex){ return buildRateLimitResponse(ex); }
+    public Response updateMedicineByIdFallback(String medicineId, MedicineDTO dto, Exception ex){ return buildRateLimitResponse(ex); }
 
 }

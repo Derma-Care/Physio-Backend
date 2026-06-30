@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +63,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	private PaymentRepository paymentRepository;
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "createFallback")
+@Secured("ROLE_DOCTOR")
 	public Response create(PhysiotherapyRecordTemplateDTO dto) {
 
 		Response response = new Response();
@@ -255,7 +257,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getTemplatesByClinicIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getTemplatesByClinicId(String clinicId) {
 
 		Response response = new Response();
@@ -294,7 +297,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getTemplateByClinicIdAndTemplateIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getTemplateByClinicIdAndTemplateId(String clinicId, String templateRecordId) {
 
 		Response response = new Response();
@@ -321,7 +325,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 
 	// ✅ GET BY ID
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 
 		Response response = new Response();
@@ -355,7 +360,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 
 	// ✅ GET ALL
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getAllFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getAll() {
 
 		Response response = new Response();
@@ -379,7 +385,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "updateFallback")
+@Secured("ROLE_DOCTOR")
 	public Response update(String id, PhysiotherapyRecordTemplateDTO dto) {
 
 		Response response = new Response();
@@ -455,7 +462,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 
 	// ✅ DELETE
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "deleteFallback")
+@Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 
 		Response response = new Response();
@@ -549,7 +557,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getByMultipleFieldsFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getByMultipleFields(String clinicId, String branchId, String bookingId, String templateRecordId) {
 
 		Response response = new Response();
@@ -582,7 +591,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String bookingId) {
 
 		Response response = new Response();
@@ -647,7 +657,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	// ===================== GET SESSIONS BY DATE =====================
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getProgramAndTherapyInfoFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getProgramAndTherapyInfo(String clinicId, String branchId, String patientId, String bookingId) {
 		Response response = new Response();
 
@@ -807,7 +818,8 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getCalculationsFallback")
+@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String bookingId) {
 		try {
 			Response fetchedResponse = getByWithoutTherapistRecordId(clinicId, branchId, bookingId);
@@ -1077,111 +1089,126 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 		}
 	}
 
-	@Override
-	public Response getByClinicBranchAndBooking(String clinicId, String branchId, String bookingId) {
+	@RateLimiter(
+    name = "physiotherapyRecordTemplateService",
+    fallbackMethod = "getByClinicBranchAndBookingFallback"
+)
+@Override
+public Response getByClinicBranchAndBooking(
+        String clinicId,
+        String branchId,
+        String bookingId) {
 
-		Response response = new Response();
+    Response response = new Response();
 
-		// ✅ Validation
-		if (clinicId == null || clinicId.isEmpty() || branchId == null || branchId.isEmpty() || bookingId == null
-				|| bookingId.isEmpty()) {
+    if (clinicId == null || clinicId.isEmpty()
+            || branchId == null || branchId.isEmpty()
+            || bookingId == null || bookingId.isEmpty()) {
 
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("clinicId, branchId and bookingId are required");
-			response.setStatus(400);
-			return response;
-		}
+        response.setSuccess(false);
+        response.setData(null);
+        response.setMessage("clinicId, branchId and bookingId are required");
+        response.setStatus(400);
+        return response;
+    }
 
-		// ✅ Fetch from DB
-		List<PhysiotherapyRecordTemplate> record = repository.findByClinicIdAndBranchIdAndBookingId(clinicId, branchId,
-				bookingId);
+    List<PhysiotherapyRecordTemplate> record =
+            repository.findByClinicIdAndBranchIdAndBookingId(
+                    clinicId, branchId, bookingId);
 
-		if (record == null || record.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("No Template found");
-			response.setStatus(404);
-			return response;
-		}
+    if (record == null || record.isEmpty()) {
+        response.setSuccess(false);
+        response.setData(null);
+        response.setMessage("No Template found");
+        response.setStatus(404);
+        return response;
+    }
 
-		response.setSuccess(true);
-		response.setData(record);
-		response.setMessage("Records fetched successfully");
-		response.setStatus(200);
+    response.setSuccess(true);
+    response.setData(record);
+    response.setMessage("Records fetched successfully");
+    response.setStatus(200);
 
-		return response;
+    return response;
+}
+
+@RateLimiter(
+    name = "physiotherapyRecordTemplateService",
+    fallbackMethod = "getSessionsByBookingIdAndDateFallback"
+)
+@Secured("ROLE_DOCTOR")
+public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(
+        String bookingId,
+        String date) {
+
+    try {
+        Optional<PaymentRecord> optional =
+                paymentRepository.findByBookingId(bookingId);
+
+        if (optional.isEmpty()) {
+            return ResponseEntity.ok(null);
+        }
+
+        PaymentRecord record = optional.get();
+        List<Session> matchedSessions = new ArrayList<>();
+
+        if (record.getTherapyWithSessions() == null) {
+            return ResponseEntity.ok(null);
+        }
+
+        for (TherapyWithSessions therapy : record.getTherapyWithSessions()) {
+            handlePrograms(therapy.getPrograms(), date, matchedSessions);
+        }
+
+        return matchedSessions.isEmpty()
+                ? ResponseEntity.ok(null)
+                : ResponseEntity.ok(matchedSessions);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(null);
+    }
+}
+
+
+
+private void handlePrograms(List<Program> programs, String date, List<Session> result) {
+
+	if (programs == null)
+		return;
+
+	for (Program program : programs) {
+		handleTherapyData(program.getTherapyData(), date, result);
 	}
+}
 
-	
-	 @Secured("ROLE_DOCTOR")
-	public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(String bookingId, String date) {
+private void handleTherapyData(List<TherapyData> therapyDataList, String date, List<Session> result) {
 
-		try {
-			Optional<PaymentRecord> optional = paymentRepository.findByBookingId(bookingId);
+	if (therapyDataList == null)
+		return;
 
-			if (optional.isEmpty()) {
-				return ResponseEntity.ok(null);
+	for (TherapyData td : therapyDataList) {
+		handleExercises(td.getExercises(), date, result);
+	}
+}
+
+private void handleExercises(List<TherapyExercise> exercises, String date, List<Session> result) {
+
+	if (exercises == null)
+		return;
+
+	for (TherapyExercise ex : exercises) {
+
+		if (ex.getSessions() == null)
+			continue;
+
+		for (Session session : ex.getSessions()) {
+
+			if (date.equals(session.getDate())) {
+				result.add(session);
 			}
-
-			PaymentRecord record = optional.get();
-			// System.out.println(record);
-			List<Session> matchedSessions = new ArrayList<>();
-
-			if (record.getTherapyWithSessions() == null) {
-				return ResponseEntity.ok(null);
-			}
-
-			for (TherapyWithSessions therapy : record.getTherapyWithSessions()) {
-				handlePrograms(therapy.getPrograms(), date, matchedSessions);
-			}
-
-			return matchedSessions.isEmpty() ? ResponseEntity.ok(null) : ResponseEntity.ok(matchedSessions);
-
-		} catch (Exception e) {
-			// System.out.println(e.getMessage());
-			return ResponseEntity.status(500).body(null);
 		}
 	}
-
-	private void handlePrograms(List<Program> programs, String date, List<Session> result) {
-
-		if (programs == null)
-			return;
-
-		for (Program program : programs) {
-			handleTherapyData(program.getTherapyData(), date, result);
-		}
-	}
-
-	private void handleTherapyData(List<TherapyData> therapyDataList, String date, List<Session> result) {
-
-		if (therapyDataList == null)
-			return;
-
-		for (TherapyData td : therapyDataList) {
-			handleExercises(td.getExercises(), date, result);
-		}
-	}
-
-	private void handleExercises(List<TherapyExercise> exercises, String date, List<Session> result) {
-
-		if (exercises == null)
-			return;
-
-		for (TherapyExercise ex : exercises) {
-
-			if (ex.getSessions() == null)
-				continue;
-
-			for (Session session : ex.getSessions()) {
-
-				if (date.equals(session.getDate())) {
-					result.add(session);
-				}
-			}
-		}
-	}
+}
 
 	public static PhysiotherapyDoctorData mapToPhysiotherapyDoctorData(PhysiotherapyRecord entity,
 			S3Service s3Service) {
@@ -1287,5 +1314,77 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 
 		return sessions * price;
 	}
+
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Rate limit exceeded. Please try again later.");
+        return response;
+    }
+
+
+    public Response createFallback(PhysiotherapyRecordTemplateDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getTemplatesByClinicIdFallback(String clinicId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getTemplateByClinicIdAndTemplateIdFallback(String clinicId, String templateRecordId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAllFallback(Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateFallback(String id, PhysiotherapyRecordTemplateDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response deleteFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByMultipleFieldsFallback(String clinicId, String branchId, String bookingId, String templateRecordId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByWithoutTherapistRecordIdFallback(String clinicId, String branchId, String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getProgramAndTherapyInfoFallback(String clinicId, String branchId, String patientId, String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public ResponseEntity<Response> getCalculationsFallback(String clinicId, String branchId, String bookingId, Exception ex) {
+        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+    }
+
+public Response getByClinicBranchAndBookingFallback(
+        String clinicId,
+        String branchId,
+        String bookingId,
+        Exception ex) {
+
+    return buildRateLimitResponse(ex);
+}
+
+public ResponseEntity<List<Session>> getSessionsByBookingIdAndDateFallback(
+        String bookingId,
+        String date,
+        Exception ex) {
+
+    return ResponseEntity.status(429).body(null);
+}
 
 }

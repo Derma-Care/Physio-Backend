@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.DatesDTO;
@@ -45,7 +46,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     private final DoctorTemplateRepository repository;
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "createTemplateFallback")
+@Secured("ROLE_DOCTOR")
     public Response createTemplate(DoctorTemplateDTO dto) {
         try {
             String normalizedTitle = dto.getTitle().trim().replaceAll("\\s+", " ").toLowerCase();
@@ -100,7 +102,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "getTemplateByIdFallback")
+@Secured("ROLE_DOCTOR")
     public Response getTemplateById(String id) {
         Optional<DoctorTemplate> template = repository.findById(id);
         if (template.isPresent()) {
@@ -123,7 +126,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "getAllTemplatesFallback")
+@Secured("ROLE_DOCTOR")
     public Response getAllTemplates() {
         List<DoctorTemplate> templates = repository.findAll();
         List<DoctorTemplateDTO> dtos = templates.stream()
@@ -140,7 +144,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "deleteTemplateFallback")
+@Secured("ROLE_DOCTOR")
     public Response deleteTemplate(String id) {
         Optional<DoctorTemplate> existing = repository.findById(id);
         if (existing.isPresent()) {
@@ -260,7 +265,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "updateTemplateFallback")
+@Secured("ROLE_DOCTOR")
     public ResponseEntity<Response> updateTemplate(String id, DoctorTemplateDTO dto) {
         Optional<DoctorTemplate> existingTemplate = repository.findById(id);
 
@@ -312,7 +318,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "searchTemplatesByTitleFallback")
+@Secured("ROLE_DOCTOR")
     public Response searchTemplatesByTitle(String keyword) {
         try {
             if (keyword == null || keyword.trim().isEmpty()) {
@@ -542,7 +549,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "getTemplatesByClinicIdAndTitleFallback")
+@Secured("ROLE_DOCTOR")
     public Response getTemplatesByClinicIdAndTitle(String clinicId, String title) {
         try {
             if (clinicId == null || clinicId.trim().isEmpty() ||
@@ -593,5 +601,27 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
         }
     }
 
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        return Response.builder()
+                .success(false)
+                .status(429)
+                .message("Rate limit exceeded. Please try again later.")
+                .data(null)
+                .build();
+    }
+
+    public Response createTemplateFallback(DoctorTemplateDTO dto, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getTemplateByIdFallback(String id, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getAllTemplatesFallback(Exception ex) { return buildRateLimitResponse(ex); }
+    public Response deleteTemplateFallback(String id, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response searchTemplatesByTitleFallback(String keyword, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getTemplatesByClinicIdFallback(String clinicId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getTemplatesByClinicIdAndTitleFallback(String clinicId, String title, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public ResponseEntity<Response> updateTemplateFallback(String id, DoctorTemplateDTO dto, Exception ex) {
+        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+    }
 
 }

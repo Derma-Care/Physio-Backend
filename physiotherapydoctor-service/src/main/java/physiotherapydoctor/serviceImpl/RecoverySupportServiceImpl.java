@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import physiotherapydoctor.dto.RecoverySupportDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.feign.ClinicAdminFeign;
@@ -28,26 +29,47 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
 
+	 @Override
+	 @RateLimiter(
+	     name = "recoverySupportService",
+	     fallbackMethod = "getRecoverySupportsFallback"
+	 )
+	 @Secured("ROLE_DOCTOR")
+	 public Response getRecoverySupports(String clinicId) {
+	     try {
+	         Response response =
+	                 clinicAdminFeign.getAllRecoverySupportsByClinicId(
+	                         keyCloakTokenStore.getAccess_token(),
+	                         clinicId);
 
-	@Override
-	@Secured("ROLE_DOCTOR")
-	public Response getRecoverySupports(String clinicId) {
-	    try {
-	        Response response =
-	                clinicAdminFeign.getAllRecoverySupportsByClinicId(keyCloakTokenStore.getAccess_token(),clinicId);
+	         if (response != null && response.getData() != null) {
+	             List<RecoverySupportDTO> recoverySupports =
+	                     objectMapper.convertValue(
+	                             response.getData(),
+	                             new TypeReference<List<RecoverySupportDTO>>() {});
+	             response.setData(recoverySupports);
+	         }
 
-	        if (response != null && response.getData() != null) {
-	            List<RecoverySupportDTO> recoverySupports =
-	                    objectMapper.convertValue(
-	                            response.getData(),
-	                            new TypeReference<List<RecoverySupportDTO>>() {});
-	            response.setData(recoverySupports);
-	        }
+	         return response;
 
-	        return response;
+	     } catch (Exception e) {
+	         throw new RuntimeException("Unable to fetch recovery supports", e);
+	     }
+	 }
+	 
+	 public Response getRecoverySupportsFallback(
+		        String clinicId,
+		        Exception ex) {
 
-	    } catch (Exception e) {
-	        throw new RuntimeException("Unable to fetch recovery supports", e);
-	    }
-	}
+		    return buildRateLimitResponse(ex);
+		}
+	 
+	 private Response buildRateLimitResponse(Exception ex) {
+		    Response response = new Response();
+		    response.setSuccess(false);
+		    response.setStatus(429);
+		    response.setMessage("Rate limit exceeded. Please try again later.");
+		    response.setData(null);
+		    return response;
+		}
 }

@@ -4,13 +4,13 @@ package physiotherapydoctor.serviceImpl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
-
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 import org.springframework.web.bind.annotation.PathVariable;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
@@ -32,7 +32,8 @@ public class BookingServiceImpl implements BookingService {
     
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getAppointmentsByPatientIdFallback")
+@Secured("ROLE_DOCTOR")
     public ResponseEntity<?> getAppointmentsByPatientId(String clinicId,
                                                          String patientId,
                                                          int page
@@ -49,7 +50,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "searchAppointmentsByInputFallback")
+@Secured("ROLE_DOCTOR")
     public  ResponseEntity<?> searchAppointmentsByInput(String input) {
     	 Response res = new Response();
     	try {
@@ -65,7 +67,8 @@ public class BookingServiceImpl implements BookingService {
    
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getTodaysAppointmentsFallback")
+@Secured("ROLE_DOCTOR")
     public  ResponseEntity<?> getTodaysAppointments(String clinicId,
                                                     String doctorId,
                                                     int page
@@ -83,7 +86,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getFilteredAppointmentsFallback")
+@Secured("ROLE_DOCTOR")
     public  ResponseEntity<?> getFilteredAppointments(String clinicId, String doctorId, String number) {
     	 Response res = new Response();
     	try {
@@ -97,7 +101,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getCompletedAppointmentsFallback")
+@Secured("ROLE_DOCTOR")
     public  ResponseEntity<?> getCompletedAppointments(String clinicId, String doctorId) {
     	 Response res = new Response();
     	try {
@@ -111,7 +116,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getConsultationTypeCountsFallback")
+@Secured("ROLE_DOCTOR")
     public  ResponseEntity<?> getConsultationTypeCounts(String clinicId, String doctorId) {
     	 Response res = new Response();
     	try {
@@ -125,7 +131,8 @@ public class BookingServiceImpl implements BookingService {
     }
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getInProgressAppointmentsFallback")
+@Secured("ROLE_DOCTOR")
     public ResponseEntity<?> getInProgressAppointments(String mobileNumber) {
     	 Response res = new Response();
     	try {
@@ -139,7 +146,8 @@ public class BookingServiceImpl implements BookingService {
     }
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getAllBookedServicesByDoctorIdFallback")
+@Secured("ROLE_DOCTOR")
     public ResponseEntity<?> getAllBookedServicesByDoctorId(String doctorId,
                                                             int page) {
     	 Response res = new Response();
@@ -154,7 +162,8 @@ public class BookingServiceImpl implements BookingService {
         }
     }
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getDoctorFutureAppointmentsFallback")
+@Secured("ROLE_DOCTOR")
     public ResponseEntity<?> getDoctorFutureAppointments(String doctorId,
                                                          int page) {
     	 Response res = new Response();
@@ -169,7 +178,8 @@ public class BookingServiceImpl implements BookingService {
     }
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "bookingService", fallbackMethod = "getInProgressBookingsByIdsFallback")
+@Secured("ROLE_DOCTOR")
     public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
     		String bookingId) {
     	Response response = new Response();
@@ -183,7 +193,8 @@ public class BookingServiceImpl implements BookingService {
         }}
 
         @Override
-        @Secured("ROLE_DOCTOR")
+        @RateLimiter(name = "bookingService", fallbackMethod = "getDoctorAppointmentsonStatusFallback")
+@Secured("ROLE_DOCTOR")
         public  ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId,
                                                                  String branchId,
                                                                  String doctorId,
@@ -202,7 +213,8 @@ public class BookingServiceImpl implements BookingService {
 
         
         @Override
-        @Secured("ROLE_DOCTOR")
+        @RateLimiter(name = "bookingService", fallbackMethod = "searchPatientFallback")
+@Secured("ROLE_DOCTOR")
         public ResponseEntity<?> searchPatient(String clinicId, String input) {
 
             try {
@@ -238,5 +250,26 @@ public class BookingServiceImpl implements BookingService {
                         .body(errorResponse);
             }
         }
-}
 
+    private ResponseEntity<?> buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Rate limit exceeded. Please try again later.");
+        return ResponseEntity.status(429).body(response);
+    }
+
+    private ResponseEntity<?> getAppointmentsByPatientIdFallback(String clinicId,String patientId,int page, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> searchAppointmentsByInputFallback(String input, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getTodaysAppointmentsFallback(String clinicId,String doctorId,int page, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getFilteredAppointmentsFallback(String clinicId,String doctorId,String number, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getCompletedAppointmentsFallback(String clinicId,String doctorId, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getConsultationTypeCountsFallback(String clinicId,String doctorId, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getInProgressAppointmentsFallback(String mobileNumber, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getAllBookedServicesByDoctorIdFallback(String doctorId,int page, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getDoctorFutureAppointmentsFallback(String doctorId,int page, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getInProgressBookingsByIdsFallback(String patientId,String bookingId, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> getDoctorAppointmentsonStatusFallback(String clinicId,String branchId,String doctorId,String status,int page, Exception ex) { return buildRateLimitResponse(ex); }
+    private ResponseEntity<?> searchPatientFallback(String clinicId,String input, Exception ex) { return buildRateLimitResponse(ex); }
+
+}

@@ -1,4 +1,4 @@
- package com.AdminService.service;
+package com.AdminService.service;
 
 import com.AdminService.dto.ReceptionistRequestDTO;
 import com.AdminService.feign.ClinicAdminFeign;

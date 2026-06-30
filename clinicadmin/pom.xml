@@ -170,11 +170,6 @@
 			<artifactId>resilience4j-spring-boot3</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
-		</dependency>
-
 		<!-- Actuator -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

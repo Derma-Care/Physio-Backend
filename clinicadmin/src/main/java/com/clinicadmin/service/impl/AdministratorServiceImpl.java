@@ -26,9 +26,10 @@ import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.service.AdministratorService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 
 @Service
 @RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")

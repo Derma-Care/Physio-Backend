@@ -138,6 +138,7 @@ public interface ClinicAdminFeign {
     @GetMapping("/clinic-admin/treatments/{hospitalId}")
     ResponseEntity<ResponseStructure<List<TreatmentDTO>>> getTreatmentsByHospitalId(@PathVariable("hospitalId") String hospitalId);
     
+
     // ---------------------- Doctor Slot APIs (Added Last) ----------------------
     @PostMapping("/clinic-admin/addDoctorSlots/{hospitalId}/{branchId}/{doctorId}")
     ResponseEntity<Response> addDoctorSlot(@RequestHeader("Authorization") String token,@PathVariable("hospitalId") String hospitalId,

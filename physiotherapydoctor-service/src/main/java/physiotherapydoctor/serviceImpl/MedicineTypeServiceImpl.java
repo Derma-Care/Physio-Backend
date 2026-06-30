@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import physiotherapydoctor.dto.MedicineTypeDTO;
 import physiotherapydoctor.dto.Response;
@@ -22,7 +23,8 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     private MedicineTypeRepository repository;
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "medicineTypeService", fallbackMethod = "addMedicineTypeFallback")
+@Secured("ROLE_DOCTOR")
     public Response addMedicineType(MedicineTypeDTO dto) {
 
         MedicineType entity;
@@ -55,7 +57,8 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "medicineTypeService", fallbackMethod = "getMedicineTypesByIdFallback")
+@Secured("ROLE_DOCTOR")
     public Response getMedicineTypesById(String id) {
 
         Optional<MedicineType> entity = repository.findById(id);
@@ -78,7 +81,8 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "medicineTypeService", fallbackMethod = "searchOrAddMedicineTypeFallback")
+@Secured("ROLE_DOCTOR")
     public Response searchOrAddMedicineType(MedicineTypeDTO dto) {
 
         // get first document if exists
@@ -126,7 +130,8 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "medicineTypeService", fallbackMethod = "getAllMedicineTypesFallback")
+@Secured("ROLE_DOCTOR")
     public Response getAllMedicineTypes() {
 
         Response response = new Response();
@@ -154,4 +159,31 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
 
         return response;
     }
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        return Response.builder()
+                .success(false)
+                .status(429)
+                .message("Rate limit exceeded. Please try again later.")
+                .data(null)
+                .build();
+    }
+
+    public Response addMedicineTypeFallback(MedicineTypeDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getMedicineTypesByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response searchOrAddMedicineTypeFallback(MedicineTypeDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAllMedicineTypesFallback(Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
 }

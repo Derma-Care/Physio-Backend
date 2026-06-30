@@ -1,5 +1,6 @@
 package physiotherapydoctor.serviceImpl;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -97,7 +98,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "createFallback")
+@Secured("ROLE_DOCTOR")
 	public Response create(PhysiotherapyRecordDTO dto) {
 
 	    Response response = new Response();
@@ -427,7 +429,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ✅ GET BY ID
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 
 		Response response = new Response();
@@ -464,7 +467,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByBookingIdFallback")
+@Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
 	public String getByBookingId(String id) {
 
 		try {
@@ -485,7 +489,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ✅ GET ALL
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getAllFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getAll() {
 
 		Response response = new Response();
@@ -509,7 +514,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "updateFallback")
+@Secured("ROLE_DOCTOR")
 	public Response update(String id, PhysiotherapyRecordDTO dto) {
 
 		Response response = new Response();
@@ -617,7 +623,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ✅ DELETE
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "deleteFallback")
+@Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 
 		Response response = new Response();
@@ -742,7 +749,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByMultipleFieldsFallback")
+@Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
 	public Response getByMultipleFields(String clinicId, String branchId, String patientId, String bookingId,
 	        String therapistRecordId) {
 
@@ -804,7 +812,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 	
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String patientId,
 			String bookingId) {
 
@@ -842,7 +851,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getAssignedPatientsFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
 
 		Response response = new Response();
@@ -1009,7 +1019,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ===================== GET SESSIONS BY DATE =====================
 
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getProgramAndTherapyInfoFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getProgramAndTherapyInfo(String clinicId, String branchId, String patientId, String bookingId) {
 		Response response = new Response();
 
@@ -1171,7 +1182,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getCalculationsFallback")
+@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId,
 			String bookingId) {
 		try {
@@ -1453,7 +1465,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByClinicBranchAndBookingFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getByClinicBranchAndBooking(String clinicId, String branchId, String bookingId) {
 
 		Response response = new Response();
@@ -1593,7 +1606,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})	
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getSessionsByBookingIdAndDateFallback")
+@Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})	
 	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String date) {
 
 		try {
@@ -1676,7 +1690,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getInProgressBookingsByIdsFallback")
+@Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getInProgressBookingsByIds(String patientId, String bookingId) {
 		Response response = new Response();
 		try {
@@ -1690,7 +1705,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getVisitHistoryFallback")
+@Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getVisitHistory(String patientId, String bookingId) {
 
 		Response response = new Response();
@@ -1755,7 +1771,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getFirstVisitHistoryFallback")
+@Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getFirstVisitHistory(String doctorId, String patientId, String bookingId, String clinicId,
 			String branchId) {
 
@@ -1827,7 +1844,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		return response;
 	}
 
-	 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getVisitHistoryByDoctorFallback")
+@Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getVisitHistoryByDoctor(String doctorId, String patientId, String bookingId) {
 
 		Response response = new Response();
@@ -1932,7 +1950,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapyService", fallbackMethod = "getTodaysAppointmentsFallback")
+@Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId,int page) {
 		Response res = new Response();
 		try {
@@ -1982,7 +2001,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
+	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getTodayFollowUpBookingIdsFallback")
+@Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
 	public List<String> getTodayFollowUpBookingIds() {
 
 		String todayDate = LocalDate.now().format(FORMATTER);
@@ -1997,7 +2017,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapyService", fallbackMethod = "changePasswordFallback")
+@Secured("ROLE_DOCTOR")
 	public Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO) {
 		Response validationResponse = validateChangePasswordRequest(username, updateDTO);
 		if (validationResponse != null) {
@@ -2016,7 +2037,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapyService", fallbackMethod = "updateDoctorAvailabilityFallback")
+@Secured("ROLE_DOCTOR")
 	public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO) {
 		if (doctorId == null || doctorId.isBlank()) {
 			return Response.builder().success(false).status(400).message("Doctor ID must not be empty").build();
@@ -2104,7 +2126,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapyService", fallbackMethod = "getDoctorAppointmentsonStatusFallback")
+@Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId, String branchId, String doctorId,
 			String status,int page) {
 		Response res = new Response();
@@ -2118,7 +2141,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapyService", fallbackMethod = "getInvestigationsFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getInvestigations(String bookingId, String patientId) {
 
 		Response response = new Response();
@@ -2150,4 +2174,112 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		return response;
 	}
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setStatus(429);
+        response.setMessage("Rate limit exceeded. Please try again later.");
+        return response;
+    }
+
+
+    public Response createFallback(PhysiotherapyRecordDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public String getByBookingIdFallback(String id, Exception ex) {
+        return null;
+    }
+
+    public Response getAllFallback(Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateFallback(String id, PhysiotherapyRecordDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response deleteFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByMultipleFieldsFallback(String clinicId, String branchId, String patientId, String bookingId,
+	        String therapistRecordId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getByWithoutTherapistRecordIdFallback(String clinicId, String branchId, String patientId,
+			String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAssignedPatientsFallback(String clinicId, String branchId, String therapistId, Integer overallStatus, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getProgramAndTherapyInfoFallback(String clinicId, String branchId, String patientId, String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public ResponseEntity<Response> getCalculationsFallback(String clinicId, String branchId, String patientId,
+			String bookingId, Exception ex) {
+        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+    }
+
+    public Response getByClinicBranchAndBookingFallback(String clinicId, String branchId, String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDateFallback(String bookingId, String date, Exception ex) {
+        return ResponseEntity.status(429).body(Collections.emptyList());
+    }
+
+    public ResponseEntity<?> getInProgressBookingsByIdsFallback(String patientId, String bookingId, Exception ex) {
+        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+    }
+
+    public Response getVisitHistoryFallback(String patientId, String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getFirstVisitHistoryFallback(String doctorId, String patientId, String bookingId, String clinicId,
+			String branchId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getVisitHistoryByDoctorFallback(String doctorId, String patientId, String bookingId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public ResponseEntity<?> getTodaysAppointmentsFallback(String clinicId, String doctorId,int page, Exception ex) {
+        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+    }
+
+    public List<String> getTodayFollowUpBookingIdsFallback(Exception ex) {
+        return null;
+    }
+
+    public Response changePasswordFallback(String username, ChangeDoctorPasswordDTO updateDTO, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateDoctorAvailabilityFallback(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public ResponseEntity<?> getDoctorAppointmentsonStatusFallback(String clinicId, String branchId, String doctorId,
+			String status,int page, Exception ex) {
+        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+    }
+
+    public Response getInvestigationsFallback(String bookingId, String patientId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
 }

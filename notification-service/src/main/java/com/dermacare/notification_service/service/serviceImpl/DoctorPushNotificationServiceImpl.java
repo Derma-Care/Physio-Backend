@@ -14,7 +14,7 @@ import com.dermacare.notification_service.feign.CllinicFeign;
 import com.dermacare.notification_service.notificationFactory.SendAppNotification;
 import com.dermacare.notification_service.repository.DoctorPushNotificationRepository;
 import com.dermacare.notification_service.service.DoctorPushNotificationService;
-
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,6 +28,7 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 	private final SendAppNotification appNotification;
 
 	@Override
+	@RateLimiter(name = "doctorPushNotificationService", fallbackMethod = "sendNotificationFallback")
 	public ResponseEntity<?> sendNotification(DoctorPushNotificationDTO dto) {
 		System.out.println(dto);
 		Response res = new Response();
@@ -153,4 +154,18 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 
 		return ResponseEntity.status(res.getStatus()).body(res);
 	}
+
+    
+    public ResponseEntity<?> sendNotificationFallback(
+            DoctorPushNotificationDTO dto,
+            Exception ex) {
+
+        Response res = new Response();
+        res.setMessage("Too many requests. Please try again after some time.");
+        res.setStatus(429);
+        res.setSuccess(false);
+
+        return ResponseEntity.status(429).body(res);
+    }
+
 }

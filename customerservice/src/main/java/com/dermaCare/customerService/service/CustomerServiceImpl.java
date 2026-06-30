@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
@@ -70,6 +71,7 @@ public class CustomerServiceImpl implements CustomerService {
 
      
     @Secured("ROLE_CUSTOMER")
+	@RateLimiter(name = "customerService", fallbackMethod = "getDoctorsSlotsFallback")
 	public Response getDoctorsSlots(String hid, String branchId, String doctorId) {
 
 	    log.info("GET_DOCTOR_SLOTS :: START :: hospitalId={}, branchId={}, doctorId={}",
@@ -100,6 +102,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 // BOOKING MANAGEMENT
     @Secured("ROLE_CUSTOMER")
+	@RateLimiter(name = "customerService", fallbackMethod = "bookServiceFallback")
 	public Response bookService(BookingRequset req) throws JsonProcessingException {
 
 	    log.info("BOOK_SERVICE :: START :: customerMobile={}, serviceId={}, doctorId={}",
@@ -216,6 +219,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getBookingsByCustomerIdFallback")
 public ResponseEntity<?> getBookingsByCustomerId(String customerId) {
 
     log.info("GET_BOOKINGS_BY_CUSTOMER :: START :: customerId={}", customerId);
@@ -244,6 +248,7 @@ public ResponseEntity<?> getBookingsByCustomerId(String customerId) {
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getCompletedBookingsByCustomerIdFallback")
 public ResponseEntity<?> getCompletedBookingsByCustomerId(String customerId) {
 
     log.info("GET_BOOKINGS_BY_CUSTOMER :: START :: customerId={}", customerId);
@@ -271,6 +276,7 @@ public ResponseEntity<?> getCompletedBookingsByCustomerId(String customerId) {
 
 
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getCustomerByTokenFallback")
 public CustomerDTO getCustomerByToken(String token) {
 
     log.info("GET_CUSTOMER_BY_TOKEN :: START");
@@ -302,6 +308,7 @@ public CustomerDTO getCustomerByToken(String token) {
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getTherapistSessionDetailsFallback")
 public ResponseEntity<Response> getTherapistSessionDetails(TherapistRecordRequest request) {
     Response response = new Response();
     try {
@@ -315,6 +322,7 @@ public ResponseEntity<Response> getTherapistSessionDetails(TherapistRecordReques
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getVisitHistoryByDoctorFallback")
 public ResponseEntity<Response> getVisitHistoryByDoctor(VisitHistoryRequest request) {
     Response response = new Response();
     try {
@@ -327,6 +335,7 @@ public ResponseEntity<Response> getVisitHistoryByDoctor(VisitHistoryRequest requ
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getFirstVisitHistoryFallback")
 public ResponseEntity<Response> getFirstVisitHistory(FirstVisitHistoryRequest request) {
     Response response = new Response();
     try {
@@ -340,6 +349,7 @@ public ResponseEntity<Response> getFirstVisitHistory(FirstVisitHistoryRequest re
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "bookPhysioAppointmentFallback")
 public ResponseEntity<?> bookPhysioAppointment(BookingRequset req) {   	
         Response response = new Response();
         try {
@@ -405,6 +415,7 @@ public ResponseEntity<?> bookPhysioAppointment(BookingRequset req) {
 
 
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "notificationToCustomerFallback")
 public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
         String customerMobileNumber) {
 
@@ -428,6 +439,7 @@ public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCusto
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getStaffInfoFallback")
 public ResponseEntity<Response> getStaffInfo(
        String hospitalId,
         String branchId){
@@ -444,6 +456,7 @@ public ResponseEntity<Response> getStaffInfo(
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "createFeedbackFallback")
 public Response createFeedback(
         PatientFeedbackDTO dto){
     Response response = new Response();
@@ -458,6 +471,7 @@ public Response createFeedback(
 
 @Override
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
 public ResponseEntity<Response> getByClinicIdAndBranchId(
       String clinicId,
       String branchId,
@@ -472,6 +486,7 @@ public ResponseEntity<Response> getByClinicIdAndBranchId(
     } return ResponseEntity.status(res.getStatus()).body(res);}
 
 @Secured("ROLE_CUSTOMER")
+@RateLimiter(name = "customerService", fallbackMethod = "getReportsAndDoctorSaveDetailsFallback")
 public Response getReportsAndDoctorSaveDetails(String customerId) {
 
     log.info("GET_REPORTS_AND_DOCTOR_DETAILS :: START :: customerId={}", customerId);
@@ -539,5 +554,41 @@ public Response getReportsAndDoctorSaveDetails(String customerId) {
         return response;
     }
 }
+
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response getDoctorsSlotsFallback(String hid, String branchId, String doctorId, Exception ex){ return buildRateLimitResponse(); }
+    public Response bookServiceFallback(BookingRequset req, Exception ex){ return buildRateLimitResponse(); }
+    public ResponseEntity<?> getBookingsByCustomerIdFallback(String customerId, Exception ex){ return buildRateLimitEntity(); }
+    public ResponseEntity<?> getCompletedBookingsByCustomerIdFallback(String customerId, Exception ex){ return buildRateLimitEntity(); }
+    public CustomerDTO getCustomerByTokenFallback(String token, Exception ex){ return null; }
+    public ResponseEntity<Response> getTherapistSessionDetailsFallback(TherapistRecordRequest request, Exception ex){ return buildRateLimitEntity(); }
+    public ResponseEntity<Response> getVisitHistoryByDoctorFallback(VisitHistoryRequest request, Exception ex){ return buildRateLimitEntity(); }
+    public ResponseEntity<Response> getFirstVisitHistoryFallback(FirstVisitHistoryRequest request, Exception ex){ return buildRateLimitEntity(); }
+    public ResponseEntity<?> bookPhysioAppointmentFallback(BookingRequset req, Exception ex){ return buildRateLimitEntity(); }
+
+    public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomerFallback(
+            String customerMobileNumber, Exception ex){
+        return ResponseEntity.status(429).body(new ResBody<>("Too many requests. Please try again after some time.",429,null));
+    }
+
+    public ResponseEntity<Response> getStaffInfoFallback(String hospitalId,String branchId,Exception ex){ return buildRateLimitEntity(); }
+    public Response createFeedbackFallback(PatientFeedbackDTO dto, Exception ex){ return buildRateLimitResponse(); }
+    public ResponseEntity<Response> getByClinicIdAndBranchIdFallback(String clinicId,String branchId,String patientId,Exception ex){ return buildRateLimitEntity(); }
+    public Response getReportsAndDoctorSaveDetailsFallback(String customerId, Exception ex){ return buildRateLimitResponse(); }
+
+    public Response buildRateLimitResponse(){
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
+    public ResponseEntity<Response> buildRateLimitEntity(){
+        return ResponseEntity.status(429).body(buildRateLimitResponse());
+    }
 
 }

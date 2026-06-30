@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 
 @Service
@@ -72,7 +74,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    // ✅ CREATE
 	    @Override
-	    public ResponseEntity<Response> create(QuestionsByPartDTO dto) {
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "physiotherapyService", fallbackMethod = "createFallback")
+    public ResponseEntity<Response> create(QuestionsByPartDTO dto) {
 	        try {
 
 	            Map<String, List<QuestionsEntity>> entityMap = new HashMap<>();
@@ -105,7 +109,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    // ✅ GET ALL
 	    @Override
-	    public ResponseEntity<PysioQuestionsRes> getAll() {
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "physiotherapyService", fallbackMethod = "getAllFallback")
+    public ResponseEntity<PysioQuestionsRes> getAll() {
 	        try {
 	            return ResponseEntity.ok(
 	                    new PysioQuestionsRes("Fetched", 200, true,new ObjectMapper().convertValue(repository.findAll(), new TypeReference<List<QuestionsByPartDTO>>() {
@@ -121,7 +127,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    
 	    @Override
-	    public ResponseEntity<Response> getByKeys(MutiplePartsDto keys) {
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByKeysFallback")
+    public ResponseEntity<Response> getByKeys(MutiplePartsDto keys) {
 	        try {	       
 	        	Map<String, List<QuestionsEntity>> filteredMap = new HashMap<>();
 	            for (String key : keys.getKeys()) {
@@ -155,7 +163,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	    // ✅ UPDATE (replace full map)
 	    
 	    @Override
-	    public ResponseEntity<Response> updateByKey(String key, QuestionsDTO dto) {
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "physiotherapyService", fallbackMethod = "updateByKeyFallback")
+    public ResponseEntity<Response> updateByKey(String key, QuestionsDTO dto) {
 	        try {
 	        	boolean exist = false;
 	        	QuestionsByPartEntity entity = getByKey.getByKey(key);
@@ -193,7 +203,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	   
 	    // ✅ DELETE
 	    @Override
-	    public ResponseEntity<Response> deleteQuestionByKeyAndId(String key, long questionId) {
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "physiotherapyService", fallbackMethod = "deleteQuestionByKeyAndIdFallback")
+    public ResponseEntity<Response> deleteQuestionByKeyAndId(String key, long questionId) {
 	        try {
 	            QuestionsByPartEntity entity = getByKey.getByKey(key);
 
@@ -241,7 +253,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        }
 	    }
 	    
-	    public ResponseEntity<Response> getExerciseSessionsWithRecords(String clinicId,
+	    @Secured("ROLE_CUSTOMER")
+	    @RateLimiter(name = "physiotherapyService", fallbackMethod = "getExerciseSessionsWithRecordsFallback")
+    public ResponseEntity<Response> getExerciseSessionsWithRecords(String clinicId,
 				String branchId,  String bookingId,  String patientId, String therapistId,
 				String therapistRecordId) {
 	        Response response = new Response();
@@ -254,5 +268,60 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            response.setSuccess(false);
 	        } return ResponseEntity.status(response.getStatus()).body(response);}
 
+
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseEntity<Response> createFallback(QuestionsByPartDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<PysioQuestionsRes> getAllFallback(Exception ex) {
+        return ResponseEntity.status(429)
+                .body(new PysioQuestionsRes(
+                        "Too many requests. Please try again after some time.",
+                        429,
+                        false,
+                        null));
+    }
+
+    public ResponseEntity<Response> getByKeysFallback(MutiplePartsDto keys, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<Response> updateByKeyFallback(
+            String key,
+            QuestionsDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<Response> deleteQuestionByKeyAndIdFallback(
+            String key,
+            long questionId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<Response> getExerciseSessionsWithRecordsFallback(
+            String clinicId,
+            String branchId,
+            String bookingId,
+            String patientId,
+            String therapistId,
+            String therapistRecordId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseEntity<Response> buildRateLimitResponse() {
+        return ResponseEntity.status(429)
+                .body(new Response(
+                        "Too many requests. Please try again after some time.",
+                        429,
+                        false,
+                        null));
+    }
 
 }

@@ -12,7 +12,8 @@ import com.AdminService.entity.QuestionAnswer;
 import com.AdminService.entity.QuetionsAndAnswerForAddClinic;
 import com.AdminService.repository.QuetionsAndAnswerForAddClinicRepository;
 import com.AdminService.util.Response;
-import feign.FeignException;import lombok.RequiredArgsConstructor;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 

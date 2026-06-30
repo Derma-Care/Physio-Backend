@@ -1,5 +1,4 @@
 package com.AdminService.dto;
-
 import java.util.List;
 import java.util.Map;
 
@@ -28,5 +27,6 @@ public class ClinicCredentialsDTO {
 	private List<String> roles;
 	
 	private Map<String, Map<String, List<String>>> permissions;
+
 
 }

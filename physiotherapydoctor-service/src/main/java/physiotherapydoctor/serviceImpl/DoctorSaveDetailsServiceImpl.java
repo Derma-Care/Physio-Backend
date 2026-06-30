@@ -1,6 +1,7 @@
 package physiotherapydoctor.serviceImpl;
 
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -83,7 +84,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override   
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "saveDoctorDetailsFallback")
+@Secured("ROLE_DOCTOR")
     public Response saveDoctorDetails(DoctorSaveDetailsDTO dto) {
         try {
             // ----------------------- Step 0: Validate Booking ID -----------------------
@@ -403,7 +405,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorDetailsByIdFallback")
+@Secured("ROLE_DOCTOR")
     public Response getDoctorDetailsById(String id) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
 
@@ -424,7 +427,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "updateDoctorDetailsFallback")
+@Secured("ROLE_DOCTOR")
     public Response updateDoctorDetails(String id, DoctorSaveDetailsDTO dto) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
 
@@ -492,7 +496,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "updateDoctorDetailsByBookingIdFallback")
+@Secured("ROLE_DOCTOR")
     public Response updateDoctorDetailsByBookingId(String id, DoctorSaveDetailsDTO dto) {
         DoctorSaveDetails optional = repository.findByBookingId(id);
         if (optional != null) {
@@ -510,7 +515,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "deleteDoctorDetailsFallback")
+@Secured("ROLE_DOCTOR")
     public Response deleteDoctorDetails(String id) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
         if (optional.isPresent()) {
@@ -522,14 +528,16 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getAllDoctorDetailsFallback")
+@Secured("ROLE_DOCTOR")
     public Response getAllDoctorDetails() {
         List<DoctorSaveDetails> list = repository.findAll();
         return buildResponse(true, list, "All doctor details fetched", HttpStatus.OK.value());
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getVisitHistoryByPatientAndBookingFallback")
+@Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatientAndBooking(String patientId, String bookingId) {
         try {
             List<DoctorSaveDetails> visits = repository.findByPatientIdAndBookingId(patientId, bookingId);
@@ -553,7 +561,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getVisitHistoryByPatientFallback")
+@Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatient(String patientId) {
         try {
             List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
@@ -859,7 +868,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
                 .build();
     }
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getVisitHistoryByPatientAndDoctorFallback")
+@Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatientAndDoctor(String patientId, String doctorId) {
         try {
             List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
@@ -913,7 +923,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getInProgressDetailsFallback")
+@Secured("ROLE_DOCTOR")
     public Response getInProgressDetails(String patientId, String bookingId) {
         try {
             // 1. Fetch booking from Booking Service
@@ -965,7 +976,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     
     @Override
-    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorDetailsByBookingIdFallback")
+@Secured("ROLE_DOCTOR")
     public Response getDoctorDetailsByBookingId(String bookingId) {
     	try {   		
         DoctorSaveDetails optional = repository.findByBookingIdIgnoreCase(bookingId);
@@ -982,7 +994,8 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
     
     @Override
-    @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorDetailsByCustomerIdFallback")
+@Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
     public Response getDoctorDetailsByCustomerId(String customerId) {
     	try {
        List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);
@@ -1015,6 +1028,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     @Override
     @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorLatestDetailsByCustomerIdFallback")
     public DoctorSaveDetailsDTO getDoctorLatestDetailsByCustomerId(String customerId) {
     	try {
        List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);
@@ -1032,5 +1046,82 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
         }
     }
   
+
+
+
+    private Response buildRateLimitResponse(Exception ex) {
+        return new Response(false, null,
+                "Rate limit exceeded. Please try again later.",
+                429);
+    }
+
+    public Response saveDoctorDetailsFallback(DoctorSaveDetailsDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getDoctorDetailsByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateDoctorDetailsFallback(String id, DoctorSaveDetailsDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updateDoctorDetailsByBookingIdFallback(String id, DoctorSaveDetailsDTO dto, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response deleteDoctorDetailsFallback(String id, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getAllDoctorDetailsFallback(Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getVisitHistoryByPatientAndBookingFallback(
+            String patientId,
+            String bookingId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getVisitHistoryByPatientFallback(
+            String patientId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getVisitHistoryByPatientAndDoctorFallback(
+            String patientId,
+            String doctorId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getInProgressDetailsFallback(
+            String patientId,
+            String bookingId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getDoctorDetailsByBookingIdFallback(
+            String bookingId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getDoctorDetailsByCustomerIdFallback(
+            String customerId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response getDoctorLatestDetailsByCustomerIdFallback(
+            String customerId,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
 
 }
