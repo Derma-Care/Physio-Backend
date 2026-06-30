@@ -18,6 +18,7 @@ import com.clinicadmin.repository.PackageRepository;
 import com.clinicadmin.service.PackageService;
 
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
@@ -29,6 +30,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= CREATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "createPackageFallback")
     public ResponseStructure<PackageDTO> createPackage(PackageDTO dto) {
 
         log.info("Creating package for clinicId: {}, branchId: {}", dto.getClinicId(), dto.getBranchId());
@@ -54,6 +56,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET BY ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "getPackageByIdFallback")
     public ResponseStructure<PackageDTO> getPackageById(String id) {
 
         log.info("Fetching package id: {}", id);
@@ -71,6 +74,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET ALL =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "getAllPackagesFallback")
     public ResponseStructure<List<PackageDTO>> getAllPackages() {
 
         log.info("Fetching all packages");
@@ -91,6 +95,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET BY CLINIC & BRANCH =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "getByClinicAndBranchFallback")
     public ResponseStructure<List<PackageDTO>> getByClinicAndBranch(String clinicId, String branchId) {
 
         log.info("Fetching packages for clinicId: {}, branchId: {}", clinicId, branchId);
@@ -111,6 +116,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET BY CLINIC + BRANCH + PACKAGE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
     public ResponseStructure<PackageDTO> getByClinicBranchAndPackageId(
             String clinicId, String branchId, String packageId) {
 
@@ -136,6 +142,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= UPDATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "updatepackagebyidFallback")
     public ResponseStructure<PackageDTO> updatepackagebyid(String id, PackageDTO dto) {
 
         log.info("Updating package id: {}", id);
@@ -213,6 +220,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= DELETE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageService", fallbackMethod = "deletepackagebyidFallback")
     public ResponseStructure<String> deletepackagebyid(String id) {
 
         log.info("Deleting package id: {}", id);
@@ -331,4 +339,62 @@ public class PackageServiceImpl implements PackageService {
 
         return dto;
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<PackageDTO> createPackageFallback(PackageDTO dto, Exception ex) {
+        return buildPackageResponse();
+    }
+
+    public ResponseStructure<PackageDTO> getPackageByIdFallback(String id, Exception ex) {
+        return buildPackageResponse();
+    }
+
+    public ResponseStructure<List<PackageDTO>> getAllPackagesFallback(Exception ex) {
+        return buildPackageListResponse();
+    }
+
+    public ResponseStructure<List<PackageDTO>> getByClinicAndBranchFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildPackageListResponse();
+    }
+
+    public ResponseStructure<PackageDTO> getByClinicBranchAndPackageIdFallback(
+            String clinicId, String branchId, String packageId, Exception ex) {
+        return buildPackageResponse();
+    }
+
+    public ResponseStructure<PackageDTO> updatepackagebyidFallback(
+            String id, PackageDTO dto, Exception ex) {
+        return buildPackageResponse();
+    }
+
+    public ResponseStructure<String> deletepackagebyidFallback(String id, Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again later.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429
+        );
+    }
+
+    private ResponseStructure<PackageDTO> buildPackageResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again later.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429
+        );
+    }
+
+    private ResponseStructure<List<PackageDTO>> buildPackageListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again later.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429
+        );
+    }
+
 }

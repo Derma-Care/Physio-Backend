@@ -22,6 +22,7 @@ import com.clinicadmin.service.PatientConsentFormService;
 import com.clinicadmin.utils.Base64CompressionUtil;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class PatientConsentFormServiceImpl implements PatientConsentFormService {
@@ -48,6 +49,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "patientConsentService", fallbackMethod = "getPatientDetailsForFormUsingBookingFallback")
 	public Response getPatientDetailsForFormUsingBooking(String bookingId, String patientId, String mobileNumber) {
 		Response response = new Response();
 		ResponseEntity<Response> responseEntity = bookingFeign.getPatientDetailsForConsentForm(keyCloakTokenStore.getAccess_token(),bookingId, patientId,
@@ -134,6 +136,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "patientConsentService", fallbackMethod = "updatePatientConsentFormFallback")
 	public Response updatePatientConsentForm(String id, PatientConsentFormDTO dto) {
 		Response response = new Response();
 
@@ -219,5 +222,30 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 		return response;
 	}
+
+
+
+    public Response getPatientDetailsForFormUsingBookingFallback(
+            String bookingId,
+            String patientId,
+            String mobileNumber,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response updatePatientConsentFormFallback(
+            String id,
+            PatientConsentFormDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+
+    public Response buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
 
 }

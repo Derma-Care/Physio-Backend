@@ -25,6 +25,7 @@ import com.clinicadmin.service.ReportsService;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class ReportsServiceImpl implements ReportsService {
@@ -142,6 +143,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "saveReportsFallback")
     public Response saveReports(ReportsDtoList dto) {
         try {
             if (dto == null || dto.getReportsList() == null || dto.getReportsList().isEmpty()) {
@@ -253,6 +255,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "getReportsByBookingIdFallback")
     public Response getReportsByBookingId(String bookingId) {
         Response res = new Response();
         try {
@@ -289,6 +292,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "getAllReportsFallback")
     public Response getAllReports() {
         Response res = new Response();
         try {
@@ -324,6 +328,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "getReportsByCustomerIdFallback")
     public Response getReportsByCustomerId(String customerId) {
         Response res = new Response();
         try {
@@ -360,6 +365,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "getReportsByPatientIdAndBookingIdFallback")
     public Response getReportsByPatientIdAndBookingId(String patientId, String bookingId) {
         Response res = new Response();
         try {
@@ -397,6 +403,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "updateReportFallback")
     public Response updateReport(String reportId, ReportsDtoList dto) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -520,6 +527,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "deleteReportFallback")
     public Response deleteReport(String reportId) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -565,6 +573,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "reportsService", fallbackMethod = "deleteReportFileFallback")
     public Response deleteReportFile(String reportId, String bookingId, int fileIndex) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -651,4 +660,58 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
         }
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response saveReportsFallback(ReportsDtoList dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getReportsByBookingIdFallback(String bookingId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getAllReportsFallback(Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getReportsByCustomerIdFallback(String customerId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getReportsByPatientIdAndBookingIdFallback(
+            String patientId,
+            String bookingId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateReportFallback(
+            String reportId,
+            ReportsDtoList dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteReportFallback(String reportId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteReportFileFallback(
+            String reportId,
+            String bookingId,
+            int fileIndex,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

@@ -29,6 +29,7 @@ import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class TherapistRecordServiceImpl implements TherapistRecordService {
@@ -50,6 +51,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistRecordService", fallbackMethod = "saveRecordFallback")
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
 
         if (dto == null) {
@@ -125,6 +127,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     // ================= GET =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getByIdsFallback")
     public ResponseStructure<TherapistRecordDTO> getByIds(
             String clinicId, String branchId, String therapistRecordId,String sessionId) {
 
@@ -259,6 +262,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getByPatientIdAndBookingIdFallback")
     public ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
             String patientId,
             String bookingId) {
@@ -285,6 +289,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
  // ================= GET BY SESSION =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getBySessionFallback")
     public ResponseStructure<TherapistRecordDTO> getBySession(
             String clinicId,
             String branchId,
@@ -367,6 +372,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     }
     
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getTherapistSessionDetailsFallback")
     public Response getTherapistSessionDetails(
             TherapistRecordRequest request) {
 
@@ -425,6 +431,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getCompletedTherapyRecordFallback")
     public ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecord(
             String clinicId,
             String branchId,
@@ -482,4 +489,79 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         return dto;
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<TherapistRecordDTO> saveRecordFallback(
+            TherapistRecordDTO dto,
+            Exception ex) {
+        return buildTherapistRecordResponse();
+    }
+
+    public ResponseStructure<TherapistRecordDTO> getByIdsFallback(
+            String clinicId,
+            String branchId,
+            String therapistRecordId,
+            String sessionId,
+            Exception ex) {
+        return buildTherapistRecordResponse();
+    }
+
+    public ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingIdFallback(
+            String patientId,
+            String bookingId,
+            Exception ex) {
+        return buildTherapistRecordListResponse();
+    }
+
+    public ResponseStructure<TherapistRecordDTO> getBySessionFallback(
+            String clinicId,
+            String branchId,
+            String bookingId,
+            String patientId,
+            String sessionId,
+            Exception ex) {
+        return buildTherapistRecordResponse();
+    }
+
+    public Response getTherapistSessionDetailsFallback(
+            TherapistRecordRequest request,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecordFallback(
+            String clinicId,
+            String branchId,
+            String therapistRecordId,
+            String sessionId,
+            Exception ex) {
+        return buildTherapistRecordResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
+    public ResponseStructure<TherapistRecordDTO> buildTherapistRecordResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<TherapistRecordDTO>> buildTherapistRecordListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
 }

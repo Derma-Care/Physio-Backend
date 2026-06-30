@@ -28,6 +28,7 @@ import com.clinicadmin.service.PermissionsService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class PermissionsServiceImpl implements PermissionsService {
@@ -57,6 +58,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     // ✅ Get permissions for specific user
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByClinicBranchAndUserFallback")
     public ResponseStructure<PermissionsDTO> getPermissionsByClinicBranchAndUser(String clinicId, String branchId, String userId) {
 
         // 🔹 SecurityStaff
@@ -121,6 +123,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     // ✅ Update permissions
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "permissionsService", fallbackMethod = "updatePermissionsByIdFallback")
     public ResponseEntity<ResponseStructure<PermissionsDTO>> updatePermissionsById(String userId, PermissionsDTO dto) {
 
         // WardBoy
@@ -188,6 +191,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     // ✅ Get all permissions by Clinic ID
     @Override
+    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByClinicIdFallback")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicId(String clinicId) {
         List<PermissionsDTO> resultList = new ArrayList<>();
 
@@ -229,6 +233,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     // ✅ Get all permissions by Clinic ID and Branch ID
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByClinicAndBranchFallback")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicAndBranch(String clinicId, String branchId) {
         List<PermissionsDTO> resultList = new ArrayList<>();
 
@@ -275,6 +280,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByUserIdFallback")
     public ResponseStructure<PermissionsDTO> getPermissionsByUserId(String userId) {
         return ResponseStructure.buildResponse(null,
                 "Feature not implemented yet: getPermissionsByUserId", HttpStatus.NOT_IMPLEMENTED, 501);
@@ -282,6 +288,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByBranchIdFallback")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByBranchId(String branchId) {
         return ResponseStructure.buildResponse(null,
                 "Feature not implemented yet: getPermissionsByBranchId", HttpStatus.NOT_IMPLEMENTED, 501);
@@ -289,6 +296,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "permissionsService", fallbackMethod = "getDefaultAdminPermissionsFallback")
     public ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions() {
         try {
             // Call Admin Service using Feign
@@ -300,4 +308,60 @@ public class PermissionsServiceImpl implements PermissionsService {
                     "Status: " + e.status() + ", Message: " + e.contentUTF8());
         }
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<PermissionsDTO> getPermissionsByClinicBranchAndUserFallback(
+            String clinicId, String branchId, String userId, Exception ex) {
+        return buildPermissionsResponse();
+    }
+
+    public ResponseEntity<ResponseStructure<PermissionsDTO>> updatePermissionsByIdFallback(
+            String userId, PermissionsDTO dto, Exception ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(buildPermissionsResponse());
+    }
+
+    public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicIdFallback(
+            String clinicId, Exception ex) {
+        return buildPermissionsListResponse();
+    }
+
+    public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicAndBranchFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildPermissionsListResponse();
+    }
+
+    public ResponseStructure<PermissionsDTO> getPermissionsByUserIdFallback(
+            String userId, Exception ex) {
+        return buildPermissionsResponse();
+    }
+
+    public ResponseStructure<List<PermissionsDTO>> getPermissionsByBranchIdFallback(
+            String branchId, Exception ex) {
+        return buildPermissionsListResponse();
+    }
+
+    public ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissionsFallback(
+            Exception ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    }
+
+    public ResponseStructure<PermissionsDTO> buildPermissionsResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<PermissionsDTO>> buildPermissionsListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
 }

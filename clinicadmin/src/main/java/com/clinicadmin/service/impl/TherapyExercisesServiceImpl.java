@@ -16,6 +16,8 @@ import com.clinicadmin.entity.TherapyExercises;
 import com.clinicadmin.repository.TherapyExercisesRepository;
 import com.clinicadmin.service.TherapyExercisesService;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 @Service
 public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
@@ -25,6 +27,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= CREATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "createTherapyExercisesFallback")
     public ResponseStructure<TherapyExercisesDTO> createTherapyExercises(TherapyExercisesDTO dto) {
 
         TherapyExercises entity = toEntity(dto);
@@ -43,6 +46,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= GET BY ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "getTherapyExercisesByIdFallback")
     public ResponseStructure<TherapyExercisesDTO> getTherapyExercisesById(String therapyExercisesId) {
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)
@@ -59,6 +63,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= GET BY clinicId + branchId =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
     public ResponseStructure<List<TherapyExercisesDTO>> getByClinicIdAndBranchId(
             String clinicId, String branchId) {
 
@@ -79,6 +84,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
  // ================= UPDATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "updateTherapyExercisesByIdFallback")
     public ResponseStructure<TherapyExercisesDTO> updateTherapyExercisesById(
             String therapyExercisesId, TherapyExercisesDTO dto) {
 
@@ -197,6 +203,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= GET BY clinicId + branchId + therapyExercisesId =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "getByClinicIdBranchIdAndTherapyIdFallback")
     public ResponseStructure<TherapyExercisesDTO> getByClinicIdBranchIdAndTherapyId(
             String clinicId, String branchId, String therapyExercisesId) {
 
@@ -216,6 +223,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= DELETE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "deleteTherapyExercisesByIdFallback")
     public ResponseStructure<String> deleteTherapyExercisesById(String therapyExercisesId) {
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)
@@ -362,4 +370,58 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
         if (value == null) return null;
         return new String(Base64.getDecoder().decode(value));
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<TherapyExercisesDTO> createTherapyExercisesFallback(
+            TherapyExercisesDTO dto, Exception ex) {
+        return buildTherapyExercisesResponse();
+    }
+
+    public ResponseStructure<TherapyExercisesDTO> getTherapyExercisesByIdFallback(
+            String therapyExercisesId, Exception ex) {
+        return buildTherapyExercisesResponse();
+    }
+
+    public ResponseStructure<List<TherapyExercisesDTO>> getByClinicIdAndBranchIdFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildTherapyExercisesListResponse();
+    }
+
+    public ResponseStructure<TherapyExercisesDTO> updateTherapyExercisesByIdFallback(
+            String therapyExercisesId, TherapyExercisesDTO dto, Exception ex) {
+        return buildTherapyExercisesResponse();
+    }
+
+    public ResponseStructure<TherapyExercisesDTO> getByClinicIdBranchIdAndTherapyIdFallback(
+            String clinicId, String branchId, String therapyExercisesId, Exception ex) {
+        return buildTherapyExercisesResponse();
+    }
+
+    public ResponseStructure<String> deleteTherapyExercisesByIdFallback(
+            String therapyExercisesId, Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<TherapyExercisesDTO> buildTherapyExercisesResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<TherapyExercisesDTO>> buildTherapyExercisesListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
 }

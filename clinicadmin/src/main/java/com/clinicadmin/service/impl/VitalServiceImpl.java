@@ -23,6 +23,7 @@ import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.VitalsRepository;
 import com.clinicadmin.service.VitalService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class VitalServiceImpl implements VitalService {
@@ -40,6 +41,7 @@ public class VitalServiceImpl implements VitalService {
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "vitalService", fallbackMethod = "postVitalsFallback")
     public Response postVitals(String bookingId, VitalsDTO dto) {
         log.info("Post vitals request received | bookingId={}", bookingId);
 
@@ -122,6 +124,7 @@ public class VitalServiceImpl implements VitalService {
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "vitalService", fallbackMethod = "getPatientByBookingIdAndPatientIdFallback")
     public Response getPatientByBookingIdAndPatientId(String bookingId, String patientId) {
 
         log.info("Fetching vitals | bookingId={}, patientId={}", bookingId, patientId);
@@ -187,6 +190,7 @@ public class VitalServiceImpl implements VitalService {
     }
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "vitalService", fallbackMethod = "updateVitalsFallback")
     public Response updateVitals(String bookingId, String patientId, VitalsDTO dto) {
 
         log.info("Update vitals request | bookingId={}, patientId={}", bookingId, patientId);
@@ -252,6 +256,7 @@ public class VitalServiceImpl implements VitalService {
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
+    @RateLimiter(name = "vitalService", fallbackMethod = "deleteVitalsFallback")
     public Response deleteVitals(String bookingId, String patientId) {
 
         log.info("Delete vitals request received | bookingId={}, patientId={}", bookingId, patientId);
@@ -288,4 +293,45 @@ public class VitalServiceImpl implements VitalService {
 
         return resp;
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response postVitalsFallback(
+            String bookingId,
+            VitalsDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getPatientByBookingIdAndPatientIdFallback(
+            String bookingId,
+            String patientId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateVitalsFallback(
+            String bookingId,
+            String patientId,
+            VitalsDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteVitalsFallback(
+            String bookingId,
+            String patientId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

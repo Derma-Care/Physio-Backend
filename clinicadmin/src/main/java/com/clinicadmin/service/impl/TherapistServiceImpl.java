@@ -48,6 +48,7 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @Slf4j
@@ -91,6 +92,7 @@ public class TherapistServiceImpl implements TherapistService {
 	
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "therapistOnboardingFallback")
     public Response therapistOnboarding(TherapistDTO dto) {
 
         log.info("Therapist onboarding started for contact number: {}", dto.getContactNumber());
@@ -259,6 +261,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= GET BY THERAPIST ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "getBytherapistIdFallback")
     public ResponseStructure<TherapistDTO> getBytherapistId(String therapistId) {
 
         Therapist entity = repository.findByTherapistId(therapistId)
@@ -274,6 +277,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= GET BY CLINICID BRANCHID AND THERPISTID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "getByClinicIdBranchIdAndTherapistIdFallback")
     public ResponseStructure<List<TherapistDTO>> getByClinicIdBranchIdAndTherapistId(
             String clinicId,
             String branchId,
@@ -310,6 +314,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= GET BY CLINICID AND BRANCHID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
     public ResponseStructure<List<TherapistDTO>> getByClinicIdAndBranchId(
             String clinicId,
             String branchId) {
@@ -332,6 +337,7 @@ public class TherapistServiceImpl implements TherapistService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "getTherapistDataFallback")
     public Response getTherapistData(String clinicId, String branchId) {
 
         List<Therapist> list =
@@ -367,6 +373,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= UPDATE BY THERAPISTID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "updateBytherapistIdFallback")
     public ResponseStructure<TherapistDTO> updateBytherapistId(
             String therapistId,
             TherapistDTO dto) {
@@ -481,6 +488,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= DELETEBY THERPIST ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "deleteBytherapistIdFallback")
     public ResponseStructure<String> deleteBytherapistId(String therapistId) {
 
         repository.findByTherapistId(therapistId)
@@ -653,6 +661,7 @@ public class TherapistServiceImpl implements TherapistService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "getPaidSessionsFallback")
     public Response getPaidSessions(String clinicId,
                                     String branchId,
                                     String bookingId,
@@ -922,6 +931,7 @@ public class TherapistServiceImpl implements TherapistService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistService", fallbackMethod = "getTherapistPerformanceSummaryFallback")
     public Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year) {
 
         Response response = new Response();
@@ -1590,6 +1600,7 @@ public class TherapistServiceImpl implements TherapistService {
 
     
     @Override
+    @RateLimiter(name = "therapistService", fallbackMethod = "updateTherapistPresenceFallback")
     public Response updateTherapistPresence(
             String therapistId,
             TherapistPresenceRequest request) {
@@ -1628,6 +1639,84 @@ public class TherapistServiceImpl implements TherapistService {
         }
 
         return response;
+    }
+
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response therapistOnboardingFallback(TherapistDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseStructure<TherapistDTO> getBytherapistIdFallback(String therapistId, Exception ex) {
+        return buildTherapistResponse();
+    }
+
+    public ResponseStructure<List<TherapistDTO>> getByClinicIdBranchIdAndTherapistIdFallback(
+            String clinicId, String branchId, String therapistId, Exception ex) {
+        return buildTherapistListResponse();
+    }
+
+    public ResponseStructure<List<TherapistDTO>> getByClinicIdAndBranchIdFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildTherapistListResponse();
+    }
+
+    public Response getTherapistDataFallback(String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public ResponseStructure<TherapistDTO> updateBytherapistIdFallback(
+            String therapistId, TherapistDTO dto, Exception ex) {
+        return buildTherapistResponse();
+    }
+
+    public ResponseStructure<String> deleteBytherapistIdFallback(String therapistId, Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public Response getPaidSessionsFallback(
+            String clinicId, String branchId, String bookingId, String therapistRecordId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getTherapistPerformanceSummaryFallback(
+            String clinicId, String branchId, String therapistId, int year, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateTherapistPresenceFallback(
+            String therapistId, TherapistPresenceRequest request, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
+    public ResponseStructure<TherapistDTO> buildTherapistResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<TherapistDTO>> buildTherapistListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
     }
 
 }

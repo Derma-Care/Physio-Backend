@@ -30,6 +30,7 @@ import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.service.TherapistAttendenceService;
 
 import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +43,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "addManualSessionFallback")
     public Response addManualSession(String therapistId, Map<String, String> body) {
 
         Response response = new Response();
@@ -96,6 +98,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "getDailyReportFallback")
     public Response getDailyReport(String therapistId, String date) {
 
         Response response = new Response();
@@ -203,6 +206,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "updateAttendanceFallback")
     public Response updateAttendance(String therapistId,
                                      Map<String, String> body) {
 
@@ -395,6 +399,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "getMonthlyReportFallback")
     public Response getMonthlyReport(String therapistId, String month) {
 
         Response response = new Response();
@@ -557,7 +562,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	public Response deleteSession(String therapistId, String date, String sessionId) {
+	@RateLimiter(name = "therapistAttendanceService", fallbackMethod = "deleteSessionFallback")
+    public Response deleteSession(String therapistId, String date, String sessionId) {
 
 	    Response response = new Response();
 
@@ -637,7 +643,8 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	public Response getReportByClinicBranch(
+	@RateLimiter(name = "therapistAttendanceService", fallbackMethod = "getReportByClinicBranchFallback")
+    public Response getReportByClinicBranch(
 	        String clinicId,
 	        String branchId,
 	        String therapistId,
@@ -698,4 +705,61 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 
 	    return response;
 	}
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response addManualSessionFallback(
+            String therapistId,
+            Map<String, String> body,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getDailyReportFallback(
+            String therapistId,
+            String date,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateAttendanceFallback(
+            String therapistId,
+            Map<String, String> body,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getMonthlyReportFallback(
+            String therapistId,
+            String month,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteSessionFallback(
+            String therapistId,
+            String date,
+            String sessionId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getReportByClinicBranchFallback(
+            String clinicId,
+            String branchId,
+            String therapistId,
+            String date,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +63,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "addWardBoyFallback")
 	public ResponseStructure<WardBoyDTO> addWardBoy(WardBoyDTO dto) {
 		log.info("Add WardBoy started | clinicId={}, branchId={}, contact={}",
 				dto.getClinicId(), dto.getBranchId(), dto.getContactNumber());
@@ -115,6 +117,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoyByIdFallback")
 	public ResponseStructure<WardBoyDTO> getWardBoyById(String id) {
 		log.info("Fetching WardBoy by ID | id={}", id);
 
@@ -132,6 +135,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "getAllWardBoysFallback")
 	public ResponseStructure<List<WardBoyDTO>> getAllWardBoys() {
 		log.info("Fetching all WardBoys");
 
@@ -145,6 +149,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "updateWardBoyFallback")
 	public ResponseStructure<WardBoyDTO> updateWardBoy(String id, WardBoyDTO dto) {
 		log.info("Updating WardBoy | id={}", id);
 
@@ -283,6 +288,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "deleteWardBoyFallback")
 	public ResponseStructure<Void> deleteWardBoy(String id) {
 		log.info("Delete WardBoy request received | id={}", id);
 
@@ -337,6 +343,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoysByClinicIdFallback")
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicId(String clinicId) {
 		log.info("Fetching WardBoys by clinicId={}", clinicId);
 
@@ -350,6 +357,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoyByIdAndClinicIdFallback")
 	public ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicId(String wardBoyId, String clinicId) {
 		log.info("Fetching WardBoy | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
 
@@ -384,6 +392,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoysByClinicIdAndBranchIdFallback")
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching WardBoys | clinicId={}, branchId={}", clinicId, branchId);
 
@@ -420,5 +429,65 @@ public class WardBoyServiceImpl implements WardBoyService {
 	            HttpStatus.OK.value()
 	    );
 	}
+
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<WardBoyDTO> addWardBoyFallback(WardBoyDTO dto, Exception ex) {
+        return buildWardBoyResponse();
+    }
+
+    public ResponseStructure<WardBoyDTO> getWardBoyByIdFallback(String id, Exception ex) {
+        return buildWardBoyResponse();
+    }
+
+    public ResponseStructure<List<WardBoyDTO>> getAllWardBoysFallback(Exception ex) {
+        return buildWardBoyListResponse();
+    }
+
+    public ResponseStructure<WardBoyDTO> updateWardBoyFallback(
+            String id, WardBoyDTO dto, Exception ex) {
+        return buildWardBoyResponse();
+    }
+
+    public ResponseStructure<Void> deleteWardBoyFallback(String id, Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdFallback(
+            String clinicId, Exception ex) {
+        return buildWardBoyListResponse();
+    }
+
+    public ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicIdFallback(
+            String wardBoyId, String clinicId, Exception ex) {
+        return buildWardBoyResponse();
+    }
+
+    public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdAndBranchIdFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildWardBoyListResponse();
+    }
+
+    public ResponseStructure<WardBoyDTO> buildWardBoyResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<WardBoyDTO>> buildWardBoyListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
 
 }

@@ -19,6 +19,7 @@ import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.TreatmentRepository;
 import com.clinicadmin.service.TreatmentService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class TreatmentServiceImpl implements TreatmentService {
@@ -35,6 +36,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "addTreatmentFallback")
     public Response addTreatment(TreatmentDTO dto) {
         Response response = new Response();
 
@@ -81,6 +83,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "getAllTreatmentsFallback")
     public Response getAllTreatments() {
         Response response = new Response();
         try {
@@ -109,6 +112,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "getTreatmentByIdFallback")
     public Response getTreatmentById(String id,String hospitalId ) {
         Response response = new Response();
         try {
@@ -136,6 +140,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "deleteTreatmentByIdFallback")
     public Response deleteTreatmentById(String id ,String hospitalId) {
         Response response = new Response();
         try {
@@ -160,6 +165,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "updateTreatmentByIdFallback")
     public Response updateTreatmentById(String id, String hospitalId,TreatmentDTO dto) {
         Response response = new Response();
         try {
@@ -188,6 +194,7 @@ public class TreatmentServiceImpl implements TreatmentService {
   //----------------------------------------------------Get All Treatments by HospitalId-------------------------------------------------
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "getAllTreatmentsByHospitalIdFallback")
     public Response getAllTreatmentsByHospitalId(String hospitalId) {
         Response response = new Response();
         try {
@@ -217,6 +224,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "treatmentService", fallbackMethod = "addOrGetTreatmentFallback")
     public Response addOrGetTreatment(TreatmentDTO dto) {
         Response response = new Response();
         try {
@@ -267,5 +275,47 @@ public class TreatmentServiceImpl implements TreatmentService {
         }
     }
 
+
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response addTreatmentFallback(TreatmentDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getAllTreatmentsFallback(Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateTreatmentByIdFallback(
+            String id, String hospitalId, TreatmentDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getAllTreatmentsByHospitalIdFallback(
+            String hospitalId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response addOrGetTreatmentFallback(TreatmentDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
 
 }

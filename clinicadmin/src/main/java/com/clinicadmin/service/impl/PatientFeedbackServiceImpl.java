@@ -24,6 +24,7 @@ import com.clinicadmin.entity.ReceptionistFeedback;
 import com.clinicadmin.entity.TherapistFeedback;
 import com.clinicadmin.repository.PatientFeedbackRepository;
 import com.clinicadmin.service.PatientFeedbackService;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class PatientFeedbackServiceImpl implements PatientFeedbackService {
@@ -35,6 +36,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "createFeedbackFallback")
     public Response createFeedback(PatientFeedbackDTO dto) {
 
         PatientFeedback feedback = mapToEntity(dto);
@@ -56,6 +58,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getAllFeedbacksFallback")
     public Response getAllFeedbacks() {
 
         List<PatientFeedbackDTO> list = repository.findAll()
@@ -77,6 +80,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getFeedbackByIdFallback")
     public Response getFeedbackById(String id) {
 
         PatientFeedback feedback = repository.findById(id)
@@ -94,6 +98,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
     public Response getByClinicIdAndBranchId(String clinicId,
                                              String branchId) {
 
@@ -117,6 +122,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getByClinicIdAndBranchIdAndPatientIdFallback")
     public Response getByClinicIdAndBranchIdAndPatientId(String clinicId,
                                              String branchId,String patientId) {
 
@@ -143,6 +149,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "updateFeedbackFallback")
     public Response updateFeedback(String id, PatientFeedbackDTO dto) {
 
         PatientFeedback existing = repository.findById(id)
@@ -246,6 +253,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "deleteFeedbackFallback")
     public Response deleteFeedback(String id) {
 
         PatientFeedback feedback = repository.findById(id)
@@ -502,6 +510,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getDoctorFeedbackSummaryFallback")
     public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
 
         List<PatientFeedback> feedbacks =
@@ -544,4 +553,52 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
         return response;
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response createFeedbackFallback(PatientFeedbackDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getAllFeedbacksFallback(Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getFeedbackByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getByClinicIdAndBranchIdFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getByClinicIdAndBranchIdAndPatientIdFallback(
+            String clinicId, String branchId, String patientId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateFeedbackFallback(
+            String id, PatientFeedbackDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteFeedbackFallback(String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getDoctorFeedbackSummaryFallback(
+            String doctorId, String clinicId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

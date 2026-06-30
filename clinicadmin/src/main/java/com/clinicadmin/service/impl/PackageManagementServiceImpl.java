@@ -26,6 +26,7 @@ import com.clinicadmin.repository.PackageManagementRepository;
 import com.clinicadmin.repository.TherophyProgramRepository;
 import com.clinicadmin.service.PackageManagementService;
 import com.clinicadmin.service.TherophyProgramService;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class PackageManagementServiceImpl implements PackageManagementService {
@@ -43,6 +44,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     // ✅ CREATE
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageManagementService", fallbackMethod = "createPackageFallback")
     public Response createPackage(PackageManagementDTO dto) {
 
         Response response = new Response();
@@ -76,6 +78,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageManagementService", fallbackMethod = "getByClinicAndBranchFallback")
     public Response getByClinicAndBranch(String clinicId, String branchId) {
 
         Response response = new Response();
@@ -131,6 +134,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     // ✅ GET by clinicId + branchId + packageId
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageManagementService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
     public Response getByClinicBranchAndPackageId(String clinicId, String branchId, String packageId) {
 
         Response response = new Response();
@@ -167,6 +171,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageManagementService", fallbackMethod = "updatePackageFallback")
     public Response updatePackage(String packageId, PackageManagementDTO dto) {
 
         Response response = new Response();
@@ -208,6 +213,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     // ✅ DELETE
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageManagementService", fallbackMethod = "deletePackageFallback")
     public Response deletePackage(String packageId) {
 
         Response response = new Response();
@@ -475,6 +481,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "packageManagementService", fallbackMethod = "getPackageWithProgramsFallback")
     public Response getPackageWithPrograms(String clinicId, String branchId, String packageId) {
 
         Response response = new Response();
@@ -567,4 +574,26 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
         return response;
     }
+
+
+    public Response createPackageFallback(PackageManagementDTO dto, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public Response getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public Response getByClinicBranchAndPackageIdFallback(String clinicId, String branchId, String packageId, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public Response updatePackageFallback(String packageId, PackageManagementDTO dto, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public Response deletePackageFallback(String packageId, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public Response getPackageWithProgramsFallback(String clinicId, String branchId, String packageId, Exception ex) { return buildRateLimitResponse(ex); }
+
+    public Response buildRateLimitResponse(Exception ex) {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

@@ -15,6 +15,7 @@ import com.clinicadmin.entity.RecoverySupport;
 import com.clinicadmin.repository.RecoverySupportRepository;
 import com.clinicadmin.service.RecoverySupportService;
 import com.clinicadmin.service.S3Service;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class RecoverySupportServiceImpl implements RecoverySupportService {
@@ -27,6 +28,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "saveRecoverySupportFallback")
     public Response saveRecoverySupport(RecoverySupportDTO dto) {
 
         Response response = new Response();
@@ -45,6 +47,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getAllRecoverySupportsFallback")
     public Response getAllRecoverySupports() {
 
         Response response = new Response();
@@ -64,6 +67,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getRecoverySupportByIdFallback")
     public Response getRecoverySupportById(String id) {
 
         Response response = new Response();
@@ -87,6 +91,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "updateRecoverySupportFallback")
     public Response updateRecoverySupport(String id, RecoverySupportDTO dto) {
 
         Response response = new Response();
@@ -121,6 +126,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "deleteRecoverySupportFallback")
     public Response deleteRecoverySupport(String id) {
 
         Response response = new Response();
@@ -145,6 +151,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getRecoverySupportsByClinicIdFallback")
     public Response getRecoverySupportsByClinicId(String clinicId) {
 
         Response response = new Response();
@@ -164,6 +171,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getRecoverySupportByClinicIdAndIdFallback")
     public  Response getRecoverySupportByClinicIdAndId(String clinicId, String id){
 
         Response response = new Response();
@@ -215,4 +223,52 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
         return dto;
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response saveRecoverySupportFallback(RecoverySupportDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getAllRecoverySupportsFallback(Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getRecoverySupportByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateRecoverySupportFallback(
+            String id,
+            RecoverySupportDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteRecoverySupportFallback(String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getRecoverySupportsByClinicIdFallback(
+            String clinicId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getRecoverySupportByClinicIdAndIdFallback(
+            String clinicId,
+            String id,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

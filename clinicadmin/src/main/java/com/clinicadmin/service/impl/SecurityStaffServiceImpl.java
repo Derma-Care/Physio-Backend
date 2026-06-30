@@ -32,6 +32,7 @@ import com.clinicadmin.utils.SecurityStaffMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 @Service
 @RequiredArgsConstructor
 public class SecurityStaffServiceImpl implements SecurityStaffService {
@@ -58,6 +59,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "securityStaffService", fallbackMethod = "addSecurityStaffFallback")
 	public ResponseStructure<SecurityStaffDTO> addSecurityStaff(SecurityStaffDTO dto) {
 		log.info("Add SecurityStaff request | contactNumber={}, branchId={}",
 				dto.getContactNumber(), dto.getBranchId());
@@ -111,6 +113,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "securityStaffService", fallbackMethod = "updateSecurityStaffFallback")
 	public ResponseStructure<SecurityStaff> updateSecurityStaff(SecurityStaff staff) {
 		log.info("Update SecurityStaff request | securityStaffId={}", staff.getSecurityStaffId());
 
@@ -177,6 +180,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "securityStaffService", fallbackMethod = "getSecurityStaffByIdFallback")
 	public ResponseStructure<SecurityStaffDTO> getSecurityStaffById(String staffId) {
 		log.info("Fetching SecurityStaff by ID | securityStaffId={}", staffId);
 
@@ -201,6 +205,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "securityStaffService", fallbackMethod = "getAllByClinicIdFallback")
 	public ResponseStructure<List<SecurityStaffDTO>> getAllByClinicId(String clinicId) {
 		log.info("Fetching all SecurityStaff by clinicId={}", clinicId);
 		List<SecurityStaff> staffList = repository.findByClinicId(clinicId);
@@ -216,6 +221,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "securityStaffService", fallbackMethod = "deleteSecurityStaffFallback")
 	public ResponseStructure<String> deleteSecurityStaff(String staffId) {
 		log.info("Delete SecurityStaff request | securityStaffId={}", staffId);
 
@@ -254,6 +260,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "securityStaffService", fallbackMethod = "getSecurityStaffByClinicIdAndBranchIdFallback")
 	public ResponseStructure<List<SecurityStaffDTO>> getSecurityStaffByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching SecurityStaff | clinicId={}, branchId={}", clinicId, branchId);
 
@@ -295,5 +302,70 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 		}
 		return sb.toString();
 	}
+
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<SecurityStaffDTO> addSecurityStaffFallback(
+            SecurityStaffDTO dto,
+            Exception ex) {
+        return buildSecurityStaffResponse();
+    }
+
+    public ResponseStructure<SecurityStaff> updateSecurityStaffFallback(
+            SecurityStaff staff,
+            Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<SecurityStaffDTO> getSecurityStaffByIdFallback(
+            String staffId,
+            Exception ex) {
+        return buildSecurityStaffResponse();
+    }
+
+    public ResponseStructure<List<SecurityStaffDTO>> getAllByClinicIdFallback(
+            String clinicId,
+            Exception ex) {
+        return buildSecurityStaffListResponse();
+    }
+
+    public ResponseStructure<String> deleteSecurityStaffFallback(
+            String staffId,
+            Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<SecurityStaffDTO>> getSecurityStaffByClinicIdAndBranchIdFallback(
+            String clinicId,
+            String branchId,
+            Exception ex) {
+        return buildSecurityStaffListResponse();
+    }
+
+    public ResponseStructure<SecurityStaffDTO> buildSecurityStaffResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<SecurityStaffDTO>> buildSecurityStaffListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
 
 }

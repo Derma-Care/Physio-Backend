@@ -36,6 +36,7 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.clinicadmin.utils.ReceptionistMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class ReceptionistServiceImpl implements ReceptionistService {
@@ -65,6 +66,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "createReceptionistFallback")
 	public ResponseStructure<ReceptionistRequestDTO> createReceptionist(ReceptionistRequestDTO dto) {
 		log.info("Create Receptionist request | contactNumber={}, branchId={}",
 				dto.getContactNumber(), dto.getBranchId());
@@ -115,6 +117,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistByIdFallback")
 	public ResponseStructure<ReceptionistRequestDTO> getReceptionistById(String id) {
 		log.info("Fetching Receptionist by id={}", id);
 
@@ -133,6 +136,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getAllReceptionistsFallback")
 	public ResponseStructure<List<ReceptionistRequestDTO>> getAllReceptionists() {
 		log.info("Fetching all Receptionists");
 
@@ -149,6 +153,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "updateReceptionistFallback")
 	public ResponseStructure<ReceptionistRequestDTO> updateReceptionist(String id, ReceptionistRequestDTO dto) {
 		log.info("Update Receptionist request | receptionistId={}", id);
 
@@ -256,6 +261,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "deleteReceptionistFallback")
 	public ResponseStructure<String> deleteReceptionist(String id) {
 		log.info("Delete Receptionist request | receptionistId={}", id);
 
@@ -381,6 +387,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistsByClinicFallback")
 	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinic(String clinicId) {
 		log.info("Fetching Receptionists by clinicId={}", clinicId);
 
@@ -394,6 +401,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	}
 
 	@Override
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistByClinicAndIdFallback")
 	public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndId(String clinicId,
 			String receptionistId) {
 		log.info("Fetching Receptionist | clinicId={}, receptionistId={}",
@@ -417,6 +425,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistsByClinicAndBranchFallback")
 	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranch(String clinicId, String branchId) {
 		log.info("Fetching Receptionists | clinicId={}, branchId={}", clinicId, branchId);
 
@@ -441,6 +450,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistDashboardFallback")
 	public ResponseEntity<Response> getReceptionistDashboard(
 	        String clinicId,
 	        String branchId,
@@ -526,6 +536,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "updateReceptionistDashboardFallback")
 	public Response updateReceptionistDashboard(
 	        String clinicId,
 	        String branchId,
@@ -559,4 +570,94 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	    return res;
 	}
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<ReceptionistRequestDTO> createReceptionistFallback(
+            ReceptionistRequestDTO dto, Exception ex) {
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> getReceptionistByIdFallback(
+            String id, Exception ex) {
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> getAllReceptionistsFallback(
+            Exception ex) {
+        return buildReceptionistListResponse();
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> updateReceptionistFallback(
+            String id, ReceptionistRequestDTO dto, Exception ex) {
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<String> deleteReceptionistFallback(
+            String id, Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicFallback(
+            String clinicId, Exception ex) {
+        return buildReceptionistListResponse();
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndIdFallback(
+            String clinicId, String receptionistId, Exception ex) {
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranchFallback(
+            String clinicId, String branchId, Exception ex) {
+        return buildReceptionistListResponse();
+    }
+
+    public ResponseEntity<Response> getReceptionistDashboardFallback(
+            String clinicId, String branchId, String role, Exception ex) {
+
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    }
+
+    public Response updateReceptionistDashboardFallback(
+            String clinicId,
+            String branchId,
+            String role,
+            DashboardRequest request,
+            Exception ex) {
+
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+
+        return response;
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> buildReceptionistResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> buildReceptionistListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
 }

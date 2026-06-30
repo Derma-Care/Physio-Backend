@@ -15,6 +15,7 @@ import com.clinicadmin.entity.TherapistCertificate;
 import com.clinicadmin.repository.TherapistCertificateRepository;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistCertificateService;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 public class TherapistCertificateServiceImpl
@@ -29,6 +30,7 @@ public class TherapistCertificateServiceImpl
     // CREATE
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "createCertificateFallback")
     public Response createCertificate(
             TherapistCertificateDTO dto) {
 
@@ -52,6 +54,7 @@ public class TherapistCertificateServiceImpl
     // GET ALL
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getAllCertificatesFallback")
     public Response getAllCertificates() {
 
         Response response = new Response();
@@ -73,6 +76,7 @@ public class TherapistCertificateServiceImpl
     // GET BY ID
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getCertificateByIdFallback")
     public Response getCertificateById(String id) {
 
         Response response = new Response();
@@ -101,6 +105,7 @@ public class TherapistCertificateServiceImpl
     // GET BY CLINIC & BRANCH
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getCertificatesByClinicAndBranchFallback")
     public Response getCertificatesByClinicAndBranch(
             String clinicId,
             String branchId) {
@@ -125,6 +130,7 @@ public class TherapistCertificateServiceImpl
     // GET BY CLINIC + BRANCH + THERAPIST
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getCertificatesByClinicBranchAndTherapistFallback")
     public Response getCertificatesByClinicBranchAndTherapist(
             String clinicId,
             String branchId,
@@ -154,6 +160,7 @@ public class TherapistCertificateServiceImpl
     // UPDATE
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "updateCertificateFallback")
     public Response updateCertificate(
             String id,
             TherapistCertificateDTO dto) {
@@ -203,6 +210,7 @@ public class TherapistCertificateServiceImpl
     // DELETE
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "deleteCertificateFallback")
     public Response deleteCertificate(String id) {
 
         Response response = new Response();
@@ -315,4 +323,61 @@ public class TherapistCertificateServiceImpl
             return signedUrl;
         }
     }
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response createCertificateFallback(
+            TherapistCertificateDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getAllCertificatesFallback(
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getCertificateByIdFallback(
+            String id,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getCertificatesByClinicAndBranchFallback(
+            String clinicId,
+            String branchId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getCertificatesByClinicBranchAndTherapistFallback(
+            String clinicId,
+            String branchId,
+            String therapistId,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response updateCertificateFallback(
+            String id,
+            TherapistCertificateDTO dto,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteCertificateFallback(
+            String id,
+            Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
 }

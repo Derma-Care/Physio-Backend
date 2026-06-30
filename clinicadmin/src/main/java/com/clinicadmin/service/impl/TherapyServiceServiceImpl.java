@@ -23,6 +23,7 @@ import com.clinicadmin.service.TherapyServiceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +38,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     //  CREATETHERAPY
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyService", fallbackMethod = "createTherapyFallback")
     public Response createTherapy(TherapyServiceDTO dto) {
 
         TherapyService therapy = mapToEntity(dto);
@@ -53,6 +55,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyService", fallbackMethod = "getByClinicAndBranchFallback")
     public Response getByClinicAndBranch(String clinicId, String branchId) {
 
         List<TherapyService> list = repository.findByClinicIdAndBranchId(clinicId, branchId);
@@ -111,6 +114,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     //  GET BY id + clinicId + branchId
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyService", fallbackMethod = "getByIdClinicBranchFallback")
     public Response getByIdClinicBranch(String id, String clinicId, String branchId) {
 
         Optional<TherapyService> optional =
@@ -134,6 +138,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }
     
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyService", fallbackMethod = "getByIdFallback")
     public TherapyServiceDTO getById(String id) {
 
         Optional<TherapyService> optional =
@@ -146,6 +151,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyService", fallbackMethod = "updateTherapyByIdFallback")
     public Response updateTherapyById(String id, TherapyServiceDTO dto) {
 
         Response response = new Response();
@@ -200,6 +206,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     // ✅ DELETE
     @Override
+    @RateLimiter(name = "therapyService", fallbackMethod = "deleteTherapyByIdFallback")
     public Response deleteTherapyById(String id) {
 
         Optional<TherapyService> optional = repository.findById(id);
@@ -283,6 +290,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         }
     }
     @Override
+    @RateLimiter(name = "therapyService", fallbackMethod = "getTherapyWithExercisesFallback")
     public Response getTherapyWithExercises(String id, String clinicId, String branchId) {
 
         Optional<TherapyService> optional =
@@ -340,6 +348,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }
  
     @Secured("ROLE_CLINICADMIN")
+    @RateLimiter(name = "therapyService", fallbackMethod = "getTherapyWithExercisesWithIdFallback")
     public TherapyServiceDTO getTherapyWithExercisesWithId(String id) {
 
         Optional<TherapyService> optional =
@@ -362,4 +371,48 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }else {
     	return null;
     }
-}}
+}
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public Response createTherapyFallback(TherapyServiceDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getByIdClinicBranchFallback(String id, String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public TherapyServiceDTO getByIdFallback(String id, Exception ex) {
+        return null;
+    }
+
+    public Response updateTherapyByIdFallback(String id, TherapyServiceDTO dto, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response deleteTherapyByIdFallback(String id, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public Response getTherapyWithExercisesFallback(String id, String clinicId, String branchId, Exception ex) {
+        return buildRateLimitResponse();
+    }
+
+    public TherapyServiceDTO getTherapyWithExercisesWithIdFallback(String id, Exception ex) {
+        return null;
+    }
+
+    public Response buildRateLimitResponse() {
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+        return response;
+    }
+
+}
