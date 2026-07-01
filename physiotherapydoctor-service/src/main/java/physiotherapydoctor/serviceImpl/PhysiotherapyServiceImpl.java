@@ -47,6 +47,7 @@ import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.SessionForBooking;
 import physiotherapydoctor.dto.TheraphyInfo;
+import physiotherapydoctor.dto.TherapistAssignmentDTO;
 import physiotherapydoctor.dto.TherapistRecordDetails;
 import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
@@ -88,6 +89,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	@Autowired
 	private S3Service s3Service;
+	
 
 	@Override
 	public Response create(PhysiotherapyRecordDTO dto) {
@@ -829,8 +831,10 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		Response response = new Response();
 
 		// ✅ FETCH DATA
-		List<PhysiotherapyRecord> records = repository.findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(clinicId,
-				branchId, therapistId);
+		List<PhysiotherapyRecord> records =
+		        repository.findByClinicIdAndBranchId(
+		                clinicId,
+		                branchId);
 
 		if (records == null || records.isEmpty()) {
 			response.setSuccess(false);
@@ -931,7 +935,66 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 				// ✅ STATUS FROM PAYMENT
 				dto.setOverallStatus(dbStatus);
+				
+				try {
 
+				    ResponseEntity<Response> assignmentResponse =
+				            clinicAdminFeign.getAssignedTherapistDetails(
+				                    record.getTherapistRecordId());
+
+				    if (assignmentResponse != null
+				            && assignmentResponse.getBody() != null
+				            && assignmentResponse.getBody().getData() != null) {
+
+				        LinkedHashMap<String, Object> assignment =
+				                (LinkedHashMap<String, Object>)
+				                        assignmentResponse.getBody().getData();
+
+				        String assignedStatus =
+				                (String) assignment.get("assignedStatus");
+
+				        String assignedTherapistId =
+				                (String) assignment.get("assignedTherapistId");
+
+				        if ("true".equalsIgnoreCase(assignedStatus)) {
+
+				            // Show for doctor therapist and assigned therapist
+				            if (!therapistId.equals(record.getTreatmentPlan().getTherapistId())
+				                    && !therapistId.equals(assignedTherapistId)) {
+				                continue;
+				            }
+
+				            dto.setAssignedTherapistId(assignedTherapistId);
+				            dto.setAssignedTherapistName(
+				                    (String) assignment.get("assignedTherapistName"));
+				            dto.setAssignedStatus(assignedStatus);
+
+				        } else {
+
+				            // Show only for doctor assigned therapist
+				            if (!therapistId.equals(
+				                    record.getTreatmentPlan().getTherapistId())) {
+				                continue;
+				            }
+				        }
+
+				    } else {
+
+				        // No assignment data
+				        if (!therapistId.equals(
+				                record.getTreatmentPlan().getTherapistId())) {
+				            continue;
+				        }
+				    }
+
+				} catch (FeignException.NotFound e) {
+
+				    // No assignment record
+				    if (!therapistId.equals(
+				            record.getTreatmentPlan().getTherapistId())) {
+				        continue;
+				    }
+				}
 				map.put(key, dto);
 			}
 		}

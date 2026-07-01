@@ -1,8 +1,11 @@
 package physiotherapydoctor.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.Data;
 
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AssignTherapistPatientListDTO {
 	private String bookingId;
 	private String patientId;
@@ -21,7 +24,19 @@ public class AssignTherapistPatientListDTO {
 	private String clinicId;
 	private String branchId;
 	private String overallStatus; // 1 pending  2= active , 3=completed
+	 private String assignedTherapistId;
+	 private String assignedTherapistName;
+	 private String assignedStatus;
+	
+		
+	}
+	 
+
+		
+
+		
+	
 	
 	
 
-}
+

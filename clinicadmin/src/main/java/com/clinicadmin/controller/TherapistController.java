@@ -154,4 +154,19 @@ public class TherapistController {
 	            .status(response.getStatus())
 	            .body(response);
 	}
+	
+	@GetMapping("/getTherapistsWithServices/{clinicId}/{branchId}")
+	public ResponseEntity<Response> getTherapistsWithServices(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId) {
+
+	    Response response =
+	    		service.getTherapistsWithServices(
+	                    clinicId,
+	                    branchId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+	}
 }

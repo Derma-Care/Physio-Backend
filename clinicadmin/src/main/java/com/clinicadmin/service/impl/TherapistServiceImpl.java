@@ -31,6 +31,7 @@ import com.clinicadmin.dto.TherapistFeedbackResponseDTO;
 import com.clinicadmin.dto.TherapistFeedbackSummaryDTO;
 import com.clinicadmin.dto.TherapistPresenceRequest;
 import com.clinicadmin.dto.TherapistResponseDTO;
+import com.clinicadmin.dto.TherapistServiceResponseDTO;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.Documents;
 import com.clinicadmin.entity.FeedbackDetails;
@@ -1822,4 +1823,40 @@ public class TherapistServiceImpl implements TherapistService {
 
         return response;
     }
+    
+    @Override
+    public Response getTherapistsWithServices(
+            String clinicId,
+            String branchId) {
+
+        List<Therapist> therapists =
+                repository.findByClinicIdAndBranchId(
+                        clinicId,
+                        branchId);
+
+        List<TherapistServiceResponseDTO> responseList =
+                therapists.stream()
+                        .map(t -> {
+                            TherapistServiceResponseDTO dto =
+                                    new TherapistServiceResponseDTO();
+
+                            dto.setTherapistId(t.getTherapistId());
+                            dto.setTherapistName(t.getFullName());
+                            dto.setServices(t.getServices());
+                            dto.setIsPresent(t.getIsPresent());
+
+                            return dto;
+                        })
+                        .toList();
+
+        Response response = new Response();
+        response.setSuccess(true);
+        response.setData(responseList);
+        response.setMessage("Therapists fetched successfully");
+        response.setStatus(HttpStatus.OK.value());
+
+        return response;
+    }
+    
+ 
 }
