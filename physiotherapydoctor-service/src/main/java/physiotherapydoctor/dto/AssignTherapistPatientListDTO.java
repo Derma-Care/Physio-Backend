@@ -27,9 +27,10 @@ public class AssignTherapistPatientListDTO {
 	 private String assignedTherapistId;
 	 private String assignedTherapistName;
 	 private String assignedStatus;
-	
+	 private Boolean assignedTo = true;
 		
 	}
+	
 	 
 
 		

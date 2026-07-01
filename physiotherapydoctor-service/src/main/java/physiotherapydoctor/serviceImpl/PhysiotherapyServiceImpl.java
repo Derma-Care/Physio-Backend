@@ -935,7 +935,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 				// ✅ STATUS FROM PAYMENT
 				dto.setOverallStatus(dbStatus);
-				
 				try {
 
 				    ResponseEntity<Response> assignmentResponse =
@@ -969,13 +968,29 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				                    (String) assignment.get("assignedTherapistName"));
 				            dto.setAssignedStatus(assignedStatus);
 
-				        } else {
+				            // Original therapist -> false
+				            if (therapistId.equals(
+				                    record.getTreatmentPlan().getTherapistId())) {
+
+				                dto.setAssignedTo(false);
+
+				            }
+				            // Assigned therapist -> true
+				            else if (therapistId.equals(
+				                    assignedTherapistId)) {
+
+				                dto.setAssignedTo(true);
+				            }
+
+				        }else {
 
 				            // Show only for doctor assigned therapist
 				            if (!therapistId.equals(
 				                    record.getTreatmentPlan().getTherapistId())) {
 				                continue;
 				            }
+
+				            dto.setAssignedTo(false);
 				        }
 
 				    } else {
@@ -985,6 +1000,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				                record.getTreatmentPlan().getTherapistId())) {
 				            continue;
 				        }
+
+				        dto.setAssignedTo(true);
 				    }
 
 				} catch (FeignException.NotFound e) {
@@ -994,6 +1011,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				            record.getTreatmentPlan().getTherapistId())) {
 				        continue;
 				    }
+
+				    dto.setAssignedTo(true);
 				}
 				map.put(key, dto);
 			}

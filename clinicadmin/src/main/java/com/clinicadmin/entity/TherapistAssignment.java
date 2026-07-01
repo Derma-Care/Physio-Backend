@@ -25,4 +25,7 @@ public class TherapistAssignment {
     private String assignedTherapistName;
 
     private String assignedStatus;
+    
+    private Boolean assignedTo = true;
+    
 }

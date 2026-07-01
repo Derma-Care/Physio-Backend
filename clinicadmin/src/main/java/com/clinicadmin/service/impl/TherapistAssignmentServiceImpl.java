@@ -53,6 +53,9 @@ public class TherapistAssignmentServiceImpl
 
        
             assignment.setAssignedStatus("true");
+            assignment.setAssignedTo(false);
+            
+            
 
             TherapistAssignment savedAssignment =
                     repository.save(assignment);
