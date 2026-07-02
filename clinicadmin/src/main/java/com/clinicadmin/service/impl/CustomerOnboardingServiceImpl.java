@@ -32,8 +32,11 @@ import com.clinicadmin.service.CustomerOnboardingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
+
 
 @Service
+@Slf4j
 public class CustomerOnboardingServiceImpl implements CustomerOnboardingService {
 
 	@Autowired
@@ -121,311 +124,572 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	// ----------------- READ ALL -----------------
 	@Override
-	 @Secured("ROLE_CLINICADMIN")
+	@Secured("ROLE_CLINICADMIN")
 	public Response getAllCustomers() {
-		Response response = new Response();
-		try {
-			List<CustomerOnbordingDTO> customers = onboardingRepository.findAll().stream().map(this::convertToDTO)
-					.collect(Collectors.toList());
 
-			response.setSuccess(true);
-			response.setMessage(customers.isEmpty() ? "No customers found" : "Customers retrieved successfully");
-			response.setData(customers);
-			response.setStatus(200);
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Error fetching customers: " + e.getMessage());
-			response.setStatus(500);
-		}
-		return response;
-	}
+	    log.info("Request received to fetch all customers.");
 
-	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public Response getCustomerById(String id) {
-		Response response = new Response();
-		try {
-			Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(id);
-			if (optional.isPresent()) {
-				response.setSuccess(true);
-				response.setMessage("Customer found successfully");
-				response.setData(convertToDTO(optional.get()));
-				response.setStatus(200);
-			} else {
-				response.setSuccess(false);
-				response.setMessage("Customer not found with ID: " + id);
-				response.setStatus(404);
-			}
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Error fetching customer: " + e.getMessage());
-			response.setStatus(500);
-		}
-		return response;
-	}
-
-	
-	@Override
-	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
-	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name) {		
-		Map<String,String> details = new LinkedHashMap<>();
-		try {
-			Optional<CustomerOnbording> optional = onboardingRepository.findByMobileNumberAndFullName(mobilenumber, name);
-			if (optional.isPresent()) {
-				details.put("customerId", optional.get().getCustomerId());
-				details.put("patientId", optional.get().getPatientId());
-				////System.out.println(details); 
-				return details;
-			} else {
-				return null;
-			}
-		} catch (Exception e) {
-			return null;
-		}
-		
-	}
-
-	
-	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public Response getCustomerByMobiileNumber(String mobilenumber) {
-		Response response = new Response();
-		try {
-			Optional<CustomerOnbording> optional = onboardingRepository.findByMobileNumber(mobilenumber);
-			if (optional.isPresent()) {
-				response.setSuccess(true);
-				response.setMessage("Customer found successfully");
-				response.setData(convertToDTO(optional.get()));
-				response.setStatus(200);
-			} else {
-				response.setSuccess(false);
-				response.setMessage("Customer not found with ID: " + mobilenumber);
-				response.setStatus(404);
-			}
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Error fetching customer: " + e.getMessage());
-			response.setStatus(500);
-		}
-		return response;
-	}
-	
-	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId) {	
-		try {
-			CustomerOnbording optional = onboardingRepository.findByMobileNumberAndHospitalId(mobilenumber,clinicId);
-			//System.out.println(optional);
-			if (optional != null) {
-				return convertToDTO(optional);
-			} else {
-				return null;
-			}
-		} catch (Exception e) {
-			return null;
-		}}
-	
-	
-	
-	// ----------------- UPDATE -----------------
-	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public Response updateCustomer(String customerId, CustomerOnbordingDTO dto) {
-		Response response = new Response();
-
-		try {
-			Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(customerId);
-			if (optional.isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("Customer not found");
-				response.setStatus(404);
-				return response;
-			}
-
-			CustomerOnbording entity = optional.get();
-
-			// Null checks before updating fields
-			if (dto.getFullName() != null && !dto.getFullName().isBlank()) {
-				entity.setFullName(dto.getFullName());
-			}
-			if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-				entity.setEmail(dto.getEmail());
-			}
-			if (dto.getMobileNumber() != null && !dto.getMobileNumber().isBlank()) {
-				entity.setMobileNumber(dto.getMobileNumber());
-			}
-			if (dto.getGender() != null && !dto.getGender().isBlank()) {
-				entity.setGender(dto.getGender());
-			}
-			if (dto.getDateOfBirth() != null && !dto.getDateOfBirth().isBlank()) {
-				entity.setDateOfBirth(dto.getDateOfBirth());
-			}
-			if (dto.getAge() != null && !dto.getAge().isBlank()) {
-				entity.setAge(dto.getAge());
-			}
-			if (dto.getAddress() != null) {
-				entity.setAddress(dto.getAddress());
-			}
-			if (dto.getHospitalId() != null && !dto.getHospitalId().isBlank()) {
-				entity.setHospitalId(dto.getHospitalId());
-			}
-			if (dto.getHospitalName() != null && !dto.getHospitalName().isBlank()) {
-				entity.setHospitalName(dto.getHospitalName());
-			}
-			if (dto.getBranchId() != null && !dto.getBranchId().isBlank()) {
-				entity.setBranchId(dto.getBranchId());
-			}
-			if (dto.getCustomerId() != null && !dto.getCustomerId().isBlank()) {
-				entity.setCustomerId(dto.getCustomerId());
-			}
-			if (dto.getPatientId() != null && !dto.getPatientId().isBlank()) {
-				entity.setPatientId(dto.getPatientId());
-			}
-			entity.setUpdatedDate(LocalDate.now().toString());
-
-			onboardingRepository.save(entity);
-
-			response.setSuccess(true);
-			response.setMessage("Customer updated successfully");
-			response.setData(convertToDTO(entity));
-			response.setStatus(200);
-
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Error updating customer: " + e.getMessage());
-			response.setStatus(500);
-		}
-
-		return response;
-	}
-
-	// ----------------- DELETE -----------------
-	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public Response deleteCustomer(String id) {
-		Response response = new Response();
-
-		try {
-			Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(id);
-			if (optional.isEmpty()) {
-				response.setSuccess(false);
-				response.setMessage("Customer not found");
-				response.setStatus(404);
-				return response;
-			}
-
-			CustomerOnbording entity = optional.get();
-			onboardingRepository.deleteByCustomerId(id);
-
-			// Delete credentials also
-			credentialsRepository.deleteByUserName(entity.getCustomerId());
-
-			response.setSuccess(true);
-			response.setMessage("Customer deleted successfully");
-			response.setStatus(200);
-
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setMessage("Error deleting customer: " + e.getMessage());
-			response.setStatus(500);
-		}
-
-		return response;
-	}
-
-	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public Response getCustomersByHospitalId(String hospitalId,String branchId) {
 	    Response response = new Response();
+
 	    try {
-	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
+	        log.debug("Fetching customer records from database.");
+
+	        List<CustomerOnbordingDTO> customers = onboardingRepository.findAll()
 	                .stream()
 	                .map(this::convertToDTO)
 	                .collect(Collectors.toList());
 
+	        log.info("Successfully fetched {} customer(s) from database.", customers.size());
+
 	        response.setSuccess(true);
-	        response.setMessage(customers.isEmpty() ? "No customers found for hospitalId: " + hospitalId : "Customers retrieved successfully");
+	        response.setMessage(customers.isEmpty()
+	                ? "No customers found"
+	                : "Customers retrieved successfully");
 	        response.setData(customers);
 	        response.setStatus(200);
+
+	        log.info("Returning response with status: {}", response.getStatus());
+
 	    } catch (Exception e) {
+	        log.error("Exception occurred while fetching customers.", e);
+
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
+
+	        log.error("Failed to fetch customers. Response status: {}", response.getStatus());
 	    }
+
+	    return response;
+	}
+
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public Response getCustomerById(String id) {
+
+	    log.info("Request received to fetch customer with ID: {}", id);
+
+	    Response response = new Response();
+
+	    try {
+	        log.debug("Searching customer in database with ID: {}", id);
+
+	        Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(id);
+
+	        if (optional.isPresent()) {
+
+	            log.info("Customer found with ID: {}", id);
+
+	            response.setSuccess(true);
+	            response.setMessage("Customer found successfully");
+	            response.setData(convertToDTO(optional.get()));
+	            response.setStatus(200);
+
+	            log.info("Returning customer details for ID: {}", id);
+
+	        } else {
+
+	            log.warn("Customer not found with ID: {}", id);
+
+	            response.setSuccess(false);
+	            response.setMessage("Customer not found with ID: " + id);
+	            response.setStatus(404);
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customer with ID: {}", id, e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error fetching customer: " + e.getMessage());
+	        response.setStatus(500);
+
+	        log.error("Failed to fetch customer with ID: {}. Response status: {}", id, response.getStatus());
+	    }
+
 	    return response;
 	}
 
 	
+
 	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public Response getCustomersByPatientId(String patientId,String clinicId) {
-	    Response response = new Response();
+	@Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+	public Map<String, String> getCustomerByMobilenumberAndName(String mobilenumber, String name) {
+
+	    log.info("Request received to fetch customer by mobile number: {} and name: {}", mobilenumber, name);
+
+	    Map<String, String> details = new LinkedHashMap<>();
+
 	    try {
-	        CustomerOnbording customers = onboardingRepository.findByPatientIdAndHospitalId(patientId,clinicId);
-	      //  System.out.println(customers);
-	        if(customers != null) {      
+	        log.debug("Searching customer in database with mobile number: {} and name: {}", mobilenumber, name);
+
+	        Optional<CustomerOnbording> optional =
+	                onboardingRepository.findByMobileNumberAndFullName(mobilenumber, name);
+
+	        if (optional.isPresent()) {
+
+	            details.put("customerId", optional.get().getCustomerId());
+	            details.put("patientId", optional.get().getPatientId());
+
+	            log.info("Customer found. CustomerId: {}, PatientId: {}",
+	                    optional.get().getCustomerId(),
+	                    optional.get().getPatientId());
+
+	            return details;
+
+	        } else {
+
+	            log.warn("No customer found with mobile number: {} and name: {}", mobilenumber, name);
+	            return null;
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customer with mobile number: {} and name: {}",
+	                mobilenumber, name, e);
+
+	        return null;
+	    }
+	}
+
+	
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public Response getCustomerByMobiileNumber(String mobilenumber) {
+
+	    log.info("Request received to fetch customer with mobile number: {}", mobilenumber);
+
+	    Response response = new Response();
+
+	    try {
+	        log.debug("Searching customer in database with mobile number: {}", mobilenumber);
+
+	        Optional<CustomerOnbording> optional = onboardingRepository.findByMobileNumber(mobilenumber);
+
+	        if (optional.isPresent()) {
+
+	            log.info("Customer found with mobile number: {}", mobilenumber);
+
+	            response.setSuccess(true);
+	            response.setMessage("Customer found successfully");
+	            response.setData(convertToDTO(optional.get()));
+	            response.setStatus(200);
+
+	            log.info("Returning customer details for mobile number: {}", mobilenumber);
+
+	        } else {
+
+	            log.warn("Customer not found with mobile number: {}", mobilenumber);
+
+	            response.setSuccess(false);
+	            response.setMessage("Customer not found with mobile number: " + mobilenumber);
+	            response.setStatus(404);
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customer with mobile number: {}", mobilenumber, e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error fetching customer: " + e.getMessage());
+	        response.setStatus(500);
+
+	        log.error("Failed to fetch customer with mobile number: {}. Response status: {}",
+	                mobilenumber, response.getStatus());
+	    }
+
+	    return response;
+	}
+	
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber, String clinicId) {
+
+	    log.info("Request received to fetch customer with mobile number: {} and clinicId: {}", mobilenumber, clinicId);
+
+	    try {
+
+	        log.debug("Searching customer in database with mobile number: {} and clinicId: {}",
+	                mobilenumber, clinicId);
+
+	        CustomerOnbording customer =
+	                onboardingRepository.findByMobileNumberAndHospitalId(mobilenumber, clinicId);
+
+	        if (customer != null) {
+
+	            log.info("Customer found with mobile number: {} and clinicId: {}",
+	                    mobilenumber, clinicId);
+
+	            return convertToDTO(customer);
+
+	        } else {
+
+	            log.warn("Customer not found with mobile number: {} and clinicId: {}",
+	                    mobilenumber, clinicId);
+
+	            return null;
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customer with mobile number: {} and clinicId: {}",
+	                mobilenumber, clinicId, e);
+
+	        return null;
+	    }
+	}
+	
+	
+	
+	// ----------------- UPDATE -----------------
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public Response updateCustomer(String customerId, CustomerOnbordingDTO dto) {
+
+	    log.info("Request received to update customer with ID: {}", customerId);
+
+	    Response response = new Response();
+
+	    try {
+
+	        log.debug("Searching customer in database with ID: {}", customerId);
+
+	        Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(customerId);
+
+	        if (optional.isEmpty()) {
+
+	            log.warn("Customer not found with ID: {}", customerId);
+
+	            response.setSuccess(false);
+	            response.setMessage("Customer not found");
+	            response.setStatus(404);
+	            return response;
+	        }
+
+	        CustomerOnbording entity = optional.get();
+
+	        log.debug("Updating customer details for ID: {}", customerId);
+
+	        // Null checks before updating fields
+	        if (dto.getFullName() != null && !dto.getFullName().isBlank()) {
+	            entity.setFullName(dto.getFullName());
+	        }
+	        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+	            entity.setEmail(dto.getEmail());
+	        }
+	        if (dto.getMobileNumber() != null && !dto.getMobileNumber().isBlank()) {
+	            entity.setMobileNumber(dto.getMobileNumber());
+	        }
+	        if (dto.getGender() != null && !dto.getGender().isBlank()) {
+	            entity.setGender(dto.getGender());
+	        }
+	        if (dto.getDateOfBirth() != null && !dto.getDateOfBirth().isBlank()) {
+	            entity.setDateOfBirth(dto.getDateOfBirth());
+	        }
+	        if (dto.getAge() != null && !dto.getAge().isBlank()) {
+	            entity.setAge(dto.getAge());
+	        }
+	        if (dto.getAddress() != null) {
+	            entity.setAddress(dto.getAddress());
+	        }
+	        if (dto.getHospitalId() != null && !dto.getHospitalId().isBlank()) {
+	            entity.setHospitalId(dto.getHospitalId());
+	        }
+	        if (dto.getHospitalName() != null && !dto.getHospitalName().isBlank()) {
+	            entity.setHospitalName(dto.getHospitalName());
+	        }
+	        if (dto.getBranchId() != null && !dto.getBranchId().isBlank()) {
+	            entity.setBranchId(dto.getBranchId());
+	        }
+	        if (dto.getCustomerId() != null && !dto.getCustomerId().isBlank()) {
+	            entity.setCustomerId(dto.getCustomerId());
+	        }
+	        if (dto.getPatientId() != null && !dto.getPatientId().isBlank()) {
+	            entity.setPatientId(dto.getPatientId());
+	        }
+
+	        entity.setUpdatedDate(LocalDate.now().toString());
+
+	        log.debug("Saving updated customer with ID: {}", customerId);
+
+	        onboardingRepository.save(entity);
+
+	        log.info("Customer updated successfully with ID: {}", customerId);
+
 	        response.setSuccess(true);
-	        response.setMessage("Customers retrieved successfully");
-	        response.setData(new ObjectMapper().convertValue(customers,CustomerOnbordingDTO.class ));
+	        response.setMessage("Customer updated successfully");
+	        response.setData(convertToDTO(entity));
 	        response.setStatus(200);
-	    }else {
-	    	 response.setSuccess(false);
-		        response.setMessage("Customers Object Not Found");
-		        response.setStatus(200);
-	    }}catch(Exception e) {
+
+	        log.info("Returning success response for customer update. Status: {}", response.getStatus());
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while updating customer with ID: {}", customerId, e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error updating customer: " + e.getMessage());
+	        response.setStatus(500);
+
+	        log.error("Failed to update customer with ID: {}. Response status: {}",
+	                customerId, response.getStatus());
+	    }
+
+	    return response;
+	}
+	// ----------------- DELETE -----------------
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public Response deleteCustomer(String id) {
+
+	    log.info("Request received to delete customer with ID: {}", id);
+
+	    Response response = new Response();
+
+	    try {
+
+	        log.debug("Searching customer in database with ID: {}", id);
+
+	        Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(id);
+
+	        if (optional.isEmpty()) {
+
+	            log.warn("Customer not found with ID: {}", id);
+
+	            response.setSuccess(false);
+	            response.setMessage("Customer not found");
+	            response.setStatus(404);
+	            return response;
+	        }
+
+	        CustomerOnbording entity = optional.get();
+
+	        log.debug("Deleting customer record with ID: {}", id);
+	        onboardingRepository.deleteByCustomerId(id);
+
+	        log.debug("Deleting customer credentials for username: {}", entity.getCustomerId());
+	        credentialsRepository.deleteByUserName(entity.getCustomerId());
+
+	        log.info("Customer and associated credentials deleted successfully. Customer ID: {}", id);
+
+	        response.setSuccess(true);
+	        response.setMessage("Customer deleted successfully");
+	        response.setStatus(200);
+
+	        log.info("Returning success response for customer deletion. Status: {}", response.getStatus());
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while deleting customer with ID: {}", id, e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error deleting customer: " + e.getMessage());
+	        response.setStatus(500);
+
+	        log.error("Failed to delete customer with ID: {}. Response status: {}", id, response.getStatus());
+	    }
+
+	    return response;
+	}
+
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public Response getCustomersByHospitalId(String hospitalId, String branchId) {
+
+	    log.info("Request received to fetch customers for Hospital ID: {} and Branch ID: {}", hospitalId, branchId);
+
+	    Response response = new Response();
+
+	    try {
+
+	        log.debug("Fetching customers from database for Hospital ID: {} and Branch ID: {}", hospitalId, branchId);
+
+	        List<CustomerOnbordingDTO> customers = onboardingRepository
+	                .findByHospitalIdAndBranchId(hospitalId, branchId)
+	                .stream()
+	                .map(this::convertToDTO)
+	                .collect(Collectors.toList());
+
+	        log.info("Retrieved {} customer(s) for Hospital ID: {} and Branch ID: {}",
+	                customers.size(), hospitalId, branchId);
+
+	        response.setSuccess(true);
+	        response.setMessage(customers.isEmpty()
+	                ? "No customers found for hospitalId: " + hospitalId
+	                : "Customers retrieved successfully");
+	        response.setData(customers);
+	        response.setStatus(200);
+
+	        log.info("Returning response with status: {}", response.getStatus());
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customers for Hospital ID: {} and Branch ID: {}",
+	                hospitalId, branchId, e);
+
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
+
+	        log.error("Failed to fetch customers. Response status: {}", response.getStatus());
 	    }
+
+	    return response;
+	}
+	
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public Response getCustomersByPatientId(String patientId, String clinicId) {
+
+	    log.info("Request received to fetch customer with Patient ID: {} and Clinic ID: {}", patientId, clinicId);
+
+	    Response response = new Response();
+
+	    try {
+
+	        log.debug("Searching customer in database with Patient ID: {} and Clinic ID: {}",
+	                patientId, clinicId);
+
+	        CustomerOnbording customer =
+	                onboardingRepository.findByPatientIdAndHospitalId(patientId, clinicId);
+
+	        if (customer != null) {
+
+	            log.info("Customer found with Patient ID: {} and Clinic ID: {}",
+	                    patientId, clinicId);
+
+	            response.setSuccess(true);
+	            response.setMessage("Customers retrieved successfully");
+	            response.setData(new ObjectMapper().convertValue(customer, CustomerOnbordingDTO.class));
+	            response.setStatus(200);
+
+	            log.info("Returning customer details successfully. Status: {}", response.getStatus());
+
+	        } else {
+
+	            log.warn("No customer found with Patient ID: {} and Clinic ID: {}",
+	                    patientId, clinicId);
+
+	            response.setSuccess(false);
+	            response.setMessage("Customers Object Not Found");
+	            response.setStatus(200);
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customer with Patient ID: {} and Clinic ID: {}",
+	                patientId, clinicId, e);
+
+	        response.setSuccess(false);
+	        response.setMessage("Error fetching customers: " + e.getMessage());
+	        response.setStatus(500);
+
+	        log.error("Failed to fetch customer. Response status: {}", response.getStatus());
+	    }
+
 	    return response;
 	}
 
 	
 	
 	
+
 	@Override
-	 @Secured("ROLE_CLINICADMIN")
+	@Secured("ROLE_CLINICADMIN")
 	public Response getCustomersByBranchId(String branchId) {
+
+	    log.info("Request received to fetch customers for Branch ID: {}", branchId);
+
 	    Response response = new Response();
+
 	    try {
+
+	        log.debug("Fetching customers from database for Branch ID: {}", branchId);
+
 	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByBranchId(branchId)
 	                .stream()
 	                .map(this::convertToDTO)
 	                .collect(Collectors.toList());
 
+	        log.info("Retrieved {} customer(s) for Branch ID: {}", customers.size(), branchId);
+
 	        response.setSuccess(true);
-	        response.setMessage(customers.isEmpty() ? "No customers found for branchId: " + branchId : "Customers retrieved successfully");
+	        response.setMessage(customers.isEmpty()
+	                ? "No customers found for branchId: " + branchId
+	                : "Customers retrieved successfully");
 	        response.setData(customers);
 	        response.setStatus(200);
+
+	        log.info("Returning response with status: {}", response.getStatus());
+
 	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customers for Branch ID: {}", branchId, e);
+
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
+
+	        log.error("Failed to fetch customers for Branch ID: {}. Response status: {}",
+	                branchId, response.getStatus());
 	    }
+
 	    return response;
 	}
 
+
 	@Override
-	 @Secured("ROLE_CLINICADMIN")
+	@Secured("ROLE_CLINICADMIN")
 	public Response getCustomersByHospitalIdAndBranchId(String hospitalId, String branchId) {
+
+	    log.info("Request received to fetch customers for Hospital ID: {} and Branch ID: {}",
+	            hospitalId, branchId);
+
 	    Response response = new Response();
+
 	    try {
-	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
+
+	        log.debug("Fetching customers from database for Hospital ID: {} and Branch ID: {}",
+	                hospitalId, branchId);
+
+	        List<CustomerOnbordingDTO> customers = onboardingRepository
+	                .findByHospitalIdAndBranchId(hospitalId, branchId)
 	                .stream()
 	                .map(this::convertToDTO)
 	                .collect(Collectors.toList());
 
+	        log.info("Retrieved {} customer(s) for Hospital ID: {} and Branch ID: {}",
+	                customers.size(), hospitalId, branchId);
+
 	        response.setSuccess(true);
-	        response.setMessage(customers.isEmpty() ? 
-	            "No customers found for hospitalId: " + hospitalId + " and branchId: " + branchId 
-	            : "Customers retrieved successfully");
+	        response.setMessage(customers.isEmpty()
+	                ? "No customers found for hospitalId: " + hospitalId + " and branchId: " + branchId
+	                : "Customers retrieved successfully");
 	        response.setData(customers);
 	        response.setStatus(200);
+
+	        log.info("Returning response with status: {}", response.getStatus());
+
 	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching customers for Hospital ID: {} and Branch ID: {}",
+	                hospitalId, branchId, e);
+
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
+
+	        log.error("Failed to fetch customers for Hospital ID: {} and Branch ID: {}. Response status: {}",
+	                hospitalId, branchId, response.getStatus());
 	    }
+
 	    return response;
 	}
 
@@ -497,18 +761,35 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 //		return response;
 //	}
 
-	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
+
+	@Override
+	@Secured({"ROLE_CLINICADMIN", "ROLE_NOTIFICATIONSERVICE"})
 	public String customerDeviceId(String customerId) {
-		try {
-			Optional<CustomerCredentials> cs = credentialsRepository.findByUserName(customerId);	
-			if(cs.isPresent()) {
-				return cs.get().getDeviceId();
-			}else {
-				return null;
-			}
-		}catch(Exception e) {
-			return null;
-		}
+
+	    log.info("Request received to fetch device ID for Customer ID: {}", customerId);
+
+	    try {
+
+	        log.debug("Searching customer credentials for Customer ID: {}", customerId);
+
+	        Optional<CustomerCredentials> cs = credentialsRepository.findByUserName(customerId);
+
+	        if (cs.isPresent()) {
+
+	            log.info("Device ID found for Customer ID: {}", customerId);
+	            return cs.get().getDeviceId();
+
+	        } else {
+
+	            log.warn("Customer credentials not found for Customer ID: {}", customerId);
+	            return null;
+	        }
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while fetching device ID for Customer ID: {}", customerId, e);
+	        return null;
+	    }
 	}
 	// ----------------- RESET PASSWORD -----------------
 //	@Override
@@ -597,81 +878,152 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		return dto;
 	}
 	
-	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
-	public CustomerOnbordingDTO getCustomerByToken(String token){
-		try {	
-			CustomerOnbording cstmr = onboardingRepository.findByDeviceId(token);
-			if(cstmr != null) {
-		    CustomerOnbordingDTO cusmrdto = new ObjectMapper().convertValue(cstmr, CustomerOnbordingDTO.class);
-			return cusmrdto;}
-			else {
-				return null;
-			}
-		}catch(FeignException e) {	
-			return null;	
-		}}
-	
-	
+
 	@Override
-	 @Secured("ROLE_CLINICADMIN")
-	public List<BookingInfoByInput> bookingByInput(String input,String clinicId) {
-		   BookingInfoByInput bkng = new BookingInfoByInput();
-		   CustomerOnbordingDTO b = null;
-		   List<BookingInfoByInput> lst = new ArrayList<>();
-		   List<CustomerOnbordingDTO> customerOnbordingDTO = null;
-	       try {	        	
-	        	b = getCustomerByMobileNumberAndClinicId(input,clinicId);
-	   		   //Sysout
-	        	if(b != null) {
-	        	bkng.setAge(b.getAge());
-		        bkng.setClinicId(b.getHospitalId());
-		        bkng.setCustomerId(b.getCustomerId());
-		        bkng.setGender(b.getGender());
-		        bkng.setMobileNumber(b.getMobileNumber());
-		        bkng.setName(b.getFullName());
-		        bkng.setPatientAddress(b.getAddress());
-		        bkng.setPatientId(b.getPatientId());
-		        bkng.setPatientMobileNumber(b.getMobileNumber());
-		        bkng.setDob(b.getDateOfBirth());
-		        bkng.setRelation(null);	
-		        lst.add(bkng);}	       
-		    	if(b == null){
-	        	 Response res = getCustomersByPatientId(input,clinicId);			   
-			      b = new ObjectMapper().convertValue(res.getData(), CustomerOnbordingDTO.class);		    	     
-			      if(b != null) {
-			        bkng.setAge(b.getAge());
-			        bkng.setClinicId(b.getHospitalId());
-			        bkng.setCustomerId(b.getCustomerId());
-			        bkng.setGender(b.getGender());
-			        bkng.setMobileNumber(b.getMobileNumber());
-			        bkng.setName(b.getFullName());
-			        bkng.setPatientAddress(b.getAddress());
-			        bkng.setPatientId(b.getPatientId());
-			        bkng.setPatientMobileNumber(b.getMobileNumber());
-			        bkng.setDob(b.getDateOfBirth());
-			        bkng.setRelation(null);
-			        lst.add(bkng);}		       
-		        }if(b == null){	
-		        customerOnbordingDTO = onboardingRepository.findByFullNameContainingIgnoreCaseAndHospitalId(input,clinicId);
-		        ///System.out.println(customerOnbordingDTO);
-		        for(CustomerOnbordingDTO dto : customerOnbordingDTO) {
-		        BookingInfoByInput bookingInfoByInput = new BookingInfoByInput();
-		        bookingInfoByInput.setAge(dto.getAge());
-		        bookingInfoByInput.setClinicId(dto.getHospitalId());
-		        bookingInfoByInput.setCustomerId(dto.getCustomerId());
-		        bookingInfoByInput.setGender(dto.getGender());
-		        bookingInfoByInput.setMobileNumber(dto.getMobileNumber());
-		        bookingInfoByInput.setName(dto.getFullName());
-		        bookingInfoByInput.setPatientAddress(dto.getAddress());
-		        bookingInfoByInput.setPatientId(dto.getPatientId());
-		        bookingInfoByInput.setPatientMobileNumber(dto.getMobileNumber());
-		        bookingInfoByInput.setDob(dto.getDateOfBirth());
-		        bookingInfoByInput.setRelation(null);
-		        lst.add(bookingInfoByInput);}}
-	       }catch (Exception e) {
-	        //System.err.println("Error fetching bookings: " + e.getMessage());
-	        System.out.println(e.getMessage());; // safe fallback
+	@Secured({"ROLE_CLINICADMIN", "ROLE_NOTIFICATIONSERVICE"})
+	public CustomerOnbordingDTO getCustomerByToken(String token) {
+
+	    log.info("Request received to fetch customer using device token.");
+
+	    try {
+
+	        log.debug("Searching customer in database using device token.");
+
+	        CustomerOnbording customer = onboardingRepository.findByDeviceId(token);
+
+	        if (customer != null) {
+
+	            log.info("Customer found for the provided device token.");
+
+	            CustomerOnbordingDTO customerDTO =
+	                    new ObjectMapper().convertValue(customer, CustomerOnbordingDTO.class);
+
+	            log.info("Returning customer details successfully.");
+
+	            return customerDTO;
+
+	        } else {
+
+	            log.warn("No customer found for the provided device token.");
+	            return null;
+	        }
+
+	    } catch (FeignException e) {
+
+	        log.error("FeignException occurred while fetching customer using device token.", e);
+	        return null;
+
+	    } catch (Exception e) {
+
+	        log.error("Unexpected exception occurred while fetching customer using device token.", e);
+	        return null;
 	    }
-	    return lst;
+	}
+	
+	
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	public List<BookingInfoByInput> bookingByInput(String input, String clinicId) {
+
+	    log.info("Request received to search booking details. Input: {}, Clinic ID: {}", input, clinicId);
+
+	    BookingInfoByInput bkng = new BookingInfoByInput();
+	    CustomerOnbordingDTO customer = null;
+	    List<BookingInfoByInput> result = new ArrayList<>();
+	    List<CustomerOnbordingDTO> customers = null;
+
+	    try {
+
+	        // Search by Mobile Number
+	        log.debug("Searching customer by mobile number.");
+	        customer = getCustomerByMobileNumberAndClinicId(input, clinicId);
+
+	        if (customer != null) {
+
+	            log.info("Customer found using mobile number.");
+
+	            bkng.setAge(customer.getAge());
+	            bkng.setClinicId(customer.getHospitalId());
+	            bkng.setCustomerId(customer.getCustomerId());
+	            bkng.setGender(customer.getGender());
+	            bkng.setMobileNumber(customer.getMobileNumber());
+	            bkng.setName(customer.getFullName());
+	            bkng.setPatientAddress(customer.getAddress());
+	            bkng.setPatientId(customer.getPatientId());
+	            bkng.setPatientMobileNumber(customer.getMobileNumber());
+	            bkng.setDob(customer.getDateOfBirth());
+	            bkng.setRelation(null);
+
+	            result.add(bkng);
+	        }
+
+	        // Search by Patient ID
+	        if (customer == null) {
+
+	            log.debug("Customer not found by mobile number. Searching by Patient ID.");
+
+	            Response res = getCustomersByPatientId(input, clinicId);
+	            customer = new ObjectMapper().convertValue(res.getData(), CustomerOnbordingDTO.class);
+
+	            if (customer != null) {
+
+	                log.info("Customer found using Patient ID.");
+
+	                bkng.setAge(customer.getAge());
+	                bkng.setClinicId(customer.getHospitalId());
+	                bkng.setCustomerId(customer.getCustomerId());
+	                bkng.setGender(customer.getGender());
+	                bkng.setMobileNumber(customer.getMobileNumber());
+	                bkng.setName(customer.getFullName());
+	                bkng.setPatientAddress(customer.getAddress());
+	                bkng.setPatientId(customer.getPatientId());
+	                bkng.setPatientMobileNumber(customer.getMobileNumber());
+	                bkng.setDob(customer.getDateOfBirth());
+	                bkng.setRelation(null);
+
+	                result.add(bkng);
+	            }
+	        }
+
+	        // Search by Name
+	        if (customer == null) {
+
+	            log.debug("Customer not found by Patient ID. Searching by customer name.");
+
+	            customers = onboardingRepository
+	                    .findByFullNameContainingIgnoreCaseAndHospitalId(input, clinicId);
+
+	            log.info("Found {} customer(s) using customer name.", customers.size());
+
+	            for (CustomerOnbordingDTO dto : customers) {
+
+	                BookingInfoByInput bookingInfo = new BookingInfoByInput();
+
+	                bookingInfo.setAge(dto.getAge());
+	                bookingInfo.setClinicId(dto.getHospitalId());
+	                bookingInfo.setCustomerId(dto.getCustomerId());
+	                bookingInfo.setGender(dto.getGender());
+	                bookingInfo.setMobileNumber(dto.getMobileNumber());
+	                bookingInfo.setName(dto.getFullName());
+	                bookingInfo.setPatientAddress(dto.getAddress());
+	                bookingInfo.setPatientId(dto.getPatientId());
+	                bookingInfo.setPatientMobileNumber(dto.getMobileNumber());
+	                bookingInfo.setDob(dto.getDateOfBirth());
+	                bookingInfo.setRelation(null);
+
+	                result.add(bookingInfo);
+	            }
+	        }
+
+	        log.info("Booking search completed successfully. Total records found: {}", result.size());
+
+	    } catch (Exception e) {
+
+	        log.error("Exception occurred while searching booking details. Input: {}, Clinic ID: {}",
+	                input, clinicId, e);
+	    }
+
+	    return result;
 	}
 }

@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +34,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Branch;
@@ -71,10 +69,8 @@ import com.clinicadmin.utils.ExtractFeignMessage;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Service
 public class DoctorServiceImpl implements DoctorService {

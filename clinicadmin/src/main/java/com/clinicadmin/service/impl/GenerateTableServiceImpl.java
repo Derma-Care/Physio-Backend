@@ -21,9 +21,11 @@ import com.clinicadmin.service.GenerateTableService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import lombok.RequiredArgsConstructor;
-
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class GenerateTableServiceImpl implements GenerateTableService {
 

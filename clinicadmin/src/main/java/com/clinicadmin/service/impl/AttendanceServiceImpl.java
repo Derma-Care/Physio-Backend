@@ -36,10 +36,11 @@ import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.service.AttendanceService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
-
 import lombok.RequiredArgsConstructor;
-
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
 
@@ -60,16 +61,24 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Secured("ROLE_CLINICADMIN")
     public Response save(AttendanceDTO dto) {
 
+        log.info("Attendance save request received. UserId: {}, Role: {}, ClinicId: {}, BranchId: {}, Date: {}",
+                dto.getUserId(), dto.getRole(), dto.getClinicId(), dto.getBranchId(), dto.getDate());
+
         Response response = new Response();
 
         try {
 
             if (dto.getUserId() == null || dto.getDate() == null) {
+
+                log.warn("Attendance save validation failed. UserId or Date is missing.");
+
                 throw new RuntimeException("userId and date are required");
             }
 
-            // ✅ DOCTOR — only clinic check, skip branch & distance
+            // Doctor validation
             if ("doctor".equalsIgnoreCase(dto.getRole())) {
+
+                log.info("Validating doctor login. UserId: {}", dto.getUserId());
 
                 validateLoginDistance(
                         dto.getClinicId(),
@@ -81,7 +90,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             } else {
 
-                // ✅ OTHERS — full validation (clinic + branch + distance)
+                log.info("Validating login location. UserId: {}, Role: {}",
+                        dto.getUserId(), dto.getRole());
+
                 if (dto.getLogin() != null
                         && dto.getLogin().getLatitude() != null
                         && !dto.getLogin().getLatitude().isBlank()
@@ -105,15 +116,19 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             if (existingOpt.isPresent()) {
 
+                log.info("Attendance already exists. Updating existing attendance. UserId: {}",
+                        dto.getUserId());
+
                 entity = existingOpt.get();
 
             } else {
+
+                log.info("Creating new attendance. UserId: {}", dto.getUserId());
 
                 entity = new Attendance();
                 mapDtoToEntity(dto, entity);
                 entity.setActivities(new ArrayList<>());
 
-                // 🔥 FIXED STATUS LOGIC
                 if (dto.getLogin() != null) {
                     entity.setStatus("LOGGED_IN");
                 } else if (dto.getLogout() != null) {
@@ -123,8 +138,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                 }
             }
 
-            // 🔥 ACTIVITIES
             if (dto.getActivities() != null && !dto.getActivities().isEmpty()) {
+
+                log.info("Adding {} activities for UserId: {}",
+                        dto.getActivities().size(),
+                        dto.getUserId());
 
                 if (entity.getActivities() == null) {
                     entity.setActivities(new ArrayList<>());
@@ -132,16 +150,17 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 for (ActivityDTO a : dto.getActivities()) {
 
+                    log.debug("Processing activity: {}", a.getActivity());
+
                     Activity act = new Activity();
 
                     act.setActivityId("ACT_" + System.nanoTime());
                     act.setActivity(a.getActivity());
                     act.setDuration(a.getDuration());
                     act.setDescription(a.getDescription());
-                    // 🔥 SAVE LATITUDE & LONGITUDE
                     act.setLatitude(a.getLatitude());
                     act.setLongitude(a.getLongitude());
-                    // 🔥 AUTO LOCATION FROM LAT LONG
+
                     if (a.getLatitude() != null
                             && !a.getLatitude().isBlank()
                             && a.getLongitude() != null
@@ -149,8 +168,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                         String location = getCityFromLatLong(
                                 a.getLatitude(),
-                                a.getLongitude()
-                        );
+                                a.getLongitude());
 
                         act.setLocation(location);
 
@@ -162,36 +180,40 @@ public class AttendanceServiceImpl implements AttendanceService {
                     entity.getActivities().add(act);
                 }
             }
+
             if ("PHYSIOTHERAPIST".equalsIgnoreCase(dto.getRole())) {
+
+                log.info("Saving therapist attendance. TherapistId: {}",
+                        entity.getUserId());
 
                 TherapistAttendance attendance =
                         therapistAttendanceRepo.findByTherapistIdAndDate(
                                 entity.getUserId(),
-                                entity.getDate()
-                        );
+                                entity.getDate());
 
                 if (attendance == null) {
+
+                    log.info("Creating new therapist attendance record.");
 
                     attendance = new TherapistAttendance();
                     attendance.setTherapistId(entity.getUserId());
                     attendance.setDate(entity.getDate());
                 }
 
-                // ✅ Clinic & Branch
                 attendance.setClinicId(entity.getClinicId());
                 attendance.setBranchId(entity.getBranchId());
-
-                // ✅ Login / Logout
                 attendance.setStatus(entity.getStatus());
                 attendance.setLogin(entity.getLogin());
                 attendance.setLogout(entity.getLogout());
-
                 attendance.setLogTime(entity.getLogTime());
                 attendance.setWorkingHours(entity.getWorkingHours());
                 attendance.setIdleTime(entity.getIdleTime());
 
                 TherapistAttendance savedAttendance =
                         therapistAttendanceRepo.save(attendance);
+
+                log.info("Therapist attendance saved successfully. TherapistId: {}",
+                        entity.getUserId());
 
                 response.setSuccess(true);
                 response.setMessage("Therapist attendance saved successfully");
@@ -200,9 +222,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 return response;
             }
+
+            log.info("Saving attendance record. UserId: {}", entity.getUserId());
+
             repo.save(entity);
+
+            log.info("Attendance saved successfully. UserId: {}, Status: {}",
+                    entity.getUserId(),
+                    entity.getStatus());
+
             response.setSuccess(true);
-            
             response.setMessage(
                     existingOpt.isPresent()
                             ? "Activity added to existing attendance"
@@ -213,9 +242,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         } catch (Exception e) {
 
-            response.setSuccess(false);  
+            log.error("Attendance save failed. UserId: {}, ClinicId: {}, Date: {}, Error: {}",
+                    dto.getUserId(),
+                    dto.getClinicId(),
+                    dto.getDate(),
+                    e.getMessage(),
+                    e);
+
+            response.setSuccess(false);
             response.setMessage(e.getMessage());
-            response.setStatus(200);     
+            response.setStatus(200);
         }
 
         return response;
@@ -224,12 +260,18 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Secured("ROLE_CLINICADMIN")
     public Response updateActivity(AttendanceDTO dto) {
 
+        log.info("Update attendance request received. UserId: {}, Date: {}",
+                dto.getUserId(), dto.getDate());
+
         Response response = new Response();
 
         try {
 
-            // 🔥 VALIDATION UPDATED
+            // Validation
             if (dto.getUserId() == null || dto.getDate() == null) {
+
+                log.warn("Attendance update failed. UserId or Date is missing.");
+
                 throw new RuntimeException("userId and date are required");
             }
 
@@ -239,24 +281,28 @@ public class AttendanceServiceImpl implements AttendanceService {
             Attendance entity;
 
             if (optional.isPresent()) {
+
                 entity = optional.get();
+
+                log.info("Attendance found for UserId: {}", dto.getUserId());
+
             } else {
+
+                log.warn("Attendance not found for UserId: {}, Date: {}",
+                        dto.getUserId(), dto.getDate());
+
                 throw new RuntimeException("Attendance not found for update");
             }
-            boolean updated = false;
-            
-//            if (dto.getDescription() != null
-//                    && !dto.getDescription().isBlank()) {
-//
-//                entity.setDescription(dto.getDescription());
-                updated = true;
-//            }
 
-         // ✅ LOGIN UPDATE
+            boolean updated = false;
+
+            // LOGIN UPDATE
             if (dto.getLoginTime() != null
                     || dto.getLoginLocation() != null
                     || dto.getLoginLatitude() != null
                     || dto.getLoginLongitude() != null) {
+
+                log.info("Updating login details for UserId: {}", dto.getUserId());
 
                 if (entity.getLogin() == null) {
                     entity.setLogin(new TimeLocation());
@@ -266,24 +312,20 @@ public class AttendanceServiceImpl implements AttendanceService {
                     entity.getLogin().setTime(dto.getLoginTime());
                 }
 
-                // 🔥 SAVE LATITUDE
                 if (dto.getLoginLatitude() != null) {
                     entity.getLogin().setLatitude(dto.getLoginLatitude());
                 }
 
-                // 🔥 SAVE LONGTITUDE
                 if (dto.getLoginLongitude() != null) {
                     entity.getLogin().setLongitude(dto.getLoginLongitude());
                 }
 
-                // 🔥 AUTO LOCATION FROM LAT LONG
                 if (dto.getLoginLatitude() != null
                         && dto.getLoginLongitude() != null) {
 
                     String location = getCityFromLatLong(
                             dto.getLoginLatitude(),
-                            dto.getLoginLongitude()
-                    );
+                            dto.getLoginLongitude());
 
                     entity.getLogin().setLocation(location);
 
@@ -294,12 +336,17 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 entity.setStatus("LOGGED_IN");
                 updated = true;
+
+                log.debug("Login details updated successfully.");
             }
-         // ✅ LOGOUT UPDATE
+
+            // LOGOUT UPDATE
             if (dto.getLogoutTime() != null
                     || dto.getLogoutLocation() != null
                     || dto.getLogoutLatitude() != null
                     || dto.getLogoutLongitude() != null) {
+
+                log.info("Updating logout details for UserId: {}", dto.getUserId());
 
                 if (entity.getLogout() == null) {
                     entity.setLogout(new TimeLocation());
@@ -309,24 +356,20 @@ public class AttendanceServiceImpl implements AttendanceService {
                     entity.getLogout().setTime(dto.getLogoutTime());
                 }
 
-                // 🔥 SAVE LATITUDE
                 if (dto.getLogoutLatitude() != null) {
                     entity.getLogout().setLatitude(dto.getLogoutLatitude());
                 }
 
-                // 🔥 SAVE LONGTITUDE
                 if (dto.getLogoutLongitude() != null) {
                     entity.getLogout().setLongitude(dto.getLogoutLongitude());
                 }
 
-                // 🔥 AUTO LOCATION FROM LAT LONG
                 if (dto.getLogoutLatitude() != null
                         && dto.getLogoutLongitude() != null) {
 
                     String location = getCityFromLatLong(
                             dto.getLogoutLatitude(),
-                            dto.getLogoutLongitude()
-                    );
+                            dto.getLogoutLongitude());
 
                     entity.getLogout().setLocation(location);
 
@@ -337,16 +380,23 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 entity.setStatus("LOGGED_OUT");
                 updated = true;
+
+                log.debug("Logout details updated successfully.");
             }
 
-            // 🔥 ACTIVITY UPDATE (UNCHANGED LOGIC)
+            // ACTIVITY UPDATE
             if (dto.getActivities() != null && !dto.getActivities().isEmpty()) {
+
+                log.info("Updating activities for UserId: {}", dto.getUserId());
 
                 if (entity.getActivities() != null && !entity.getActivities().isEmpty()) {
 
                     for (ActivityDTO incoming : dto.getActivities()) {
 
                         if (incoming.getActivityId() == null) {
+
+                            log.warn("Activity update failed. ActivityId is missing.");
+
                             throw new RuntimeException("activityId is required");
                         }
 
@@ -354,19 +404,25 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                             if (existing.getActivityId().equals(incoming.getActivityId())) {
 
+                                log.debug("Updating ActivityId: {}", incoming.getActivityId());
+
                                 if (incoming.getActivity() != null)
                                     existing.setActivity(incoming.getActivity());
 
                                 if (incoming.getDuration() != null)
                                     existing.setDuration(incoming.getDuration());
+
                                 if (incoming.getDescription() != null)
                                     existing.setDescription(incoming.getDescription());
+
                                 if (incoming.getLocation() != null)
                                     existing.setLocation(incoming.getLocation());
 
                                 updated = true;
 
-                                // 🔥 ORIGINAL CALCULATION (UNCHANGED)
+                                log.info("Activity updated successfully. ActivityId: {}",
+                                        incoming.getActivityId());
+
                                 if (entity.getLogin() != null && entity.getLogout() != null) {
 
                                     int loginMin = parseTimeToMinutes(entity.getLogin().getTime());
@@ -395,11 +451,12 @@ public class AttendanceServiceImpl implements AttendanceService {
                             }
                         }
 
-                        if (updated) break;
+                        if (updated) {
+                            break;
+                        }
                     }
                 }
 
-                // 🔥 EXISTING BLOCK (UNCHANGED)
                 if (entity.getLogin() != null && entity.getLogout() != null) {
 
                     int loginMin = parseTimeToMinutes(entity.getLogin().getTime());
@@ -427,7 +484,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 }
             }
 
-            // 🔥 FINAL CALCULATION (UNCHANGED)
+            // FINAL CALCULATION
             if (entity.getLogin() != null && entity.getLogout() != null) {
 
                 int loginMin = parseTimeToMinutes(entity.getLogin().getTime());
@@ -455,8 +512,17 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
 
             if (updated) {
+
+                log.info("Saving updated attendance for UserId: {}", entity.getUserId());
+
                 repo.save(entity);
+
+                log.info("Attendance updated successfully for UserId: {}", entity.getUserId());
+
             } else {
+
+                log.warn("No matching update found for UserId: {}", dto.getUserId());
+
                 throw new RuntimeException("No matching update found");
             }
 
@@ -465,6 +531,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setStatus(200);
 
         } catch (Exception e) {
+
+            log.error("Failed to update attendance. UserId: {}, Date: {}, Error: {}",
+                    dto.getUserId(),
+                    dto.getDate(),
+                    e.getMessage(),
+                    e);
 
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -477,17 +549,20 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Secured("ROLE_CLINICADMIN")
     public Response getDaily(String userId, String date) {
 
+        log.info("Fetching daily attendance. UserId: {}, Date: {}", userId, date);
+
         Response response = new Response();
 
         try {
 
-            // ✅ FIND ATTENDANCE FOR PASSED DATE
+            // Find attendance for passed date
             Optional<Attendance> optional =
                     repo.findByUserIdAndDate(userId, date);
 
-            //  IF NO RECORD FOUND
-            // RETURN EMPTY RESPONSE
+            // No attendance found
             if (!optional.isPresent()) {
+
+                log.warn("No attendance found for UserId: {}, Date: {}", userId, date);
 
                 DailyAttendanceResponseDTO emptyDto =
                         new DailyAttendanceResponseDTO();
@@ -507,27 +582,27 @@ public class AttendanceServiceImpl implements AttendanceService {
                 return response;
             }
 
-            Attendance entity = repo.findByUserIdAndDate(userId, date)
-                    .orElseThrow(() -> new RuntimeException("No data found"));
+            log.info("Attendance record found for UserId: {}, Date: {}", userId, date);
+
+            Attendance entity = optional.get();
 
             DailyAttendanceResponseDTO dto = new DailyAttendanceResponseDTO();
 
             dto.setDate(entity.getDate());
             dto.setLogTime(entity.getLogTime());
             dto.setStatus(entity.getStatus());
-//            dto.setDescription(entity.getDescription());
-            // 🔹 LOGIN
+
+            // LOGIN
             if (entity.getLogin() != null) {
+
+                log.debug("Mapping login details.");
 
                 TimeLocationDTO login = new TimeLocationDTO();
 
                 login.setTime(entity.getLogin().getTime());
-
-                // 🔥 LAT LONG
                 login.setLatitude(entity.getLogin().getLatitude());
                 login.setLongitude(entity.getLogin().getLongitude());
 
-                // 🔥 AUTO LOCATION FROM LAT LONG
                 if (entity.getLogin().getLatitude() != null
                         && entity.getLogin().getLongitude() != null) {
 
@@ -546,18 +621,17 @@ public class AttendanceServiceImpl implements AttendanceService {
                 dto.setLogin(login);
             }
 
-            // 🔹 LOGOUT
+            // LOGOUT
             if (entity.getLogout() != null) {
+
+                log.debug("Mapping logout details.");
 
                 TimeLocationDTO logout = new TimeLocationDTO();
 
                 logout.setTime(entity.getLogout().getTime());
-
-                // 🔥 LAT LONG
                 logout.setLatitude(entity.getLogout().getLatitude());
                 logout.setLongitude(entity.getLogout().getLongitude());
 
-                // 🔥 AUTO LOCATION FROM LAT LONG
                 if (entity.getLogout().getLatitude() != null
                         && entity.getLogout().getLongitude() != null) {
 
@@ -576,8 +650,10 @@ public class AttendanceServiceImpl implements AttendanceService {
                 dto.setLogout(logout);
             }
 
-            // 🔹 ACTIVITIES
+            // ACTIVITIES
             if (entity.getActivities() != null) {
+
+                log.debug("Mapping {} activities.", entity.getActivities().size());
 
                 List<ActivityDTO> activities = entity.getActivities()
                         .stream()
@@ -589,12 +665,9 @@ public class AttendanceServiceImpl implements AttendanceService {
                             ad.setActivity(a.getActivity());
                             ad.setDuration(a.getDuration());
                             ad.setDescription(a.getDescription());
-
-                            // 🔥 LAT LONG
                             ad.setLatitude(a.getLatitude());
-                           ad.setLongitude(a.getLongitude());
+                            ad.setLongitude(a.getLongitude());
 
-                            // 🔥 AUTO LOCATION FROM LAT LONG
                             if (a.getLatitude() != null
                                     && a.getLongitude() != null) {
 
@@ -617,12 +690,20 @@ public class AttendanceServiceImpl implements AttendanceService {
                 dto.setActivities(activities);
             }
 
+            log.info("Daily attendance fetched successfully for UserId: {}", userId);
+
             response.setSuccess(true);
             response.setMessage("Daily report fetched successfully");
             response.setData(dto);
             response.setStatus(200);
 
         } catch (Exception e) {
+
+            log.error("Failed to fetch daily attendance. UserId: {}, Date: {}, Error: {}",
+                    userId,
+                    date,
+                    e.getMessage(),
+                    e);
 
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -631,7 +712,6 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return response;
     }
-
     @Override
     @Secured("ROLE_CLINICADMIN")
     public Response getMonthlyReport(String userId, String month) {

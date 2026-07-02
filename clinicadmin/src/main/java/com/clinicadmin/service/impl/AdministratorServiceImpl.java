@@ -28,8 +28,13 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 
 @Service
+@Slf4j
 public class AdministratorServiceImpl implements AdministratorService {
 	
 
@@ -133,33 +138,63 @@ public class AdministratorServiceImpl implements AdministratorService {
     @Override
     @Secured("ROLE_CLINICADMIN")
     public Response getAllAdministratorsByClinic(String clinicId) {
-    	log.info("Fetching administrators | clinicId={}", clinicId);
-    	Response response = new Response();
 
-        if (clinicId == null || clinicId.isBlank()) {
-        	log.warn("Invalid clinicId provided");
-            response.setSuccess(false);
-            response.setMessage("Clinic ID must not be empty");
-            response.setStatus(HttpStatus.BAD_REQUEST.value());
-            return response;
-        }
+        log.info("Fetching administrators by clinic. ClinicId: {}", clinicId);
 
-        List<Administrator> admins = administratorRepository.findByClinicId(clinicId);
-        if (admins.isEmpty()) {
-        	log.info("No administrators found | clinicId={}", clinicId);
+        Response response = new Response();
+
+        try {
+
+            if (clinicId == null || clinicId.isBlank()) {
+
+                log.warn("Invalid clinicId received.");
+
+                response.setSuccess(false);
+                response.setMessage("Clinic ID must not be empty");
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+
+                return response;
+            }
+
+            List<Administrator> admins = administratorRepository.findByClinicId(clinicId);
+
+            if (admins.isEmpty()) {
+
+                log.info("No administrators found for ClinicId: {}", clinicId);
+
+                response.setSuccess(true);
+                response.setData(List.of());
+                response.setMessage("No administrators found");
+                response.setStatus(HttpStatus.OK.value());
+
+                return response;
+            }
+
+            log.info("Found {} administrator(s) for ClinicId: {}", admins.size(), clinicId);
+
+            List<AdministratorDTO> dtoList = admins.stream()
+                    .map(this::mapEntityToDto)
+                    .toList();
+
             response.setSuccess(true);
-            response.setData(List.of());
-            response.setMessage("No administrators found");
+            response.setData(dtoList);
+            response.setMessage("Administrators fetched successfully");
             response.setStatus(HttpStatus.OK.value());
-            return response;
+
+            log.info("Administrators fetched successfully for ClinicId: {}", clinicId);
+
+        } catch (Exception e) {
+
+            log.error("Failed to fetch administrators for ClinicId: {}. Error: {}",
+                    clinicId,
+                    e.getMessage(),
+                    e);
+
+            response.setSuccess(false);
+            response.setMessage("Failed to fetch administrators");
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
 
-        List<AdministratorDTO> dtoList = admins.stream().map(this::mapEntityToDto).toList();
-        response.setSuccess(true);
-        response.setData(dtoList);
-        response.setMessage("Administrators fetched successfully");
-        response.setStatus(HttpStatus.OK.value());
-        log.info("Administrators fetched | count={}", admins.size());
         return response;
     }
     @Override

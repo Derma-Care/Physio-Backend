@@ -14,4 +14,12 @@ import lombok.NoArgsConstructor;
 public class FollowOptionDTO {
 	private String id;
 	List<FollowUpOptionData> followOptions;
+	public Object getClinicId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	public Object getBranchId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

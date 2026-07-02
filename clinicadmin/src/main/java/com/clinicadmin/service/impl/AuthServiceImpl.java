@@ -30,8 +30,11 @@ import com.clinicadmin.service.AuthService;
 import com.clinicadmin.utils.ClinicRelatedInfo;
 import com.clinicadmin.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class AuthServiceImpl implements AuthService {	
 	
 	@Autowired

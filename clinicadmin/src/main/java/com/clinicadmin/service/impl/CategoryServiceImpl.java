@@ -11,7 +11,7 @@
 //import com.clinicadmin.dto.CategoryDto;
 //import com.clinicadmin.dto.Response;
 //import com.clinicadmin.dto.ResponseStructure;
-//import com.clinicadmin.feignclient.ServiceFeignClient;
+//import com.clinicadmin.feignclient.ServiceFeignClient;g
 //import com.clinicadmin.service.CategoryService;
 //
 //import feign.FeignException;
