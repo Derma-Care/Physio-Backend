@@ -27,8 +27,16 @@ public class TherapistAssignmentServiceImpl
 
         try {
 
-            TherapistAssignment assignment =
-                    new TherapistAssignment();
+        	Optional<TherapistAssignment> existingAssignment =
+        	        repository.findByTherapistRecordId(
+        	                dto.getTherapistRecordId());
+
+        	TherapistAssignment assignment =
+        	        existingAssignment.orElse(
+        	                new TherapistAssignment());
+        	if (assignment == null) {
+        	    assignment = new TherapistAssignment();
+        	}
 
             assignment.setClinicId(
                     dto.getClinicId());
