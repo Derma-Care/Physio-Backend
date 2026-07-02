@@ -27,7 +27,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "incidentService", fallbackMethod = "createIncidentFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "createIncidentFallback")
 	public Response createIncident(IncidentDTO dto) {
 		Response response = new Response();
 		if (dto.getTitle() == null || dto.getTitle().isEmpty()) {
@@ -53,7 +53,7 @@ public class IncidentServiceImpl implements IncidentService {
 	}
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "incidentService", fallbackMethod = "getAllIncidentsFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllIncidentsFallback")
 	public Response getAllIncidents() {
 	    Response response = new Response();
 	    try {
@@ -87,7 +87,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "incidentService", fallbackMethod = "updateIncidentStatuFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateIncidentStatuFallback")
 	public Response UpdateIncidentStatu(String id, String status) {
 		Response response = new Response();
 		try {
@@ -129,7 +129,7 @@ public class IncidentServiceImpl implements IncidentService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "incidentService", fallbackMethod = "deleteIncidentFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteIncidentFallback")
 	public Response deleteIncident(String id) {
 		Response response = new Response();
 		try {

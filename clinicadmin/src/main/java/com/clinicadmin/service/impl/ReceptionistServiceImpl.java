@@ -28,10 +28,10 @@ import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.ReceptionistEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
-import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.ReceptionistRepository;
 import com.clinicadmin.service.ReceptionistService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.clinicadmin.utils.ReceptionistMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -55,7 +55,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	AdminServiceClient adminServiceClient;
 	
 	@Autowired
-	private BookingFeign bookingFeign;
+	private FeignImpl bookingFeign;
 
 	@Autowired
 	ObjectMapper objectMapper;
@@ -66,7 +66,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "createReceptionistFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "createReceptionistFallback")
 	public ResponseStructure<ReceptionistRequestDTO> createReceptionist(ReceptionistRequestDTO dto) {
 		log.info("Create Receptionist request | contactNumber={}, branchId={}",
 				dto.getContactNumber(), dto.getBranchId());
@@ -117,7 +117,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistByIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistByIdFallback")
 	public ResponseStructure<ReceptionistRequestDTO> getReceptionistById(String id) {
 		log.info("Fetching Receptionist by id={}", id);
 
@@ -136,7 +136,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "getAllReceptionistsFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllReceptionistsFallback")
 	public ResponseStructure<List<ReceptionistRequestDTO>> getAllReceptionists() {
 		log.info("Fetching all Receptionists");
 
@@ -153,7 +153,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "updateReceptionistFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateReceptionistFallback")
 	public ResponseStructure<ReceptionistRequestDTO> updateReceptionist(String id, ReceptionistRequestDTO dto) {
 		log.info("Update Receptionist request | receptionistId={}", id);
 
@@ -261,7 +261,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "deleteReceptionistFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteReceptionistFallback")
 	public ResponseStructure<String> deleteReceptionist(String id) {
 		log.info("Delete Receptionist request | receptionistId={}", id);
 
@@ -310,66 +310,6 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	}
 
 
-//    @Override
-//    public OnBoardResponse login(String userName, String password) {
-//        Optional<ReceptionistEntity> optional = repository.findByUserName(userName);
-//
-//        if (optional.isEmpty() || !optional.get().getPassword().equals(password)) {
-//            return new OnBoardResponse(
-//                    "Invalid username or password",
-//                    HttpStatus.UNAUTHORIZED,
-//                    HttpStatus.UNAUTHORIZED.value(),
-//                    null,
-//                    null
-//            );
-//        }
-//
-//        ReceptionistEntity user = optional.get();
-//
-//        // ✅ Wrap permissions inside the role
-//        Map<String, Map<String, List<String>>> wrappedPermissions = Map.of(
-//            user.getRole(), user.getPermissions()
-//        );
-//
-//        return new OnBoardResponse(
-//                "Login successful",
-//                HttpStatus.OK,
-//                HttpStatus.OK.value(),
-//                user.getRole(),
-//                wrappedPermissions
-//        );
-//    }
-
-//    @Override
-//    public ResponseStructure<String> resetPassword(String contactNumber, ReceptionistRestPassword request) {
-//        ReceptionistEntity entity = repository.findByContactNumber(contactNumber)
-//                .orElseThrow(() -> new RuntimeException("Receptionist not found with contact number: " + contactNumber));
-//
-//        ResponseStructure<String> response = new ResponseStructure<>();
-//
-//        if (!entity.getPassword().equals(request.getCurrentpassword())) {
-//            response.setData(null);
-//            response.setMessage("Current password is incorrect");
-//            response.setHttpStatus(HttpStatus.BAD_REQUEST);
-//            return response;
-//        }
-//
-//        if (!request.getNewPassword().equals(request.getConformPassword())) {
-//            response.setData(null);
-//            response.setMessage("New password and Confirm password do not match");
-//            response.setHttpStatus(HttpStatus.BAD_REQUEST);
-//            return response;
-//        }
-//
-//        entity.setPassword(request.getNewPassword());
-//        repository.save(entity);
-//
-//        response.setData("Password updated successfully");
-//        response.setMessage("Success");
-//        response.setHttpStatus(HttpStatus.OK);
-//        return response;
-//    }
-
 	// ----------------- Helper methods -------------------
 	private String generateReceptionistId() {
 		return "REC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -387,7 +327,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistsByClinicFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistsByClinicFallback")
 	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinic(String clinicId) {
 		log.info("Fetching Receptionists by clinicId={}", clinicId);
 
@@ -401,7 +341,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	}
 
 	@Override
-	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistByClinicAndIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistByClinicAndIdFallback")
 	public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndId(String clinicId,
 			String receptionistId) {
 		log.info("Fetching Receptionist | clinicId={}, receptionistId={}",
@@ -425,7 +365,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistsByClinicAndBranchFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistsByClinicAndBranchFallback")
 	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranch(String clinicId, String branchId) {
 		log.info("Fetching Receptionists | clinicId={}, branchId={}", clinicId, branchId);
 
@@ -536,7 +476,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "receptionistService", fallbackMethod = "updateReceptionistDashboardFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateReceptionistDashboardFallback")
 	public Response updateReceptionistDashboard(
 	        String clinicId,
 	        String branchId,

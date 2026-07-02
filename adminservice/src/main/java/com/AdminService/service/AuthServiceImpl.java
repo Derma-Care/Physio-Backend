@@ -37,10 +37,7 @@ public class AuthServiceImpl implements AuthService {
 	@Autowired
 	private JwtUtil jwtUtil;
 	
-    @Autowired	
-	private BranchCredentialsRepository branchCredentialsRepository;
-		
-	@Autowired
+    @Autowired
 	private ClinicCredentialsRepository clinicCredentialsRepository;
 	
 	private String refreshToken;

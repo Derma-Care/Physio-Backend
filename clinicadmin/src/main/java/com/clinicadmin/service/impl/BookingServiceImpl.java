@@ -15,10 +15,9 @@ import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TheraphyAnswersDTO;
 import com.clinicadmin.entity.QuestionsByPartEntity;
 import com.clinicadmin.entity.QuestionsEntity;
-import com.clinicadmin.feignclient.BookingFeign;
-import com.clinicadmin.feignclient.CustomerServiceFeignClient;
 import com.clinicadmin.service.BookingService;
 import com.clinicadmin.utils.ExtractFeignMessage;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
@@ -29,7 +28,7 @@ public class BookingServiceImpl implements BookingService {
 	
 	
 	@Autowired
-	private BookingFeign bookingFeign;
+	private FeignImpl bookingFeign;
 
 	@Autowired	
 	private DoctorServiceImpl doctorServiceImpl;
@@ -38,14 +37,14 @@ public class BookingServiceImpl implements BookingService {
 	private KeyCloakTokenStore keyCloakTokenStore;
 	
 	@Autowired
-	private CustomerServiceFeignClient customerServiceFeignClient;
+	private FeignImpl customerServiceFeignClient;
 	
 	@Autowired
 	private SimpMessagingTemplate messagingTemplate;
 
 	@Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> deleteBookedService(String id) {
 		Response response = new Response();
 		try {
@@ -62,7 +61,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getAllBookedServicesDetailsByBranchId(String branchId,int page) {
 		Response response = new Response();
 		try {
@@ -80,7 +79,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getBookingsByClinicIdWithBranchId(String clinicId,
 			String branchId,int page) {
 
@@ -96,7 +95,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
    @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId,int page) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -109,7 +108,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(String clinicId, String branchId, String date) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -123,7 +122,7 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse response) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -149,7 +148,7 @@ public class BookingServiceImpl implements BookingService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId,int page) {
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
@@ -165,7 +164,7 @@ public class BookingServiceImpl implements BookingService {
 		// BOOKING MANAGEMENT
 		@Override
 		 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 		public Response bookService(BookingResponse req) throws JsonProcessingException {
 			Response response = new Response();
 			try {
@@ -205,41 +204,41 @@ public class BookingServiceImpl implements BookingService {
 		}
 	
 
-@Override
-@Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
-public ResponseEntity<?> getInprogressBookingsByPatientId(String patientId) {
-    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-    try {
-        return bookingFeign.getInprogressAppointmentsByPatientId(keyCloakTokenStore.getAccess_token(),patientId);
-    } catch (FeignException e) {
-        res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR, e.status());
-        return ResponseEntity.status(res.getStatusCode()).body(res);
-    }
-}
+//@Override
+//@Secured("ROLE_CLINICADMIN")
+//    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+//public ResponseEntity<?> getInprogressBookingsByPatientId(String patientId) {
+//    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+//    try {
+//        return bookingFeign.getInprogressAppointmentsByPatientId(keyCloakTokenStore.getAccess_token(),patientId);
+//    } catch (FeignException e) {
+//        res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR, e.status());
+//        return ResponseEntity.status(res.getStatusCode()).body(res);
+//    }
+//}
+//
+//@Override
+//@Secured("ROLE_CLINICADMIN")
+//    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+//public ResponseEntity<?> getInprogressBookingsByPatientIdAndClinicId(String patientId, String clinicId) {
+//    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+//    try {
+//        return bookingFeign.getInprogressAppointmentsByPatientIdAndClinicId(keyCloakTokenStore.getAccess_token(),patientId, clinicId);
+//    } catch (FeignException e) {
+//        res = new ResponseStructure<>(
+//                null,
+//                ExtractFeignMessage.clearMessage(e),
+//                HttpStatus.INTERNAL_SERVER_ERROR,
+//                e.status()
+//        );
+//        return ResponseEntity.status(res.getStatusCode()).body(res);
+//    }
+//}
+
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
-public ResponseEntity<?> getInprogressBookingsByPatientIdAndClinicId(String patientId, String clinicId) {
-    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-    try {
-        return bookingFeign.getInprogressAppointmentsByPatientIdAndClinicId(keyCloakTokenStore.getAccess_token(),patientId, clinicId);
-    } catch (FeignException e) {
-        res = new ResponseStructure<>(
-                null,
-                ExtractFeignMessage.clearMessage(e),
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                e.status()
-        );
-        return ResponseEntity.status(res.getStatusCode()).body(res);
-    }
-}
-
-
-@Override
-@Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getReprts(String clinicId,
 		String branchId,
 		Integer number,
@@ -262,7 +261,7 @@ public ResponseEntity<?> getReprts(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
 		String branchId) {
 	Response response = new Response();
@@ -278,7 +277,7 @@ public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 		String bookingId) {
 	Response response = new Response();
@@ -295,7 +294,7 @@ public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getReportsByPatientId(String patientId) {
 	Response response = new Response();
     try {
@@ -310,7 +309,7 @@ public ResponseEntity<?> getReportsByPatientId(String patientId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getUpcomingBookings(String clinicId,
 		String branchId,int option) {
 	Response response = new Response();
@@ -326,7 +325,7 @@ public ResponseEntity<?> getUpcomingBookings(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookingsByDate(String clinicId,
 		String branchId, String date) {
 	Response response = new Response();
@@ -343,7 +342,7 @@ public ResponseEntity<?> getBookingsByDate(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 		String branchId,String start, String end) {
 	Response response = new Response();
@@ -360,7 +359,7 @@ public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookedServiceById(String bookingId) {
 	Response response = new Response();
     try {
@@ -376,7 +375,7 @@ public ResponseEntity<?> getBookedServiceById(String bookingId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getBookingById(String bookingId){
 	Response response = new Response();
     try {
@@ -392,7 +391,7 @@ public ResponseEntity<?> getBookingById(String bookingId){
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId,int page){
 	Response response = new Response();
     try {
@@ -407,7 +406,7 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public ResponseEntity<?> physioAppointment(BookingRequset req) {
     ResponseEntity<Response> res = null;
     //System.out.println(keyCloakTokenStore.access_token);

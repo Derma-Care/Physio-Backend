@@ -35,7 +35,6 @@ import com.clinicadmin.entity.Therapist;
 import com.clinicadmin.entity.TherapistAttendance;
 import com.clinicadmin.entity.TherapistRecord;
 import com.clinicadmin.feignclient.AdminServiceClient;
-import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
@@ -44,6 +43,7 @@ import com.clinicadmin.repository.TherapistRepository;
 import com.clinicadmin.service.EmailService;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -73,7 +73,7 @@ public class TherapistServiceImpl implements TherapistService {
 	private EmailService emailService;
 	
 	@Autowired
-	private PhysiotherapyFeignClient physiotherapyFeignClient;
+	private FeignImpl physiotherapyFeignClient;
 	
 	@Autowired
 	private  FeedbackDetailsRepository feedbackDetailsRepository;
@@ -92,7 +92,7 @@ public class TherapistServiceImpl implements TherapistService {
 	
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "therapistOnboardingFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "therapistOnboardingFallback")
     public Response therapistOnboarding(TherapistDTO dto) {
 
         log.info("Therapist onboarding started for contact number: {}", dto.getContactNumber());
@@ -216,52 +216,11 @@ public class TherapistServiceImpl implements TherapistService {
         return response;
     
     }  
-    
-    // ================= LOGIN =================
-//    @Override
-//    public ResponseStructure<TherapistLoginResponseDTO> login(TherapistLoginDTO dto) {
-//
-//        Therapist user = repository.findByUserName(dto.getUserName())
-//                .orElseThrow(() -> new RuntimeException("Invalid username"));
-//
-//        //  password check
-//        if (!dto.getPassword().equals(user.getPassword())) {
-//            return ResponseStructure.buildResponse(
-//                    null,
-//                    "Invalid password",
-//                    HttpStatus.UNAUTHORIZED,
-//                    401);
-//        }
-//
-//        //  physioType check
-//        if (dto.getGetPhysioType() != null && 
-//            !dto.getGetPhysioType().equalsIgnoreCase(user.getPhysioType())) {
-//
-//            return ResponseStructure.buildResponse(
-//                    null,
-//                    "Invalid physio type",
-//                    HttpStatus.UNAUTHORIZED,
-//                    401);
-//        }
-//
-//        //  build response DTO
-//        TherapistLoginResponseDTO responseDTO = new TherapistLoginResponseDTO();
-//        responseDTO.setTherapistId(user.getTherapistId());
-//        responseDTO.setClinicId(user.getClinicId());
-//        responseDTO.setBranchId(user.getBranchId());
-//        responseDTO.setTherapistName(user.getFullName());
-//        responseDTO.setPhysioType(user.getPhysioType());
-//
-//        return ResponseStructure.buildResponse(
-//                responseDTO,
-//                "Login Success",
-//                HttpStatus.OK,
-//                200);
-//    }
+ 
     // ================= GET BY THERAPIST ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "getBytherapistIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBytherapistIdFallback")
     public ResponseStructure<TherapistDTO> getBytherapistId(String therapistId) {
 
         Therapist entity = repository.findByTherapistId(therapistId)
@@ -277,7 +236,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= GET BY CLINICID BRANCHID AND THERPISTID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "getByClinicIdBranchIdAndTherapistIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdBranchIdAndTherapistIdFallback")
     public ResponseStructure<List<TherapistDTO>> getByClinicIdBranchIdAndTherapistId(
             String clinicId,
             String branchId,
@@ -337,7 +296,7 @@ public class TherapistServiceImpl implements TherapistService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "getTherapistDataFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapistDataFallback")
     public Response getTherapistData(String clinicId, String branchId) {
 
         List<Therapist> list =
@@ -373,7 +332,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= UPDATE BY THERAPISTID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "updateBytherapistIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateBytherapistIdFallback")
     public ResponseStructure<TherapistDTO> updateBytherapistId(
             String therapistId,
             TherapistDTO dto) {
@@ -488,7 +447,7 @@ public class TherapistServiceImpl implements TherapistService {
     // ================= DELETEBY THERPIST ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "deleteBytherapistIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteBytherapistIdFallback")
     public ResponseStructure<String> deleteBytherapistId(String therapistId) {
 
         repository.findByTherapistId(therapistId)
@@ -661,7 +620,7 @@ public class TherapistServiceImpl implements TherapistService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "getPaidSessionsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPaidSessionsFallback")
     public Response getPaidSessions(String clinicId,
                                     String branchId,
                                     String bookingId,
@@ -931,7 +890,7 @@ public class TherapistServiceImpl implements TherapistService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistService", fallbackMethod = "getTherapistPerformanceSummaryFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapistPerformanceSummaryFallback")
     public Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year) {
 
         Response response = new Response();
@@ -1600,7 +1559,7 @@ public class TherapistServiceImpl implements TherapistService {
 
     
     @Override
-    @RateLimiter(name = "therapistService", fallbackMethod = "updateTherapistPresenceFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateTherapistPresenceFallback")
     public Response updateTherapistPresence(
             String therapistId,
             TherapistPresenceRequest request) {

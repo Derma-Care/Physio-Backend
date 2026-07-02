@@ -30,6 +30,6 @@ public interface PhysiotherapyDoctorDetails {
 		public ResponseEntity<?> getDoctorFutureAppointments(String doctorId, int page);
 
 		public ResponseEntity<Response> getDiseasesFromClinicAdmin(String hospitalId);
-		public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId);
+		//public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId);
 
 }

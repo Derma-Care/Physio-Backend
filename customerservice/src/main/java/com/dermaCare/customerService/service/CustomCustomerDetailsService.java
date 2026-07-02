@@ -9,7 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import com.dermaCare.customerService.dto.CustomerLoginDTO;
-import com.dermaCare.customerService.feignClient.ClinicAdminFeign;
+import com.dermaCare.customerService.util.FeignImpl;
 import com.dermaCare.customerService.util.Response;
 import com.dermaCare.customerService.util.RolesStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class CustomCustomerDetailsService implements UserDetailsService{
 	
 	@Autowired
-	public ClinicAdminFeign clinicAdminFeign;
+	public FeignImpl clinicAdminFeign;
 	
 	@Autowired
 	@Lazy

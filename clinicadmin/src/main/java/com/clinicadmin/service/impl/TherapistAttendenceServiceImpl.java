@@ -43,7 +43,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "addManualSessionFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "addManualSessionFallback")
     public Response addManualSession(String therapistId, Map<String, String> body) {
 
         Response response = new Response();
@@ -98,7 +98,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "getDailyReportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDailyReportFallback")
     public Response getDailyReport(String therapistId, String date) {
 
         Response response = new Response();
@@ -206,7 +206,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "updateAttendanceFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateAttendanceFallback")
     public Response updateAttendance(String therapistId,
                                      Map<String, String> body) {
 
@@ -399,7 +399,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistAttendanceService", fallbackMethod = "getMonthlyReportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getMonthlyReportFallback")
     public Response getMonthlyReport(String therapistId, String month) {
 
         Response response = new Response();
@@ -562,7 +562,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "therapistAttendanceService", fallbackMethod = "deleteSessionFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteSessionFallback")
     public Response deleteSession(String therapistId, String date, String sessionId) {
 
 	    Response response = new Response();
@@ -643,7 +643,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "therapistAttendanceService", fallbackMethod = "getReportByClinicBranchFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportByClinicBranchFallback")
     public Response getReportByClinicBranch(
 	        String clinicId,
 	        String branchId,

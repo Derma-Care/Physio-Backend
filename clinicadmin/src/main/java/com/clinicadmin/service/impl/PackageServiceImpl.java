@@ -30,7 +30,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= CREATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "createPackageFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createPackageFallback")
     public ResponseStructure<PackageDTO> createPackage(PackageDTO dto) {
 
         log.info("Creating package for clinicId: {}, branchId: {}", dto.getClinicId(), dto.getBranchId());
@@ -56,7 +56,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET BY ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "getPackageByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPackageByIdFallback")
     public ResponseStructure<PackageDTO> getPackageById(String id) {
 
         log.info("Fetching package id: {}", id);
@@ -74,7 +74,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET ALL =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "getAllPackagesFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllPackagesFallback")
     public ResponseStructure<List<PackageDTO>> getAllPackages() {
 
         log.info("Fetching all packages");
@@ -95,7 +95,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET BY CLINIC & BRANCH =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "getByClinicAndBranchFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicAndBranchFallback")
     public ResponseStructure<List<PackageDTO>> getByClinicAndBranch(String clinicId, String branchId) {
 
         log.info("Fetching packages for clinicId: {}, branchId: {}", clinicId, branchId);
@@ -116,7 +116,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= GET BY CLINIC + BRANCH + PACKAGE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
     public ResponseStructure<PackageDTO> getByClinicBranchAndPackageId(
             String clinicId, String branchId, String packageId) {
 
@@ -142,7 +142,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= UPDATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "updatepackagebyidFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatepackagebyidFallback")
     public ResponseStructure<PackageDTO> updatepackagebyid(String id, PackageDTO dto) {
 
         log.info("Updating package id: {}", id);
@@ -220,7 +220,7 @@ public class PackageServiceImpl implements PackageService {
     // ================= DELETE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageService", fallbackMethod = "deletepackagebyidFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deletepackagebyidFallback")
     public ResponseStructure<String> deletepackagebyid(String id) {
 
         log.info("Deleting package id: {}", id);

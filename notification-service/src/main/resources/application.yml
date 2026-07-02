@@ -83,3 +83,11 @@ logging:
   level:
     org.springframework.web: INFO
     com.dermacare.notification_service: DEBUG
+
+resilience4j:
+      ratelimiter:
+           instances:
+            notificationService:
+             limit-for-period: 50
+             limit-refresh-period: 1m
+             timeout-duration: 1s

@@ -20,10 +20,10 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Administrator;
 import com.clinicadmin.entity.DoctorLoginCredentials;
-import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AdministratorRepository;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.service.AdministratorService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 
 @Service
-@RateLimiter(name = "clinicAdminApi", fallbackMethod = "rateLimitFallback")
+@RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 public class AdministratorServiceImpl implements AdministratorService {
 	
 
@@ -49,7 +49,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private AdminServiceClient adminServiceClient;
+    private FeignImpl adminServiceClient;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -85,8 +85,8 @@ public class AdministratorServiceImpl implements AdministratorService {
         }
         log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
         // Get branch name via Feign
-        ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
-        Branch branch = objectMapper.convertValue(res.getBody().getData(), Branch.class);
+        Response res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
+        Branch branch = objectMapper.convertValue(res.getData(), Branch.class);
 
         // Map DTO → Entity
         Administrator admin = mapDtoToEntity(dto);

@@ -24,7 +24,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Create
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "createFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
 @Secured("ROLE_DOCTOR")
 	public Response create(ListOfMedicinesDTO dto) {
 		ListOfMedicines saved = repository.save(convertToEntity(dto));
@@ -34,7 +34,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Update
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "updateFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
 @Secured("ROLE_DOCTOR")
 	public Response update(String id, ListOfMedicinesDTO dto) {
 		ListOfMedicines existing = repository.findById(id)
@@ -49,7 +49,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Delete
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "deleteFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
 @Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 		repository.deleteById(id);
@@ -58,7 +58,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Get by ID
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "getByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 		return repository.findById(id)
@@ -70,7 +70,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Get all
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "getAllFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getAll() {
 		List<ListOfMedicinesDTO> medicines = repository.findAll().stream().map(this::convertToDTO)
@@ -80,7 +80,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Get by clinic ID
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "getByClinicIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByClinicIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getByClinicId(String clinicId) {
 		List<ListOfMedicinesDTO> medicines = repository.findByClinicId(clinicId).stream().map(this::convertToDTO)
@@ -90,7 +90,7 @@ public class ListOfMedicinesServiceImpl implements ListOfMedicinesService {
 
 	// ✅ Add or search medicine (using only ListOfMedicinesDTO)
 	@Override
-	 @RateLimiter(name = "listOfMedicinesService", fallbackMethod = "addOrSearchMedicineFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "addOrSearchMedicineFallback")
 @Secured("ROLE_DOCTOR")
 	public Response addOrSearchMedicine(ListOfMedicinesDTO dto) {
 		String clinicId = dto.getClinicId();

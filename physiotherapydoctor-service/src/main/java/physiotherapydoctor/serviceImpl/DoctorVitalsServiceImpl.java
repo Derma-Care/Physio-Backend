@@ -9,6 +9,7 @@ import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.VitalsDTO;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.DoctorVitalsService;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 
@@ -16,7 +17,7 @@ import physiotherapydoctor.util.KeyCloakTokenStore;
 public class DoctorVitalsServiceImpl implements DoctorVitalsService {
 
 	@Autowired
-	private ClinicAdminFeign clinicAdminServiceClient;
+	private FeignImpl clinicAdminServiceClient;
 	
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
@@ -25,11 +26,11 @@ public class DoctorVitalsServiceImpl implements DoctorVitalsService {
 	 * Add Vitals for a booking
 	 */
 	@Override
-    @RateLimiter(name = "doctorVitalsService", fallbackMethod = "addVitalsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "addVitalsFallback")
     @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> addVitals(String bookingId, VitalsDTO dto) {
 		// Directly forward Clinic Admin response
-		return clinicAdminServiceClient.addVitals(keyCloakTokenStore.getAccess_token(),bookingId, dto);
+		return clinicAdminServiceClient.addVitals(bookingId, dto);
 
 	}
 
@@ -37,30 +38,30 @@ public class DoctorVitalsServiceImpl implements DoctorVitalsService {
 	 * Get Vitals by bookingId and patientId
 	 */
 	@Override
-    @RateLimiter(name = "doctorVitalsService", fallbackMethod = "getVitalsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVitalsFallback")
     @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getVitals(String bookingId, String patientId) {
-		return clinicAdminServiceClient.getVitals(keyCloakTokenStore.getAccess_token(),bookingId, patientId);
+		return clinicAdminServiceClient.getVitals(bookingId, patientId);
 	}
 
 	/**
 	 * Delete Vitals by bookingId and patientId
 	 */
 	@Override
-    @RateLimiter(name = "doctorVitalsService", fallbackMethod = "deleteVitalsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteVitalsFallback")
     @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> deleteVitals(String bookingId, String patientId) {
-		return clinicAdminServiceClient.delVitals(keyCloakTokenStore.getAccess_token(),bookingId, patientId);
+		return clinicAdminServiceClient.delVitals(bookingId, patientId);
 	}
 
 	/**
 	 * Update Vitals by bookingId and patientId
 	 */
 	@Override
-    @RateLimiter(name = "doctorVitalsService", fallbackMethod = "updateVitalsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateVitalsFallback")
     @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> updateVitals(String bookingId, String patientId, VitalsDTO dto) {
-		return clinicAdminServiceClient.updateVitals(keyCloakTokenStore.getAccess_token(),bookingId, patientId, dto);
+		return clinicAdminServiceClient.updateVitals(bookingId, patientId, dto);
 	}
 
     

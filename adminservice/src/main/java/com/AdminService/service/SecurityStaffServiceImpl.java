@@ -1,7 +1,7 @@
 package com.AdminService.service;
 
 import com.AdminService.dto.SecurityStaffDTO;
-import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.ClinicAdminFeignImpl;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.ResponseStructure;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import feign.FeignException;import lombok.RequiredArgsConstructor;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,7 +30,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	   @Autowired
 	  private KeyCloakTokenStore keyCloakTokenStore;
 	   
-    private final ClinicAdminFeign clinicAdminFeign;
+    private final ClinicAdminFeignImpl clinicAdminFeign;
 
 
     @Override

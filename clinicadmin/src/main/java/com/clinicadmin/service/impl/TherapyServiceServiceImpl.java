@@ -38,7 +38,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     //  CREATETHERAPY
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyService", fallbackMethod = "createTherapyFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createTherapyFallback")
     public Response createTherapy(TherapyServiceDTO dto) {
 
         TherapyService therapy = mapToEntity(dto);
@@ -55,7 +55,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyService", fallbackMethod = "getByClinicAndBranchFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicAndBranchFallback")
     public Response getByClinicAndBranch(String clinicId, String branchId) {
 
         List<TherapyService> list = repository.findByClinicIdAndBranchId(clinicId, branchId);
@@ -114,7 +114,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     //  GET BY id + clinicId + branchId
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyService", fallbackMethod = "getByIdClinicBranchFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdClinicBranchFallback")
     public Response getByIdClinicBranch(String id, String clinicId, String branchId) {
 
         Optional<TherapyService> optional =
@@ -138,7 +138,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }
     
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyService", fallbackMethod = "getByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdFallback")
     public TherapyServiceDTO getById(String id) {
 
         Optional<TherapyService> optional =
@@ -151,7 +151,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyService", fallbackMethod = "updateTherapyByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateTherapyByIdFallback")
     public Response updateTherapyById(String id, TherapyServiceDTO dto) {
 
         Response response = new Response();
@@ -206,7 +206,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
 
     // ✅ DELETE
     @Override
-    @RateLimiter(name = "therapyService", fallbackMethod = "deleteTherapyByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteTherapyByIdFallback")
     public Response deleteTherapyById(String id) {
 
         Optional<TherapyService> optional = repository.findById(id);
@@ -290,7 +290,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         }
     }
     @Override
-    @RateLimiter(name = "therapyService", fallbackMethod = "getTherapyWithExercisesFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapyWithExercisesFallback")
     public Response getTherapyWithExercises(String id, String clinicId, String branchId) {
 
         Optional<TherapyService> optional =
@@ -348,7 +348,7 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
     }
  
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyService", fallbackMethod = "getTherapyWithExercisesWithIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapyWithExercisesWithIdFallback")
     public TherapyServiceDTO getTherapyWithExercisesWithId(String id) {
 
         Optional<TherapyService> optional =

@@ -37,7 +37,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "followOptionService", fallbackMethod = "createFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFallback")
     public Response create(FollowOptionDTO dto) {
         FollowOption saved = repository.save(toEntity(dto));
         return Response.builder()
@@ -50,7 +50,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "followOptionService", fallbackMethod = "getAllFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFallback")
     public Response getAll() {
         List<FollowOptionDTO> all = repository.findAll()
                 .stream()
@@ -67,7 +67,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "followOptionService", fallbackMethod = "getByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdFallback")
     public Response getById(String id) {
         Optional<FollowOption> option = repository.findById(id);
         if (option.isPresent()) {
@@ -87,7 +87,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     }
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "followOptionService", fallbackMethod = "updateFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFallback")
     public Response update(String id, FollowOptionDTO dto) {
         if (dto == null || dto.getFollowOptions() == null || dto.getFollowOptions().isEmpty()) {
             return Response.builder()
@@ -145,7 +145,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "followOptionService", fallbackMethod = "deleteFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFallback")
     public Response delete(String id) {
         if (repository.existsById(id)) {
             repository.deleteById(id);

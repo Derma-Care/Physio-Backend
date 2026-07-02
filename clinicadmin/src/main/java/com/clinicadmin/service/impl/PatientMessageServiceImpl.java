@@ -20,7 +20,7 @@ public class PatientMessageServiceImpl implements PatientMessageService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientMessageService", fallbackMethod = "savePatientMessageFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "savePatientMessageFallback")
     public Response savePatientMessage(PatientMessageDTO dto) {
 
         Response response = new Response();

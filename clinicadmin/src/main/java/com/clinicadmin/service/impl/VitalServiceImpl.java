@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +18,11 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.VitalsDTO;
 import com.clinicadmin.entity.Vitals;
-import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.VitalsRepository;
 import com.clinicadmin.service.VitalService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
+
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
@@ -34,14 +34,14 @@ public class VitalServiceImpl implements VitalService {
     private VitalsRepository vitalsRepository;
 
     @Autowired
-    private BookingFeign bookingFeign;
+    private FeignImpl bookingFeign;
     
 	@Autowired	
 	public KeyCloakTokenStore keyCloakTokenStore;
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
-    @RateLimiter(name = "vitalService", fallbackMethod = "postVitalsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "postVitalsFallback")
     public Response postVitals(String bookingId, VitalsDTO dto) {
         log.info("Post vitals request received | bookingId={}", bookingId);
 
@@ -124,7 +124,7 @@ public class VitalServiceImpl implements VitalService {
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
-    @RateLimiter(name = "vitalService", fallbackMethod = "getPatientByBookingIdAndPatientIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPatientByBookingIdAndPatientIdFallback")
     public Response getPatientByBookingIdAndPatientId(String bookingId, String patientId) {
 
         log.info("Fetching vitals | bookingId={}, patientId={}", bookingId, patientId);
@@ -190,7 +190,7 @@ public class VitalServiceImpl implements VitalService {
     }
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
-    @RateLimiter(name = "vitalService", fallbackMethod = "updateVitalsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateVitalsFallback")
     public Response updateVitals(String bookingId, String patientId, VitalsDTO dto) {
 
         log.info("Update vitals request | bookingId={}, patientId={}", bookingId, patientId);
@@ -256,7 +256,7 @@ public class VitalServiceImpl implements VitalService {
 
     @Override
     @Secured({"ROLE_CLINICADMIN","ROLE_DOCTOR"})
-    @RateLimiter(name = "vitalService", fallbackMethod = "deleteVitalsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteVitalsFallback")
     public Response deleteVitals(String bookingId, String patientId) {
 
         log.info("Delete vitals request received | bookingId={}, patientId={}", bookingId, patientId);

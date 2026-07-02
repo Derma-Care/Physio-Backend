@@ -48,12 +48,12 @@ import com.dermacare.bookingService.entity.Reports;
 import com.dermacare.bookingService.entity.ReportsList;
 import com.dermacare.bookingService.entity.Status;
 import com.dermacare.bookingService.entity.TheraphyAnswersEntity;
-import com.dermacare.bookingService.feign.ClinicAdminFeign;
 import com.dermacare.bookingService.feign.NotificationFeign;
 import com.dermacare.bookingService.feign.PhysioDoctorFeign;
 import com.dermacare.bookingService.repository.BookingServiceRepository;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.service.S3Service;
+import com.dermacare.bookingService.util.ExternalServiceClient;
 import com.dermacare.bookingService.util.KeyCloakTokenStore;
 import com.dermacare.bookingService.util.Response;
 import com.dermacare.bookingService.util.ResponseStructure;
@@ -75,22 +75,22 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	private BookingServiceRepository repository;
 
 	@Autowired
-	private PhysioDoctorFeign physioDoctorFeign;
+	private ExternalServiceClient physioDoctorFeign;
 
 	@Autowired
-	private ClinicAdminFeign clinnicfeign;
+	private ExternalServiceClient clinnicfeign;
 
 //	@Autowired
 //	private KafkaProducer kafkaProducer;
 
 	@Autowired
-	private NotificationFeign notificationFeign;
+	private ExternalServiceClient notificationFeign;
 
 //	@Autowired
 //	private DoctorFeign doctorFeign;
 
 	@Autowired
-	private ClinicAdminFeign clinicAdminFeign;
+	private ExternalServiceClient clinicAdminFeign;
 
 	@Autowired
 	private geneateIds sequenceGeneratorService;
@@ -516,7 +516,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 				Response notificationResponse = notificationFeign
 
-						.createNotification(keyCloakTokenStore.getAccess_token(),mapper.convertValue(updatedBooking, BookingResponse.class)).getBody();
+						.createNotification(keyCloakTokenStore.getAccess_token(),mapper.convertValue(updatedBooking, BookingResponse.class));
 
 				if (notificationResponse != null) {
 					notificationStatus = notificationResponse.getStatus();
@@ -1022,7 +1022,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 				BookingResponse res = toResponse(entity);
 				List<SessionForBooking> lst = new ArrayList<>();
 				try {
-					lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate()).getBody();
+					lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate());
 					res.setSession(lst);
 				}catch(Exception e) {}
 				return res;
@@ -4195,7 +4195,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 												n.getBookingId(),
 												n.getServiceDate()
 										)
-										.getBody();
+										;
 
 						if (lst != null) {
 
@@ -4458,7 +4458,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 											n.getBookingId(),
 											n.getServiceDate()
 									)
-									.getBody();
+									;
 
 					if (lst != null) {
 
@@ -4629,7 +4629,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 				res = res.stream().map(n -> {
 					List<SessionForBooking> lst = physioDoctorFeign
 							.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),n.getBookingId(), n.getServiceDate())
-							.getBody();
+							;
 					if(lst != null ) {
 						n.setSession(lst);
 						n.setVisitType("session");
@@ -4749,7 +4749,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 											n.getBookingId(),
 											n.getServiceDate()
 									)
-									.getBody();
+									;
 
 					if (lst != null) {
 
@@ -4920,7 +4920,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 						res = mapper.convertValue(booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size()-1), BookingResponse.class);
 						List<SessionForBooking> lst = new ArrayList<>();
 						try {
-							lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate()).getBody();
+							lst = physioDoctorFeign.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),res.getBookingId(),res.getServiceDate());
 							res.setSession(lst);
 						} catch (Exception e) {
 						}
@@ -5360,10 +5360,10 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 					try {
 
-						ResponseEntity<List<SessionForBooking>> sessionResponse = physioDoctorFeign
+						List<SessionForBooking> sessions = physioDoctorFeign
 								.getPhysioByBookingId(keyCloakTokenStore.getAccess_token(),booking.getBookingId(), booking.getServiceDate());
 
-						List<SessionForBooking> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
+						//List<SessionForBooking> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
 
 						if (sessions != null && !sessions.isEmpty()) {
 

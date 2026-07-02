@@ -9,14 +9,15 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.AdminService.dto.WardBoyDTO;
-import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.ClinicAdminFeignImpl;
 import com.AdminService.util.ExtractFeignMessage;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.ResponseStructure;
 
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import feign.FeignException;import lombok.RequiredArgsConstructor;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -24,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class WardBoyServiceImpl implements WardBoyService {
 
-    private final ClinicAdminFeign clinicAdminFeign;
+    private final ClinicAdminFeignImpl clinicAdminFeign;
     
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;

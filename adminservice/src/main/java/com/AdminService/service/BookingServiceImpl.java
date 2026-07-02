@@ -6,8 +6,6 @@ import java.util.Map;
 import com.AdminService.dto.TheraphyAnswersDTO;
 import com.AdminService.entity.QuestionsByPartEntity;
 import com.AdminService.entity.QuestionsEntity;
-import com.AdminService.feign.ClinicAdminFeign;
-import com.AdminService.feign.CustomerFeign;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +16,9 @@ import com.AdminService.dto.BookingRequset;
 import com.AdminService.dto.BookingResponse;
 import com.AdminService.dto.BookingResponseDTO;
 import com.AdminService.feign.BookingFeign;
+import com.AdminService.util.BookingFeignImpl;
+import com.AdminService.util.ClinicAdminFeignImpl;
+import com.AdminService.util.CustomerFeignImpl;
 import com.AdminService.util.ExtractFeignMessage;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.Response;
@@ -34,16 +35,16 @@ import lombok.extern.slf4j.Slf4j;
 public class BookingServiceImpl implements BookingService {
 
     @Autowired
-    private BookingFeign bookingFeign;
+    private ClinicAdminFeignImpl clinicAdminFeign;
 
     @Autowired
-    private ClinicAdminFeign clinicAdminFeign;
-
-    @Autowired
-    private CustomerFeign customerFeign;
+    private CustomerFeignImpl customerFeign;
     
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;
+    
+    @Autowired
+    private BookingFeignImpl bookingFeignImpl;
     
    
     @Override
@@ -121,7 +122,7 @@ public class BookingServiceImpl implements BookingService {
 
             log.info("Calling Booking Service to create appointment.");
 
-            res = bookingFeign.bookPhysioAppointment(
+            res = bookingFeignImpl.bookPhysioAppointment(
                     keyCloakTokenStore.getAccess_token(),
                     req);
 
@@ -183,7 +184,7 @@ public class BookingServiceImpl implements BookingService {
             log.info("Calling Booking Service to fetch booked services.");
 
             ResponseEntity<Page<BookingResponse>> res =
-                    bookingFeign.getAllBookings(
+            		bookingFeignImpl.getAllBookings(
                             keyCloakTokenStore.getAccess_token(),
                             page,
                             10);
@@ -218,7 +219,7 @@ public class BookingServiceImpl implements BookingService {
             log.info("Calling Booking Service to delete booking. BookingId: {}", id);
 
             ResponseEntity<ResponseStructure<BookingResponse>> res =
-                    bookingFeign.deleteBookedService(
+            		bookingFeignImpl.deleteBookedService(
                             keyCloakTokenStore.getAccess_token(),
                             id);
 
@@ -267,7 +268,7 @@ public class BookingServiceImpl implements BookingService {
 
             log.info("Calling Booking Service to fetch bookings for DoctorId: {}", doctorId);
 
-            ResponseEntity<?> response = bookingFeign.bookingByDoctorId(
+            ResponseEntity<?> response = bookingFeignImpl.bookingByDoctorId(
                     keyCloakTokenStore.getAccess_token(),
                     doctorId,
                     page,
@@ -308,7 +309,7 @@ public class BookingServiceImpl implements BookingService {
             log.info("Calling Booking Service to fetch booking details. BookingId: {}", bookingId);
 
             ResponseEntity<ResponseStructure<BookingResponseDTO>> res =
-                    bookingFeign.getBookedService(
+            		bookingFeignImpl.getBookedService(
                             keyCloakTokenStore.getAccess_token(),
                             bookingId);
 
@@ -356,7 +357,7 @@ public class BookingServiceImpl implements BookingService {
             log.info("Calling Booking Service to fetch appointments for PatientId: {}",
                     patientId);
 
-            ResponseEntity<?> res = bookingFeign.bookingByPatientId(
+            ResponseEntity<?> res = bookingFeignImpl.bookingByPatientId(
                     keyCloakTokenStore.getAccess_token(),
                     clinicId,
                     patientId,
@@ -407,7 +408,7 @@ public class BookingServiceImpl implements BookingService {
             log.info("Calling Booking Service to update appointment. BookingId: {}",
                     bookingResponseDTO.getBookingId());
 
-            ResponseEntity<?> res = bookingFeign.updateAppointmentBasedOnBookingId(
+            ResponseEntity<?> res = bookingFeignImpl.updateAppointmentBasedOnBookingId(
                     keyCloakTokenStore.getAccess_token(),
                     bookingResponseDTO);
 
@@ -453,7 +454,7 @@ public class BookingServiceImpl implements BookingService {
             log.info("Calling Booking Service to fetch consent details. BookingId: {}, PatientId: {}",
                     bookingId, patientId);
 
-            ResponseEntity<Response> res = bookingFeign.getPatientDetailsForConsentForm(
+            ResponseEntity<Response> res = bookingFeignImpl.getPatientDetailsForConsentForm(
                     keyCloakTokenStore.getAccess_token(),
                     bookingId,
                     patientId,
@@ -500,7 +501,7 @@ public class BookingServiceImpl implements BookingService {
 
             log.info("Calling Booking Service to fetch in-progress appointments.");
 
-            ResponseEntity<?> res = bookingFeign.inProgressAppointments(
+            ResponseEntity<?> res = bookingFeignImpl.inProgressAppointments(
                     keyCloakTokenStore.getAccess_token(),
                     mobileNumber);
 

@@ -36,7 +36,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "createFeedbackFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
     public Response createFeedback(PatientFeedbackDTO dto) {
 
         PatientFeedback feedback = mapToEntity(dto);
@@ -58,7 +58,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getAllFeedbacksFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFeedbacksFallback")
     public Response getAllFeedbacks() {
 
         List<PatientFeedbackDTO> list = repository.findAll()
@@ -80,7 +80,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getFeedbackByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getFeedbackByIdFallback")
     public Response getFeedbackById(String id) {
 
         PatientFeedback feedback = repository.findById(id)
@@ -98,7 +98,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
     public Response getByClinicIdAndBranchId(String clinicId,
                                              String branchId) {
 
@@ -122,7 +122,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getByClinicIdAndBranchIdAndPatientIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdAndPatientIdFallback")
     public Response getByClinicIdAndBranchIdAndPatientId(String clinicId,
                                              String branchId,String patientId) {
 
@@ -149,7 +149,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "updateFeedbackFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFeedbackFallback")
     public Response updateFeedback(String id, PatientFeedbackDTO dto) {
 
         PatientFeedback existing = repository.findById(id)
@@ -253,7 +253,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "deleteFeedbackFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFeedbackFallback")
     public Response deleteFeedback(String id) {
 
         PatientFeedback feedback = repository.findById(id)
@@ -510,7 +510,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "patientFeedbackService", fallbackMethod = "getDoctorFeedbackSummaryFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDoctorFeedbackSummaryFallback")
     public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
 
         List<PatientFeedback> feedbacks =

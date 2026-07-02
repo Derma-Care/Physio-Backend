@@ -16,6 +16,7 @@ import com.clinicadmin.entity.ImageForNotification;
 import com.clinicadmin.feignclient.NotificationFeign;
 import com.clinicadmin.repository.ImageForNotificationRepo;
 import com.clinicadmin.service.NotificationService;
+import com.clinicadmin.utils.FeignImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -27,10 +28,10 @@ public class NotificationServicelmpl implements NotificationService {
 	private ImageForNotificationRepo imageForNotificationRepo;
 	
 	@Autowired
-	private NotificationFeign notificationFeign;
+	private FeignImpl notificationFeign;
 	
 	@Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "notificationService", fallbackMethod = "storeImageForNotificationFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "storeImageForNotificationFallback")
     public ResponseEntity<?> storeImageForNotification(ImageForNotificationDto imageForNotificationDto) {
         Response response = new Response();
         try {
@@ -72,7 +73,7 @@ public class NotificationServicelmpl implements NotificationService {
     }
 
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "notificationService", fallbackMethod = "pricedropFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "pricedropFallback")
     public ResponseEntity<?> pricedrop(PriceDropAlertDto priceDropAlertDto) {
         Response response = new Response();
         try {
@@ -86,7 +87,7 @@ public class NotificationServicelmpl implements NotificationService {
     }
 
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "notificationService", fallbackMethod = "priceDropNotificationFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "priceDropNotificationFallback")
     public ResponseEntity<?> priceDropNotification(String clinicId, String branchId) {
         Response response = new Response();
         try {
@@ -100,7 +101,7 @@ public class NotificationServicelmpl implements NotificationService {
     }
 
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "notificationService", fallbackMethod = "updatePriceDropNotificationFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePriceDropNotificationFallback")
     public ResponseEntity<?> updatePriceDropNotification(String clinicId, String branchId, String id,
             PriceDropAlertDto dto) {
         Response response = new Response();
@@ -115,7 +116,7 @@ public class NotificationServicelmpl implements NotificationService {
     }
 
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "notificationService", fallbackMethod = "deletePriceDropNotificationFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deletePriceDropNotificationFallback")
     public ResponseEntity<?> deletePriceDropNotification(String clinicId, String branchId, String id) {
         Response response = new Response();
         try {

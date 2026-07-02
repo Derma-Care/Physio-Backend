@@ -43,7 +43,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "expensesApi", fallbackMethod = "createFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "createFallback")
 	public ResponseEntity<Response> create(ExpensesDTO dto) {
 
 	    try {
@@ -75,7 +75,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "expensesApi", fallbackMethod = "getAllFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFallback")
 	public ResponseEntity<Response> getAll() {
 
 	    try {
@@ -104,7 +104,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "expensesApi", fallbackMethod = "updateFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFallback")
 	public ResponseEntity<Response> update(String id, ExpensesDTO dto) {
 
 	    try {
@@ -187,7 +187,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "expensesApi", fallbackMethod = "deleteFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFallback")
 	public ResponseEntity<Response> delete(String id) {
 
 	    try {
@@ -222,7 +222,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "expensesApi", fallbackMethod = "getByClinicAndBranchFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicAndBranchFallback")
 	public ResponseEntity<Response> getByClinicAndBranch(String clinicId, String branchId) {
 
 	    try {
@@ -261,7 +261,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
-	@RateLimiter(name = "expensesApi", fallbackMethod = "getTodayExpensesFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getTodayExpensesFallback")
 	public Double getTodayExpenses(String clinicId, String branchId) {
 
 	    LocalDate today = LocalDate.now();
@@ -285,7 +285,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
-	@RateLimiter(name = "expensesApi", fallbackMethod = "getWeeklyExpensesFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getWeeklyExpensesFallback")
 	public Double getWeeklyExpenses(String clinicId, String branchId) {
 
 		try {
@@ -311,7 +311,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
-	@RateLimiter(name = "expensesApi", fallbackMethod = "getMonthlyExpensesFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getMonthlyExpensesFallback")
 	public Double getMonthlyExpenses(String clinicId, String branchId) {
 
 		try {
@@ -337,7 +337,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
-	@RateLimiter(name = "expensesApi", fallbackMethod = "customeFilterFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "customeFilterFallback")
 	public Double customeFilter(String startDate, String endDate) {
 		try {
 	    List<ExpensesEntity> entities = repository

@@ -22,7 +22,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
     // Create / Save new policy
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "privacyPolicyService", fallbackMethod = "createPolicyFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createPolicyFallback")
     public Response createPolicy(PrivacyPolicyDTO dto) {
         PrivacyPolicy entity = toEntity(dto);
         PrivacyPolicy saved = repository.save(entity);
@@ -38,7 +38,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     // Read all policies
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "privacyPolicyService", fallbackMethod = "getAllPoliciesFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllPoliciesFallback")
     public Response getAllPolicies() {
         List<PrivacyPolicyDTO> dtos = repository.findAll()
                 .stream()
@@ -56,7 +56,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     // Read single policy by ID
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "privacyPolicyService", fallbackMethod = "getPolicyByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPolicyByIdFallback")
     public Response getPolicyById(String id) {
         return repository.findById(id)
                 .map(policy -> Response.builder()
@@ -74,7 +74,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "privacyPolicyService", fallbackMethod = "getPoliciesByClinicIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPoliciesByClinicIdFallback")
     public Response getPoliciesByClinicId(String clinicId) {
         Response response = new Response();
         List<PrivacyPolicyDTO> policies = repository.findByClinicId(clinicId);
@@ -90,7 +90,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "privacyPolicyService", fallbackMethod = "updatePolicyFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePolicyFallback")
     public Response updatePolicy(PrivacyPolicyDTO dto) {
         if (dto.getId() == null) {
             return Response.builder()
@@ -135,7 +135,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "privacyPolicyService", fallbackMethod = "deletePolicyFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deletePolicyFallback")
     public Response deletePolicy(String id) {
         if (repository.existsById(id)) {
             repository.deleteById(id);

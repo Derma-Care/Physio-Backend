@@ -172,7 +172,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public Response getConsentForm(String hospitalId, String consentFormType) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -218,7 +218,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public Response getProcedureConsentForm(String hospitalId, String subServiceId) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -283,7 +283,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public Response getAllConsentFormsByHospital(String hospitalId) {
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
@@ -309,7 +309,7 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// ------------------------------- Delete Consent Form by ID -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "consentFormApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 	public Response deleteConsentFormById(String formId) {
 	    if (formId == null || formId.trim().isEmpty()) {
 	        return buildErrorResponse("Consent Form ID cannot be null or empty", 400);

@@ -16,8 +16,8 @@ import com.clinicadmin.dto.ProgramResponseDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.SessionDTO;
 import com.clinicadmin.dto.TherapyResponseDTO;
-import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.service.GenerateTableService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class GenerateTableServiceImpl implements GenerateTableService {
 
 
-    private final PhysiotherapyFeignClient feignClient;
+    private final FeignImpl feignClient;
     
 
 	 @Autowired	

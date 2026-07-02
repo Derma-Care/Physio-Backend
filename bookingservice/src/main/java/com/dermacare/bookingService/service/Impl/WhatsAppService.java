@@ -10,7 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BranchDTO;
-import com.dermacare.bookingService.feign.AdminServiceClient;
+import com.dermacare.bookingService.util.ExternalServiceClient;
 import com.dermacare.bookingService.util.ResponseStructure;
 
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WhatsAppService {
 
     private final WebClient webClient;
-    private final AdminServiceClient adminServiceClient;
+    private final ExternalServiceClient adminServiceClient;
 
     @Value("${whatsapp.auth-key}")
     private String authKey;
@@ -33,7 +33,7 @@ public class WhatsAppService {
 
     public WhatsAppService(
             WebClient.Builder webClientBuilder,
-            AdminServiceClient adminServiceClient,
+            ExternalServiceClient adminServiceClient,
             @Value("${whatsapp.base-url}") String baseUrl
     ) {
         this.adminServiceClient = adminServiceClient;

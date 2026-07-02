@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.feign.ClinicAdminFeign;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.RolesStore;
 
 
@@ -20,7 +21,7 @@ import physiotherapydoctor.util.RolesStore;
 public class CustomDoctorLoginDetailsService implements UserDetailsService {
 	
 	@Autowired
-	private ClinicAdminFeign clinicAdminFeign;
+	private FeignImpl clinicAdminFeign;
 	
 	@Autowired
 	@Lazy

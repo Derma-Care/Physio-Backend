@@ -28,7 +28,7 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 	private final SendAppNotification appNotification;
 
 	@Override
-	@RateLimiter(name = "doctorPushNotificationService", fallbackMethod = "sendNotificationFallback")
+	@RateLimiter(name = "notification-service", fallbackMethod = "sendNotificationFallback")
 	public ResponseEntity<?> sendNotification(DoctorPushNotificationDTO dto) {
 		System.out.println(dto);
 		Response res = new Response();

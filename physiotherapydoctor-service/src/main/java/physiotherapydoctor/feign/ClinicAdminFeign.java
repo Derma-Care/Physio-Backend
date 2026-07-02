@@ -99,15 +99,7 @@ public interface ClinicAdminFeign {
 		 
 		 @GetMapping("/clinic-admin/doctors/hospitalById/{hospitalId}")
 			public ResponseEntity<Response> getDoctorsByHospitalById(@RequestHeader("Authorization") String token,@PathVariable String hospitalId);
-		 
-//		 @GetMapping("/clinic-admin/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
-//			public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
-//					@PathVariable String subServiceId);
-//		 
-		 
-//		 @GetMapping("/clinic-admin/getAllDoctorsBySubServiceId/{subServiceId}")
-//			public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId);
-//		 
+		 	 
 		 @GetMapping("/clinic-admin/clinic/{clinicId}")
 		 ResponseEntity<Response> getClinicById(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
 
@@ -133,10 +125,7 @@ public interface ClinicAdminFeign {
 		                                          @RequestBody VitalsDTO dto);
 		    @GetMapping("/clinic-admin/diseases/{hospitalId}")
 		    public ResponseEntity<Response> getDiseasesByHospitalId(@RequestHeader("Authorization") String token,@PathVariable String hospitalId);
-		    
-		    @GetMapping("/clinic-admin/labtests/{hospitalId}")
-		    public ResponseEntity<Response> getLabTestsByHospitalId(@PathVariable String hospitalId);
-		    
+		 
 		    @GetMapping("/clinic-admin/api/s3/signed-url")
 		    ResponseEntity<String> getSignedUrl(@RequestHeader("Authorization") String token,@RequestParam("fileKey") String fileKey);
 
@@ -152,10 +141,6 @@ public interface ClinicAdminFeign {
 	@PutMapping("/clinic-admin/treatment/updateTreatmentById/{id}/{hospitalId}")
 	public ResponseEntity<Response> updateTreatmentById(@RequestHeader("Authorization") String token,@PathVariable String id, @PathVariable String hospitalId,
 			@RequestBody TreatmentDTO dto);
-
-	@GetMapping("/clinic-admin/doctors/hospital/{hospitalId}/subServiceId/{subServiceId}")
-	public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
-			@PathVariable String subServiceId);
 
 	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
 	public Response getAllRecoverySupportsByClinicId(@RequestHeader("Authorization") String token,@PathVariable String clinicId);

@@ -14,6 +14,7 @@ import physiotherapydoctor.dto.RecoverySupportDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.RecoverySupportService;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 
@@ -24,22 +25,21 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private ClinicAdminFeign clinicAdminFeign;
+	private FeignImpl clinicAdminFeign;
 	
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
 
 	 @Override
 	 @RateLimiter(
-	     name = "recoverySupportService",
+	     name = "physiotherapydoctorService",
 	     fallbackMethod = "getRecoverySupportsFallback"
 	 )
 	 @Secured("ROLE_DOCTOR")
 	 public Response getRecoverySupports(String clinicId) {
 	     try {
 	         Response response =
-	                 clinicAdminFeign.getAllRecoverySupportsByClinicId(
-	                         keyCloakTokenStore.getAccess_token(),
+	                 clinicAdminFeign.getAllRecoverySupportsByClinicId(	                     
 	                         clinicId);
 
 	         if (response != null && response.getData() != null) {

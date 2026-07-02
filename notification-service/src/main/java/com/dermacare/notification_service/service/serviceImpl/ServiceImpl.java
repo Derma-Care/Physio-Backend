@@ -157,9 +157,6 @@ public class ServiceImpl implements ServiceInterface{
 	
 	
 	@RateLimiter(name = "notificationService", fallbackMethod = "notificationtodoctorFallback")
-	
-	
-	
 	public ResBody<List<NotificationDTO>> notificationtodoctor( String hospitalId,
 			 String doctorId){
 		ResBody<List<NotificationDTO>> res = new ResBody<List<NotificationDTO>>();
@@ -191,9 +188,6 @@ public class ServiceImpl implements ServiceInterface{
 
 	
 	@RateLimiter(name = "notificationService", fallbackMethod = "sendNotificationToClinicFallback")
-				
-
-	
 	public ResBody<List<NotificationDTO>> sendNotificationToClinic(String clinicId) {
 		ResBody<List<NotificationDTO>> r = new ResBody<List<NotificationDTO>>();
 		List<NotificationDTO> list = new ArrayList<>();
@@ -332,7 +326,7 @@ public class ServiceImpl implements ServiceInterface{
 
 	
 	 @Scheduled(fixedRate = 1 * 60 * 1000)
-	 @RateLimiter(name = "notificationService", fallbackMethod = "sendAlertNotificationsFallback")
+	// @RateLimiter(name = "notificationService", fallbackMethod = "sendAlertNotificationsFallback")
 	 public void sendAlertNotifications() {		 
 		 try {
 			 //System.out.println("sendAlertNotifications method invoked");
@@ -961,7 +955,7 @@ public class ServiceImpl implements ServiceInterface{
 	 	
 	 
 	 @Scheduled(cron = "0 30 8 * * ?")
-	 @RateLimiter(name = "notificationService", fallbackMethod = "sendBirthdayWishesFallback")
+	/// @RateLimiter(name = "notificationService", fallbackMethod = "sendBirthdayWishesFallback")
 	 public void sendBirthdayWishes() {
 		 try {
 			 List<CustomerOnbordingDTO> cusmr =  new ObjectMapper().convertValue(cllinicFeign.getAllCustomers().getBody().getData(), new TypeReference< List<CustomerOnbordingDTO>>() {});
@@ -993,9 +987,7 @@ public class ServiceImpl implements ServiceInterface{
 	 }	
 	 
 	 	
-	 @RateLimiter(name = "notificationService", fallbackMethod = "updatePriceDropAlertFallback")
-	 
-	 	
+	 @RateLimiter(name = "notificationService", fallbackMethod = "updatePriceDropAlertFallback") 	
 	 public ResponseEntity<?> updatePriceDropAlert(
 	         String clinicId,
 	        String branchId,

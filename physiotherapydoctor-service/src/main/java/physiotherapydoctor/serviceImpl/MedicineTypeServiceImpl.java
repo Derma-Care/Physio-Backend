@@ -23,7 +23,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     private MedicineTypeRepository repository;
 
     @Override
-    @RateLimiter(name = "medicineTypeService", fallbackMethod = "addMedicineTypeFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "addMedicineTypeFallback")
 @Secured("ROLE_DOCTOR")
     public Response addMedicineType(MedicineTypeDTO dto) {
 
@@ -57,7 +57,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
 
     @Override
-    @RateLimiter(name = "medicineTypeService", fallbackMethod = "getMedicineTypesByIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getMedicineTypesByIdFallback")
 @Secured("ROLE_DOCTOR")
     public Response getMedicineTypesById(String id) {
 
@@ -81,7 +81,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
 
     @Override
-    @RateLimiter(name = "medicineTypeService", fallbackMethod = "searchOrAddMedicineTypeFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "searchOrAddMedicineTypeFallback")
 @Secured("ROLE_DOCTOR")
     public Response searchOrAddMedicineType(MedicineTypeDTO dto) {
 
@@ -130,7 +130,7 @@ public class MedicineTypeServiceImpl implements MedicineTypeService {
     }
     
     @Override
-    @RateLimiter(name = "medicineTypeService", fallbackMethod = "getAllMedicineTypesFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllMedicineTypesFallback")
 @Secured("ROLE_DOCTOR")
     public Response getAllMedicineTypes() {
 

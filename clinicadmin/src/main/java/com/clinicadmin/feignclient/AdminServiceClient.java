@@ -1,6 +1,7 @@
 package com.clinicadmin.feignclient;
 import java.util.List;
 import java.util.Map;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,11 +12,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-import com.clinicadmin.dto.CategoryMediaCarouselDTO;
 import com.clinicadmin.dto.ClinicDTO;
-import com.clinicadmin.dto.ClinicLoginRequestDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
+
+
 @FeignClient(name = "adminservice")
 public interface AdminServiceClient {
 
@@ -66,10 +67,10 @@ public interface AdminServiceClient {
 	 @GetMapping("/admin/getDefaultAdminPermissions")
 	    ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions(@RequestHeader("Authorization") String token);
 
-//	CategoryMediaCarouselDTO
-	
-    @GetMapping("/admin/categoryAdvertisement/getAll")
-    ResponseEntity<Iterable<CategoryMediaCarouselDTO>> getAllMedia();
+////	CategoryMediaCarouselDTO
+//	
+//    @GetMapping("/admin/categoryAdvertisement/getAll")
+//    ResponseEntity<Iterable<CategoryMediaCarouselDTO>> getAllMedia();
 
 
 }

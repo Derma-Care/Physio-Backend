@@ -5,26 +5,26 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-
 import feign.FeignException;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.TreatmentDTO;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.TreatmentService;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 @Service
 public class TreatmentServiceImpl implements TreatmentService {
 
 	@Autowired
-	private ClinicAdminFeign clinicAdminServiceClient;
+	private FeignImpl clinicAdminServiceClient;
 	
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
 
 
 	@Override
-	@RateLimiter(name = "treatmentService", fallbackMethod = "addTreatmentFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "addTreatmentFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> addTreatment(TreatmentDTO dto) {
 		try {
@@ -35,44 +35,44 @@ public class TreatmentServiceImpl implements TreatmentService {
 	}
 
 	@Override
-	@RateLimiter(name = "treatmentService", fallbackMethod = "getAllTreatmentsFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllTreatmentsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getAllTreatments() {
 		try {
-			return clinicAdminServiceClient.getAllTreatments(keyCloakTokenStore.getAccess_token());
+			return clinicAdminServiceClient.getAllTreatments();
 		} catch (FeignException ex) {
 			return ResponseEntity.status(ex.status()).body(new Response(false, null, ex.getMessage(), ex.status()));
 		}
 	}
 
 	@Override
-	@RateLimiter(name = "treatmentService", fallbackMethod = "getTreatmentByIdFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTreatmentByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getTreatmentById(String id, String hospitalId) {
 		try {
-			return clinicAdminServiceClient.getTreatmentById(keyCloakTokenStore.getAccess_token(),id, hospitalId);
+			return clinicAdminServiceClient.getTreatmentById(id, hospitalId);
 		} catch (FeignException ex) {
 			return ResponseEntity.status(ex.status()).body(new Response(false, null, ex.getMessage(), ex.status()));
 		}
 	}
 
 	@Override
-	@RateLimiter(name = "treatmentService", fallbackMethod = "deleteTreatmentByIdFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteTreatmentByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> deleteTreatmentById(String id, String hospitalId) {
 		try {
-			return clinicAdminServiceClient.deleteTreatmentById(keyCloakTokenStore.getAccess_token(),id, hospitalId);
+			return clinicAdminServiceClient.deleteTreatmentById(id, hospitalId);
 		} catch (FeignException ex) {
 			return ResponseEntity.status(ex.status()).body(new Response(false, null, ex.getMessage(), ex.status()));
 		}
 	}
 
 	@Override
-	@RateLimiter(name = "treatmentService", fallbackMethod = "updateTreatmentByIdFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateTreatmentByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> updateTreatmentById(String id, String hospitalId, TreatmentDTO dto) {
 		try {
-			return clinicAdminServiceClient.updateTreatmentById(keyCloakTokenStore.getAccess_token(),id, hospitalId, dto);
+			return clinicAdminServiceClient.updateTreatmentById(id, hospitalId, dto);
 		} catch (FeignException ex) {
 			return ResponseEntity.status(ex.status()).body(new Response(false, null, ex.getMessage(), ex.status()));
 		}

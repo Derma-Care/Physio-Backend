@@ -1,12 +1,7 @@
 package com.AdminService.service;
 
-import com.AdminService.dto.ReceptionistRequestDTO;
-import com.AdminService.feign.ClinicAdminFeign;
-import com.AdminService.util.KeyCloakTokenStore;
-import com.AdminService.util.ResponseStructure;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
-import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,9 +9,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import feign.FeignException;import lombok.RequiredArgsConstructor;
+import com.AdminService.dto.ReceptionistRequestDTO;
+import com.AdminService.util.ClinicAdminFeignImpl;
+import com.AdminService.util.KeyCloakTokenStore;
+import com.AdminService.util.ResponseStructure;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -30,7 +30,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	 @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;
 	   
-    private final ClinicAdminFeign clinicAdminFeign;
+    private final ClinicAdminFeignImpl clinicAdminFeign;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ✅ Create Receptionist

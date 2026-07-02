@@ -10,7 +10,7 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 import com.AdminService.dto.AdministratorDTO;
-import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.ClinicAdminFeignImpl;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.ResponseStructure;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AdministratorServiceImpl implements AdministratorService {
 
-    private final ClinicAdminFeign clinicAdminFeign;
+    private final ClinicAdminFeignImpl clinicAdminFeignImpl;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Autowired
@@ -48,7 +48,7 @@ public class AdministratorServiceImpl implements AdministratorService {
             log.info("Calling ClinicAdmin service to create Administrator.");
 
             ResponseStructure<AdministratorDTO> res =
-                    clinicAdminFeign.addAdministrator(
+            		clinicAdminFeignImpl.addAdministrator(
                             keyCloakTokenStore.getAccess_token(),
                             dto);
 
@@ -111,7 +111,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<List<AdministratorDTO>> response =
-                    clinicAdminFeign.getAllAdministratorsByClinic(
+            		clinicAdminFeignImpl.getAllAdministratorsByClinic(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId);
 
@@ -143,7 +143,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<List<AdministratorDTO>> response =
-                    clinicAdminFeign.getAllAdministratorsByClinicAndBranch(
+            		clinicAdminFeignImpl.getAllAdministratorsByClinicAndBranch(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             branchId);
@@ -177,7 +177,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<AdministratorDTO> response =
-                    clinicAdminFeign.getAdministratorByClinicAndId(
+            		clinicAdminFeignImpl.getAdministratorByClinicAndId(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             adminId);
@@ -213,7 +213,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<AdministratorDTO> response =
-                    clinicAdminFeign.getAdministratorByClinicBranchAndAdminId(
+            		clinicAdminFeignImpl.getAdministratorByClinicBranchAndAdminId(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             branchId,
@@ -251,7 +251,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<AdministratorDTO> response =
-                    clinicAdminFeign.updateAdministrator(
+            		clinicAdminFeignImpl.updateAdministrator(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             adminId,
@@ -290,7 +290,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<AdministratorDTO> response =
-                    clinicAdminFeign.updateAdministratorUsingClinicBranchAndAdminId(
+            		clinicAdminFeignImpl.updateAdministratorUsingClinicBranchAndAdminId(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             branchId,
@@ -328,7 +328,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<String> response =
-                    clinicAdminFeign.deleteAdministrator(
+            		clinicAdminFeignImpl.deleteAdministrator(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             adminId);
@@ -360,7 +360,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         try {
 
             ResponseStructure<String> response =
-                    clinicAdminFeign.deleteAdministratorUsingClinicBranchAndAdminId(
+            		clinicAdminFeignImpl.deleteAdministratorUsingClinicBranchAndAdminId(
                             keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             branchId,

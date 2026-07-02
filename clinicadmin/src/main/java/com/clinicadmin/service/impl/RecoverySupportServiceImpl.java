@@ -28,7 +28,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "saveRecoverySupportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "saveRecoverySupportFallback")
     public Response saveRecoverySupport(RecoverySupportDTO dto) {
 
         Response response = new Response();
@@ -47,7 +47,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getAllRecoverySupportsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllRecoverySupportsFallback")
     public Response getAllRecoverySupports() {
 
         Response response = new Response();
@@ -67,7 +67,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getRecoverySupportByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getRecoverySupportByIdFallback")
     public Response getRecoverySupportById(String id) {
 
         Response response = new Response();
@@ -91,7 +91,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "updateRecoverySupportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateRecoverySupportFallback")
     public Response updateRecoverySupport(String id, RecoverySupportDTO dto) {
 
         Response response = new Response();
@@ -126,7 +126,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "deleteRecoverySupportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteRecoverySupportFallback")
     public Response deleteRecoverySupport(String id) {
 
         Response response = new Response();
@@ -151,7 +151,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getRecoverySupportsByClinicIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getRecoverySupportsByClinicIdFallback")
     public Response getRecoverySupportsByClinicId(String clinicId) {
 
         Response response = new Response();
@@ -171,7 +171,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "recoverySupportService", fallbackMethod = "getRecoverySupportByClinicIdAndIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getRecoverySupportByClinicIdAndIdFallback")
     public  Response getRecoverySupportByClinicIdAndId(String clinicId, String id){
 
         Response response = new Response();

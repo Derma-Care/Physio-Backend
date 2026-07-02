@@ -28,8 +28,8 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	private DoctorPrescriptionRepository repository;
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "createPrescriptionFallback")
-@Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createPrescriptionFallback")
+     @Secured("ROLE_DOCTOR")
 	public Response createPrescription(DoctorPrescriptionDTO dto) {
 		try {
 			// 1. Validate input
@@ -143,7 +143,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getAllPrescriptionsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllPrescriptionsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getAllPrescriptions() {
 		try {
@@ -173,7 +173,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getPrescriptionByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getPrescriptionByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getPrescriptionById(String id) {
 		try {
@@ -204,7 +204,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getMedicineByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getMedicineByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getMedicineById(String medicineId) {
 		try {
@@ -233,7 +233,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "deletePrescriptionFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deletePrescriptionFallback")
 @Secured("ROLE_DOCTOR")
 	public Response deletePrescription(String id) {
 		try {
@@ -250,7 +250,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "deleteMedicineByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteMedicineByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response deleteMedicineById(String medicineId) {
 		try {
@@ -284,7 +284,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "searchMedicinesByNameFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "searchMedicinesByNameFallback")
 @Secured("ROLE_DOCTOR")
 	public Response searchMedicinesByName(String keyword) {
 		try {
@@ -321,7 +321,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "getPrescriptionsByClinicIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getPrescriptionsByClinicIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getPrescriptionsByClinicId(String clinicId) {
 		try {
@@ -353,7 +353,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "updatePrescriptionFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updatePrescriptionFallback")
 @Secured("ROLE_DOCTOR")
 	public Response updatePrescription(String id, DoctorPrescriptionDTO dto) {
 		try {
@@ -450,7 +450,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 	}
 
 	@Override
-	 @RateLimiter(name = "doctorPrescriptionService", fallbackMethod = "updateMedicineByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateMedicineByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response updateMedicineById(String medicineId, MedicineDTO dto) {
 		try {

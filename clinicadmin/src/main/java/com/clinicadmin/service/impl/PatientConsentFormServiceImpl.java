@@ -49,7 +49,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "patientConsentService", fallbackMethod = "getPatientDetailsForFormUsingBookingFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getPatientDetailsForFormUsingBookingFallback")
 	public Response getPatientDetailsForFormUsingBooking(String bookingId, String patientId, String mobileNumber) {
 		Response response = new Response();
 		ResponseEntity<Response> responseEntity = bookingFeign.getPatientDetailsForConsentForm(keyCloakTokenStore.getAccess_token(),bookingId, patientId,
@@ -136,7 +136,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "patientConsentService", fallbackMethod = "updatePatientConsentFormFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePatientConsentFormFallback")
 	public Response updatePatientConsentForm(String id, PatientConsentFormDTO dto) {
 		Response response = new Response();
 

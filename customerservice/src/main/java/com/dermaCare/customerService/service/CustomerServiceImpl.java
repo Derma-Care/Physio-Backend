@@ -23,13 +23,11 @@ import com.dermaCare.customerService.dto.VisitHistoryRequest;
 import com.dermaCare.customerService.entity.Customer;
 import com.dermaCare.customerService.entity.QuestionsByPartEntity;
 import com.dermaCare.customerService.entity.QuestionsEntity;
-import com.dermaCare.customerService.feignClient.BookingFeign;
-import com.dermaCare.customerService.feignClient.ClinicAdminFeign;
 //import com.dermaCare.customerService.feignClient.DoctorServiceFeign;
-import com.dermaCare.customerService.feignClient.NotificationFeign;
 import com.dermaCare.customerService.feignClient.PhysioFeign;
 import com.dermaCare.customerService.repository.CustomerRepository;
 import com.dermaCare.customerService.util.ExtractFeignMessage;
+import com.dermaCare.customerService.util.FeignImpl;
 import com.dermaCare.customerService.util.GetByKey;
 import com.dermaCare.customerService.util.KeyCloakTokenStore;
 import com.dermaCare.customerService.util.ResBody;
@@ -52,19 +50,19 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerRepository customerRepository;
     
     @Autowired
-    private BookingFeign bookingFeign;
+    private FeignImpl bookingFeign;
     
     @Autowired
     private GetByKey getByKey;
     
     @Autowired
-    private ClinicAdminFeign clinicAdminFeign;
+    private FeignImpl clinicAdminFeign;
     
     @Autowired
-    private NotificationFeign notificationFeign;
+    private FeignImpl notificationFeign;
        
     @Autowired
-    private PhysioFeign physioFeign;
+    private FeignImpl physioFeign;
     
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;

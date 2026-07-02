@@ -46,7 +46,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     private final DoctorTemplateRepository repository;
 
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "createTemplateFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createTemplateFallback")
 @Secured("ROLE_DOCTOR")
     public Response createTemplate(DoctorTemplateDTO dto) {
         try {
@@ -102,7 +102,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
 
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "getTemplateByIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplateByIdFallback")
 @Secured("ROLE_DOCTOR")
     public Response getTemplateById(String id) {
         Optional<DoctorTemplate> template = repository.findById(id);
@@ -126,7 +126,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "getAllTemplatesFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllTemplatesFallback")
 @Secured("ROLE_DOCTOR")
     public Response getAllTemplates() {
         List<DoctorTemplate> templates = repository.findAll();
@@ -144,7 +144,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "deleteTemplateFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteTemplateFallback")
 @Secured("ROLE_DOCTOR")
     public Response deleteTemplate(String id) {
         Optional<DoctorTemplate> existing = repository.findById(id);
@@ -265,7 +265,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
 
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "updateTemplateFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateTemplateFallback")
 @Secured("ROLE_DOCTOR")
     public ResponseEntity<Response> updateTemplate(String id, DoctorTemplateDTO dto) {
         Optional<DoctorTemplate> existingTemplate = repository.findById(id);
@@ -318,7 +318,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
 
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "searchTemplatesByTitleFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "searchTemplatesByTitleFallback")
 @Secured("ROLE_DOCTOR")
     public Response searchTemplatesByTitle(String keyword) {
         try {
@@ -549,7 +549,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     }
     
     @Override
-    @RateLimiter(name = "doctorTemplateService", fallbackMethod = "getTemplatesByClinicIdAndTitleFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplatesByClinicIdAndTitleFallback")
 @Secured("ROLE_DOCTOR")
     public Response getTemplatesByClinicIdAndTitle(String clinicId, String title) {
         try {

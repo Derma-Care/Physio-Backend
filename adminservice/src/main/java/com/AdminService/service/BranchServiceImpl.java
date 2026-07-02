@@ -87,7 +87,7 @@ public class BranchServiceImpl implements BranchService {
  // ---------------------- CREATE BRANCH  ----------------------
     @Override
     @Transactional
-@RateLimiter(name = "branchService", fallbackMethod = "createBranchFallback")
+@RateLimiter(name = "adminService", fallbackMethod = "createBranchFallback")
 @Secured("ROLE_ADMIN")
     public Response createBranch(BranchDTO dto) {
 
@@ -424,7 +424,7 @@ public class BranchServiceImpl implements BranchService {
     
     @Override
     @Secured("ROLE_ADMIN")
-    @RateLimiter(name = "branchService", fallbackMethod = "getBranchByClinicIdFallback")
+    @RateLimiter(name = "adminService", fallbackMethod = "getBranchByClinicIdFallback")
     public ResponseEntity<?> getBranchByClinicId(String clinicId) {
 
         log.info("===== Get Branches By Clinic ID API Started =====");
@@ -520,7 +520,7 @@ public class BranchServiceImpl implements BranchService {
 
     // ---------------------- UPDATE BRANCH ----------------------
     @Override
-@RateLimiter(name = "branchService", fallbackMethod = "updateBranchFallback")
+@RateLimiter(name = "adminService", fallbackMethod = "updateBranchFallback")
 @Secured("ROLE_ADMIN")
     public Response updateBranch(String branchId, BranchDTO branchDto) {
 
@@ -664,7 +664,7 @@ public class BranchServiceImpl implements BranchService {
     }
     // ---------------------- DELETE BRANCH ----------------------
     @Override
-@RateLimiter(name = "branchService", fallbackMethod = "deleteBranchFallback")
+@RateLimiter(name = "adminService", fallbackMethod = "deleteBranchFallback")
 @Secured("ROLE_ADMIN")
     public Response deleteBranch(String branchId) {
 
@@ -749,7 +749,7 @@ public class BranchServiceImpl implements BranchService {
     // ---------------------- GET BRANCHES BY CLINIC ID ----------------------
    
     @Override
-@RateLimiter(name = "branchService", fallbackMethod = "getBranchesByClinicIdFallback")
+@RateLimiter(name = "adminService", fallbackMethod = "getBranchesByClinicIdFallback")
 @Secured("ROLE_ADMIN")
     public Response getBranchesByClinicId(String clinicId) {
 
@@ -863,7 +863,7 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
-@RateLimiter(name = "branchService", fallbackMethod = "getAllBranchesFallback")
+@RateLimiter(name = "adminService", fallbackMethod = "getAllBranchesFallback")
 @Secured("ROLE_ADMIN")
     public Response getAllBranches() {
 
@@ -905,7 +905,8 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
-    @Secured("ROLE_ADMIN")@RateLimiter(name = "branchService", fallbackMethod = "getBranchByClinicAndBranchIdFallback")
+    @Secured("ROLE_ADMIN")
+    @RateLimiter(name = "adminService", fallbackMethod = "getBranchByClinicAndBranchIdFallback")
     public ResponseEntity<?> getBranchByClinicAndBranchId(String clinicId, String branchId) {
 
         log.info("===== Get Branch By Clinic ID And Branch ID API Started =====");

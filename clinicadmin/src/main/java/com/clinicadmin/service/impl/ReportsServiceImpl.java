@@ -19,10 +19,10 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.entity.Reports;
 import com.clinicadmin.entity.ReportsList;
-import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.repository.ReportsRepository;
 import com.clinicadmin.service.ReportsService;
 import com.clinicadmin.service.S3Service;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -34,7 +34,7 @@ public class ReportsServiceImpl implements ReportsService {
     private ReportsRepository reportsRepository;
 
     @Autowired
-    private BookingFeign bookingFeign;
+    private FeignImpl bookingFeign;
     
     @Autowired	
 	public KeyCloakTokenStore keyCloakTokenStore;
@@ -143,7 +143,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "saveReportsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "saveReportsFallback")
     public Response saveReports(ReportsDtoList dto) {
         try {
             if (dto == null || dto.getReportsList() == null || dto.getReportsList().isEmpty()) {
@@ -255,7 +255,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "getReportsByBookingIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByBookingIdFallback")
     public Response getReportsByBookingId(String bookingId) {
         Response res = new Response();
         try {
@@ -292,7 +292,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "getAllReportsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllReportsFallback")
     public Response getAllReports() {
         Response res = new Response();
         try {
@@ -328,7 +328,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "getReportsByCustomerIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByCustomerIdFallback")
     public Response getReportsByCustomerId(String customerId) {
         Response res = new Response();
         try {
@@ -365,7 +365,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "getReportsByPatientIdAndBookingIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByPatientIdAndBookingIdFallback")
     public Response getReportsByPatientIdAndBookingId(String patientId, String bookingId) {
         Response res = new Response();
         try {
@@ -403,7 +403,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "updateReportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateReportFallback")
     public Response updateReport(String reportId, ReportsDtoList dto) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -527,7 +527,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "deleteReportFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteReportFallback")
     public Response deleteReport(String reportId) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
@@ -573,7 +573,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ─────────────────────────────────────────────────────────────────
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "reportsService", fallbackMethod = "deleteReportFileFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteReportFileFallback")
     public Response deleteReportFile(String reportId, String bookingId, int fileIndex) {
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);

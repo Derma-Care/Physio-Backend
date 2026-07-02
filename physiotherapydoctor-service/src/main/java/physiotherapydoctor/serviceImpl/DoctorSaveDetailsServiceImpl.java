@@ -54,6 +54,7 @@ import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.DoctorSaveDetailsRepository;
 import physiotherapydoctor.service.DoctorSaveDetailsService;
 import physiotherapydoctor.service.S3Service;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 import physiotherapydoctor.util.VisitTypeUtil;
 
@@ -64,16 +65,16 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     private DoctorSaveDetailsRepository repository;
 
     @Autowired
-    private ClinicAdminFeign clinicAdminServiceClient;
+    private FeignImpl clinicAdminServiceClient;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
-    private BookingFeignClient bookingFeignClient;
+    private FeignImpl bookingFeignClient;
     
     @Autowired 
-    private AdminFeignClient adminFeignClient;
+    private FeignImpl adminFeignClient;
     
     @Autowired
     private S3Service s3Service;
@@ -84,7 +85,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override   
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "saveDoctorDetailsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "saveDoctorDetailsFallback")
 @Secured("ROLE_DOCTOR")
     public Response saveDoctorDetails(DoctorSaveDetailsDTO dto) {
         try {
@@ -97,7 +98,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
             // ----------------------- Step 1: Fetch Booking -----------------------
             ResponseEntity<ResponseStructure<BookingResponse>> bookingEntity =
-                    bookingFeignClient.getBookedService(keyCloakTokenStore.getAccess_token(),dto.getBookingId());
+                    bookingFeignClient.getBookedService(dto.getBookingId());
 
             if (bookingEntity == null || bookingEntity.getBody() == null) {
                 return buildResponse(false, null,
@@ -113,7 +114,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             }
 
             // ----------------------- Step 2: Fetch Doctor -----------------------
-            Response doctorResponse = clinicAdminServiceClient.getDoctorById(keyCloakTokenStore.getAccess_token(),dto.getDoctorId()).getBody();
+            Response doctorResponse = clinicAdminServiceClient.getDoctorById(dto.getDoctorId()).getBody();
             if (doctorResponse == null || !doctorResponse.isSuccess() || doctorResponse.getData() == null) {
                 return buildResponse(false, null,
                         "Doctor not found with ID: " + dto.getDoctorId(),
@@ -144,7 +145,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
             DoctorSaveDetails savedVisit = repository.save(entity);
 
             // ----------------------- Step 6: Fetch Clinic for Consultation Expiry -----------------------
-            Response clinicResponse = adminFeignClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getClinicId()).getBody();
+            Response clinicResponse = adminFeignClient.getClinicById(dto.getClinicId()).getBody();
             int expirationDays = 0;
             String consultationExpirationStr = "";
             if (clinicResponse != null && clinicResponse.isSuccess() && clinicResponse.getData() != null) {
@@ -368,7 +369,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
             bookingData.setCurrentStatus(null);
             bookingData.setListOfConsultationFee(null);
-            bookingFeignClient.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),bookingData);
+            bookingFeignClient.updateAppointmentBasedOnBookingId(bookingData);
 
             // ----------------------- Step 12: Build Response -----------------------
             DoctorSaveDetailsDTO savedDto = convertToDto(savedVisit);
@@ -405,7 +406,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
     
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorDetailsByIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByIdFallback")
 @Secured("ROLE_DOCTOR")
     public Response getDoctorDetailsById(String id) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
@@ -427,7 +428,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "updateDoctorDetailsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorDetailsFallback")
 @Secured("ROLE_DOCTOR")
     public Response updateDoctorDetails(String id, DoctorSaveDetailsDTO dto) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
@@ -496,7 +497,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "updateDoctorDetailsByBookingIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorDetailsByBookingIdFallback")
 @Secured("ROLE_DOCTOR")
     public Response updateDoctorDetailsByBookingId(String id, DoctorSaveDetailsDTO dto) {
         DoctorSaveDetails optional = repository.findByBookingId(id);
@@ -515,7 +516,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
     
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "deleteDoctorDetailsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteDoctorDetailsFallback")
 @Secured("ROLE_DOCTOR")
     public Response deleteDoctorDetails(String id) {
         Optional<DoctorSaveDetails> optional = repository.findById(id);
@@ -528,7 +529,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getAllDoctorDetailsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllDoctorDetailsFallback")
 @Secured("ROLE_DOCTOR")
     public Response getAllDoctorDetails() {
         List<DoctorSaveDetails> list = repository.findAll();
@@ -536,7 +537,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getVisitHistoryByPatientAndBookingFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientAndBookingFallback")
 @Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatientAndBooking(String patientId, String bookingId) {
         try {
@@ -561,7 +562,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getVisitHistoryByPatientFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientFallback")
 @Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatient(String patientId) {
         try {
@@ -867,8 +868,10 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
                 .status(status)
                 .build();
     }
+    
+    
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getVisitHistoryByPatientAndDoctorFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientAndDoctorFallback")
 @Secured("ROLE_DOCTOR")
     public Response getVisitHistoryByPatientAndDoctor(String patientId, String doctorId) {
         try {
@@ -923,13 +926,13 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
 
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getInProgressDetailsFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getInProgressDetailsFallback")
 @Secured("ROLE_DOCTOR")
     public Response getInProgressDetails(String patientId, String bookingId) {
         try {
             // 1. Fetch booking from Booking Service
             ResponseEntity<ResponseStructure<BookingResponse>> bookingResponseEntity =
-                    bookingFeignClient.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
+                    bookingFeignClient.getBookedService(bookingId);
 
             if (bookingResponseEntity == null || bookingResponseEntity.getBody() == null) {
                 return buildResponse(false, null,
@@ -976,7 +979,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorDetailsByBookingIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByBookingIdFallback")
 @Secured("ROLE_DOCTOR")
     public Response getDoctorDetailsByBookingId(String bookingId) {
     	try {   		
@@ -994,7 +997,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     }
     
     @Override
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorDetailsByCustomerIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByCustomerIdFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
     public Response getDoctorDetailsByCustomerId(String customerId) {
     	try {
@@ -1028,7 +1031,7 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
     
     @Override
     @Secured("ROLE_DOCTOR")
-    @RateLimiter(name = "doctorSaveDetailsService", fallbackMethod = "getDoctorLatestDetailsByCustomerIdFallback")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorLatestDetailsByCustomerIdFallback")
     public DoctorSaveDetailsDTO getDoctorLatestDetailsByCustomerId(String customerId) {
     	try {
        List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);

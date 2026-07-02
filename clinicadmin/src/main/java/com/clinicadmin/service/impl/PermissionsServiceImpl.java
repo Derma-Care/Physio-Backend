@@ -58,7 +58,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     // ✅ Get permissions for specific user
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByClinicBranchAndUserFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPermissionsByClinicBranchAndUserFallback")
     public ResponseStructure<PermissionsDTO> getPermissionsByClinicBranchAndUser(String clinicId, String branchId, String userId) {
 
         // 🔹 SecurityStaff
@@ -123,7 +123,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     // ✅ Update permissions
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "permissionsService", fallbackMethod = "updatePermissionsByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePermissionsByIdFallback")
     public ResponseEntity<ResponseStructure<PermissionsDTO>> updatePermissionsById(String userId, PermissionsDTO dto) {
 
         // WardBoy
@@ -191,7 +191,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     // ✅ Get all permissions by Clinic ID
     @Override
-    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByClinicIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPermissionsByClinicIdFallback")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicId(String clinicId) {
         List<PermissionsDTO> resultList = new ArrayList<>();
 
@@ -233,7 +233,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     // ✅ Get all permissions by Clinic ID and Branch ID
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByClinicAndBranchFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPermissionsByClinicAndBranchFallback")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByClinicAndBranch(String clinicId, String branchId) {
         List<PermissionsDTO> resultList = new ArrayList<>();
 
@@ -280,7 +280,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByUserIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPermissionsByUserIdFallback")
     public ResponseStructure<PermissionsDTO> getPermissionsByUserId(String userId) {
         return ResponseStructure.buildResponse(null,
                 "Feature not implemented yet: getPermissionsByUserId", HttpStatus.NOT_IMPLEMENTED, 501);
@@ -288,7 +288,7 @@ public class PermissionsServiceImpl implements PermissionsService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "permissionsService", fallbackMethod = "getPermissionsByBranchIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPermissionsByBranchIdFallback")
     public ResponseStructure<List<PermissionsDTO>> getPermissionsByBranchId(String branchId) {
         return ResponseStructure.buildResponse(null,
                 "Feature not implemented yet: getPermissionsByBranchId", HttpStatus.NOT_IMPLEMENTED, 501);
@@ -296,7 +296,7 @@ public class PermissionsServiceImpl implements PermissionsService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "permissionsService", fallbackMethod = "getDefaultAdminPermissionsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDefaultAdminPermissionsFallback")
     public ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions() {
         try {
             // Call Admin Service using Feign

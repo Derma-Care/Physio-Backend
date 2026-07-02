@@ -36,6 +36,7 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 @Service
 @RequiredArgsConstructor
 public class SecurityStaffServiceImpl implements SecurityStaffService {
+	
 	private static final Logger log = LoggerFactory.getLogger(SecurityStaffServiceImpl.class);
 
 	@Autowired
@@ -59,7 +60,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "securityStaffService", fallbackMethod = "addSecurityStaffFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "addSecurityStaffFallback")
 	public ResponseStructure<SecurityStaffDTO> addSecurityStaff(SecurityStaffDTO dto) {
 		log.info("Add SecurityStaff request | contactNumber={}, branchId={}",
 				dto.getContactNumber(), dto.getBranchId());
@@ -113,7 +114,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "securityStaffService", fallbackMethod = "updateSecurityStaffFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateSecurityStaffFallback")
 	public ResponseStructure<SecurityStaff> updateSecurityStaff(SecurityStaff staff) {
 		log.info("Update SecurityStaff request | securityStaffId={}", staff.getSecurityStaffId());
 
@@ -180,7 +181,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "securityStaffService", fallbackMethod = "getSecurityStaffByIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getSecurityStaffByIdFallback")
 	public ResponseStructure<SecurityStaffDTO> getSecurityStaffById(String staffId) {
 		log.info("Fetching SecurityStaff by ID | securityStaffId={}", staffId);
 
@@ -205,7 +206,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "securityStaffService", fallbackMethod = "getAllByClinicIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllByClinicIdFallback")
 	public ResponseStructure<List<SecurityStaffDTO>> getAllByClinicId(String clinicId) {
 		log.info("Fetching all SecurityStaff by clinicId={}", clinicId);
 		List<SecurityStaff> staffList = repository.findByClinicId(clinicId);
@@ -221,7 +222,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "securityStaffService", fallbackMethod = "deleteSecurityStaffFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteSecurityStaffFallback")
 	public ResponseStructure<String> deleteSecurityStaff(String staffId) {
 		log.info("Delete SecurityStaff request | securityStaffId={}", staffId);
 
@@ -260,7 +261,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "securityStaffService", fallbackMethod = "getSecurityStaffByClinicIdAndBranchIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getSecurityStaffByClinicIdAndBranchIdFallback")
 	public ResponseStructure<List<SecurityStaffDTO>> getSecurityStaffByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching SecurityStaff | clinicId={}, branchId={}", clinicId, branchId);
 

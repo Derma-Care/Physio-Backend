@@ -1,36 +1,28 @@
  package com.AdminService.service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import org.bson.types.ObjectId;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
-import com.AdminService.dto.AdminHelper;
 //import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
-import com.AdminService.dto.CustomerDTO;
 import com.AdminService.dto.DoctorsDTO;
 import com.AdminService.dto.DoctortInfo;
 import com.AdminService.dto.LabTestDTO;
@@ -40,21 +32,16 @@ import com.AdminService.dto.ProbableDiagnosisDTO;
 //import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.TreatmentDTO;
 import com.AdminService.dto.UpdateClinicCredentials;
-import com.AdminService.entity.Admin;
 import com.AdminService.entity.Branch;
 import com.AdminService.entity.BranchCounter;
-import com.AdminService.entity.BranchCredentials;
 import com.AdminService.entity.Clinic;
 import com.AdminService.entity.ClinicCredentials;
 import com.AdminService.entity.Counter;
-import com.AdminService.feign.BookingFeign;
-import com.AdminService.feign.ClinicAdminFeign;
-import com.AdminService.feign.CustomerFeign;
-import com.AdminService.repository.AdminRepository;
 import com.AdminService.repository.BranchCredentialsRepository;
 import com.AdminService.repository.BranchRepository;
 import com.AdminService.repository.ClinicCredentialsRepository;
 import com.AdminService.repository.ClinicRep;
+import com.AdminService.util.ClinicAdminFeignImpl;
 import com.AdminService.util.ExtractFeignMessage;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.PermissionsUtil;
@@ -63,7 +50,7 @@ import com.AdminService.util.ResponseStructure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
-import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -85,7 +72,7 @@ public class AdminServiceImpl implements AdminService {
 //	private CustomerFeign customerFeign;
 
 	@Autowired
-	private  ClinicAdminFeign clinicAdminFeign;
+	private  ClinicAdminFeignImpl clinicAdminFeign;
 
 	
 	@Autowired

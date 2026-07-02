@@ -63,7 +63,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	private PaymentRepository paymentRepository;
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "createFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
 @Secured("ROLE_DOCTOR")
 	public Response create(PhysiotherapyRecordTemplateDTO dto) {
 
@@ -257,7 +257,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getTemplatesByClinicIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplatesByClinicIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getTemplatesByClinicId(String clinicId) {
 
@@ -297,7 +297,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getTemplateByClinicIdAndTemplateIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplateByClinicIdAndTemplateIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getTemplateByClinicIdAndTemplateId(String clinicId, String templateRecordId) {
 
@@ -325,7 +325,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 
 	// ✅ GET BY ID
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 
@@ -385,7 +385,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "updateFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
 @Secured("ROLE_DOCTOR")
 	public Response update(String id, PhysiotherapyRecordTemplateDTO dto) {
 
@@ -462,7 +462,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 
 	// ✅ DELETE
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "deleteFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
 @Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 
@@ -557,7 +557,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getByMultipleFieldsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByMultipleFieldsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getByMultipleFields(String clinicId, String branchId, String bookingId, String templateRecordId) {
 
@@ -591,7 +591,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String bookingId) {
 
@@ -657,7 +657,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	// ===================== GET SESSIONS BY DATE =====================
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getProgramAndTherapyInfoFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getProgramAndTherapyInfoFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getProgramAndTherapyInfo(String clinicId, String branchId, String patientId, String bookingId) {
 		Response response = new Response();
@@ -818,7 +818,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getCalculationsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getCalculationsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String bookingId) {
 		try {
@@ -1090,7 +1090,7 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@RateLimiter(
-    name = "physiotherapyRecordTemplateService",
+    name = "physiotherapydoctorService",
     fallbackMethod = "getByClinicBranchAndBookingFallback"
 )
 @Override
@@ -1133,7 +1133,7 @@ public Response getByClinicBranchAndBooking(
 }
 
 @RateLimiter(
-    name = "physiotherapyRecordTemplateService",
+    name = "physiotherapydoctorService",
     fallbackMethod = "getSessionsByBookingIdAndDateFallback"
 )
 @Secured("ROLE_DOCTOR")

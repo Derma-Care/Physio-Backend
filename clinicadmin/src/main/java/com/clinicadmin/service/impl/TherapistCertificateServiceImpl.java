@@ -30,7 +30,7 @@ public class TherapistCertificateServiceImpl
     // CREATE
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "createCertificateFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createCertificateFallback")
     public Response createCertificate(
             TherapistCertificateDTO dto) {
 
@@ -54,7 +54,7 @@ public class TherapistCertificateServiceImpl
     // GET ALL
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getAllCertificatesFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllCertificatesFallback")
     public Response getAllCertificates() {
 
         Response response = new Response();
@@ -76,7 +76,7 @@ public class TherapistCertificateServiceImpl
     // GET BY ID
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getCertificateByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCertificateByIdFallback")
     public Response getCertificateById(String id) {
 
         Response response = new Response();
@@ -105,7 +105,7 @@ public class TherapistCertificateServiceImpl
     // GET BY CLINIC & BRANCH
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getCertificatesByClinicAndBranchFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCertificatesByClinicAndBranchFallback")
     public Response getCertificatesByClinicAndBranch(
             String clinicId,
             String branchId) {
@@ -130,7 +130,7 @@ public class TherapistCertificateServiceImpl
     // GET BY CLINIC + BRANCH + THERAPIST
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "getCertificatesByClinicBranchAndTherapistFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCertificatesByClinicBranchAndTherapistFallback")
     public Response getCertificatesByClinicBranchAndTherapist(
             String clinicId,
             String branchId,
@@ -160,7 +160,7 @@ public class TherapistCertificateServiceImpl
     // UPDATE
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "updateCertificateFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateCertificateFallback")
     public Response updateCertificate(
             String id,
             TherapistCertificateDTO dto) {
@@ -210,7 +210,7 @@ public class TherapistCertificateServiceImpl
     // DELETE
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistCertificateService", fallbackMethod = "deleteCertificateFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteCertificateFallback")
     public Response deleteCertificate(String id) {
 
         Response response = new Response();

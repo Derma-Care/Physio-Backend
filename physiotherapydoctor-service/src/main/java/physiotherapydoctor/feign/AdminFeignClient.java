@@ -14,11 +14,10 @@ import physiotherapydoctor.dto.ResponseStructure;
 public interface AdminFeignClient {
 
 	@GetMapping("/admin/getClinicById/{clinicId}")
-
 	ResponseEntity<Response> getClinicById(@RequestHeader("Authorization") String token,@PathVariable("clinicId") String clinicId);
 
 	 @GetMapping("/admin/getBranchById/{branchId}")
-	    ResponseEntity<ResponseStructure<BranchDTO>> getBranchById(
+	    ResponseEntity<ResponseStructure<BranchDTO>> getBranchById(@RequestHeader("Authorization") String token,
 	            @PathVariable("branchId") String branchId);
 
 }

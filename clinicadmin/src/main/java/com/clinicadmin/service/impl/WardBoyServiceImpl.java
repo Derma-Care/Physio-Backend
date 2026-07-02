@@ -33,6 +33,7 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 @Service
 @RequiredArgsConstructor
 public class WardBoyServiceImpl implements WardBoyService {
+	
 	private static final Logger log = LoggerFactory.getLogger(WardBoyServiceImpl.class);
 
 	@Autowired
@@ -63,7 +64,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "addWardBoyFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "addWardBoyFallback")
 	public ResponseStructure<WardBoyDTO> addWardBoy(WardBoyDTO dto) {
 		log.info("Add WardBoy started | clinicId={}, branchId={}, contact={}",
 				dto.getClinicId(), dto.getBranchId(), dto.getContactNumber());
@@ -117,7 +118,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoyByIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getWardBoyByIdFallback")
 	public ResponseStructure<WardBoyDTO> getWardBoyById(String id) {
 		log.info("Fetching WardBoy by ID | id={}", id);
 
@@ -135,7 +136,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "getAllWardBoysFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllWardBoysFallback")
 	public ResponseStructure<List<WardBoyDTO>> getAllWardBoys() {
 		log.info("Fetching all WardBoys");
 
@@ -149,7 +150,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "updateWardBoyFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateWardBoyFallback")
 	public ResponseStructure<WardBoyDTO> updateWardBoy(String id, WardBoyDTO dto) {
 		log.info("Updating WardBoy | id={}", id);
 
@@ -288,7 +289,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "deleteWardBoyFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteWardBoyFallback")
 	public ResponseStructure<Void> deleteWardBoy(String id) {
 		log.info("Delete WardBoy request received | id={}", id);
 
@@ -343,7 +344,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoysByClinicIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getWardBoysByClinicIdFallback")
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicId(String clinicId) {
 		log.info("Fetching WardBoys by clinicId={}", clinicId);
 
@@ -357,7 +358,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoyByIdAndClinicIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getWardBoyByIdAndClinicIdFallback")
 	public ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicId(String wardBoyId, String clinicId) {
 		log.info("Fetching WardBoy | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
 
@@ -392,7 +393,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-	@RateLimiter(name = "wardBoyService", fallbackMethod = "getWardBoysByClinicIdAndBranchIdFallback")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getWardBoysByClinicIdAndBranchIdFallback")
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching WardBoys | clinicId={}, branchId={}", clinicId, branchId);
 

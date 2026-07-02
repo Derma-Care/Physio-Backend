@@ -97,7 +97,7 @@ public class FollowUpWhatsAppService {
 
             try {
                 ResponseEntity<ResponseStructure<BranchDTO>> branchRes =
-                		adminFeignClient.getBranchById(booking.getBranchId());
+                		adminFeignClient.getBranchById(keyCloakTokenStore.getAccess_token(),booking.getBranchId());
 
                 if (branchRes != null
                         && branchRes.getBody() != null

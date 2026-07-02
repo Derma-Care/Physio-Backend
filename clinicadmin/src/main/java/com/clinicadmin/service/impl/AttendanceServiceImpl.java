@@ -30,11 +30,11 @@ import com.clinicadmin.entity.Attendance;
 import com.clinicadmin.entity.DoctorLoginCredentials;
 import com.clinicadmin.entity.TherapistAttendance;
 import com.clinicadmin.entity.TimeLocation;
-import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AttendanceRepository;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.TherapistAttendanceRepository;
 import com.clinicadmin.service.AttendanceService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository repo;
     
-    private final AdminServiceClient adminServiceClient;
+    private final FeignImpl adminServiceClient;
     
     private final TherapistAttendanceRepository therapistAttendanceRepo;
     
@@ -61,7 +61,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response save(AttendanceDTO dto) {
 
         Response response = new Response();
@@ -227,7 +227,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response updateActivity(AttendanceDTO dto) {
 
         Response response = new Response();
@@ -483,7 +483,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
 
     public Response getDaily(String userId, String date) {
 
@@ -644,7 +644,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response getMonthlyReport(String userId, String month) {
 
         Response response = new Response();
@@ -997,11 +997,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     	
       
             // 🔥 Get complete clinic details
-            ResponseEntity<Response> responseEntity =
+            Response responseEntity =
                     adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),clinicId);
             if (responseEntity == null
-                    || responseEntity.getBody() == null
-                    || responseEntity.getBody().getData() == null) {
+                    || responseEntity == null
+                    || responseEntity.getData() == null) {
                 throw new RuntimeException("Clinic location not found");
             }
             
@@ -1020,7 +1020,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             // 🔥 Convert clinic data to Map
             Map<String, Object> clinic =
-                    (Map<String, Object>) responseEntity.getBody().getData();
+                    (Map<String, Object>) responseEntity.getData();
 
             // 🔥 Get branches array from clinic
             List<Map<String, Object>> branches =
@@ -1132,7 +1132,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response getDailyByClinicAndBranch(
             String clinicId,
             String branchId,
@@ -1321,22 +1321,22 @@ public class AttendanceServiceImpl implements AttendanceService {
       // =========================================================
       try {
 
-          ResponseEntity<Response> branchResponse =
+          Response branchResponse =
                   adminServiceClient.getAllBranches(keyCloakTokenStore.getAccess_token());
 
-          if (branchResponse.getBody() != null
-                  && branchResponse.getBody().getData() != null) {
+          if (branchResponse != null
+                  && branchResponse.getData() != null) {
 
               // ✅ BUILD clinicId → clinicName MAP from getAllClinics()
               Map<String, String> clinicNameMap = new HashMap<>();
               try {
-                  ResponseEntity<Response> clinicRes =
+                  Response clinicRes =
                           adminServiceClient.getAllClinics(keyCloakTokenStore.getAccess_token());
 
-                  if (clinicRes.getBody() != null
-                          && clinicRes.getBody().getData() != null) {
+                  if (clinicRes != null
+                          && clinicRes.getData() != null) {
                       List<Map<String, Object>> cls =
-                              (List<Map<String, Object>>) clinicRes.getBody().getData();
+                              (List<Map<String, Object>>) clinicRes.getData();
                       for (Map<String, Object> c : cls) {
                           String hId = c.get("hospitalId") != null
                                   ? c.get("hospitalId").toString() : "";
@@ -1351,7 +1351,7 @@ public class AttendanceServiceImpl implements AttendanceService {
               }
 
               List<Map<String, Object>> branches =
-                      (List<Map<String, Object>>) branchResponse.getBody().getData();
+                      (List<Map<String, Object>>) branchResponse.getData();
 
               for (Map<String, Object> branch : branches) {
 
@@ -1884,7 +1884,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "attendanceApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response getMonthlyByClinicAndBranch(
             String clinicId,
             String branchId,

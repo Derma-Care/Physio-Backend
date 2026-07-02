@@ -63,15 +63,4 @@ public interface ClinicAdminFeign {
 	            @PathVariable String clinicId,
 	            @PathVariable String branchId,
 	            @PathVariable String patientId );
-
-
-//	 @PostMapping("/clinic-admin/customers/login")
-//	    public ResponseEntity<Response> login(@RequestBody CustomerLoginDTO dto);
-//	    
-
-	 
-//	//FALLBACK METHODS
-//	
-//		default ResponseEntity<?> clinicAdminServiceFallBack(Exception e){		 
-//		return ResponseEntity.status(503).body(new Response("CLINIC ADMIN SERVICE NOT AVAILABLE",503,false,null));}
 }

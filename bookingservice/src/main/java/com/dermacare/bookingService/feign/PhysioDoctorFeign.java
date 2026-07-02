@@ -19,7 +19,6 @@ public interface PhysioDoctorFeign {
 	public ResponseEntity<List<SessionForBooking>> getPhysioByBookingId(@RequestHeader("Authorization") String token,@PathVariable String bookingId,@PathVariable String date);		
 	
 	 @GetMapping("/api/physiotherapy-doctor/followups/today/booking-ids")
-
 	 public List<String> getTodayFollowUpBookingIds(@RequestHeader("Authorization") String token);
 
 	 @GetMapping("/api/physiotherapy-doctor/prescription/{BookingId}")

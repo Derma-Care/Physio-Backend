@@ -12,17 +12,16 @@ import physiotherapydoctor.dto.ResBody;
 import physiotherapydoctor.feign.NotificationFeign;
 import physiotherapydoctor.service.NotificationService;
 import physiotherapydoctor.util.ExtractFeignMessage;
+import physiotherapydoctor.util.FeignImpl;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
 	@Autowired
-	private NotificationFeign notificationFeign;
+	private FeignImpl notificationFeign;
 
 	public ResponseEntity<ResBody<List<NotificationDTO>>> notificationToDoctor(String hospitalId, String doctorId) {
 		try {
-			// System.out.println(jwtToken);
-			// System.out.println(expireTime);
 			return notificationFeign.notificationtodoctor(hospitalId, doctorId);
 		} catch (FeignException e) {
 			ResBody<List<NotificationDTO>> res = new ResBody<List<NotificationDTO>>(ExtractFeignMessage.clearMessage(e),

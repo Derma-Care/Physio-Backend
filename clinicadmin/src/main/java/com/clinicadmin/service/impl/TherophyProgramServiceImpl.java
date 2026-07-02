@@ -59,7 +59,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "createFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFallback")
     public ResponseEntity<Response> create(TherophyProgramsDTO dto) {
         try {
             TherophyProgramEntity saved = repository.save(mapToEntity(dto));
@@ -86,7 +86,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "getByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdFallback")
     public ResponseEntity<Response> getById(String id) {
         try {
             TherophyProgramEntity entity = repository.findById(id)
@@ -123,7 +123,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "getByclinicAndBranchIdAndIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByclinicAndBranchIdAndIdFallback")
     public ResponseEntity<Response> getByclinicAndBranchIdAndId(String cid,String bid,String id) {
         try {
             TherophyProgramEntity entity = repository.findByClinicIdAndBranchIdAndId(cid, bid, id);
@@ -182,7 +182,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
 
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "getByclinicAndBranchIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByclinicAndBranchIdFallback")
     public ResponseEntity<Response> getByclinicAndBranchId(String cid, String bid) {
 
         try {
@@ -317,7 +317,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "getAllFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFallback")
     public ResponseEntity<Response> getAll() {
         try {
             List<TherophyProgramsDTO> list = repository.findAll()
@@ -347,7 +347,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "updateFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFallback")
     public ResponseEntity<Response> update(String id, TherophyProgramsDTO dto) {
         try {
             TherophyProgramEntity existing = repository.findById(id)
@@ -391,7 +391,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therophyProgramService", fallbackMethod = "deleteFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFallback")
     public ResponseEntity<Response> delete(String id) {
         try {
             if (!repository.existsById(id)) {

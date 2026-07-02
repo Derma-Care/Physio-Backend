@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.AdminService.dto.DoctorSlotDTO;
 import com.AdminService.dto.UpdateSlotRequestDTO;
-import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.ClinicAdminFeignImpl;
 import com.AdminService.util.ExtractFeignMessage;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.Response;
@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DoctorSlotServiceImpl implements DoctorSlotService {
 
     @Autowired
-    private ClinicAdminFeign clinicAdminFeign;
+    private ClinicAdminFeignImpl clinicAdminFeign;
     
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;

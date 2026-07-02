@@ -49,17 +49,42 @@ eureka:
 # ===============================
 # Resilience4j
 # ===============================
+
 resilience4j:
   circuitbreaker:
     instances:
-      circuitBreaker:
-        failure-rate-threshold: 80
-        sliding-window-size: 10
+      customerService:
+        register-health-indicator: true
         sliding-window-type: COUNT_BASED
-        minimum-number-of-calls: 5
         automatic-transition-from-open-to-half-open-enabled: true
-        permitted-number-of-calls-in-half-open-state: 4
-        wait-duration-in-open-state: 1m
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+                - java.lang.Exception
+                - feign.FeignException
+        ignore-exceptions:
+                - java.lang.IllegalArgumentException
+
+  retry:
+   instances:
+    customerService:
+    max-attempts: 3
+    wait-duration: 2s
+
+  timelimiter:
+    instances:
+      customerService:
+        timeout-duration: 60s
+
+  ratelimiter:
+    instances:
+     customerService:
+      limit-for-period: 50
+      limit-refresh-period: 1m
+      timeout-duration: 1s
 
 # ===============================
 # Actuator
@@ -110,5 +135,10 @@ jwt:
 
 refresh-token:
  secret-key: 59M85FqbFUldVO+GgMa5gHcxW3bvgUEeI60+tOLAjG0=
-
-
+ 
+# google:
+#   client:
+#     id: ${GOOGLE_CLIENT_ID}
+#     secret: ${GOOGLE_CLIENT_SECRET}
+#
+#

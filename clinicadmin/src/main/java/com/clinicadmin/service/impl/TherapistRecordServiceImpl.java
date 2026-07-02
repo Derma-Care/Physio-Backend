@@ -22,11 +22,11 @@ import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistRecordDTO;
 import com.clinicadmin.dto.TherapistRecordRequest;
 import com.clinicadmin.entity.TherapistRecord;
-import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.service.FeedbackDetailsServcie;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistRecordService;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -38,7 +38,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     private TherapistRecordRepository repository;
 
     @Autowired
-    private PhysiotherapyFeignClient physiotherapyFeignClient;
+    private FeignImpl physiotherapyFeignClient;
 
     @Autowired
     private S3Service s3Service;
@@ -51,7 +51,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistRecordService", fallbackMethod = "saveRecordFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "saveRecordFallback")
     public ResponseStructure<TherapistRecordDTO> saveRecord(TherapistRecordDTO dto) {
 
         if (dto == null) {
@@ -127,7 +127,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     // ================= GET =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getByIdsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdsFallback")
     public ResponseStructure<TherapistRecordDTO> getByIds(
             String clinicId, String branchId, String therapistRecordId,String sessionId) {
 
@@ -262,7 +262,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getByPatientIdAndBookingIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByPatientIdAndBookingIdFallback")
     public ResponseStructure<List<TherapistRecordDTO>> getByPatientIdAndBookingId(
             String patientId,
             String bookingId) {
@@ -289,7 +289,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
  // ================= GET BY SESSION =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getBySessionFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBySessionFallback")
     public ResponseStructure<TherapistRecordDTO> getBySession(
             String clinicId,
             String branchId,
@@ -372,7 +372,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     }
     
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getTherapistSessionDetailsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapistSessionDetailsFallback")
     public Response getTherapistSessionDetails(
             TherapistRecordRequest request) {
 
@@ -431,7 +431,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapistRecordService", fallbackMethod = "getCompletedTherapyRecordFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCompletedTherapyRecordFallback")
     public ResponseStructure<TherapistRecordDTO> getCompletedTherapyRecord(
             String clinicId,
             String branchId,

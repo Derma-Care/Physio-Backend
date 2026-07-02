@@ -18,10 +18,10 @@ import com.clinicadmin.dto.ServiceInfo;
 import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.feignclient.AdminServiceClient;
-import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.service.FeedbackDetailsServcie;
+import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.clinicadmin.service.PushNotificationService;
 import feign.FeignException;
@@ -34,7 +34,7 @@ import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
     @Autowired
-    private PhysiotherapyFeignClient physiotherapyDoctorFeign;
+    private FeignImpl physiotherapyDoctorFeign;
     
     @Autowired
     private FeedbackDetailsRepository repository;
@@ -856,7 +856,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
    @Override
 @RateLimiter(
-        name = "feedbackService",
+        name = "clinicAdminService",
         fallbackMethod = "getAllFeedbacksByClinicIdAndBranchIdFallback")
 public Response getAllFeedbacksByClinicIdAndBranchId(
         String clinicId,
@@ -892,112 +892,7 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
     return response;
 }
 
-    
-//    @Override
-//    public Response getDoctorFeedbackSummary(
-//            String clinicId,
-//            String doctorId) {
-//
-//        Response response = new Response();
-//
-//        try {
-//
-//            List<FeedbackDetails> feedbacks =
-//                    repository.findByClinicIdAndDoctorId(
-//                            clinicId,
-//                            doctorId);
-//
-//            if (feedbacks.isEmpty()) {
-//
-//                response.setSuccess(false);
-//                response.setStatus(404);
-//                response.setMessage("No feedback found");
-//                return response;
-//            }
-//
-//            DoctorFeedbackSummaryDTO dto =
-//                    new DoctorFeedbackSummaryDTO();
-//
-//            FeedbackDetails first = feedbacks.get(0);
-//
-//            dto.setClinicId(clinicId);
-//            dto.setDoctorId(first.getDoctorId());
-//            dto.setDoctorName(first.getDoctorName());
-//
-//            // Total persons given rating
-//            long totalRatedPersons =
-//                    feedbacks.stream()
-//                            .filter(f ->
-//                                    f.getRating() != null
-//                                    && !f.getRating().trim().isEmpty())
-//                            .count();
-//
-//            dto.setTotalPatientsRated(totalRatedPersons);
-//
-//            // Average Rating
-//            double avgRating =
-//                    feedbacks.stream()
-//                            .filter(f ->
-//                                    f.getRating() != null
-//                                    && !f.getRating().trim().isEmpty())
-//                            .mapToDouble(f ->
-//                                    Double.parseDouble(f.getRating()))
-//                            .average()
-//                            .orElse(0.0);
-//
-//            dto.setAverageRating(
-//                    Math.round(avgRating * 100.0) / 100.0);
-//
-//            // Patients who gave ratings
-//            List<PatientRatingDTO> patients =
-//                    feedbacks.stream()
-//                            .filter(f ->
-//                                    f.getRating() != null
-//                                    && !f.getRating().trim().isEmpty())
-//                            .map(f -> {
-//                                PatientRatingDTO patient =
-//                                        new PatientRatingDTO();
-//
-//                                patient.setPatientId(
-//                                        f.getPatientId());
-//
-//                                patient.setPatientName(
-//                                        f.getPatientName());
-//
-//                                patient.setMobileNumber(
-//                                        f.getMobileNumber());
-//
-//                                patient.setRating(
-//                                        f.getRating());
-//
-//                                patient.setWhatWentWell(
-//                                        f.getWhatWentWell());
-//
-//                                patient.setImprovements(
-//                                        f.getImprovements());
-//
-//                                return patient;
-//                            })
-//                            .toList();
-//
-//            dto.setPatients(patients);
-//
-//            response.setSuccess(true);
-//            response.setStatus(200);
-//            response.setMessage(
-//                    "Doctor feedback summary fetched successfully");
-//            response.setData(dto);
-//
-//        } catch (Exception e) {
-//
-//            response.setSuccess(false);
-//            response.setStatus(500);
-//            response.setMessage(e.getMessage());
-//            response.setData(null);
-//        }
-//
-//        return response;
-//    }
+   
     
     private void triggerSessionNotificationIfNeeded(
             FeedbackDetails feedback) {
@@ -1107,6 +1002,9 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
     }
 
     @Override
+    @RateLimiter(
+            name = "clinicAdminService",
+            fallbackMethod = "processFeedbackNotificationFallback")
     public void processFeedbackNotification(
             String clinicId,
             String branchId) {
@@ -1290,6 +1188,7 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
             e.printStackTrace();
         }
     }
+   
     
     private void checkAndSendNotification(
             FeedbackDetailsDTO data,
@@ -1360,6 +1259,11 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
 
             repository.save(feedback);
         }
+    }
+    
+    public void processFeedbackNotificationFallback(  String clinicId,
+            String branchId, Exception ex) {
+      throw new RuntimeException(ex);
     }
 }
     

@@ -69,6 +69,7 @@ import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PhysiotherapyService;
 import physiotherapydoctor.service.S3Service;
 import physiotherapydoctor.util.ExtractFeignMessage;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 @Service
@@ -79,10 +80,10 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	private PhysiotherapydoctorRespository repository;
 
 	@Autowired
-	private BookingFeignClient bookingFeign;
+	private FeignImpl bookingFeign;
 
 	@Autowired
-	private ClinicAdminFeign clinicAdminFeign;
+	private FeignImpl clinicAdminFeign;
 
 	@Autowired
 	private PaymentRepository paymentRepository;
@@ -98,7 +99,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "createFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
 @Secured("ROLE_DOCTOR")
 	public Response create(PhysiotherapyRecordDTO dto) {
 
@@ -132,7 +133,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        try {
 
 	            ResponseEntity<ResponseStructure<BookingResponse>> bookingRes =
-	                    bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),dto.getBookingId());
+	                    bookingFeign.getBookedService(dto.getBookingId());
 
 	            if (bookingRes != null
 	                    && bookingRes.getBody() != null
@@ -164,7 +165,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	            ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
 
-	                    bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),dto.getBookingId());
+	                    bookingFeign.getBookedService(dto.getBookingId());
 
 
 	            if (bookingResponse != null && bookingResponse.getBody().getData() != null) {
@@ -217,7 +218,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	                    "Updating Clinic Admin Booking. Free FollowUps Left : "
 	                            + updatedFreeLeft);
 
-	            clinicAdminFeign.updateAppointment(keyCloakTokenStore.getAccess_token(),updateRequest);
+	            clinicAdminFeign.updateAppointment(updateRequest);
 
 	        } catch (Exception e) {
 	            System.out.println("Clinic Admin Booking update failed : " + e.getMessage());
@@ -240,7 +241,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	                    "Updating Booking Service. Free FollowUps Left : "
 	                            + updatedFreeLeft);
 
-	            bookingFeign.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),updateRequest);
+	            bookingFeign.updateAppointmentBasedOnBookingId(updateRequest);
 
 	        } catch (Exception e) {
 	            System.out.println("Booking Service update failed : " + e.getMessage());
@@ -429,7 +430,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ✅ GET BY ID
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 
@@ -467,7 +468,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByBookingIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByBookingIdFallback")
 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
 	public String getByBookingId(String id) {
 
@@ -489,7 +490,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ✅ GET ALL
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getAllFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getAll() {
 
@@ -514,7 +515,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "updateFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
 @Secured("ROLE_DOCTOR")
 	public Response update(String id, PhysiotherapyRecordDTO dto) {
 
@@ -598,7 +599,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				updateRequest.setBookingId(existing.getBookingId());
 				updateRequest.setStatus("in-progress");
 
-				bookingFeign.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),updateRequest);
+				bookingFeign.updateAppointmentBasedOnBookingId(updateRequest);
 				existing.setUptoInvestigation(false);
 
 			} catch (Exception e) {
@@ -623,7 +624,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ✅ DELETE
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "deleteFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
 @Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 
@@ -749,7 +750,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByMultipleFieldsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByMultipleFieldsFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
 	public Response getByMultipleFields(String clinicId, String branchId, String patientId, String bookingId,
 	        String therapistRecordId) {
@@ -812,7 +813,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 	
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String patientId,
 			String bookingId) {
@@ -851,7 +852,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getAssignedPatientsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAssignedPatientsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
 
@@ -1019,7 +1020,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	// ===================== GET SESSIONS BY DATE =====================
 
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getProgramAndTherapyInfoFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getProgramAndTherapyInfoFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getProgramAndTherapyInfo(String clinicId, String branchId, String patientId, String bookingId) {
 		Response response = new Response();
@@ -1182,7 +1183,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getCalculationsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getCalculationsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId,
 			String bookingId) {
@@ -1465,7 +1466,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getByClinicBranchAndBookingFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByClinicBranchAndBookingFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getByClinicBranchAndBooking(String clinicId, String branchId, String bookingId) {
 
@@ -1507,8 +1508,11 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		return response;
 	}
-
+	
+	
 	@Override
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getPatientHistoryFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getPatientHistory(String patientId) {
 
 		Response response = new Response();
@@ -1606,7 +1610,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getSessionsByBookingIdAndDateFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getSessionsByBookingIdAndDateFallback")
 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})	
 	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String date) {
 
@@ -1690,12 +1694,12 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getInProgressBookingsByIdsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getInProgressBookingsByIdsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getInProgressBookingsByIds(String patientId, String bookingId) {
 		Response response = new Response();
 		try {
-			return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(keyCloakTokenStore.getAccess_token(),patientId, bookingId);
+			return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
 		} catch (FeignException e) {
 			response.setStatus(e.status());
 			response.setMessage(e.getMessage());
@@ -1705,7 +1709,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getVisitHistoryFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getVisitHistory(String patientId, String bookingId) {
 
@@ -1771,7 +1775,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getFirstVisitHistoryFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getFirstVisitHistoryFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getFirstVisitHistory(String doctorId, String patientId, String bookingId, String clinicId,
 			String branchId) {
@@ -1844,7 +1848,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		return response;
 	}
 
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getVisitHistoryByDoctorFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByDoctorFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getVisitHistoryByDoctor(String doctorId, String patientId, String bookingId) {
 
@@ -1950,12 +1954,12 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	@RateLimiter(name = "physiotherapyService", fallbackMethod = "getTodaysAppointmentsFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTodaysAppointmentsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId,int page) {
 		Response res = new Response();
 		try {
-			return bookingFeign.getTodayDoctorAppointmentsByDoctorId(keyCloakTokenStore.getAccess_token(),clinicId, doctorId,page,10);
+			return bookingFeign.getTodayDoctorAppointmentsByDoctorId(clinicId, doctorId,page,10);
 		} catch (FeignException ex) {
 			res.setStatus(ex.status());
 			res.setMessage(ExtractFeignMessage.clearMessage(ex));
@@ -2001,7 +2005,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	 @RateLimiter(name = "physiotherapyService", fallbackMethod = "getTodayFollowUpBookingIdsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTodayFollowUpBookingIdsFallback")
 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
 	public List<String> getTodayFollowUpBookingIds() {
 
@@ -2017,7 +2021,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	@RateLimiter(name = "physiotherapyService", fallbackMethod = "changePasswordFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "changePasswordFallback")
 @Secured("ROLE_DOCTOR")
 	public Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO) {
 		Response validationResponse = validateChangePasswordRequest(username, updateDTO);
@@ -2027,7 +2031,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		try {
 
-			return clinicAdminFeign.changePassword(keyCloakTokenStore.getAccess_token(),username, updateDTO);
+			return clinicAdminFeign.changePassword(username, updateDTO);
 
 		} catch (Exception ex) {
 
@@ -2037,7 +2041,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	@RateLimiter(name = "physiotherapyService", fallbackMethod = "updateDoctorAvailabilityFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorAvailabilityFallback")
 @Secured("ROLE_DOCTOR")
 	public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO) {
 		if (doctorId == null || doctorId.isBlank()) {
@@ -2045,7 +2049,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		} else {
 			DoctorsDTO dto = new DoctorsDTO();
 			dto.setDoctorAvailabilityStatus(availabilityDTO.getDoctorAvailabilityStatus());
-			ResponseEntity<Response> res = clinicAdminFeign.updateDoctorById(keyCloakTokenStore.getAccess_token(),doctorId, dto);
+			ResponseEntity<Response> res = clinicAdminFeign.updateDoctorById(doctorId, dto);
 			int status = res.getBody().getStatus();
 			if (status == 200) {
 				return Response.builder().success(true).status(200).message("Doctor status updated").build();
@@ -2126,13 +2130,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	@RateLimiter(name = "physiotherapyService", fallbackMethod = "getDoctorAppointmentsonStatusFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorAppointmentsonStatusFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId, String branchId, String doctorId,
 			String status,int page) {
 		Response res = new Response();
 		try {
-			return bookingFeign.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(keyCloakTokenStore.getAccess_token(),clinicId, branchId, doctorId, status,page,10);
+			return bookingFeign.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, branchId, doctorId, status,page,10);
 		} catch (FeignException ex) {
 			res.setStatus(ex.status());
 			res.setMessage(ExtractFeignMessage.clearMessage(ex));
@@ -2141,7 +2145,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	@RateLimiter(name = "physiotherapyService", fallbackMethod = "getInvestigationsFallback")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getInvestigationsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getInvestigations(String bookingId, String patientId) {
 
@@ -2281,5 +2285,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
     public Response getInvestigationsFallback(String bookingId, String patientId, Exception ex) {
         return buildRateLimitResponse(ex);
     }
-
+    
+    public Response getPatientHistoryFallback(String patientId, Exception ex) {
+        return buildRateLimitResponse(ex);
+    }
+    ///getPatientHistory
 }

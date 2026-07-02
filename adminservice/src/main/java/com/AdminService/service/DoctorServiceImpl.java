@@ -1,4 +1,5 @@
 package com.AdminService.service;
+
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -6,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import com.AdminService.dto.DoctorsDTO;
-import com.AdminService.feign.ClinicAdminFeign;
+import com.AdminService.util.ClinicAdminFeignImpl;
 import com.AdminService.util.KeyCloakTokenStore;
 import com.AdminService.util.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +26,7 @@ public class DoctorServiceImpl implements DoctorService {
 	 private KeyCloakTokenStore keyCloakTokenStore;
 	    
 
-    private final ClinicAdminFeign clinicAdminFeign;
+    private final ClinicAdminFeignImpl clinicAdminFeign;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override

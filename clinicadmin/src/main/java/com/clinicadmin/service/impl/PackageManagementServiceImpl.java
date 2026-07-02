@@ -44,7 +44,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     // ✅ CREATE
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageManagementService", fallbackMethod = "createPackageFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createPackageFallback")
     public Response createPackage(PackageManagementDTO dto) {
 
         Response response = new Response();
@@ -78,7 +78,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageManagementService", fallbackMethod = "getByClinicAndBranchFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicAndBranchFallback")
     public Response getByClinicAndBranch(String clinicId, String branchId) {
 
         Response response = new Response();
@@ -134,7 +134,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     // ✅ GET by clinicId + branchId + packageId
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageManagementService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
     public Response getByClinicBranchAndPackageId(String clinicId, String branchId, String packageId) {
 
         Response response = new Response();
@@ -171,7 +171,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageManagementService", fallbackMethod = "updatePackageFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePackageFallback")
     public Response updatePackage(String packageId, PackageManagementDTO dto) {
 
         Response response = new Response();
@@ -213,7 +213,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     // ✅ DELETE
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageManagementService", fallbackMethod = "deletePackageFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deletePackageFallback")
     public Response deletePackage(String packageId) {
 
         Response response = new Response();
@@ -481,7 +481,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "packageManagementService", fallbackMethod = "getPackageWithProgramsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPackageWithProgramsFallback")
     public Response getPackageWithPrograms(String clinicId, String branchId, String packageId) {
 
         Response response = new Response();

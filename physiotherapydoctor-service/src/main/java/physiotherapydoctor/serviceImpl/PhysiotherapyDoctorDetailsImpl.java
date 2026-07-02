@@ -18,6 +18,7 @@ import physiotherapydoctor.dto.TherapistResponseDTO;
 import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.PhysiotherapyDoctorDetails;
+import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 
@@ -25,21 +26,20 @@ import physiotherapydoctor.util.KeyCloakTokenStore;
 public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetails {
 
 	@Autowired
-	private ClinicAdminFeign clinicAdminServiceClient;
+	private FeignImpl clinicAdminServiceClient;
 
 	@Autowired
-	private BookingFeignClient bookingFeignClient;
+	private FeignImpl bookingFeignClient;
 	
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
 
-	private ObjectMapper objectMapper;
 
 	@Override
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getPhysioDoctorDetailsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getPhysioDoctorDetailsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getPhysioDoctorDetails(String clinicId, String branchId) {
-		ResponseEntity<Response> clinicdata = clinicAdminServiceClient.getTherapistWithRequiredFileds(keyCloakTokenStore.getAccess_token(),clinicId,
+		ResponseEntity<Response> clinicdata = clinicAdminServiceClient.getTherapistWithRequiredFileds(clinicId,
 
 				branchId);
 		Object obj = clinicdata.getBody().getData();
@@ -94,7 +94,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "changePasswordFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "changePasswordFallback")
 @Secured("ROLE_DOCTOR")
 	public Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO) {
 		Response validationResponse = validateChangePasswordRequest(username, updateDTO);
@@ -103,7 +103,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 		}
 
 		try {
-			return clinicAdminServiceClient.changePassword(keyCloakTokenStore.getAccess_token(),username, updateDTO);
+			return clinicAdminServiceClient.changePassword(username, updateDTO);
 
 		} catch (Exception ex) {
 
@@ -112,7 +112,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "updateDoctorAvailabilityFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorAvailabilityFallback")
 @Secured("ROLE_DOCTOR")
 	public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO) {
 		if (doctorId == null || doctorId.isBlank()) {
@@ -123,7 +123,7 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 			return Response.builder().success(false).status(400).message("Availability status is missing").build();
 		}
 		try {
-			return clinicAdminServiceClient.updateDoctorAvailability(keyCloakTokenStore.getAccess_token(),doctorId, availabilityDTO);
+			return clinicAdminServiceClient.updateDoctorAvailability(doctorId, availabilityDTO);
 		} catch (Exception ex) {
 			return Response.builder().success(false).status(500).message("Failed to update doctor availability status")
 					.build();
@@ -132,71 +132,56 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	}
 
 	/// NEW DOCTOR APIS
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getAllDoctorsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllDoctorsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getAllDoctors() {
 		try {
-			return clinicAdminServiceClient.getAllDoctors(keyCloakTokenStore.getAccess_token());
+			return clinicAdminServiceClient.getAllDoctors();
 		} catch (Exception e) {
 			return ResponseEntity.status(500).body(e.getMessage());
 		}
 	}
 
 
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getDoctorByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorById(String id) {
 		try {
-			return clinicAdminServiceClient.getDoctorById(keyCloakTokenStore.getAccess_token(),id);
+			return clinicAdminServiceClient.getDoctorById(id);
 		} catch (Exception e) {
 			return ResponseEntity.status(500).body(e.getMessage());
 		}
 	}
 
 
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getDoctorByClinicAndDoctorIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorByClinicAndDoctorIdFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorByClinicAndDoctorId(String clinicId, String doctorId) {
 		try {
-			return clinicAdminServiceClient.getDoctorByClinicAndDoctorId(keyCloakTokenStore.getAccess_token(),clinicId, doctorId);
+			return clinicAdminServiceClient.getDoctorByClinicAndDoctorId(clinicId, doctorId);
 		} catch (Exception e) {
 			return ResponseEntity.status(500).body(e.getMessage());
 		}
 	}
 
 
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getDoctorsByHospitalByIdFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorsByHospitalByIdFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorsByHospitalById(String clinicId) {
 		try {
-			return clinicAdminServiceClient.getDoctorsByHospitalById(keyCloakTokenStore.getAccess_token(),clinicId);
+			return clinicAdminServiceClient.getDoctorsByHospitalById(clinicId);
 		} catch (Exception e) {
 			return ResponseEntity.status(500).body(e.getMessage());
 		}
 	}
 
-//	public ResponseEntity<?> getDoctorsBySubServiceId(String hsptlId, String subServiceId) {
-//		try {
-//			return clinicAdminServiceClient.getDoctorsBySubServiceId(keyCloakTokenStore.getAccess_token(),hsptlId, subServiceId);
-//		} catch (Exception e) {
-//			return ResponseEntity.status(500).body(e.getMessage());
-//		}
-//	}
-//
-//	public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId) {
-//		try {
-//			return clinicAdminServiceClient.getAllDoctorsBySubServiceId(keyCloakTokenStore.getAccess_token(),subServiceId);
-//		} catch (Exception e) {
-//			return ResponseEntity.status(500).body(e.getMessage());
-//		}
-//	}
 
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getDoctorFutureAppointmentsFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorFutureAppointmentsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorFutureAppointments(String doctorId, int page) {
 		try {
 
-			return bookingFeignClient.getDoctorFutureAppointments(keyCloakTokenStore.getAccess_token(),doctorId,page,10);
+			return bookingFeignClient.getDoctorFutureAppointments(doctorId,page,10);
 		} catch (Exception ex) {
 
 			if (ex instanceof feign.FeignException feignEx) {
@@ -207,19 +192,19 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getDiseasesFromClinicAdminFallback")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDiseasesFromClinicAdminFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getDiseasesFromClinicAdmin(String hospitalId) {
 
-		return clinicAdminServiceClient.getDiseasesByHospitalId(keyCloakTokenStore.getAccess_token(),hospitalId);
+		return clinicAdminServiceClient.getDiseasesByHospitalId(hospitalId);
 	}
 
-	@Override
-	 @RateLimiter(name = "physiotherapyDoctorService", fallbackMethod = "getLabTestsFromClinicAdminFallback")
-@Secured("ROLE_DOCTOR")
-	public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId) {
-		return clinicAdminServiceClient.getLabTestsByHospitalId(hospitalId);
-	}
+//	@Override
+//	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getLabTestsFromClinicAdminFallback")
+//@Secured("ROLE_DOCTOR")
+//	public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId) {
+//		return clinicAdminServiceClient.getLabTestsByHospitalId(hospitalId);
+//	}
 
 
 

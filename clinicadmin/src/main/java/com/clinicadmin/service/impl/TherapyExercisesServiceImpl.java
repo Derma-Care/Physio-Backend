@@ -27,7 +27,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= CREATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "createTherapyExercisesFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createTherapyExercisesFallback")
     public ResponseStructure<TherapyExercisesDTO> createTherapyExercises(TherapyExercisesDTO dto) {
 
         TherapyExercises entity = toEntity(dto);
@@ -46,7 +46,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= GET BY ID =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "getTherapyExercisesByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapyExercisesByIdFallback")
     public ResponseStructure<TherapyExercisesDTO> getTherapyExercisesById(String therapyExercisesId) {
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)
@@ -63,7 +63,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= GET BY clinicId + branchId =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
     public ResponseStructure<List<TherapyExercisesDTO>> getByClinicIdAndBranchId(
             String clinicId, String branchId) {
 
@@ -84,7 +84,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
  // ================= UPDATE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "updateTherapyExercisesByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateTherapyExercisesByIdFallback")
     public ResponseStructure<TherapyExercisesDTO> updateTherapyExercisesById(
             String therapyExercisesId, TherapyExercisesDTO dto) {
 
@@ -203,7 +203,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= GET BY clinicId + branchId + therapyExercisesId =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "getByClinicIdBranchIdAndTherapyIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdBranchIdAndTherapyIdFallback")
     public ResponseStructure<TherapyExercisesDTO> getByClinicIdBranchIdAndTherapyId(
             String clinicId, String branchId, String therapyExercisesId) {
 
@@ -223,7 +223,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     // ================= DELETE =================
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "therapyExercisesService", fallbackMethod = "deleteTherapyExercisesByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteTherapyExercisesByIdFallback")
     public ResponseStructure<String> deleteTherapyExercisesById(String therapyExercisesId) {
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)

@@ -36,7 +36,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "addTreatmentFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "addTreatmentFallback")
     public Response addTreatment(TreatmentDTO dto) {
         Response response = new Response();
 
@@ -83,7 +83,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "getAllTreatmentsFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllTreatmentsFallback")
     public Response getAllTreatments() {
         Response response = new Response();
         try {
@@ -112,7 +112,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "getTreatmentByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTreatmentByIdFallback")
     public Response getTreatmentById(String id,String hospitalId ) {
         Response response = new Response();
         try {
@@ -140,7 +140,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "deleteTreatmentByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteTreatmentByIdFallback")
     public Response deleteTreatmentById(String id ,String hospitalId) {
         Response response = new Response();
         try {
@@ -165,7 +165,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "updateTreatmentByIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateTreatmentByIdFallback")
     public Response updateTreatmentById(String id, String hospitalId,TreatmentDTO dto) {
         Response response = new Response();
         try {
@@ -194,7 +194,7 @@ public class TreatmentServiceImpl implements TreatmentService {
   //----------------------------------------------------Get All Treatments by HospitalId-------------------------------------------------
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "getAllTreatmentsByHospitalIdFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllTreatmentsByHospitalIdFallback")
     public Response getAllTreatmentsByHospitalId(String hospitalId) {
         Response response = new Response();
         try {
@@ -224,7 +224,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "treatmentService", fallbackMethod = "addOrGetTreatmentFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "addOrGetTreatmentFallback")
     public Response addOrGetTreatment(TreatmentDTO dto) {
         Response response = new Response();
         try {

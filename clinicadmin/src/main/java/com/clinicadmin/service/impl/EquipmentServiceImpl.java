@@ -26,7 +26,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response createEquipment(EquipmentDTO dto) {
 
         Equipment equipment = convertToEntity(dto);
@@ -44,7 +44,7 @@ public class EquipmentServiceImpl implements EquipmentService {
   
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response getEquipmentById(String equipmentId) {
 
         Equipment equipment = repository.findById(equipmentId).orElse(null);
@@ -70,7 +70,7 @@ public class EquipmentServiceImpl implements EquipmentService {
  
     		@Override
     		 @Secured("ROLE_CLINICADMIN")
-    		  @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
+    		  @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     		public Response getAllEquipment() {
 
     		    List<EquipmentDTO> equipmentList = repository.findAll()
@@ -98,7 +98,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     	   
       				@Override
     				 @Secured("ROLE_CLINICADMIN")			
-    				  @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
+    				  @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     				public Response getEquipmentByClinicIdAndBranchId(
     				        String clinicId,
     				        String branchId) {
@@ -130,7 +130,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
  @Override
  @Secured("ROLE_CLINICADMIN")
- @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
+ @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
  public Response updateEquipment(
     				        String equipmentId,
     				        EquipmentDTO dto) {
@@ -191,7 +191,7 @@ public class EquipmentServiceImpl implements EquipmentService {
    
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "equipmentApi", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
     public Response deleteEquipment(String equipmentId) {
 
         Equipment equipment = repository.findById(equipmentId).orElse(null);

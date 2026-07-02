@@ -87,11 +87,11 @@ public class BookingServiceController {
 	   		 }
 	   	}
 	   
-	   @GetMapping("/bookings/Inprogress/patientId/{patientId}")
-	   public ResponseEntity<?> getInprogressAppointmentsByPatientId(
-				 @PathVariable String patientId){
-		   return bookingService.getInprogressBookingsByPatientId(patientId);
-	 }
+//	   @GetMapping("/bookings/Inprogress/patientId/{patientId}")
+//	   public ResponseEntity<?> getInprogressAppointmentsByPatientId(
+//				 @PathVariable String patientId){
+//		   return bookingService.getInprogressBookingsByPatientId(patientId);
+//	 }
 	   
 	   @GetMapping("/deleteBooking/{id}")
 	   public ResponseEntity<?> deleteBooking(
@@ -99,14 +99,14 @@ public class BookingServiceController {
 		   return bookingService.deleteBookedService(id);
 	 }
 	   
-	   @GetMapping("/bookings/Inprogress/patientId/{patientId}/{clinicId}")
-	   public ResponseEntity<?> getInprogressAppointmentsByPatientIdAndClinicId(
-	           @PathVariable String patientId,
-	           @PathVariable String clinicId) {
-
-	       return bookingService.getInprogressBookingsByPatientIdAndClinicId(patientId, clinicId);
-	   }
-	   
+//	   @GetMapping("/bookings/Inprogress/patientId/{patientId}/{clinicId}")
+//	   public ResponseEntity<?> getInprogressAppointmentsByPatientIdAndClinicId(
+//	           @PathVariable String patientId,
+//	           @PathVariable String clinicId) {
+//
+//	       return bookingService.getInprogressBookingsByPatientIdAndClinicId(patientId, clinicId);
+//	   }
+//	   
 	   @PostMapping("/physioAppointment")
 	   public ResponseEntity<?> physioAppointment(
 			   @RequestBody BookingRequset req){
