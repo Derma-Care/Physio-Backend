@@ -41,5 +41,9 @@ public interface PhysiotherapyFeignClient {
 	        @PathVariable String clinicId,
 	        @PathVariable String branchId,
 	        @PathVariable String therapistId);
+    
+    @GetMapping("/api/physiotherapy-doctor/assigned-therapist/{therapistRecordId}")
+    Response getAssignedTherapistDetails(
+            @PathVariable String therapistRecordId);
 
 }

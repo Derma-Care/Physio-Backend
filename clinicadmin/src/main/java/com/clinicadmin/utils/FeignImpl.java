@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import com.clinicadmin.dto.BookingRequset;
 import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.ClinicDTO;
+import com.clinicadmin.dto.DoctorRatingNotificationDTO;
 import com.clinicadmin.dto.PriceDropAlertDto;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
@@ -785,11 +786,11 @@ public class FeignImpl {
 	    
 	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "sendNotificationToClinicFallback")
 	    @Retry(name = "clinicAdminService", fallbackMethod = "sendNotificationToClinicFallback")
-	    public ResponseEntity<?> sendNotificationToClinic(String clinicId) {
-	        return notificationFeign.sendNotificationToClinic(clinicId);
+	    public ResponseEntity<?> sendNotificationToClinic( String token,String clinicId) {
+	        return notificationFeign.sendNotificationToClinic(token,clinicId);
 	    }
 
-	    public ResponseEntity<?> sendNotificationToClinicFallback(
+	    public ResponseEntity<?> sendNotificationToClinicFallback( String token,
 	            String clinicId,
 	            Exception ex) {
 
@@ -806,12 +807,12 @@ public class FeignImpl {
 
 	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "pricedropFallback")
 	    @Retry(name = "clinicAdminService", fallbackMethod = "pricedropFallback")
-	    public ResponseEntity<?> pricedrop(PriceDropAlertDto priceDropAlertDto) {
+	    public ResponseEntity<?> pricedrop( String token,PriceDropAlertDto priceDropAlertDto) {
 
-	        return notificationFeign.pricedrop(priceDropAlertDto);
+	        return notificationFeign.pricedrop(token,priceDropAlertDto);
 	    }
 
-	    public ResponseEntity<?> pricedropFallback(
+	    public ResponseEntity<?> pricedropFallback( String token,
 	            PriceDropAlertDto priceDropAlertDto,
 	            Exception ex) {
 
@@ -828,16 +829,16 @@ public class FeignImpl {
 
 	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "priceDropNotificationFallback")
 	    @Retry(name = "clinicAdminService", fallbackMethod = "priceDropNotificationFallback")
-	    public ResponseEntity<?> priceDropNotification(
+	    public ResponseEntity<?> priceDropNotification( String token,
 	            String clinicId,
 	            String branchId) {
 
-	        return notificationFeign.priceDropNotification(
+	        return notificationFeign.priceDropNotification(token,
 	                clinicId,
 	                branchId);
 	    }
 
-	    public ResponseEntity<?> priceDropNotificationFallback(
+	    public ResponseEntity<?> priceDropNotificationFallback( String token,
 	            String clinicId,
 	            String branchId,
 	            Exception ex) {
@@ -855,20 +856,20 @@ public class FeignImpl {
 
 	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "updatePriceDropNotificationFallback")
 	    @Retry(name = "clinicAdminService", fallbackMethod = "updatePriceDropNotificationFallback")
-	    public ResponseEntity<?> updatePriceDropNotification(
+	    public ResponseEntity<?> updatePriceDropNotification( String token,
 	            String clinicId,
 	            String branchId,
 	            String id,
 	            PriceDropAlertDto dto) {
 
-	        return notificationFeign.updatePriceDropNotification(
+	        return notificationFeign.updatePriceDropNotification(token,
 	                clinicId,
 	                branchId,
 	                id,
 	                dto);
 	    }
 
-	    public ResponseEntity<?> updatePriceDropNotificationFallback(
+	    public ResponseEntity<?> updatePriceDropNotificationFallback( String token,
 	            String clinicId,
 	            String branchId,
 	            String id,
@@ -888,18 +889,18 @@ public class FeignImpl {
 
 	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "deletePriceDropNotificationFallback")
 	    @Retry(name = "clinicAdminService", fallbackMethod = "deletePriceDropNotificationFallback")
-	    public ResponseEntity<?> deletePriceDropNotification(
+	    public ResponseEntity<?> deletePriceDropNotification( String token,
 	            String clinicId,
 	            String branchId,
 	            String id) {
 
-	        return notificationFeign.deletePriceDropNotification(
+	        return notificationFeign.deletePriceDropNotification(token,
 	                clinicId,
 	                branchId,
 	                id);
 	    }
 
-	    public ResponseEntity<?> deletePriceDropNotificationFallback(
+	    public ResponseEntity<?> deletePriceDropNotificationFallback( String token,
 	            String clinicId,
 	            String branchId,
 	            String id,
@@ -1235,6 +1236,73 @@ public class FeignImpl {
 	        rs.setMessage("Service is temporarily unavailable");
 
 	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(rs);
+	    }
+	    
+	    
+	    @CircuitBreaker(
+	            name = "notificationService",
+	            fallbackMethod = "sendDoctorRatingNotificationFallback")
+	    @Retry(
+	            name = "notificationService",
+	            fallbackMethod = "sendDoctorRatingNotificationFallback")
+	    public ResponseEntity<?> sendDoctorRatingNotification( String token,
+	            DoctorRatingNotificationDTO dto) {
+
+	        return notificationFeign.sendDoctorRatingNotification(token,dto);
+	    }
+
+	    /**
+	     * Fallback Method
+	     */
+	    public ResponseEntity<?> sendDoctorRatingNotificationFallback( String token,
+	            DoctorRatingNotificationDTO dto,
+	            Exception ex) {
+
+	        return ResponseEntity
+	                .status(HttpStatus.SERVICE_UNAVAILABLE)
+	                .body("Notification Service is currently unavailable. Doctor rating notification could not be sent.");
+	    }
+	    
+	    
+	    @CircuitBreaker(
+	            name = "notificationService",
+	            fallbackMethod = "therapistOverallFeedbackFallback")
+	    @Retry(
+	            name = "notificationService",
+	            fallbackMethod = "therapistOverallFeedbackFallback")
+	    public void therapistOverallFeedback( String token,Map<String, String> data) {
+
+	        notificationFeign.therapistOverallFeedback(token,data);
+	    }
+
+	    public void therapistOverallFeedbackFallback( String token,
+	            Map<String, String> data,
+	            Exception ex) {
+
+	        log.error("Failed to send therapist overall feedback notification. Reason: {}",
+	                ex.getMessage());
+	    }
+
+	    /**
+	     * Therapist Session Feedback Notification
+	     */
+	    @CircuitBreaker(
+	            name = "notificationService",
+	            fallbackMethod = "therapistSessionFeedbackFallback")
+	    @Retry(
+	            name = "notificationService",
+	            fallbackMethod = "therapistSessionFeedbackFallback")
+	    public void therapistSessionFeedback( String token,Map<String, String> data) {
+
+	        notificationFeign.therapistSessionFeedback(token,data);
+	    }
+
+	    public void therapistSessionFeedbackFallback( String token,
+	            Map<String, String> data,
+	            Exception ex) {
+
+	        log.error("Failed to send therapist session feedback notification. Reason: {}",
+	                ex.getMessage());
 	    }
 	}
 

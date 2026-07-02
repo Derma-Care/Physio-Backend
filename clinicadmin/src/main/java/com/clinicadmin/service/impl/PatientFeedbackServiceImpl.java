@@ -1,7 +1,9 @@
 package com.clinicadmin.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.DoctorFeedbackDTO;
 import com.clinicadmin.dto.DoctorFeedbackSummaryDTO;
 import com.clinicadmin.dto.DoctorPatientFeedbackDTO;
+import com.clinicadmin.dto.DoctorRatingNotificationDTO;
 import com.clinicadmin.dto.HospitalFeedbackDTO;
 import com.clinicadmin.dto.PatientFeedbackDTO;
 import com.clinicadmin.dto.ReceptionistFeedbackDTO;
@@ -24,6 +27,9 @@ import com.clinicadmin.entity.ReceptionistFeedback;
 import com.clinicadmin.entity.TherapistFeedback;
 import com.clinicadmin.repository.PatientFeedbackRepository;
 import com.clinicadmin.service.PatientFeedbackService;
+import com.clinicadmin.utils.FeignImpl;
+import com.clinicadmin.utils.KeyCloakTokenStore;
+
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
@@ -31,6 +37,13 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Autowired
     private PatientFeedbackRepository repository;
+    
+    @Autowired
+    private FeignImpl notificationFeign;
+    
+    @Autowired
+	 private KeyCloakTokenStore keyCloakTokenStore;
+	
 
     // ================= CREATE =================
 
@@ -39,19 +52,43 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
     public Response createFeedback(PatientFeedbackDTO dto) {
 
-        PatientFeedback feedback = mapToEntity(dto);
-        feedback.setCreatedAt(LocalDateTime.now());
-        feedback.setUpdatedAt(LocalDateTime.now());
-        PatientFeedback saved = repository.save(feedback);
+    	PatientFeedback feedback = mapToEntity(dto);
+		feedback.setCreatedAt(LocalDateTime.now());
+		feedback.setUpdatedAt(LocalDateTime.now());
+		PatientFeedback saved = repository.save(feedback);
 
-        Response response = new Response();
+		if (dto.getDoctorFeedback() != null && dto.getDoctorFeedback().getTargetId() != null) {
 
-        response.setSuccess(true);
-        response.setMessage("Feedback created successfully");
-        response.setStatus(HttpStatus.CREATED.value());
-        response.setData(mapToDTO(saved));
+			DoctorRatingNotificationDTO notification = new DoctorRatingNotificationDTO();
 
-        return response;
+			notification.setDoctorId(dto.getDoctorFeedback().getTargetId());
+
+			notification.setPatientName(dto.getPatientName());
+
+			notification.setRating(dto.getDoctorFeedback().getRating());
+
+			notification.setFeedback(dto.getDoctorFeedback().getFeedbackText());
+
+			notificationFeign.sendDoctorRatingNotification(keyCloakTokenStore.getAccess_token(),notification);}
+		        try {
+	        	if(dto.getTherapistFeedback() != null && dto.getTherapistFeedback().getTargetId() != null ) {
+	        	Map<String,String> map = new LinkedHashMap<>();
+	        	if(dto.getTherapistFeedback().getTargetId()!=null) {
+				map.put("therapistId",dto.getTherapistFeedback().getTargetId());
+				map.put("patientName",dto.getPatientName() );
+				map.put("feedbackText", dto.getTherapistFeedback().getFeedbackText());
+				map.put("rating",dto.getTherapistFeedback().getRating() );
+	        	notificationFeign.therapistOverallFeedback(keyCloakTokenStore.getAccess_token(),map);}}
+	        }catch (Exception e) {}
+
+		Response response = new Response();
+
+		response.setSuccess(true);
+		response.setMessage("Feedback created successfully");
+		response.setStatus(HttpStatus.CREATED.value());
+		response.setData(mapToDTO(saved));
+
+		return response;
     }
 
     // ================= GET ALL =================

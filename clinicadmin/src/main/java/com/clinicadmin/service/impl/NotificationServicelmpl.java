@@ -17,6 +17,7 @@ import com.clinicadmin.feignclient.NotificationFeign;
 import com.clinicadmin.repository.ImageForNotificationRepo;
 import com.clinicadmin.service.NotificationService;
 import com.clinicadmin.utils.FeignImpl;
+import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -29,6 +30,10 @@ public class NotificationServicelmpl implements NotificationService {
 	
 	@Autowired
 	private FeignImpl notificationFeign;
+	
+	 @Autowired
+	 private KeyCloakTokenStore keyCloakTokenStore;
+	
 	
 	@Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "storeImageForNotificationFallback")
@@ -77,7 +82,7 @@ public class NotificationServicelmpl implements NotificationService {
     public ResponseEntity<?> pricedrop(PriceDropAlertDto priceDropAlertDto) {
         Response response = new Response();
         try {
-            return notificationFeign.pricedrop(priceDropAlertDto);
+            return notificationFeign.pricedrop(keyCloakTokenStore.getAccess_token(),priceDropAlertDto);
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -91,7 +96,7 @@ public class NotificationServicelmpl implements NotificationService {
     public ResponseEntity<?> priceDropNotification(String clinicId, String branchId) {
         Response response = new Response();
         try {
-            return notificationFeign.priceDropNotification(clinicId, branchId);
+            return notificationFeign.priceDropNotification(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -106,7 +111,7 @@ public class NotificationServicelmpl implements NotificationService {
             PriceDropAlertDto dto) {
         Response response = new Response();
         try {
-            return notificationFeign.updatePriceDropNotification(clinicId, branchId, id, dto);
+            return notificationFeign.updatePriceDropNotification(keyCloakTokenStore.getAccess_token(),clinicId, branchId, id, dto);
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -120,7 +125,7 @@ public class NotificationServicelmpl implements NotificationService {
     public ResponseEntity<?> deletePriceDropNotification(String clinicId, String branchId, String id) {
         Response response = new Response();
         try {
-            return notificationFeign.deletePriceDropNotification(clinicId, branchId, id);
+            return notificationFeign.deletePriceDropNotification(keyCloakTokenStore.getAccess_token(),clinicId, branchId, id);
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());

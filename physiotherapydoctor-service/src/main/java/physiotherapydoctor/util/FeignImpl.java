@@ -817,4 +817,36 @@ public class FeignImpl {
 	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
 	                .body(response);
 	    }
+	    
+	    @CircuitBreaker(
+	            name = "clinicAdminService",
+	            fallbackMethod = "getAssignedTherapistDetailsFallback")
+	    @Retry(
+	            name = "clinicAdminService",
+	            fallbackMethod = "getAssignedTherapistDetailsFallback")
+	    public ResponseEntity<Response> getAssignedTherapistDetails(          
+	            String therapistRecordId) {
+
+	        return clinicAdminFeign.getAssignedTherapistDetails(
+	        		token(),
+	                therapistRecordId);
+	    }
+
+	    /**
+	     * Fallback Method
+	     */
+	    public ResponseEntity<Response> getAssignedTherapistDetailsFallback(
+	            String token,
+	            String therapistRecordId,
+	            Exception ex) {
+
+	        Response response = new Response();
+	        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+	        response.setMessage("Clinic Admin Service is currently unavailable. Please try again later.");
+	        response.setData(null);
+
+	        return ResponseEntity
+	                .status(HttpStatus.SERVICE_UNAVAILABLE)
+	                .body(response);
+	    }
 }

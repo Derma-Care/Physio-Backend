@@ -43,4 +43,8 @@ public interface TherapistService {
 
 	Response updateTherapistPresence(String therapistId, TherapistPresenceRequest request);
 
+	Response getTherapistFeedback(String clinicId, String branchId, String therapistId);
+
+	Response getTherapistsWithServices(String clinicId, String branchId);
+
 }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dermacare.notification_service.dto.DoctorPushNotificationDTO;
+import com.dermacare.notification_service.dto.DoctorRatingNotificationDTO;
 import com.dermacare.notification_service.service.DoctorPushNotificationService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,5 +24,12 @@ public class DoctorPushNotificationController {
             @RequestBody DoctorPushNotificationDTO dto) {
 
         return service.sendNotification(dto);
+    }
+    
+    @PostMapping("/doctor-rating/send")
+    public ResponseEntity<?> sendDoctorRatingNotification(
+            @RequestBody DoctorRatingNotificationDTO dto) {
+
+        return service.sendDoctorRatingNotification(dto);
     }
 }

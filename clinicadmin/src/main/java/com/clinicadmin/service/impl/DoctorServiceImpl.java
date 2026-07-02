@@ -108,7 +108,6 @@ public class DoctorServiceImpl implements DoctorService {
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;
 	
-	
 	@Autowired
 	private EmailService emailService;
 	
@@ -2094,13 +2093,13 @@ public class DoctorServiceImpl implements DoctorService {
 		dto.setDoctors(doctorDTOs);
 		return dto;
 	}
-
+	
 
 	/// NOTIFICATIONOFDOCTOR
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "notificationToClinicFallback")
 	public ResponseEntity<?> notificationToClinic(String hospitalId) {
 		try {
-			return notificationFeign.sendNotificationToClinic(hospitalId);
+			return notificationFeign.sendNotificationToClinic(keyCloakTokenStore.getAccess_token(),hospitalId);
 		} catch (FeignException e) {
 			ResBody<List<String>> res = new ResBody<List<String>>(ExtractFeignMessage.clearMessage(e), e.status(),
 					null);
