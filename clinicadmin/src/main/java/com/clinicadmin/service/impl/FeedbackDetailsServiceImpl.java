@@ -3,6 +3,7 @@ package com.clinicadmin.service.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ import com.clinicadmin.dto.ServiceInfo;
 import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.feignclient.AdminServiceClient;
+import com.clinicadmin.feignclient.NotificationFeign;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
@@ -45,6 +47,10 @@ public class FeedbackDetailsServiceImpl
     @Autowired
     private AdminServiceClient adminServiceClient;
     
+    @Autowired
+    private NotificationFeign notificationFeign;
+    
+     
     @Override
     public Response createFeedback(
             FeedbackDetailsDTO feedbackDetailsDTO) {
@@ -83,9 +89,16 @@ public class FeedbackDetailsServiceImpl
             FeedbackDetails saved =
                     repository.save(entity);
             
-//         // ================= PUSH NOTIFICATION ON CREATE =================
-//            triggerSessionNotificationIfNeeded(saved);
-
+         // ================= PUSH NOTIFICATION ON CREATE =================
+           // triggerSessionNotificationIfNeeded(saved);
+            Map<String,String> map = new LinkedHashMap<>();  
+            if(feedbackDetailsDTO.getTherapistId() != null) {
+			map.put("therapistId",feedbackDetailsDTO.getTherapistId());
+			map.put("patientName",feedbackDetailsDTO.getPatientName() );
+			map.put("whatWentWell",feedbackDetailsDTO.getWhatWentWell());
+			map.put("rating",feedbackDetailsDTO.getRating() );
+			map.put("improvements",feedbackDetailsDTO.getImprovements());      	
+            notificationFeign.therapistSessionFeedback(map);}
             // ================= RESPONSE =================
 
             response.setSuccess(true);

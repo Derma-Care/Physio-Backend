@@ -40,7 +40,6 @@ import com.dermacare.notification_service.entity.NotificationEntity;
 import com.dermacare.notification_service.entity.PriceDropAlertEntity;
 import com.dermacare.notification_service.feign.BookServiceFeign;
 import com.dermacare.notification_service.feign.CllinicFeign;
-import com.dermacare.notification_service.feign.DoctorFeign;
 import com.dermacare.notification_service.notificationFactory.SendAppNotification;
 import com.dermacare.notification_service.repository.NotificationRepository;
 import com.dermacare.notification_service.repository.PriceDropAlertNotifications;
@@ -67,9 +66,6 @@ public class ServiceImpl implements ServiceInterface{
 	
 	@Autowired
 	private CllinicFeign cllinicFeign;
-		  
-    @Autowired
-    private DoctorFeign doctorFeign;
     
     @Autowired
     private PriceDropAlertNotifications priceDropAlertNotifications;
@@ -82,11 +78,11 @@ public class ServiceImpl implements ServiceInterface{
 
 	Set<String> bookings = new LinkedHashSet<>();
 	
-	 BookingResponse bookingResponse;	 
-	 private boolean isCalledAlready;	 
-	 String imag = null;
-	 String customerDeviceId = null;
-	 String Id = null;
+//	 private BookingResponse bookingResponse;	 
+//	 private boolean isCalledAlready;	 
+	 private String imag = null;
+	 private String customerDeviceId = null;
+	 private String Id = null;
 			 
 		@Override
 		public ResponseEntity<Response> createNotification(BookingResponse bookingDTO) {
@@ -95,7 +91,7 @@ public class ServiceImpl implements ServiceInterface{
 			convertToNotification(bookingDTO);	  
 			String title=buildTitle(bookingDTO);
 			String body =buildBody(bookingDTO);
-			System.out.println(bookingDTO);
+			///System.out.println(bookingDTO);
 			customerDeviceId = cllinicFeign.customerDeviceId(bookingDTO.getCustomerId());
 			Id = cllinicFeign.getDeviceId(bookingDTO.getClinicId(),bookingDTO.getBranchId());
 			try {
@@ -130,6 +126,76 @@ public class ServiceImpl implements ServiceInterface{
 		}
 			
 		
+  public void sendNotificationToTherapist(Map<String, String> data) {	  
+	  try {
+		  //System.out.println(data);
+		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("therapistId"));
+		 // System.out.println(deviceId);
+		  if(deviceId != null) {
+				String content = 
+						String.format(
+						        "Hello %s, a new therapy session has been assigned to you for patient %s. The session is scheduled to start on %s. Please review the session details and prepare accordingly.",
+						        data.get("therapistName"),
+						        data.get("patientname"),
+						        data.get("sessionStartDate"));
+						
+				appNotification.sendPushNotification(deviceId,"New Therapy Session Assigned",content, "Assign",
+					    "BookingScreen","default","therapist");}	
+	  }catch (Exception e) {
+		//System.out.println(e.getMessage());
+	}
+	  
+  }
+  
+  
+  public void sendOverallFeedbackNotificationToTherapist(Map<String, String> data) {	  
+	  try {
+		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("therapistId"));
+			
+		  if(deviceId != null) {
+			  
+				String content = 
+						 String.format(
+							        "Hello Thrapist, patient %s has submitted feedback for your therapy session.%n" +
+							        "Rating: %s/5%n" +
+							        "Feedback: \"%s\"",							       
+							        data.get("patientName"),
+							        data.get("rating"),
+							        data.get("feedbackText")
+							);
+						
+				appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "Feedback",
+					    "BookingScreen","default","therapistFeedback");}	
+	  }catch (Exception e) {
+		
+	}
+	  
+  }
+	
+  public void sendSessionFeedbackNotificationToTherapist(Map<String, String> data) {	  
+	  try {
+		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("therapistId"));
+			
+		  if(deviceId != null) {		  
+				String content = 
+						String.format(
+						        "Hello Therapist, you have received new feedback for your therapy session with patient %s.\n\n" +
+						        "⭐ Rating: %s/5\n" +
+						        "✅ What Went Well: %s\n" +
+						        "📝 Improvements Suggested: %s",				       
+						        data.get("patientName"),
+						        data.get("rating"),
+						        data.get("whatWentWell"),
+						        data.get("improvements")
+						);
+				appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "sessionFeedback",
+					    "BookingScreen","default","therapistSessionFeedback");}	
+	  }catch (Exception e) {
+		
+	}
+	  
+  }
+  
 			
 	private void convertToNotification(BookingResponse booking) {	
 			NotificationEntity notificationEntity = new NotificationEntity();

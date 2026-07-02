@@ -3345,7 +3345,8 @@ public class DoctorServiceImpl implements DoctorService {
 			}
 
 			DoctorLoginCredentials credentials = credentialsOpt.get();
-
+			credentials.setDeviceId(dto.getDeviceId());
+			credentialsRepository.save(credentials);
 			// Check password and role together
 			boolean passwordMatch = passwordEncoder != null
 					&& passwordEncoder.matches(dto.getPassword(), credentials.getPassword());
@@ -3384,6 +3385,20 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 
 		return response;
+	}
+	
+	
+	@Override
+	public String getByTherapistDeviceId(String therapistId) {
+		try {
+			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(therapistId);
+
+			if (credentialsOpt.isEmpty()) {				
+				return null;
+			}else {
+				return credentialsOpt.get().getDeviceId();
+			}
+		}catch(Exception e) {return null;}
 	}
 
 //-----------------------best one doctor using key word-------------------------------------------

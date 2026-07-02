@@ -39,6 +39,7 @@ public interface CustomerOnboardingService {
 		
 	public String customerDeviceId(String customerId);
 			
+	public String getCustomername(String patientId);
 //
 //	Response resetPassword(ChangeDoctorPasswordDTO dto);
 }

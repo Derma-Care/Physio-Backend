@@ -598,6 +598,18 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			return null;	
 		}}
 	
+	public String getCustomername(String patientId){
+		try {	
+			CustomerOnbording cstmr = onboardingRepository.findByPatientId(patientId);
+			if(cstmr != null) {
+		   	return cstmr.getFullName() ;}
+			else {
+				return null;
+			}
+		}catch(FeignException e) {	
+			return null;	
+		}}
+	
 	
 	@Override
 	public List<BookingInfoByInput> bookingByInput(String input,String clinicId) {

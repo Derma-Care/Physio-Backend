@@ -1,7 +1,9 @@
 package com.clinicadmin.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import com.clinicadmin.entity.HospitalFeedback;
 import com.clinicadmin.entity.PatientFeedback;
 import com.clinicadmin.entity.ReceptionistFeedback;
 import com.clinicadmin.entity.TherapistFeedback;
+import com.clinicadmin.feignclient.NotificationFeign;
 import com.clinicadmin.repository.PatientFeedbackRepository;
 import com.clinicadmin.service.PatientFeedbackService;
 
@@ -29,6 +32,10 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Autowired
     private PatientFeedbackRepository repository;
+    
+    @Autowired
+    private NotificationFeign notificationFeign;
+    
 
     // ================= CREATE =================
 
@@ -38,15 +45,22 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
         PatientFeedback feedback = mapToEntity(dto);
         feedback.setCreatedAt(LocalDateTime.now());
         feedback.setUpdatedAt(LocalDateTime.now());
-        PatientFeedback saved = repository.save(feedback);
-
+        PatientFeedback saved = repository.save(feedback);     
         Response response = new Response();
-
         response.setSuccess(true);
         response.setMessage("Feedback created successfully");
         response.setStatus(HttpStatus.CREATED.value());
-        response.setData(mapToDTO(saved));
-
+        response.setData(mapToDTO(saved));  
+        try {
+        	if(dto.getTherapistFeedback() != null) {
+        	Map<String,String> map = new LinkedHashMap<>();
+        	if(dto.getTherapistFeedback().getTargetId()!=null) {
+			map.put("therapistId",dto.getTherapistFeedback().getTargetId());
+			map.put("patientName",dto.getPatientName() );
+			map.put("feedbackText", dto.getTherapistFeedback().getFeedbackText());
+			map.put("rating",dto.getTherapistFeedback().getRating() );
+        	notificationFeign.therapistOverallFeedback(map);}}
+        }catch (Exception e) {}
         return response;
     }
 

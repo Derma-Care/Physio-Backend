@@ -35,6 +35,7 @@ import physiotherapydoctor.dto.response.TherapyResponse;
 import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.feign.ClinicAdminFeign;
+import physiotherapydoctor.feign.NotificationFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.service.PaymentService;
 
@@ -46,10 +47,11 @@ public class PaymentServiceImpl implements PaymentService {
 	private final PaymentRepository repo;
 
 	@Autowired
-	private BookingFeignClient bookingFeign;
-
-	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
+	
+	@Autowired
+	private NotificationFeign notificationFeign;
+
 
 	// =====================================================
 	// ✅ WHATSAPP SERVICE INJECTED
@@ -166,9 +168,19 @@ public class PaymentServiceImpl implements PaymentService {
 		// WhatsApp failure must NEVER fail payment creation
 		// =====================================================
 		try {
+			String name = clinicAdminFeign.getCustomername(req.getPatientId());
+          //System.out.println(name);
+			Map<String,String> map = new LinkedHashMap<>();
+			map.put("therapistId",req.getTherapistId() );
+			map.put("therapistName",req.getTherapistName() );
+			map.put("sessionStartDate", req.getSessionStartDate());
+			map.put("patientname",name );
+			//System.out.println(map);
+			notificationFeign.notificationToTherapist(map);
 			paymentWhatsAppService.sendPaymentConfirmation(savedRecord);
 			log.info("WhatsApp triggered for bookingId={}", savedRecord.getBookingId());
 		} catch (Exception e) {
+			//System.out.println(e.getMessage());
 			log.warn("WhatsApp notification failed for bookingId={} : {}", savedRecord.getBookingId(), e.getMessage());
 		}
 

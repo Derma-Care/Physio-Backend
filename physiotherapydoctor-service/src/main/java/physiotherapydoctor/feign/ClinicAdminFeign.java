@@ -139,5 +139,9 @@ public interface ClinicAdminFeign {
 
 	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
 	public Response getAllRecoverySupportsByClinicId(@PathVariable String clinicId);
+	
+	   @GetMapping("/clinic-admin/customername/{id}")
+	    public String getCustomername(
+	 			 @PathVariable String id ); 
 
 }

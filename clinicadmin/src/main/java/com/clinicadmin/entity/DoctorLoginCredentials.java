@@ -27,6 +27,7 @@ public class DoctorLoginCredentials {
 	private String username;
 	private String password;
 	private String role;
+	private String deviceId;
 	private String emailId;
 	private Map<String, List<String>> permissions;
 

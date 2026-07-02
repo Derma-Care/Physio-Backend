@@ -21,8 +21,6 @@ public class BookingResponse {
 	private String patientMobileNumber;
 	private String patientId;
 	private String visitType; // 
-	private Integer freeFollowUpsLeft;
-	private Integer freeFollowUps;
 	private String patientAddress;
 	private String age;
 	private String doctorDeviceId;
@@ -47,57 +45,14 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
-
 	private Double consultationFee;
-	private Integer visitCount;
-	private String channelId;
 	private String reasonForCancel;
-
 	private String BookedAt;
-
 	private String status;
 	private double totalFee;
-	private List<String> attachments;
-	private String consentFormPdf;
-	private List<String> prescriptionPdf;
-	private String doctorRefCode;
 	private String paymentType;
 	private String followupDate;
 	private String foc;
 	private String focReason;
-	private String followupStatus;
-	private String treatmentName;
-	// ✅ Add treatments info
-	// private TreatmentResponseDTO treatments;
-	// ✅ Add this new field
-	private String updatedTreatment;
-	private String bodyPartId;
-	private String bodyPartName;
-	private String partImage;
 
-	private List<String> parts;
-	private double partAmount;
-	private double dueAmount;
-	private String referredByType;
-	private String referredByName;
-	private String paymentStatus;
-	private String previousInjuries;
-	private String currentMedications;
-	private String allergies;
-	private String occupation;
-	private String insuranceProvider;
-	private String policyNumber;
-	private List<String> activityLevels;
-	private String reasonforVisit;
-	private boolean isFollowupStatus;
-	private List<Session> session;
-	// private List<FollowupBookingDto> follwupBookings;
-
-	public void setIsFollowupStatus(boolean followupStatus) {
-		isFollowupStatus = followupStatus;
-	}
-
-	public boolean getIsFollowupStatus() {
-		return isFollowupStatus;
-	}
 }

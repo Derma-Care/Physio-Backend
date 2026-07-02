@@ -44,6 +44,10 @@ public interface CllinicFeign {
 
 	@GetMapping("/clinic-admin/doctor/getDeviceId/{doctorId}")
 	String getDoctorDeviceId(@PathVariable String doctorId);
+	
+	@GetMapping("/clinic-admin/therapist/deviceId/{deviceId}")
+	public String retrivetherapistDeviceId(@PathVariable String deviceId);
+
 
 }
 

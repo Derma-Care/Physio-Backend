@@ -1,5 +1,7 @@
 package com.clinicadmin.feignclient;
 
+import java.util.Map;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,4 +33,11 @@ public interface NotificationFeign {
 	@DeleteMapping("/api/notificationservice/delete/priceDropNotification/{clinicId}/{branchId}/{id}")
 	public ResponseEntity<?> deletePriceDropNotification(@PathVariable String clinicId,@PathVariable String branchId,@PathVariable String id);
 		
+	@PostMapping("/api/notificationservice/therapistOverallFeedback")
+	public void therapistOverallFeedback(@RequestBody Map<String, String> data);
+	
+	@PostMapping("/api/notificationservice/therapistSessionFeedback")
+	public void therapistSessionFeedback(@RequestBody Map<String, String> data);
+	
+
 }
