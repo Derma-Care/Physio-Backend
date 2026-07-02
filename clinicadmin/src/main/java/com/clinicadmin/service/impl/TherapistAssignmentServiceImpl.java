@@ -51,7 +51,9 @@ public class TherapistAssignmentServiceImpl
             assignment.setAssignedTherapistName(
                     dto.getAssignedTherapistName());
 
-       
+            assignment.setServices(
+                    dto.getServices());
+
             assignment.setAssignedStatus("true");
             assignment.setAssignedTo(false);
             
@@ -189,6 +191,8 @@ public class TherapistAssignmentServiceImpl
 
         dto.setAssignedTherapistName(
                 assignment.getAssignedTherapistName());
+        dto.setServices(
+                assignment.getServices());
 
         dto.setAssignedStatus(
                 assignment.getAssignedStatus());

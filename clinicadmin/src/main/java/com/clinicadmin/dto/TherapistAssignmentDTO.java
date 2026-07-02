@@ -1,5 +1,7 @@
 package com.clinicadmin.dto;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
@@ -17,6 +19,7 @@ public class TherapistAssignmentDTO {
 
     private String assignedTherapistId;
     private String assignedTherapistName;
+    private List<String> services;
 
     private String assignedStatus;
 }
