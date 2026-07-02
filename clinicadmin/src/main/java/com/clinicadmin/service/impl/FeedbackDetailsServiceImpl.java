@@ -2,14 +2,13 @@ package com.clinicadmin.service.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
-
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.FeedbackDetailsDTO;
@@ -17,17 +16,15 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ServiceInfo;
 import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.entity.FeedbackDetails;
-import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.repository.FeedbackDetailsRepository;
 import com.clinicadmin.service.FeedbackDetailsServcie;
+import com.clinicadmin.service.PushNotificationService;
 import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
-import com.clinicadmin.service.PushNotificationService;
 import feign.FeignException;
-import lombok.extern.slf4j.Slf4j;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -35,6 +32,9 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
     @Autowired
     private FeignImpl physiotherapyDoctorFeign;
+    
+    @Autowired
+    private FeignImpl notificationFeign;
     
     @Autowired
     private FeedbackDetailsRepository repository;
@@ -49,7 +49,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     private PushNotificationService pushNotificationService;
     
     @Autowired
-    private AdminServiceClient adminServiceClient;
+    private FeignImpl adminServiceClient;
     
     @Override
     @Secured("ROLE_CLINICADMIN")
@@ -93,7 +93,14 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
             
 //         // ================= PUSH NOTIFICATION ON CREATE =================
 //            triggerSessionNotificationIfNeeded(saved);
-
+            Map<String,String> map = new LinkedHashMap<>();  
+            if(feedbackDetailsDTO.getTherapistId() != null) {
+			map.put("therapistId",feedbackDetailsDTO.getTherapistId());
+			map.put("patientName",feedbackDetailsDTO.getPatientName() );
+			map.put("whatWentWell",feedbackDetailsDTO.getWhatWentWell());
+			map.put("rating",feedbackDetailsDTO.getRating() );
+			map.put("improvements",feedbackDetailsDTO.getImprovements());      	
+			notificationFeign.therapistSessionFeedback(keyCloakTokenStore.getAccess_token(),map);}
             // ================= RESPONSE =================
 
             response.setSuccess(true);
@@ -904,13 +911,13 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
 
         // ================= FETCH FCM TOKEN USING EXISTING FEIGN =================
 
-        ResponseEntity<Response> clinicResponse =
+        Response clinicResponse =
                 adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),clinicId);
 
         if (clinicResponse == null
-                || clinicResponse.getBody() == null
-                || !clinicResponse.getBody().isSuccess()
-                || clinicResponse.getBody().getData() == null) {
+                || clinicResponse == null
+                || !clinicResponse.isSuccess()
+                || clinicResponse.getData() == null) {
 
             log.warn("Clinic not found | ClinicId: {} | BookingId: {}",
                     clinicId, bookingId);
@@ -921,7 +928,7 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
 
         Map<String, Object> clinicData =
                 (Map<String, Object>) clinicResponse
-                        .getBody().getData();
+                       .getData();
 
         String fcmToken =
                 String.valueOf(clinicData.get("fcmToken"));
