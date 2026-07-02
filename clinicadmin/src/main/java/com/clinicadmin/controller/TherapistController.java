@@ -148,4 +148,36 @@ public class TherapistController {
 
 	    return ResponseEntity.status(response.getStatus()).body(response);
 	}
+	
+	// ================= GET THERAPIST FEEDBACK =================
+	@GetMapping("/getTherapistFeedback/{clinicId}/{branchId}/{therapistId}")
+	public ResponseEntity<Response> getTherapistFeedback(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId,
+	        @PathVariable String therapistId) {
+
+	    Response response = service.getTherapistFeedback(
+	            clinicId,
+	            branchId,
+	            therapistId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+	}
+	
+	@GetMapping("/getTherapistsWithServices/{clinicId}/{branchId}")
+	public ResponseEntity<Response> getTherapistsWithServices(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId) {
+
+	    Response response =
+	    		service.getTherapistsWithServices(
+	                    clinicId,
+	                    branchId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+	}
 }

@@ -144,4 +144,8 @@ public interface ClinicAdminFeign {
 	    public String getCustomername(
 	 			 @PathVariable String id ); 
 
+	 @GetMapping("/clinic-admin/getAssignedTherapistDetails/{therapistRecordId}")
+	    public ResponseEntity<Response> getAssignedTherapistDetails(
+	            @PathVariable String therapistRecordId);
+
 }

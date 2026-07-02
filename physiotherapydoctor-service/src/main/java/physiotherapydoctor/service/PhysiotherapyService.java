@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 
+import physiotherapydoctor.dto.AssignTherapistRequest;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
@@ -81,6 +82,7 @@ public interface PhysiotherapyService {
 	 public String getByBookingId(String id);
 
 	 public Response getInvestigations(String bookingId, String patientId);
+
 
 		   
 			

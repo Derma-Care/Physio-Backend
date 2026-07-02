@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.DoctorFeedbackDTO;
 import com.clinicadmin.dto.DoctorFeedbackSummaryDTO;
 import com.clinicadmin.dto.DoctorPatientFeedbackDTO;
+import com.clinicadmin.dto.DoctorRatingNotificationDTO;
 import com.clinicadmin.dto.HospitalFeedbackDTO;
 import com.clinicadmin.dto.PatientFeedbackDTO;
 import com.clinicadmin.dto.ReceptionistFeedbackDTO;
@@ -37,515 +38,463 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     private NotificationFeign notificationFeign;
     
 
-    // ================= CREATE =================
-
-    @Override
-    public Response createFeedback(PatientFeedbackDTO dto) {
-
-        PatientFeedback feedback = mapToEntity(dto);
-        feedback.setCreatedAt(LocalDateTime.now());
-        feedback.setUpdatedAt(LocalDateTime.now());
-        PatientFeedback saved = repository.save(feedback);     
-        Response response = new Response();
-        response.setSuccess(true);
-        response.setMessage("Feedback created successfully");
-        response.setStatus(HttpStatus.CREATED.value());
-        response.setData(mapToDTO(saved));  
-        try {
-        	if(dto.getTherapistFeedback() != null) {
-        	Map<String,String> map = new LinkedHashMap<>();
-        	if(dto.getTherapistFeedback().getTargetId()!=null) {
-			map.put("therapistId",dto.getTherapistFeedback().getTargetId());
-			map.put("patientName",dto.getPatientName() );
-			map.put("feedbackText", dto.getTherapistFeedback().getFeedbackText());
-			map.put("rating",dto.getTherapistFeedback().getRating() );
-        	notificationFeign.therapistOverallFeedback(map);}}
-        }catch (Exception e) {}
-        return response;
-    }
-
-    // ================= GET ALL =================
+	// ================= CREATE =================
 
-    @Override
-    public Response getAllFeedbacks() {
-
-        List<PatientFeedbackDTO> list = repository.findAll()
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+	@Override
+	public Response createFeedback(PatientFeedbackDTO dto) {
 
-        Response response = new Response();
+		PatientFeedback feedback = mapToEntity(dto);
+		feedback.setCreatedAt(LocalDateTime.now());
+		feedback.setUpdatedAt(LocalDateTime.now());
+		PatientFeedback saved = repository.save(feedback);
 
-        response.setSuccess(true);
-        response.setMessage("All feedbacks fetched successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData(list);
+		if (dto.getDoctorFeedback() != null && dto.getDoctorFeedback().getTargetId() != null) {
 
-        return response;
-    }
+			DoctorRatingNotificationDTO notification = new DoctorRatingNotificationDTO();
 
-    // ================= GET BY ID =================
+			notification.setDoctorId(dto.getDoctorFeedback().getTargetId());
 
-    @Override
-    public Response getFeedbackById(String id) {
+			notification.setPatientName(dto.getPatientName());
 
-        PatientFeedback feedback = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feedback not found"));
+			notification.setRating(dto.getDoctorFeedback().getRating());
 
-        Response response = new Response();
+			notification.setFeedback(dto.getDoctorFeedback().getFeedbackText());
 
-        response.setSuccess(true);
-        response.setMessage("Feedback fetched successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData(mapToDTO(feedback));
+			notificationFeign.sendDoctorRatingNotification(notification);}
+		        try {
+	        	if(dto.getTherapistFeedback() != null && dto.getTherapistFeedback().getTargetId() != null ) {
+	        	Map<String,String> map = new LinkedHashMap<>();
+	        	if(dto.getTherapistFeedback().getTargetId()!=null) {
+				map.put("therapistId",dto.getTherapistFeedback().getTargetId());
+				map.put("patientName",dto.getPatientName() );
+				map.put("feedbackText", dto.getTherapistFeedback().getFeedbackText());
+				map.put("rating",dto.getTherapistFeedback().getRating() );
+	        	notificationFeign.therapistOverallFeedback(map);}}
+	        }catch (Exception e) {}
 
-        return response;
-    }
-    
-    @Override
-    public Response getByClinicIdAndBranchId(String clinicId,
-                                             String branchId) {
+		Response response = new Response();
 
-        List<PatientFeedback> feedbackList = repository
-                .findByClinicIdAndBranchId(clinicId, branchId);
+		response.setSuccess(true);
+		response.setMessage("Feedback created successfully");
+		response.setStatus(HttpStatus.CREATED.value());
+		response.setData(mapToDTO(saved));
 
-        List<PatientFeedbackDTO> list = feedbackList
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+		return response;
+	}
 
-        Response response = new Response();
+	// ================= GET ALL =================
 
-        response.setSuccess(true);
-        response.setMessage("Feedbacks fetched successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData(list);
+	@Override
+	public Response getAllFeedbacks() {
 
-        return response;
-    }
-    
-    @Override
-    public Response getByClinicIdAndBranchIdAndPatientId(String clinicId,
-                                             String branchId,String patientId) {
+		List<PatientFeedbackDTO> list = repository.findAll().stream().map(this::mapToDTO).collect(Collectors.toList());
 
-        List<PatientFeedback> feedbackList = repository
-                .findByClinicIdAndBranchIdAndPatientId(clinicId, branchId,patientId);
+		Response response = new Response();
 
-        List<PatientFeedbackDTO> list = feedbackList
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+		response.setSuccess(true);
+		response.setMessage("All feedbacks fetched successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData(list);
 
-        Response response = new Response();
+		return response;
+	}
 
-        response.setSuccess(true);
-        response.setMessage("Feedbacks fetched successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData(list);
+	// ================= GET BY ID =================
 
-        return response;
-    }
+	@Override
+	public Response getFeedbackById(String id) {
 
-    // ================= UPDATE =================
+		PatientFeedback feedback = repository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Feedback not found"));
 
-    @Override
-    public Response updateFeedback(String id, PatientFeedbackDTO dto) {
+		Response response = new Response();
 
-        PatientFeedback existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feedback not found"));
+		response.setSuccess(true);
+		response.setMessage("Feedback fetched successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData(mapToDTO(feedback));
 
-        // ================= BASIC DETAILS =================
+		return response;
+	}
 
-        existing.setPatientId(dto.getPatientId());
-        existing.setPatientName(dto.getPatientName());
-        existing.setPatientPhone(dto.getPatientPhone());
-        existing.setDate(dto.getDate());
+	@Override
+	public Response getByClinicIdAndBranchId(String clinicId, String branchId) {
 
-        // ================= HOSPITAL FEEDBACK =================
+		List<PatientFeedback> feedbackList = repository.findByClinicIdAndBranchId(clinicId, branchId);
 
-        HospitalFeedback hospitalFeedback = new HospitalFeedback();
+		List<PatientFeedbackDTO> list = feedbackList.stream().map(this::mapToDTO).collect(Collectors.toList());
 
-        hospitalFeedback.setFeedbackText(
-                dto.getHospitalFeedback().getFeedbackText()
-        );
+		Response response = new Response();
 
-        hospitalFeedback.setRating(
-                dto.getHospitalFeedback().getRating()
-        );
+		response.setSuccess(true);
+		response.setMessage("Feedbacks fetched successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData(list);
 
-        existing.setHospitalFeedback(hospitalFeedback);
+		return response;
+	}
 
-        // ================= DOCTOR FEEDBACK =================
+	@Override
+	public Response getByClinicIdAndBranchIdAndPatientId(String clinicId, String branchId, String patientId) {
 
-        DoctorFeedback doctorFeedback = new DoctorFeedback();
+		List<PatientFeedback> feedbackList = repository.findByClinicIdAndBranchIdAndPatientId(clinicId, branchId,
+				patientId);
 
-        doctorFeedback.setTargetId(
-                dto.getDoctorFeedback().getTargetId()
-        );
+		List<PatientFeedbackDTO> list = feedbackList.stream().map(this::mapToDTO).collect(Collectors.toList());
 
-        doctorFeedback.setFeedbackText(
-                dto.getDoctorFeedback().getFeedbackText()
-        );
+		Response response = new Response();
 
-        doctorFeedback.setRating(
-                dto.getDoctorFeedback().getRating()
-        );
+		response.setSuccess(true);
+		response.setMessage("Feedbacks fetched successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData(list);
 
-        existing.setDoctorFeedback(doctorFeedback);
+		return response;
+	}
 
-        // ================= RECEPTIONIST FEEDBACK =================
+	// ================= UPDATE =================
 
-        ReceptionistFeedback receptionistFeedback =
-                new ReceptionistFeedback();
+	@Override
+	public Response updateFeedback(String id, PatientFeedbackDTO dto) {
 
-        receptionistFeedback.setTargetId(
-                dto.getReceptionistFeedback().getTargetId()
-        );
+		PatientFeedback existing = repository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Feedback not found"));
 
-        receptionistFeedback.setFeedbackText(
-                dto.getReceptionistFeedback().getFeedbackText()
-        );
+		// ================= BASIC DETAILS =================
 
-        receptionistFeedback.setRating(
-                dto.getReceptionistFeedback().getRating()
-        );
+		existing.setPatientId(dto.getPatientId());
+		existing.setPatientName(dto.getPatientName());
+		existing.setPatientPhone(dto.getPatientPhone());
+		existing.setDate(dto.getDate());
 
-        existing.setReceptionistFeedback(receptionistFeedback);
-        
-        existing.setUpdatedAt(LocalDateTime.now());
+		// ================= HOSPITAL FEEDBACK =================
 
+		HospitalFeedback hospitalFeedback = new HospitalFeedback();
 
-        // ================= THERAPIST FEEDBACK =================
+		hospitalFeedback.setFeedbackText(dto.getHospitalFeedback().getFeedbackText());
 
-        TherapistFeedback therapistFeedback =
-                new TherapistFeedback();
+		hospitalFeedback.setRating(dto.getHospitalFeedback().getRating());
 
-        therapistFeedback.setTargetId(
-                dto.getTherapistFeedback().getTargetId()
-        );
+		existing.setHospitalFeedback(hospitalFeedback);
 
-        therapistFeedback.setFeedbackText(
-                dto.getTherapistFeedback().getFeedbackText()
-        );
+		// ================= DOCTOR FEEDBACK =================
 
-        therapistFeedback.setRating(
-                dto.getTherapistFeedback().getRating()
-        );
+		DoctorFeedback doctorFeedback = new DoctorFeedback();
 
-        existing.setTherapistFeedback(therapistFeedback);
+		doctorFeedback.setTargetId(dto.getDoctorFeedback().getTargetId());
 
-        // ================= SAVE =================
+		doctorFeedback.setFeedbackText(dto.getDoctorFeedback().getFeedbackText());
 
-        PatientFeedback updated = repository.save(existing);
+		doctorFeedback.setRating(dto.getDoctorFeedback().getRating());
 
-        Response response = new Response();
+		existing.setDoctorFeedback(doctorFeedback);
 
-        response.setSuccess(true);
-        response.setMessage("Feedback updated successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData(mapToDTO(updated));
+		// ================= RECEPTIONIST FEEDBACK =================
 
-        return response;
-    }
+		ReceptionistFeedback receptionistFeedback = new ReceptionistFeedback();
 
-    // ================= DELETE =================
+		receptionistFeedback.setTargetId(dto.getReceptionistFeedback().getTargetId());
 
-    @Override
-    public Response deleteFeedback(String id) {
+		receptionistFeedback.setFeedbackText(dto.getReceptionistFeedback().getFeedbackText());
 
-        PatientFeedback feedback = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feedback not found"));
+		receptionistFeedback.setRating(dto.getReceptionistFeedback().getRating());
 
-        repository.delete(feedback);
+		existing.setReceptionistFeedback(receptionistFeedback);
 
-        Response response = new Response();
+		existing.setUpdatedAt(LocalDateTime.now());
 
-        response.setSuccess(true);
-        response.setMessage("Feedback deleted successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData("Deleted Successfully");
+		// ================= THERAPIST FEEDBACK =================
 
-        return response;
-    }
+		TherapistFeedback therapistFeedback = new TherapistFeedback();
 
-    // ================= MAP ENTITY TO DTO =================
+		therapistFeedback.setTargetId(dto.getTherapistFeedback().getTargetId());
 
-    private PatientFeedbackDTO mapToDTO(PatientFeedback feedback) {
+		therapistFeedback.setFeedbackText(dto.getTherapistFeedback().getFeedbackText());
 
-        if (feedback == null) {
-            return null;
-        }
+		therapistFeedback.setRating(dto.getTherapistFeedback().getRating());
 
-        PatientFeedbackDTO dto = new PatientFeedbackDTO();
+		existing.setTherapistFeedback(therapistFeedback);
 
-        dto.setId(feedback.getId());
-        dto.setClinicId(feedback.getClinicId());
-        dto.setBranchId(feedback.getBranchId());
-        dto.setPatientId(feedback.getPatientId());
-        dto.setPatientName(feedback.getPatientName());
-        dto.setPatientPhone(feedback.getPatientPhone());
-        dto.setDate(feedback.getDate());
-        dto.setCreatedAt(feedback.getCreatedAt());
-        dto.setUpdatedAt(feedback.getUpdatedAt());
-        
-        dto.setHospitalFeedback(
-                mapHospitalToDTO(feedback.getHospitalFeedback())
-        );
+		// ================= SAVE =================
 
-        dto.setDoctorFeedback(
-                mapDoctorToDTO(feedback.getDoctorFeedback())
-        );
+		PatientFeedback updated = repository.save(existing);
 
-        dto.setReceptionistFeedback(
-                mapReceptionistToDTO(feedback.getReceptionistFeedback())
-        );
+		Response response = new Response();
 
-        dto.setTherapistFeedback(
-                mapTherapistToDTO(feedback.getTherapistFeedback())
-        );
+		response.setSuccess(true);
+		response.setMessage("Feedback updated successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData(mapToDTO(updated));
 
-        return dto;
-    }
+		return response;
+	}
 
-    // ================= MAP DTO TO ENTITY =================
+	// ================= DELETE =================
 
-    private PatientFeedback mapToEntity(PatientFeedbackDTO dto) {
+	@Override
+	public Response deleteFeedback(String id) {
 
-        if (dto == null) {
-            return null;
-        }
+		PatientFeedback feedback = repository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Feedback not found"));
 
-        PatientFeedback feedback = new PatientFeedback();
+		repository.delete(feedback);
 
-        feedback.setId(dto.getId());
-        feedback.setClinicId(dto.getClinicId());
-        feedback.setBranchId(dto.getBranchId());
-        feedback.setPatientId(dto.getPatientId());
-        feedback.setPatientName(dto.getPatientName());
-        feedback.setPatientPhone(dto.getPatientPhone());
-        feedback.setDate(dto.getDate());
-        feedback.setCreatedAt(dto.getCreatedAt());
-        feedback.setUpdatedAt(dto.getUpdatedAt());
+		Response response = new Response();
 
-        feedback.setHospitalFeedback(
-                mapHospitalToEntity(dto.getHospitalFeedback())
-        );
+		response.setSuccess(true);
+		response.setMessage("Feedback deleted successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData("Deleted Successfully");
 
-        feedback.setDoctorFeedback(
-                mapDoctorToEntity(dto.getDoctorFeedback())
-        );
+		return response;
+	}
 
-        feedback.setReceptionistFeedback(
-                mapReceptionistToEntity(dto.getReceptionistFeedback())
-        );
+	// ================= MAP ENTITY TO DTO =================
 
-        feedback.setTherapistFeedback(
-                mapTherapistToEntity(dto.getTherapistFeedback())
-        );
+	private PatientFeedbackDTO mapToDTO(PatientFeedback feedback) {
 
-        return feedback;
-    }
+		if (feedback == null) {
+			return null;
+		}
 
-    // ================= UPDATE ENTITY =================
+		PatientFeedbackDTO dto = new PatientFeedbackDTO();
 
-    private void updateEntity(PatientFeedback feedback,
-                              PatientFeedbackDTO dto) {
+		dto.setId(feedback.getId());
+		dto.setClinicId(feedback.getClinicId());
+		dto.setBranchId(feedback.getBranchId());
+		dto.setPatientId(feedback.getPatientId());
+		dto.setPatientName(feedback.getPatientName());
+		dto.setPatientPhone(feedback.getPatientPhone());
+		dto.setDate(feedback.getDate());
+		dto.setCreatedAt(feedback.getCreatedAt());
+		dto.setUpdatedAt(feedback.getUpdatedAt());
 
-        feedback.setPatientId(dto.getPatientId());
-        feedback.setPatientName(dto.getPatientName());
-        feedback.setPatientPhone(dto.getPatientPhone());
-        feedback.setDate(dto.getDate());
-        feedback.setCreatedAt(dto.getCreatedAt());
-        feedback.setUpdatedAt(dto.getUpdatedAt());
+		dto.setHospitalFeedback(mapHospitalToDTO(feedback.getHospitalFeedback()));
 
-        feedback.setHospitalFeedback(
-                mapHospitalToEntity(dto.getHospitalFeedback())
-        );
+		dto.setDoctorFeedback(mapDoctorToDTO(feedback.getDoctorFeedback()));
 
-        feedback.setDoctorFeedback(
-                mapDoctorToEntity(dto.getDoctorFeedback())
-        );
+		dto.setReceptionistFeedback(mapReceptionistToDTO(feedback.getReceptionistFeedback()));
 
-        feedback.setReceptionistFeedback(
-                mapReceptionistToEntity(dto.getReceptionistFeedback())
-        );
+		dto.setTherapistFeedback(mapTherapistToDTO(feedback.getTherapistFeedback()));
 
-        feedback.setTherapistFeedback(
-                mapTherapistToEntity(dto.getTherapistFeedback())
-        );
-    }
+		return dto;
+	}
 
-    // ================= HOSPITAL =================
+	// ================= MAP DTO TO ENTITY =================
 
-    private HospitalFeedbackDTO mapHospitalToDTO(HospitalFeedback entity) {
+	private PatientFeedback mapToEntity(PatientFeedbackDTO dto) {
 
-        if (entity == null) {
-            return null;
-        }
+		if (dto == null) {
+			return null;
+		}
 
-        HospitalFeedbackDTO dto = new HospitalFeedbackDTO();
+		PatientFeedback feedback = new PatientFeedback();
 
-        dto.setFeedbackText(entity.getFeedbackText());
-        dto.setRating(entity.getRating());
+		feedback.setId(dto.getId());
+		feedback.setClinicId(dto.getClinicId());
+		feedback.setBranchId(dto.getBranchId());
+		feedback.setPatientId(dto.getPatientId());
+		feedback.setPatientName(dto.getPatientName());
+		feedback.setPatientPhone(dto.getPatientPhone());
+		feedback.setDate(dto.getDate());
+		feedback.setCreatedAt(dto.getCreatedAt());
+		feedback.setUpdatedAt(dto.getUpdatedAt());
 
-        return dto;
-    }
+		feedback.setHospitalFeedback(mapHospitalToEntity(dto.getHospitalFeedback()));
 
-    private HospitalFeedback mapHospitalToEntity(HospitalFeedbackDTO dto) {
+		feedback.setDoctorFeedback(mapDoctorToEntity(dto.getDoctorFeedback()));
 
-        if (dto == null) {
-            return null;
-        }
+		feedback.setReceptionistFeedback(mapReceptionistToEntity(dto.getReceptionistFeedback()));
 
-        HospitalFeedback entity = new HospitalFeedback();
+		feedback.setTherapistFeedback(mapTherapistToEntity(dto.getTherapistFeedback()));
 
-        entity.setFeedbackText(dto.getFeedbackText());
-        entity.setRating(dto.getRating());
+		return feedback;
+	}
 
-        return entity;
-    }
+	// ================= UPDATE ENTITY =================
 
-    // ================= DOCTOR =================
+	private void updateEntity(PatientFeedback feedback, PatientFeedbackDTO dto) {
 
-    private DoctorFeedbackDTO mapDoctorToDTO(DoctorFeedback entity) {
+		feedback.setPatientId(dto.getPatientId());
+		feedback.setPatientName(dto.getPatientName());
+		feedback.setPatientPhone(dto.getPatientPhone());
+		feedback.setDate(dto.getDate());
+		feedback.setCreatedAt(dto.getCreatedAt());
+		feedback.setUpdatedAt(dto.getUpdatedAt());
 
-        if (entity == null) {
-            return null;
-        }
+		feedback.setHospitalFeedback(mapHospitalToEntity(dto.getHospitalFeedback()));
 
-        DoctorFeedbackDTO dto = new DoctorFeedbackDTO();
+		feedback.setDoctorFeedback(mapDoctorToEntity(dto.getDoctorFeedback()));
 
-        dto.setTargetId(entity.getTargetId());
-        dto.setFeedbackText(entity.getFeedbackText());
-        dto.setRating(entity.getRating());
+		feedback.setReceptionistFeedback(mapReceptionistToEntity(dto.getReceptionistFeedback()));
 
-        return dto;
-    }
+		feedback.setTherapistFeedback(mapTherapistToEntity(dto.getTherapistFeedback()));
+	}
 
-    private DoctorFeedback mapDoctorToEntity(DoctorFeedbackDTO dto) {
+	// ================= HOSPITAL =================
 
-        if (dto == null) {
-            return null;
-        }
+	private HospitalFeedbackDTO mapHospitalToDTO(HospitalFeedback entity) {
 
-        DoctorFeedback entity = new DoctorFeedback();
+		if (entity == null) {
+			return null;
+		}
 
-        entity.setTargetId(dto.getTargetId());
-        entity.setFeedbackText(dto.getFeedbackText());
-        entity.setRating(dto.getRating());
+		HospitalFeedbackDTO dto = new HospitalFeedbackDTO();
 
-        return entity;
-    }
+		dto.setFeedbackText(entity.getFeedbackText());
+		dto.setRating(entity.getRating());
 
-    // ================= RECEPTIONIST =================
+		return dto;
+	}
 
-    private ReceptionistFeedbackDTO mapReceptionistToDTO(
-            ReceptionistFeedback entity) {
+	private HospitalFeedback mapHospitalToEntity(HospitalFeedbackDTO dto) {
 
-        if (entity == null) {
-            return null;
-        }
+		if (dto == null) {
+			return null;
+		}
 
-        ReceptionistFeedbackDTO dto = new ReceptionistFeedbackDTO();
+		HospitalFeedback entity = new HospitalFeedback();
 
-        dto.setTargetId(entity.getTargetId());
-        dto.setFeedbackText(entity.getFeedbackText());
-        dto.setRating(entity.getRating());
+		entity.setFeedbackText(dto.getFeedbackText());
+		entity.setRating(dto.getRating());
 
-        return dto;
-    }
+		return entity;
+	}
 
-    private ReceptionistFeedback mapReceptionistToEntity(
-            ReceptionistFeedbackDTO dto) {
+	// ================= DOCTOR =================
 
-        if (dto == null) {
-            return null;
-        }
+	private DoctorFeedbackDTO mapDoctorToDTO(DoctorFeedback entity) {
 
-        ReceptionistFeedback entity = new ReceptionistFeedback();
+		if (entity == null) {
+			return null;
+		}
 
-        entity.setTargetId(dto.getTargetId());
-        entity.setFeedbackText(dto.getFeedbackText());
-        entity.setRating(dto.getRating());
+		DoctorFeedbackDTO dto = new DoctorFeedbackDTO();
 
-        return entity;
-    }
+		dto.setTargetId(entity.getTargetId());
+		dto.setFeedbackText(entity.getFeedbackText());
+		dto.setRating(entity.getRating());
 
-    // ================= THERAPIST =================
+		return dto;
+	}
 
-    private TherapistFeedbackDTO mapTherapistToDTO(
-            TherapistFeedback entity) {
+	private DoctorFeedback mapDoctorToEntity(DoctorFeedbackDTO dto) {
 
-        if (entity == null) {
-            return null;
-        }
+		if (dto == null) {
+			return null;
+		}
 
-        TherapistFeedbackDTO dto = new TherapistFeedbackDTO();
+		DoctorFeedback entity = new DoctorFeedback();
 
-        dto.setTargetId(entity.getTargetId());
-        dto.setFeedbackText(entity.getFeedbackText());
-        dto.setRating(entity.getRating());
+		entity.setTargetId(dto.getTargetId());
+		entity.setFeedbackText(dto.getFeedbackText());
+		entity.setRating(dto.getRating());
 
-        return dto;
-    }
+		return entity;
+	}
 
-    private TherapistFeedback mapTherapistToEntity(
-            TherapistFeedbackDTO dto) {
+	// ================= RECEPTIONIST =================
 
-        if (dto == null) {
-            return null;
-        }
+	private ReceptionistFeedbackDTO mapReceptionistToDTO(ReceptionistFeedback entity) {
 
-        TherapistFeedback entity = new TherapistFeedback();
+		if (entity == null) {
+			return null;
+		}
 
-        entity.setTargetId(dto.getTargetId());
-        entity.setFeedbackText(dto.getFeedbackText());
-        entity.setRating(dto.getRating());
+		ReceptionistFeedbackDTO dto = new ReceptionistFeedbackDTO();
 
-        return entity;
-    }
-    
-    @Override
-    public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
+		dto.setTargetId(entity.getTargetId());
+		dto.setFeedbackText(entity.getFeedbackText());
+		dto.setRating(entity.getRating());
 
-        List<PatientFeedback> feedbacks =
-                repository.findByClinicIdAndDoctorFeedbackTargetId(clinicId, doctorId);
+		return dto;
+	}
 
-        List<DoctorPatientFeedbackDTO> patients = feedbacks.stream()
-                .map(f -> {
-                    DoctorPatientFeedbackDTO p = new DoctorPatientFeedbackDTO();
-                    p.setPatientId(f.getPatientId());
-                    p.setPatientName(f.getPatientName());
-                    p.setMobileNumber(f.getPatientPhone());
-                    p.setRating(f.getDoctorFeedback().getRating());
-                    p.setWhatWentWell(f.getDoctorFeedback().getFeedbackText());
-                    return p;
-                })
-                .collect(Collectors.toList());
+	private ReceptionistFeedback mapReceptionistToEntity(ReceptionistFeedbackDTO dto) {
 
-        double averageRating = patients.stream()
-                .mapToDouble(p -> {
-                    try { return Double.parseDouble(p.getRating()); }
-                    catch (NumberFormatException e) { return 0.0; }
-                })
-                .average()
-                .orElse(0.0);
+		if (dto == null) {
+			return null;
+		}
 
-        averageRating = Math.round(averageRating * 10.0) / 10.0;
+		ReceptionistFeedback entity = new ReceptionistFeedback();
 
-        DoctorFeedbackSummaryDTO summary = new DoctorFeedbackSummaryDTO();
-        summary.setDoctorId(doctorId);
-        summary.setClinicId(clinicId);
-        summary.setTotalPatientsRated(patients.size());
-        summary.setAverageRating(averageRating);
-        summary.setPatients(patients);
+		entity.setTargetId(dto.getTargetId());
+		entity.setFeedbackText(dto.getFeedbackText());
+		entity.setRating(dto.getRating());
 
-        Response response = new Response();
-        response.setSuccess(true);
-        response.setMessage("Doctor feedback summary fetched successfully");
-        response.setStatus(HttpStatus.OK.value());
-        response.setData(summary);
+		return entity;
+	}
 
-        return response;
-    }
+	// ================= THERAPIST =================
+
+	private TherapistFeedbackDTO mapTherapistToDTO(TherapistFeedback entity) {
+
+		if (entity == null) {
+			return null;
+		}
+
+		TherapistFeedbackDTO dto = new TherapistFeedbackDTO();
+
+		dto.setTargetId(entity.getTargetId());
+		dto.setFeedbackText(entity.getFeedbackText());
+		dto.setRating(entity.getRating());
+
+		return dto;
+	}
+
+	private TherapistFeedback mapTherapistToEntity(TherapistFeedbackDTO dto) {
+
+		if (dto == null) {
+			return null;
+		}
+
+		TherapistFeedback entity = new TherapistFeedback();
+
+		entity.setTargetId(dto.getTargetId());
+		entity.setFeedbackText(dto.getFeedbackText());
+		entity.setRating(dto.getRating());
+
+		return entity;
+	}
+
+	@Override
+	public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
+
+		List<PatientFeedback> feedbacks = repository.findByClinicIdAndDoctorFeedbackTargetId(clinicId, doctorId);
+
+		List<DoctorPatientFeedbackDTO> patients = feedbacks.stream().map(f -> {
+			DoctorPatientFeedbackDTO p = new DoctorPatientFeedbackDTO();
+			p.setPatientId(f.getPatientId());
+			p.setPatientName(f.getPatientName());
+			p.setMobileNumber(f.getPatientPhone());
+			p.setRating(f.getDoctorFeedback().getRating());
+			p.setWhatWentWell(f.getDoctorFeedback().getFeedbackText());
+			return p;
+		}).collect(Collectors.toList());
+
+		double averageRating = patients.stream().mapToDouble(p -> {
+			try {
+				return Double.parseDouble(p.getRating());
+			} catch (NumberFormatException e) {
+				return 0.0;
+			}
+		}).average().orElse(0.0);
+
+		averageRating = Math.round(averageRating * 10.0) / 10.0;
+
+		DoctorFeedbackSummaryDTO summary = new DoctorFeedbackSummaryDTO();
+		summary.setDoctorId(doctorId);
+		summary.setClinicId(clinicId);
+		summary.setTotalPatientsRated(patients.size());
+		summary.setAverageRating(averageRating);
+		summary.setPatients(patients);
+
+		Response response = new Response();
+		response.setSuccess(true);
+		response.setMessage("Doctor feedback summary fetched successfully");
+		response.setStatus(HttpStatus.OK.value());
+		response.setData(summary);
+
+		return response;
+	}
 }

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.dermacare.notification_service.dto.DoctorPushNotificationDTO;
+import com.dermacare.notification_service.dto.DoctorRatingNotificationDTO;
 import com.dermacare.notification_service.dto.Response;
 import com.dermacare.notification_service.entity.DoctorPushNotification;
 import com.dermacare.notification_service.feign.CllinicFeign;
@@ -89,21 +90,17 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 
 			if ("FOLLOW_UP".equalsIgnoreCase(dto.getAppointmentType())) {
 
-			    title = "Follow-up Appointment Scheduled";
+				title = "Follow-up Appointment Scheduled";
 
-			    body = "A follow-up appointment has been scheduled.\n\n"
-			            + "Patient: " + dto.getPatientName()
-			            + "\nDate: " + dto.getAppointmentDate()
-			            + "\nTime: " + dto.getAppointmentTime();
+				body = "A follow-up appointment has been scheduled.\n\n" + "Patient: " + dto.getPatientName()
+						+ "\nDate: " + dto.getAppointmentDate() + "\nTime: " + dto.getAppointmentTime();
 
 			} else {
 
-			    title = "New Appointment Booked";
+				title = "New Appointment Booked";
 
-			    body = "A new appointment has been booked.\n\n"
-			            + "Patient: " + dto.getPatientName()
-			            + "\nDate: " + dto.getAppointmentDate()
-			            + "\nTime: " + dto.getAppointmentTime();
+				body = "A new appointment has been booked.\n\n" + "Patient: " + dto.getPatientName() + "\nDate: "
+						+ dto.getAppointmentDate() + "\nTime: " + dto.getAppointmentTime();
 			}
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -116,8 +113,8 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 
 			log.info("Sending push notification to DoctorId: {}", dto.getDoctorId());
 
-			appNotification.sendPushNotification(token, title, body, "DOCTOR_APPOINTMENT",
-					"Doctor Appointment ", "default", navigationScreen);
+			appNotification.sendPushNotification(token, title, body, "DOCTOR_APPOINTMENT", "Doctor Appointment ",
+					"default", navigationScreen);
 
 			log.info("Push notification sent successfully for BookingId: {}", dto.getBookingId());
 
@@ -152,5 +149,45 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 		}
 
 		return ResponseEntity.status(res.getStatus()).body(res);
+	}
+
+	@Override
+	public ResponseEntity<?> sendDoctorRatingNotification(DoctorRatingNotificationDTO dto) {
+
+		Response response = new Response();
+
+		try {
+
+			String token = clinicFeign.getDoctorDeviceId(dto.getDoctorId());
+
+			if (token == null || token.isBlank()) {
+
+				response.setSuccess(false);
+				response.setStatus(404);
+				response.setMessage("Doctor FCM Token Not Found");
+
+				return ResponseEntity.status(404).body(response);
+			}
+
+			String title = "New Patient Rating";
+
+			String body = "You received a new rating.\n\n" + "Patient: " + dto.getPatientName() + "\nRating: "
+					+ dto.getRating() + "\nReview: " + dto.getFeedback();
+
+			appNotification.sendPushNotification(token, title, body, "DOCTOR_RATING", "Doctor Rating", "default",
+					"feedback");
+
+			response.setSuccess(true);
+			response.setStatus(200);
+			response.setMessage("Doctor Rating Notification Sent");
+
+		} catch (Exception e) {
+
+			response.setSuccess(false);
+			response.setStatus(500);
+			response.setMessage(e.getMessage());
+		}
+
+		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 }
