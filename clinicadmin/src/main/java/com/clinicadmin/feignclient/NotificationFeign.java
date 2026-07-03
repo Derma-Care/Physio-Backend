@@ -44,6 +44,14 @@ public interface NotificationFeign {
 //			@PathVariable String id);
 
 	@PostMapping("/api/notificationservice/doctor-rating/send")
-	ResponseEntity<?> sendDoctorRatingNotification(@RequestBody DoctorRatingNotificationDTO dto);
+	public ResponseEntity<?> sendDoctorRatingNotification(@RequestBody DoctorRatingNotificationDTO dto);
 
+	
+	@PostMapping("/api/notificationservice/therapistSessionReassign")
+	public void sendSessionReassignNotificationToTherapist(@RequestBody Map<String, String> data);
+		
+	
+	@PostMapping("/api/notificationservice/therapistSessionWithdraw")
+	public void sendSessionWithdrawNotificationToTherapist(@RequestBody Map<String, String> data);
+		
 }

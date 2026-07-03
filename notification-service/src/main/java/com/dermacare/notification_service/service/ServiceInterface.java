@@ -53,6 +53,12 @@ public interface ServiceInterface {
     
     public void sendOverallFeedbackNotificationToTherapist(Map<String, String> data) ;
     
-    public void sendSessionFeedbackNotificationToTherapist(Map<String, String> data);	  
+    public void sendSessionFeedbackNotificationToTherapist(Map<String, String> data);
+    
+    public void sendSessionReassignNotificationToTherapist(Map<String, String> data);
+    
+    public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data);	  
+    	
+
     	
 }

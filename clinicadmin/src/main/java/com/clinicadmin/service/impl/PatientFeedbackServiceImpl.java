@@ -59,8 +59,11 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 			notification.setRating(dto.getDoctorFeedback().getRating());
 
 			notification.setFeedback(dto.getDoctorFeedback().getFeedbackText());
-
-			notificationFeign.sendDoctorRatingNotification(notification);}
+            try {
+			notificationFeign.sendDoctorRatingNotification(notification);
+			}catch(Exception e) {
+				System.out.println(e.getMessage());
+			}}
 		        try {
 	        	if(dto.getTherapistFeedback() != null && dto.getTherapistFeedback().getTargetId() != null ) {
 	        	Map<String,String> map = new LinkedHashMap<>();

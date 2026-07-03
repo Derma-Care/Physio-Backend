@@ -132,5 +132,17 @@ public class NotificationController {
 	     
 	}
 	
+	@PostMapping("/therapistSessionReassign")
+	public void sendSessionReassignNotificationToTherapist(@RequestBody Map<String, String> data) {
+		notificationService.sendSessionReassignNotificationToTherapist(data);
+	     
+	}
+	
+	@PostMapping("/therapistSessionWithdraw")
+	public void sendSessionWithdrawNotificationToTherapist(@RequestBody Map<String, String> data) {
+		notificationService.sendSessionWithdrawNotificationToTherapist(data);
+	     
+	}
+	
 	
 }

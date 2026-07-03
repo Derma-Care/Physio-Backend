@@ -72,11 +72,8 @@ public class ServiceImpl implements ServiceInterface{
     
 //    @Autowired
 //    private FirbaseConfig firbaseConfig;
-    	
-	public String jwtToken;
-	public String tokenExpireTime;
 
-	Set<String> bookings = new LinkedHashSet<>();
+	private Set<String> bookings = new LinkedHashSet<>();
 	
 //	 private BookingResponse bookingResponse;	 
 //	 private boolean isCalledAlready;	 
@@ -165,7 +162,7 @@ public class ServiceImpl implements ServiceInterface{
 							);
 						
 				appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "Feedback",
-					    "BookingScreen","default","therapistFeedback");}	
+					    "BookingScreen","default","therapist-feedback");}	
 	  }catch (Exception e) {
 		
 	}
@@ -188,9 +185,53 @@ public class ServiceImpl implements ServiceInterface{
 						        data.get("whatWentWell"),
 						        data.get("improvements")
 						);
-				appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "sessionFeedback",
-					    "BookingScreen","default","therapistSessionFeedback");}	
+				appNotification.sendPushNotification(deviceId,"New Patient session Feedback Received",content, "sessionFeedback",
+					    "BookingScreen","default","therapist-feedback");}	
 	  }catch (Exception e) {
+		
+	}
+	  
+  }
+  
+  
+  public void sendSessionReassignNotificationToTherapist(Map<String, String> data) {	  
+	  try {
+		 // System.out.println(data);
+		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("reassignedTherapistId"));		
+		  //System.out.println(deviceId);
+		  if(deviceId != null) {		  
+				String content = 
+						String.format(
+						        "%s session has been reassigned to you by Therapist %s. Please review the appointment details.\n\n"
+								+ "therapistRecordId: %s",			       
+						        data.get("reassignedTherapistname"),
+						        data.get("therapistname"),
+						        data.get("therapistRecordId")
+						);
+				appNotification.sendPushNotification(deviceId,"Session Reassignment",content, "sessionFeedback",
+					    "BookingScreen","default","therapist");}	
+	  }catch (Exception e) { System.out.println(e.getMessage());
+		
+	}
+	  
+  }
+  
+  public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data) {	  
+	  try {
+		  //System.out.println(data);
+		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("therapistId"));		
+		  //System.out.println(deviceId);
+		  if(deviceId != null) {		  
+				String content = 
+						String.format(
+						        "Therapist %s has withdrawn the reassignment request for the session.\n\n"				       
+						        + "therapistRecordId %s",
+						        data.get("reassignedTherapistname"),
+						        data.get("therapistRecordId")	
+						);
+				appNotification.sendPushNotification(deviceId,"Assignment Withdrawn",content, "sessionFeedback",
+					    "BookingScreen","default","therapist");}	
+	  }catch (Exception e) { System.out.println(e.getMessage());
 		
 	}
 	  
