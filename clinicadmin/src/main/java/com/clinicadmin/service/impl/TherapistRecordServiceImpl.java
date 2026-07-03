@@ -145,6 +145,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         record.setPatientId(dto.getPatientId());
         record.setBookingId(dto.getBookingId());
         record.setTherapistId(dto.getTherapistId());
+        record.setTherapistName(dto.getTherapistName());
 
         record.setPatientName(dto.getPatientName());
 //        record.setTherapy(dto.getTherapy());
@@ -206,7 +207,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
         dto.setPatientId(record.getPatientId());
         dto.setBookingId(record.getBookingId());
         dto.setTherapistId(record.getTherapistId());
-
+        dto.setTherapistName(record.getTherapistName());
+        
         dto.setPatientName(record.getPatientName());
 //        dto.setTherapy(record.getTherapy());
 

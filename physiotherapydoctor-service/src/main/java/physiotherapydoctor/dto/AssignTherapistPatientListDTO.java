@@ -1,5 +1,7 @@
 package physiotherapydoctor.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.Data;
@@ -27,8 +29,8 @@ public class AssignTherapistPatientListDTO {
 	 private String assignedTherapistId;
 	 private String assignedTherapistName;
 	 private String assignedStatus;
-	 private Boolean assignedTo = true;
-		
+	 private Boolean assignedTo;
+    private List<String>services;
 	}
 	
 	 

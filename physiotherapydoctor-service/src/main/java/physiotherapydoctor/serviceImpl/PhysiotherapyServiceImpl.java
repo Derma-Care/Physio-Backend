@@ -837,9 +837,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		                branchId);
 
 		if (records == null || records.isEmpty()) {
-			response.setSuccess(false);
+			response.setSuccess(true);
 			response.setMessage("No assigned patients found");
-			response.setStatus(404);
+			response.setStatus(200);
 			return response;
 		}
 
@@ -958,61 +958,73 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				        if ("true".equalsIgnoreCase(assignedStatus)) {
 
 				            // Show for doctor therapist and assigned therapist
-				            if (!therapistId.equals(record.getTreatmentPlan().getTherapistId())
-				                    && !therapistId.equals(assignedTherapistId)) {
+				            if (!therapistId.equals(
+				                    record.getTreatmentPlan().getTherapistId())
+				                    && !therapistId.equals(
+				                            assignedTherapistId)) {
 				                continue;
 				            }
 
-				            dto.setAssignedTherapistId(assignedTherapistId);
-				            dto.setAssignedTherapistName(
-				                    (String) assignment.get("assignedTherapistName"));
-				            dto.setAssignedStatus(assignedStatus);
+				            dto.setAssignedTherapistId(
+				                    assignedTherapistId);
 
-				            // Original therapist -> false
+				            dto.setAssignedTherapistName(
+				                    (String) assignment.get(
+				                            "assignedTherapistName"));
+				            dto.setServices(
+				                    (List<String>) assignment.get("services"));
+
+				            dto.setAssignedStatus(
+				                    assignedStatus);
+				            
+
+				            // Original therapist
 				            if (therapistId.equals(
-				                    record.getTreatmentPlan().getTherapistId())) {
+				                    record.getTreatmentPlan()
+				                            .getTherapistId())) {
 
 				                dto.setAssignedTo(false);
 
 				            }
-				            // Assigned therapist -> true
+				            // Assigned therapist
 				            else if (therapistId.equals(
 				                    assignedTherapistId)) {
 
 				                dto.setAssignedTo(true);
 				            }
 
-				        }else {
+				        } else {
 
 				            // Show only for doctor assigned therapist
 				            if (!therapistId.equals(
-				                    record.getTreatmentPlan().getTherapistId())) {
+				                    record.getTreatmentPlan()
+				                            .getTherapistId())) {
 				                continue;
 				            }
 
-				            dto.setAssignedTo(false);
+				            // Do not set assignedTo
 				        }
 
 				    } else {
 
-				        // No assignment data
 				        if (!therapistId.equals(
-				                record.getTreatmentPlan().getTherapistId())) {
+				                record.getTreatmentPlan()
+				                        .getTherapistId())) {
 				            continue;
 				        }
 
-				        dto.setAssignedTo(true);
+				        // Do not set assignedTo
 				    }
 
 				} catch (FeignException.NotFound e) {
 
-				    // No assignment record
 				    if (!therapistId.equals(
-				            record.getTreatmentPlan().getTherapistId())) {
+				            record.getTreatmentPlan()
+				                    .getTherapistId())) {
 				        continue;
 				    }
 
-				    dto.setAssignedTo(true);
+				    // Do not set assignedTo
 				}
 				map.put(key, dto);
 			}

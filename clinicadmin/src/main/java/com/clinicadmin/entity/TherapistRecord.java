@@ -28,6 +28,8 @@ public class TherapistRecord {
     private String patientId;
     private String bookingId;
     private String therapistId;
+    private String therapistName;
+    
     private String patientName;
 //    private String therapy;
 

@@ -1,5 +1,7 @@
 package com.clinicadmin.entity;
 
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -25,6 +27,8 @@ public class TherapistAssignment {
     private String assignedTherapistName;
 
     private String assignedStatus;
+    private List<String> services;
+
     
     private Boolean assignedTo = true;
     

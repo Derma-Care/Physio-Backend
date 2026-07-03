@@ -27,8 +27,16 @@ public class TherapistAssignmentServiceImpl
 
         try {
 
-            TherapistAssignment assignment =
-                    new TherapistAssignment();
+        	Optional<TherapistAssignment> existingAssignment =
+        	        repository.findByTherapistRecordId(
+        	                dto.getTherapistRecordId());
+
+        	TherapistAssignment assignment =
+        	        existingAssignment.orElse(
+        	                new TherapistAssignment());
+        	if (assignment == null) {
+        	    assignment = new TherapistAssignment();
+        	}
 
             assignment.setClinicId(
                     dto.getClinicId());
@@ -51,7 +59,9 @@ public class TherapistAssignmentServiceImpl
             assignment.setAssignedTherapistName(
                     dto.getAssignedTherapistName());
 
-       
+            assignment.setServices(
+                    dto.getServices());
+
             assignment.setAssignedStatus("true");
             assignment.setAssignedTo(false);
             
@@ -189,6 +199,8 @@ public class TherapistAssignmentServiceImpl
 
         dto.setAssignedTherapistName(
                 assignment.getAssignedTherapistName());
+        dto.setServices(
+                assignment.getServices());
 
         dto.setAssignedStatus(
                 assignment.getAssignedStatus());
