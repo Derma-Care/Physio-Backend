@@ -375,6 +375,15 @@ public class BookingServiceController {
 	        return service.getTodayAllBookings(clinicId, branchId);
 	    }
 
+	    // ✅ API 1
+	    @GetMapping("/filter/status/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getFilteredBookingsByStatus(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId) {
+
+	        return service.getFilteredBookingsByStatus(clinicId, branchId);
+	    }
+
 	    // ✅ API 2
 	    @GetMapping("/upcoming/{clinicId}/{branchId}/{option}")
 	    public ResponseEntity<Response> getUpcomingBookings(

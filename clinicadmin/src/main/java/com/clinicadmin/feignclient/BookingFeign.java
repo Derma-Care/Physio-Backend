@@ -152,6 +152,11 @@ public interface BookingFeign {
 	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
 	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index);
 	  
+	  @GetMapping("/api/v1/filter/status/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getFilteredBookingsByStatus(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId);
+
 	  
 	   	  
 }

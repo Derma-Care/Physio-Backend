@@ -374,6 +374,19 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
 }
 
 @Override
+public ResponseEntity<?> getFilteredBookingsByStatus(String clinicId,String branchId){
+	Response response = new Response();
+    try {
+        return bookingFeign.getFilteredBookingsByStatus(clinicId, branchId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
 public ResponseEntity<?> physioAppointment(BookingRequset req) {
     ResponseEntity<Response> res = null;
     Response response = new Response();

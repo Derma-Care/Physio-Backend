@@ -2618,6 +2618,147 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 
 	}
+	
+	
+	@Override
+	public ResponseEntity<Response> getFilteredBookingsByStatus(
+	        String clinicId,
+	        String branchId) {
+
+	    try {
+
+	        List<Booking> bookings =
+	                repository.findByClinicIdAndBranchId(
+	                        clinicId,
+	                        branchId);
+
+	        List<BookingResponse> bookingResponses =
+	                bookings != null && !bookings.isEmpty()
+	                        ? toResponses(bookings)
+	                        : Collections.emptyList();
+
+	        List<Map<String, Object>> filteredBookings =
+	                new ArrayList<>();
+
+	        long inProgressCount = 0;
+	        long completedCount = 0;
+	        long dueForInvestigationCount = 0;
+	        long investigationDoneCount = 0;
+
+	        for (BookingResponse booking : bookingResponses) {
+
+	            String followupStatus =
+	                    booking.getStatus();
+
+	            boolean includeBooking = false;
+
+	            if ("IN-PROGRESS".equalsIgnoreCase(followupStatus)) {
+
+	                inProgressCount++;
+	                includeBooking = true;
+
+	            } else if ("COMPLETED".equalsIgnoreCase(followupStatus)) {
+
+	                completedCount++;
+	                includeBooking = true;
+
+	            } else if ("DUE FOR INVESTIGATION".equalsIgnoreCase(followupStatus)) {
+
+	                dueForInvestigationCount++;
+	                includeBooking = true;
+
+	            } else if ("INVESTIGATION DONE".equalsIgnoreCase(followupStatus)) {
+
+	                investigationDoneCount++;
+	                includeBooking = true;
+	            }
+
+	            if (!includeBooking) {
+	                continue;
+	            }
+
+	            Map<String, Object> map = new LinkedHashMap<>();
+
+	            map.put("bookingId", booking.getBookingId());
+	            map.put("serviceDate", booking.getServiceDate());
+	            map.put("servicetime", booking.getServicetime());
+	            map.put("name", booking.getName());
+
+	            map.put("mobileNumber",
+	                    booking.getPatientMobileNumber() != null
+	                            && !booking.getPatientMobileNumber().isEmpty()
+	                                    ? booking.getPatientMobileNumber()
+	                                    : booking.getMobileNumber());
+
+	            map.put("doctorId", booking.getDoctorId());
+	            map.put("doctorName", booking.getDoctorName());
+	            map.put("paymentType", booking.getPaymentType());
+	            map.put("visitType", booking.getVisitType());
+	            map.put("status", booking.getStatus());
+	            map.put("followupStatus", booking.getFollowupStatus());
+	            map.put("patientId", booking.getPatientId());
+	            map.put("clinicId", booking.getClinicId());
+	            map.put("customerId", booking.getCustomerId());
+	            map.put("branchId", booking.getBranchId());
+	           // map.put("session", booking.getSession());
+	            map.put("problem", booking.getProblem());
+
+	            filteredBookings.add(map);
+	        }
+
+	        Map<String, Object> summary = new LinkedHashMap<>();
+
+	        summary.put("totalBookings", filteredBookings.size());
+	        summary.put("inProgressCount", inProgressCount);
+	        summary.put("completedCount", completedCount);
+	        summary.put("dueForInvestigationCount", dueForInvestigationCount);
+	        summary.put("investigationDoneCount", investigationDoneCount);
+
+	        if (filteredBookings.isEmpty()) {
+
+	            return ResponseEntity.ok(
+	                    new Response(
+	                            true,
+	                            Collections.emptyList(),
+	                            summary,
+	                            "No bookings found",
+	                            200,
+	                            null,
+	                            null));
+	        }
+
+	        return ResponseEntity.ok(
+	                new Response(
+	                        true,
+	                        filteredBookings,
+	                        summary,
+	                        "Bookings fetched successfully",
+	                        200,
+	                        null,
+	                        null));
+
+	    } catch (Exception e) {
+
+	        log.error(
+	                "Error while fetching filtered bookings. clinicId={}, branchId={}, error={}",
+	                clinicId,
+	                branchId,
+	                e.getMessage(),
+	                e);
+
+	        return ResponseEntity.status(
+	                HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body(
+	                        new Response(
+	                                false,
+	                                null,
+	                                null,
+	                                "Error fetching bookings : " + e.getMessage(),
+	                                500,
+	                                null,
+	                                null));
+	    }
+	}
 
 // ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 	@Override

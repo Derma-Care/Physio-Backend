@@ -55,6 +55,7 @@ public interface BookingService {
 			String bookingId);
 	public ResponseEntity<?> getReportsByPatientId(String patientId);
 	public ResponseEntity<?> getBookedServiceById(String bookingId);
+	public ResponseEntity<?> getFilteredBookingsByStatus(String clinicId,String branchId);
 
 
 }

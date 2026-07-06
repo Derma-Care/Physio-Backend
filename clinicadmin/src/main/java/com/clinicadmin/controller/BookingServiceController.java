@@ -191,6 +191,14 @@ public class BookingServiceController {
 			return bookingService.getBookedServiceById(id);
 		
 		}
+	    
+	    @GetMapping("/filter/status/{clinicId}/{branchId}")
+	    public ResponseEntity<?> getFilteredBookingsByStatus(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId){
+	    	return bookingService.getFilteredBookingsByStatus(clinicId,branchId);
+	 		
+	 		}
 
 	   
 }
