@@ -7,4 +7,4 @@ physiotherapydoctor-service/src/main/resources/application-secrets.properties
 
 # Firebase service account key
 notification-service/src/main/resources/firebase-key.json
-
+clinicadmin/src/main/resources/firebase-key.json
