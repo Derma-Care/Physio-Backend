@@ -3,27 +3,26 @@ package physiotherapydoctor.serviceImpl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-
-import org.springframework.web.bind.annotation.PathVariable;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
-import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.service.BookingService;
+import physiotherapydoctor.util.BookingFeignImpl;
 import physiotherapydoctor.util.ExtractFeignMessage;
-import physiotherapydoctor.util.FeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 @Service
 public class BookingServiceImpl implements BookingService {
 
     @Autowired
-    private FeignImpl bookingFeignClient;
+    private BookingFeignImpl bookingFeignClient;
     
     @Autowired
     private KeyCloakTokenStore keyCloakTokenStore;

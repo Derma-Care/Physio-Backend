@@ -4,28 +4,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.TreatmentDTO;
-import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.TreatmentService;
-import physiotherapydoctor.util.FeignImpl;
+import physiotherapydoctor.util.ClinicAdminFeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 @Service
 public class TreatmentServiceImpl implements TreatmentService {
 
 	@Autowired
-	private FeignImpl clinicAdminServiceClient;
-	
-	 @Autowired
-	 private KeyCloakTokenStore keyCloakTokenStore;
+	private ClinicAdminFeignImpl clinicAdminServiceClient;
 
+	@Autowired
+	private KeyCloakTokenStore keyCloakTokenStore;
 
 	@Override
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "addTreatmentFallback")
-@Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> addTreatment(TreatmentDTO dto) {
 		try {
 			return clinicAdminServiceClient.addTreatment(dto);
@@ -36,7 +35,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
 	@Override
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllTreatmentsFallback")
-@Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getAllTreatments() {
 		try {
 			return clinicAdminServiceClient.getAllTreatments();
@@ -47,7 +46,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
 	@Override
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTreatmentByIdFallback")
-@Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getTreatmentById(String id, String hospitalId) {
 		try {
 			return clinicAdminServiceClient.getTreatmentById(id, hospitalId);
@@ -58,7 +57,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
 	@Override
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteTreatmentByIdFallback")
-@Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> deleteTreatmentById(String id, String hospitalId) {
 		try {
 			return clinicAdminServiceClient.deleteTreatmentById(id, hospitalId);
@@ -69,7 +68,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
 	@Override
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateTreatmentByIdFallback")
-@Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> updateTreatmentById(String id, String hospitalId, TreatmentDTO dto) {
 		try {
 			return clinicAdminServiceClient.updateTreatmentById(id, hospitalId, dto);
@@ -78,31 +77,29 @@ public class TreatmentServiceImpl implements TreatmentService {
 		}
 	}
 
-    
-    private Response buildRateLimitResponse(Exception ex) {
-        return new Response(false, null,
-                "Rate limit exceeded. Please try again later.",
-                429);
-    }
+	private Response buildRateLimitResponse(Exception ex) {
+		return new Response(false, null, "Rate limit exceeded. Please try again later.", 429);
+	}
 
-    public ResponseEntity<Response> addTreatmentFallback(TreatmentDTO dto, Exception ex) {
-        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
-    }
+	public ResponseEntity<Response> addTreatmentFallback(TreatmentDTO dto, Exception ex) {
+		return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+	}
 
-    public ResponseEntity<Response> getAllTreatmentsFallback(Exception ex) {
-        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
-    }
+	public ResponseEntity<Response> getAllTreatmentsFallback(Exception ex) {
+		return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+	}
 
-    public ResponseEntity<Response> getTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
-        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
-    }
+	public ResponseEntity<Response> getTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
+		return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+	}
 
-    public ResponseEntity<Response> deleteTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
-        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
-    }
+	public ResponseEntity<Response> deleteTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
+		return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+	}
 
-    public ResponseEntity<Response> updateTreatmentByIdFallback(String id, String hospitalId, TreatmentDTO dto, Exception ex) {
-        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
-    }
+	public ResponseEntity<Response> updateTreatmentByIdFallback(String id, String hospitalId, TreatmentDTO dto,
+			Exception ex) {
+		return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+	}
 
 }

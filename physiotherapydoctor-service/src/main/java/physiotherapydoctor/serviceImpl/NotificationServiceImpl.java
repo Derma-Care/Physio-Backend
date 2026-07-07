@@ -9,16 +9,15 @@ import org.springframework.stereotype.Service;
 import feign.FeignException;
 import physiotherapydoctor.dto.NotificationDTO;
 import physiotherapydoctor.dto.ResBody;
-import physiotherapydoctor.feign.NotificationFeign;
 import physiotherapydoctor.service.NotificationService;
 import physiotherapydoctor.util.ExtractFeignMessage;
-import physiotherapydoctor.util.FeignImpl;
+import physiotherapydoctor.util.NotificationFeignImpl;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
 	@Autowired
-	private FeignImpl notificationFeign;
+	private NotificationFeignImpl notificationFeign;
 
 	public ResponseEntity<ResBody<List<NotificationDTO>>> notificationToDoctor(String hospitalId, String doctorId) {
 		try {

@@ -12,9 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import physiotherapydoctor.dto.RecoverySupportDTO;
 import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.service.RecoverySupportService;
-import physiotherapydoctor.util.FeignImpl;
+import physiotherapydoctor.util.ClinicAdminFeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 
@@ -25,7 +24,9 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private FeignImpl clinicAdminFeign;
+	private ClinicAdminFeignImpl clinicAdminFeign;
+	
+	
 	
 	 @Autowired
 	 private KeyCloakTokenStore keyCloakTokenStore;

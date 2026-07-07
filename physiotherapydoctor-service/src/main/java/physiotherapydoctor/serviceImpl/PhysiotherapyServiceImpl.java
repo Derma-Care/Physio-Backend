@@ -1,6 +1,5 @@
 package physiotherapydoctor.serviceImpl;
 
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,13 +25,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import feign.FeignException;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.Complaints;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
-import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.DoctorsDTO;
 import physiotherapydoctor.dto.Exercise;
 import physiotherapydoctor.dto.ExerciseCalculations;
@@ -49,7 +48,6 @@ import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.SessionForBooking;
 import physiotherapydoctor.dto.TheraphyInfo;
-import physiotherapydoctor.dto.TherapistAssignmentDTO;
 import physiotherapydoctor.dto.TherapistRecordDetails;
 import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
@@ -63,15 +61,13 @@ import physiotherapydoctor.dto.VisitDetailsDTO;
 import physiotherapydoctor.dto.VisitDetailsDTO.PhysiotherapyDoctorData;
 import physiotherapydoctor.entity.PaymentRecord;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
-import physiotherapydoctor.feign.BookingFeignClient;
-import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PhysiotherapyService;
 import physiotherapydoctor.service.S3Service;
+import physiotherapydoctor.util.BookingFeignImpl;
+import physiotherapydoctor.util.ClinicAdminFeignImpl;
 import physiotherapydoctor.util.ExtractFeignMessage;
-import physiotherapydoctor.util.FeignImpl;
-import physiotherapydoctor.util.KeyCloakTokenStore;
 
 @Service
 @RequiredArgsConstructor
@@ -81,10 +77,11 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	private PhysiotherapydoctorRespository repository;
 
 	@Autowired
-	private FeignImpl bookingFeign;
+	private BookingFeignImpl bookingFeign;
 
 	@Autowired
-	private FeignImpl clinicAdminFeign;
+	private ClinicAdminFeignImpl clinicAdminFeign;
+	
 
 	@Autowired
 	private PaymentRepository paymentRepository;

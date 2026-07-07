@@ -34,10 +34,9 @@ import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.dto.response.ProgramResponse;
 import physiotherapydoctor.dto.response.TherapyResponse;
 import physiotherapydoctor.entity.PaymentRecord;
-import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.repository.PaymentRepository;
 import physiotherapydoctor.service.PaymentService;
-import physiotherapydoctor.util.FeignImpl;
+import physiotherapydoctor.util.ClinicAdminFeignImpl;
 import physiotherapydoctor.util.KeyCloakTokenStore;
 
 @Service
@@ -48,10 +47,10 @@ public class PaymentServiceImpl implements PaymentService {
 	private final PaymentRepository repo;
 
 	@Autowired
-	private FeignImpl clinicAdminFeign;
-	
-	 @Autowired
-	 private KeyCloakTokenStore keyCloakTokenStore;
+	private ClinicAdminFeignImpl clinicAdminFeign;
+
+	@Autowired
+	private KeyCloakTokenStore keyCloakTokenStore;
 
 	// =====================================================
 	// ✅ WHATSAPP SERVICE INJECTED
@@ -63,7 +62,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// CREATE
 	// ========================================================
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createPaymentFallback")
 	public PaymentRecordResponse createPayment(PaymentRequest req) {
 
@@ -183,13 +182,13 @@ public class PaymentServiceImpl implements PaymentService {
 	// UPDATE
 	// ========================================================
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updatePaymentFallback")
 	public PaymentRecordResponse updatePayment(PaymentRequest req) {
 
 		PaymentRecord record = repo.findByBookingId(req.getBookingId())
 				.orElseThrow(() -> new RuntimeException("Payment not found"));
-		
+
 		record.setTreatmentName(req.getTreatmentName());
 
 		if (req.getTherapyWithSessions() != null) {
@@ -300,7 +299,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// GET BY BOOKING ID
 	// ========================================================
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
+	@Secured({ "ROLE_DOCTOR", "ROLE_CLINICADMIN" })
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByBookingIdFallback")
 	public PaymentRecordResponse getByBookingId(String bookingId) {
 
@@ -318,7 +317,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// DELETE BY BOOKING ID
 	// ========================================================
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteByBookingIdFallback")
 	public void deleteByBookingId(String bookingId) {
 
@@ -332,7 +331,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// UPDATE SESSION STATUS FROM THERAPIST
 	// ========================================================
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
+	@Secured({ "ROLE_DOCTOR", "ROLE_CLINICADMIN" })
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateSessionStatusFromTherapistFallback")
 	public void updateSessionStatusFromTherapist(String therapistRecordId, String sessionId) {
 
@@ -1233,7 +1232,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// GET EXERCISE SESSIONS WITH RECORDS
 	// ========================================================
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
+	@Secured({ "ROLE_DOCTOR", "ROLE_CUSTOMER" })
 	public Response getExerciseSessionsWithRecords(String clinicId, String branchId, String bookingId, String patientId,
 			String therapistId, String therapistRecordId) {
 
@@ -1305,75 +1304,67 @@ public class PaymentServiceImpl implements PaymentService {
 
 		return response;
 	}
-	
-	
+
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
-	public int getTodaySessionCount(String clinicId,
-	                                     String branchId,
-	                                     String therapistId) {
+	@Secured({ "ROLE_DOCTOR", "ROLE_CLINICADMIN" })
+	public int getTodaySessionCount(String clinicId, String branchId, String therapistId) {
 
-	    try {
+		try {
 
-	        List<PaymentRecord> records =
-	                repo.findByClinicIdAndBranchIdAndTherapistId(
-	                        clinicId,
-	                        branchId,
-	                        therapistId);
+			List<PaymentRecord> records = repo.findByClinicIdAndBranchIdAndTherapistId(clinicId, branchId, therapistId);
 
-	        if (records == null || records.isEmpty()) {
+			if (records == null || records.isEmpty()) {
 
-	            return 0;
-	        }
+				return 0;
+			}
 
-	        String today = LocalDate.now()
-	                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-	        int todaySessionCount = 0;
+			int todaySessionCount = 0;
 
-	        for (PaymentRecord record : records) {
+			for (PaymentRecord record : records) {
 
-	            if (record.getTherapyWithSessions() == null)
-	                continue;
+				if (record.getTherapyWithSessions() == null)
+					continue;
 
-	            for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
+				for (TherapyWithSessions pkg : record.getTherapyWithSessions()) {
 
-	                if (pkg.getPrograms() == null)
-	                    continue;
+					if (pkg.getPrograms() == null)
+						continue;
 
-	                for (Program program : pkg.getPrograms()) {
+					for (Program program : pkg.getPrograms()) {
 
-	                    if (program.getTherapyData() == null)
-	                        continue;
+						if (program.getTherapyData() == null)
+							continue;
 
-	                    for (TherapyData therapy : program.getTherapyData()) {
+						for (TherapyData therapy : program.getTherapyData()) {
 
-	                        if (therapy.getExercises() == null)
-	                            continue;
+							if (therapy.getExercises() == null)
+								continue;
 
-	                        for (TherapyExercise exercise : therapy.getExercises()) {
+							for (TherapyExercise exercise : therapy.getExercises()) {
 
-	                            if (exercise.getSessions() == null)
-	                                continue;
+								if (exercise.getSessions() == null)
+									continue;
 
-	                            for (Session session : exercise.getSessions()) {
+								for (Session session : exercise.getSessions()) {
 
-	                                if (today.equals(session.getDate())) {
-	                                    todaySessionCount++;
-	                                }
-	                            }
-	                        }
-	                    }
-	                }
-	            }
-	        }
+									if (today.equals(session.getDate())) {
+										todaySessionCount++;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 
-	       return todaySessionCount;
+			return todaySessionCount;
 
-	    } catch (Exception e) {
+		} catch (Exception e) {
 
-	       return 0;
-	    }
+			return 0;
+		}
 
 	}
 
@@ -1381,7 +1372,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// GET COMPLETED THERAPY RECORD
 	// ========================================================
 	@Override
-	 @Secured("ROLE_DOCTOR")
+	@Secured("ROLE_DOCTOR")
 	public Response getCompletedTherapyRecord(String clinicId, String branchId, String therapistRecordId,
 			String sessionId) {
 
@@ -1389,9 +1380,8 @@ public class PaymentServiceImpl implements PaymentService {
 
 		try {
 
-	        ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
-	                .getCompletedTherapyRecord(clinicId, branchId, therapistRecordId, sessionId);
-
+			ResponseEntity<ResponseStructure<TherapistRecordDTO>> tr = clinicAdminFeign
+					.getCompletedTherapyRecord(clinicId, branchId, therapistRecordId, sessionId);
 
 			if (tr != null && tr.getBody() != null && tr.getBody().getData() != null) {
 				TherapistRecordDTO dto = tr.getBody().getData();
@@ -1421,17 +1411,18 @@ public class PaymentServiceImpl implements PaymentService {
 
 	private String refreshSignedUrl(String signedUrl) {
 
-	    if (signedUrl == null || signedUrl.isBlank()) return signedUrl;
-	    try {
-	        String fileKey = extractKey(signedUrl);
-	        ResponseEntity<String> result = clinicAdminFeign.getSignedUrl(fileKey);
-	        if (result != null && result.getBody() != null) {
-	            return result.getBody();
-	        }
-	    } catch (Exception e) {
-	        System.out.println("Failed to refresh signed URL: " + e.getMessage());
-	    }
-	    return signedUrl; // fallback: return existing URL
+		if (signedUrl == null || signedUrl.isBlank())
+			return signedUrl;
+		try {
+			String fileKey = extractKey(signedUrl);
+			ResponseEntity<String> result = clinicAdminFeign.getSignedUrl(fileKey);
+			if (result != null && result.getBody() != null) {
+				return result.getBody();
+			}
+		} catch (Exception e) {
+			System.out.println("Failed to refresh signed URL: " + e.getMessage());
+		}
+		return signedUrl; // fallback: return existing URL
 	}
 
 	private String extractKey(String signedUrl) {
@@ -1449,7 +1440,7 @@ public class PaymentServiceImpl implements PaymentService {
 	// FIND BY CLINIC AND BRANCH
 	// ========================================================
 	@Override
-	 @Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
+	@Secured({ "ROLE_DOCTOR", "ROLE_CLINICADMIN" })
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getExerciseSessionsWithRecordsFallback")
 	public List<PaymentRecordResponse> findByClinicIdAndBranchId(String clinicId, String branchId) {
 
@@ -1491,97 +1482,61 @@ public class PaymentServiceImpl implements PaymentService {
 		return lastDate != null ? lastDate.toString() : null;
 	}
 
+	private PaymentRecordResponse createPaymentFallback(PaymentRequest req, Exception ex) {
 
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private PaymentRecordResponse createPaymentFallback(
-        PaymentRequest req,
-        Exception ex) {
+	private PaymentRecordResponse updatePaymentFallback(PaymentRequest req, Exception ex) {
 
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private PaymentRecordResponse updatePaymentFallback(
-        PaymentRequest req,
-        Exception ex) {
+	private PaymentRecordResponse getByBookingIdFallback(String bookingId, Exception ex) {
 
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private PaymentRecordResponse getByBookingIdFallback(
-        String bookingId,
-        Exception ex) {
+	private void deleteByBookingIdFallback(String bookingId, Exception ex) {
 
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private void deleteByBookingIdFallback(
-        String bookingId,
-        Exception ex) {
+	private void updateSessionStatusFromTherapistFallback(String therapistRecordId, String sessionId, Exception ex) {
 
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private void updateSessionStatusFromTherapistFallback(
-        String therapistRecordId,
-        String sessionId,
-        Exception ex) {
+	private Response getExerciseSessionsWithRecordsFallback(String clinicId, String branchId, String bookingId,
+			String patientId, String therapistId, String therapistRecordId, Exception ex) {
 
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
+		return buildRateLimitResponse(ex);
+	}
 
-private Response getExerciseSessionsWithRecordsFallback(
-        String clinicId,
-        String branchId,
-        String bookingId,
-        String patientId,
-        String therapistId,
-        String therapistRecordId,
-        Exception ex) {
+	private int getTodaySessionCountFallback(String clinicId, String branchId, String therapistId, Exception ex) {
 
-    return buildRateLimitResponse(ex);
-}
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private int getTodaySessionCountFallback(
-        String clinicId,
-        String branchId,
-        String therapistId,
-        Exception ex) {
+	private Response getCompletedTherapyRecordFallback(String clinicId, String branchId, String therapistRecordId,
+			String sessionId, Exception ex) {
 
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
+		return buildRateLimitResponse(ex);
+	}
 
-private Response getCompletedTherapyRecordFallback(
-        String clinicId,
-        String branchId,
-        String therapistRecordId,
-        String sessionId,
-        Exception ex) {
+	private List<PaymentRecordResponse> findByClinicIdAndBranchIdFallback(String clinicId, String branchId,
+			Exception ex) {
 
-    return buildRateLimitResponse(ex);
-}
+		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
+	}
 
-private List<PaymentRecordResponse> findByClinicIdAndBranchIdFallback(
-        String clinicId,
-        String branchId,
-        Exception ex) {
-
-    throw new RuntimeException(
-            "physiotherapydoctorService is temporarily unavailable", ex);
-}
-
-private Response buildRateLimitResponse(Exception ex) {
-    Response response = new Response();
-    response.setSuccess(false);
-    response.setStatus(429);
-    response.setMessage("Rate limit exceeded. Please try again later.");
-    response.setData(null);
-    return response;
-}
+	private Response buildRateLimitResponse(Exception ex) {
+		Response response = new Response();
+		response.setSuccess(false);
+		response.setStatus(429);
+		response.setMessage("Rate limit exceeded. Please try again later.");
+		response.setData(null);
+		return response;
+	}
 
 }
