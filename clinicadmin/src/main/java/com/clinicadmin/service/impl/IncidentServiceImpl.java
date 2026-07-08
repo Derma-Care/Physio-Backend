@@ -19,8 +19,10 @@ import com.clinicadmin.repository.IncidentRepository;
 import com.clinicadmin.service.IncidentService;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class IncidentServiceImpl implements IncidentService {
 	@Autowired
 	private IncidentRepository incidentRepository;
@@ -29,6 +31,7 @@ public class IncidentServiceImpl implements IncidentService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "createIncidentFallback")
 	public Response createIncident(IncidentDTO dto) {
+		log.info("Creating incident title={} raisedBy={}", dto.getTitle(), dto.getRaisedBy());
 		Response response = new Response();
 		if (dto.getTitle() == null || dto.getTitle().isEmpty()) {
 			response.setSuccess(false);
@@ -42,7 +45,9 @@ public class IncidentServiceImpl implements IncidentService {
 		Incident incident = Incident.builder().title(dto.getTitle()).description(dto.getDescription())
 				.status(IncidentStatus.NEW).raisedBy(dto.getRaisedBy()).assignedTo(dto.getAssignedTo())
 				.priority(dto.getPriority()).createdAt(now).updatedAt(now).build();
+		log.debug("Saving incident to repository");
 		incident = incidentRepository.save(incident);
+		log.info("Incident created successfully id={}", incident.getId());
 		IncidentDTO covetedDTO = convertToDTO(incident);
 
 		response.setSuccess(true);
@@ -55,9 +60,12 @@ public class IncidentServiceImpl implements IncidentService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllIncidentsFallback")
 	public Response getAllIncidents() {
+		log.info("Fetching all incidents");
 	    Response response = new Response();
 	    try {
+	        log.debug("Calling incidentRepository.findAll()");
 	        List<Incident> incidents = incidentRepository.findAll();
+	        log.info("Fetched {} incidents", incidents.size());
 	        if (incidents.isEmpty()) {
 	            response.setSuccess(true);
 	            response.setData(Collections.emptyList());
@@ -77,6 +85,7 @@ public class IncidentServiceImpl implements IncidentService {
 	        return response;
 
 	    } catch (Exception e) {
+	        log.error("Failed while fetching incidents", e);
 	        response.setSuccess(false);
 	        response.setMessage("Error occurred while getting list of incidents: " + e.getMessage());
 	        response.setStatus(500);
@@ -89,6 +98,7 @@ public class IncidentServiceImpl implements IncidentService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateIncidentStatuFallback")
 	public Response UpdateIncidentStatu(String id, String status) {
+		log.info("Updating incident status id={} status={}", id, status);
 		Response response = new Response();
 		try {
 			Optional<Incident> optiinalIncident = incidentRepository.findById(id);
@@ -111,7 +121,9 @@ public class IncidentServiceImpl implements IncidentService {
 
 			String now = LocalDateTime.now().format(formatter);
 			incident.setUpdatedAt(now);
+			log.debug("Saving updated incident id={}", id);
 			Incident updatedIncident = incidentRepository.save(incident);
+			log.info("Incident status updated successfully id={}", id);
 			IncidentDTO updatedIncidentDTO = convertToDTO(updatedIncident);
 			response.setSuccess(true);
 			response.setData(updatedIncidentDTO);
@@ -119,6 +131,7 @@ public class IncidentServiceImpl implements IncidentService {
 			response.setStatus(200);
 			return response;
 		} catch (Exception e) {
+			log.error("Failed while updating incident status id={}", id, e);
 			response.setSuccess(false);
 			response.setMessage("error occured while updating incident status :" + e.getMessage());
 			response.setStatus(500);
@@ -131,6 +144,7 @@ public class IncidentServiceImpl implements IncidentService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteIncidentFallback")
 	public Response deleteIncident(String id) {
+		log.info("Deleting incident id={}", id);
 		Response response = new Response();
 		try {
 			Optional<Incident> incident = incidentRepository.findById(id);
@@ -140,12 +154,15 @@ public class IncidentServiceImpl implements IncidentService {
 				response.setStatus(200);
 				return response;
 			}
+			log.debug("Deleting incident from repository id={}", id);
 			incidentRepository.deleteById(id);
+			log.info("Incident deleted successfully id={}", id);
 			response.setSuccess(true);
 			response.setMessage("Incident deleted successfully");
 			response.setStatus(200);
 			return response;
 		} catch (Exception e) {
+			log.error("Failed while updating incident status id={}", id, e);
 			response.setSuccess(false);
 			response.setMessage("error occured while deleting incident using incidentId :" + e.getMessage());
 			response.setStatus(500);
@@ -168,18 +185,22 @@ public class IncidentServiceImpl implements IncidentService {
 	}
 	
 	public Response createIncidentFallback(IncidentDTO dto, Exception ex) {
+	    log.error("Rate limit triggered in createIncident", ex);
 	    return buildRateLimitResponse(ex);
 	}
 
 	public Response getAllIncidentsFallback(Exception ex) {
+	    log.error("Rate limit triggered in getAllIncidents", ex);
 	    return buildRateLimitResponse(ex);
 	}
 
 	public Response updateIncidentStatuFallback(String id, String status, Exception ex) {
+	    log.error("Rate limit triggered in UpdateIncidentStatu id={} status={}", id, status, ex);
 	    return buildRateLimitResponse(ex);
 	}
 
 	public Response deleteIncidentFallback(String id, Exception ex) {
+	    log.error("Rate limit triggered in deleteIncident id={}", id, ex);
 	    return buildRateLimitResponse(ex);
 	}
 

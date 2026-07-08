@@ -23,7 +23,6 @@ import com.clinicadmin.dto.DailyAllUsersResponseDTO;
 import com.clinicadmin.dto.DailyAttendanceResponseDTO;
 import com.clinicadmin.dto.MonthlyAttendanceResponseDTO;
 import com.clinicadmin.dto.Response;
-import com.clinicadmin.dto.Session;
 import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
@@ -37,14 +36,14 @@ import com.clinicadmin.service.AttendanceService;
 import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
-import lombok.RequiredArgsConstructor;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository repo;
@@ -61,8 +60,10 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
-    public Response save(AttendanceDTO dto) {
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "saveFallback")
+	public Response save(AttendanceDTO dto) {
+
+        log.info("Attendance save started userId={} date={}", dto.getUserId(), dto.getDate());
 
         Response response = new Response();
 
@@ -195,8 +196,9 @@ public class AttendanceServiceImpl implements AttendanceService {
                 attendance.setIdleTime(entity.getIdleTime());
 
                 TherapistAttendance savedAttendance =
-                        therapistAttendanceRepo.save(attendance);
-
+                          therapistAttendanceRepo.save(attendance);
+                log.info("Saving therapist attendance therapistId={} date={}", attendance.getTherapistId(), attendance.getDate());
+                
                 response.setSuccess(true);
                 response.setMessage("Therapist attendance saved successfully");
                 response.setData(savedAttendance);
@@ -204,6 +206,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                 return response;
             }
+            log.info("Saving attendance userId={} date={}", entity.getUserId(), entity.getDate());
             repo.save(entity);
             response.setSuccess(true);
             
@@ -217,6 +220,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         } catch (Exception e) {
 
+            log.error("Error while saving attendance", e);
             response.setSuccess(false);  
             response.setMessage(e.getMessage());
             response.setStatus(200);     
@@ -227,8 +231,10 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
-    public Response updateActivity(AttendanceDTO dto) {
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateActivityFallback")
+	public Response updateActivity(AttendanceDTO dto) {
+
+        log.info("Attendance updateActivity started userId={} date={}", dto.getUserId(), dto.getDate());
 
         Response response = new Response();
 
@@ -471,7 +477,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setStatus(200);
 
         } catch (Exception e) {
-
+        	 log.error("{}", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(400);
@@ -483,9 +489,10 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDailyFallback")
+	public Response getDaily(String userId, String date) {
 
-    public Response getDaily(String userId, String date) {
+        log.info("Fetching daily attendance userId={} date={}", userId, date);
 
         Response response = new Response();
 
@@ -633,7 +640,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setStatus(200);
 
         } catch (Exception e) {
-
+       	 log.error("{}", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(404);
@@ -644,8 +651,10 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
-    public Response getMonthlyReport(String userId, String month) {
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getMonthlyReportFallback")
+	public Response getMonthlyReport(String userId, String month) {
+
+        log.info("Fetching monthly report userId={} month={}", userId, month);
 
         Response response = new Response();
 
@@ -698,6 +707,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setStatus(200);
 
         } catch (Exception e) {
+       	 log.error("{}", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(400);
@@ -984,6 +994,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     .collect(Collectors.joining(", "));
 
         } catch (Exception e) {
+       	 log.error("{}", e);
             return "Unknown";
         }
     }
@@ -1098,6 +1109,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
+       	 log.error("{}", e);
             throw new RuntimeException(
                     "Unable to validate branch location: " + e.getMessage()
             );
@@ -1132,8 +1144,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
-    public Response getDailyByClinicAndBranch(
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDailyByClinicAndBranchFallback")
+	public Response getDailyByClinicAndBranch(
+
             String clinicId,
             String branchId,
             String date) {
@@ -1159,162 +1172,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 //            }
 
             List<DailyAllUsersResponseDTO> result = new ArrayList<>();
-            
-//         // =========================================================
-//         // ADD CLINIC ADMIN
-//         // =========================================================
-//         try {
-//
-//             ResponseEntity<Response> clinicResponse =
-//                     adminServiceClient.getAllClinics();
-//
-//             if (clinicResponse.getBody() != null
-//                     && clinicResponse.getBody().getData() != null) {
-//
-//                 List<Map<String, Object>> clinics =
-//                         (List<Map<String, Object>>) clinicResponse.getBody().getData();
-//
-//                 for (Map<String, Object> clinic : clinics) {
-//
-//                     // ✅ FILTER — only process matching clinicId
-//                     String hospitalId = clinic.get("hospitalId") != null
-//                             ? clinic.get("hospitalId").toString() : "";
-//                     if (!hospitalId.equals(clinicId)) {
-//                         continue;
-//                     }
-//
-//                     DailyAllUsersResponseDTO clinicDto =
-//                             new DailyAllUsersResponseDTO();
-//
-//                     // BASIC DETAILS
-//                     clinicDto.setUserId(
-//                             clinic.get("hospitalId") != null
-//                                     ? clinic.get("hospitalId").toString()
-//                                     : "");
-//
-//                     clinicDto.setName(
-//                             clinic.get("name") != null
-//                                     ? clinic.get("name").toString()
-//                                     : "");
-//
-//                     clinicDto.setRole(
-//                             clinic.get("role") != null
-//                                     ? clinic.get("role").toString()
-//                                     : "ADMIN");
-//
-//                     clinicDto.setClinicId(
-//                             clinic.get("hospitalId") != null
-//                                     ? clinic.get("hospitalId").toString()
-//                                     : "");
-//
-//                     clinicDto.setBranchId(
-//                             clinic.get("branch") != null
-//                                     ? clinic.get("branch").toString()
-//                                     : "");
-//
-//                     clinicDto.setDate(date);
-//
-//                     // DEFAULT VALUES
-//                     clinicDto.setStatus("Not Logged In");
-//                     clinicDto.setLogTime(null);
-//                     clinicDto.setWorkingHours("00:00");
-//                     clinicDto.setIdleTime("00:00");
-//                     clinicDto.setLogin(null);
-//                     clinicDto.setLogout(null);
-//
-//                     // FETCH ATTENDANCE
-//                     Optional<Attendance> attendanceOpt =
-//                             repo.findByClinicIdAndBranchIdAndUserIdAndDate(
-//                                     clinicDto.getClinicId(),
-//                                     clinicDto.getBranchId(),
-//                                     clinicDto.getUserId(),
-//                                     date
-//                             );
-//
-//                     // FALLBACK
-//                     if (!attendanceOpt.isPresent()) {
-//
-//                         attendanceOpt = repo.findByUserIdAndDate(
-//                                 clinicDto.getUserId(),
-//                                 date
-//                         );
-//                     }
-//
-//                     // MAP ATTENDANCE
-//                     if (attendanceOpt.isPresent()) {
-//
-//                         Attendance entity = attendanceOpt.get();
-//
-//                         clinicDto.setStatus(
-//                                 entity.getStatus() != null
-//                                         ? entity.getStatus()
-//                                         : "Not Logged In"
-//                         );
-//
-//                         clinicDto.setLogTime(entity.getLogTime());
-//
-//                         clinicDto.setWorkingHours(
-//                                 entity.getWorkingHours() != null
-//                                         ? entity.getWorkingHours()
-//                                         : "00:00"
-//                         );
-//
-//                         clinicDto.setIdleTime(
-//                                 entity.getIdleTime() != null
-//                                         ? entity.getIdleTime()
-//                                         : "00:00"
-//                         );
-//
-//                         // LOGIN
-//                         if (entity.getLogin() != null) {
-//
-//                             TimeLocationDTO login =
-//                                     new TimeLocationDTO();
-//
-//                             login.setTime(entity.getLogin().getTime());
-//                             login.setLatitude(entity.getLogin().getLatitude());
-//                             login.setLongtitude(entity.getLogin().getLongtitude());
-//
-//                             login.setLocation(
-//                                     getCityFromLatLong(
-//                                             entity.getLogin().getLatitude(),
-//                                             entity.getLogin().getLongtitude()
-//                                     )
-//                             );
-//
-//                             clinicDto.setLogin(login);
-//                         }
-//
-//                         // LOGOUT
-//                         if (entity.getLogout() != null) {
-//
-//                             TimeLocationDTO logout =
-//                                     new TimeLocationDTO();
-//
-//                             logout.setTime(entity.getLogout().getTime());
-//                             logout.setLatitude(entity.getLogout().getLatitude());
-//                             logout.setLongtitude(entity.getLogout().getLongtitude());
-//
-//                             logout.setLocation(
-//                                     getCityFromLatLong(
-//                                             entity.getLogout().getLatitude(),
-//                                             entity.getLogout().getLongtitude()
-//                                     )
-//                             );
-//
-//                             clinicDto.setLogout(logout);
-//                         }
-//                     }
-//
-//                     result.add(clinicDto);
-//                 }
-//             }
-//
-//         } catch (Exception e) {
-//
-//             System.out.println("Clinic admin attendance error: "
-//                     + e.getMessage());
-//         }
+
 
       // =========================================================
       // ADD BRANCH ADMIN
@@ -1482,8 +1340,7 @@ public class AttendanceServiceImpl implements AttendanceService {
           }
 
       } catch (Exception e) {
-          System.out.println("Branch admin attendance error: "
-                  + e.getMessage());
+     	 log.error("{}", e);
       }
             // =========================================================
             // LOOP THROUGH ALL USERS
@@ -1873,7 +1730,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setStatus(200);
 
         } catch (Exception e) {
-
+       	 log.error("{}", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(404);
@@ -1884,8 +1741,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
-    public Response getMonthlyByClinicAndBranch(
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getMonthlyByClinicAndBranchFallback")
+	public Response getMonthlyByClinicAndBranch(
+
             String clinicId,
             String branchId,
             String userId,
@@ -1979,7 +1837,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             response.setStatus(200);
 
         } catch (Exception e) {
-
+       	 log.error("{}", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(400);
@@ -2028,54 +1886,53 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     // ================= RATE LIMIT FALLBACK METHODS =================
 
-    public Response rateLimitFallback(AttendanceDTO dto, Exception ex) {
-        Response response = new Response();
-        response.setSuccess(false);
-        response.setStatus(429);
-        response.setMessage("Too many requests. Please try again later.");
-        return response;
+   public Response saveFallback(AttendanceDTO dto, Exception ex) {
+        log.error("Rate limiter triggered in save", ex);
+        return buildResponse();
     }
 
-    public Response rateLimitFallback(String userId, String date, Exception ex) {
-        Response response = new Response();
-        response.setSuccess(false);
-        response.setStatus(429);
-        response.setMessage("Too many requests. Please try again later.");
-        return response;
+    public Response updateActivityFallback(AttendanceDTO dto, Exception ex) {
+        log.error("Rate limiter triggered in updateActivity", ex);
+        return buildResponse();
     }
 
-    public Response rateLimitFallback(String userId, String month, RuntimeException ex) {
-        Response response = new Response();
-        response.setSuccess(false);
-        response.setStatus(429);
-        response.setMessage("Too many requests. Please try again later.");
-        return response;
+    public Response getDailyFallback(String userId, String date, Exception ex) {
+        log.error("Rate limiter triggered in getDaily userId={} date={}", userId, date, ex);
+        return buildResponse();
     }
 
-    public Response rateLimitFallback(
+    public Response getMonthlyReportFallback(String userId, String month, Exception ex) {
+        log.error("Rate limiter triggered in getMonthlyReport userId={} month={}", userId, month, ex);
+        return buildResponse();
+    }
+
+    public Response getDailyByClinicAndBranchFallback(
             String clinicId,
             String branchId,
             String date,
             Exception ex) {
-        Response response = new Response();
-        response.setSuccess(false);
-        response.setStatus(429);
-        response.setMessage("Too many requests. Please try again later.");
-        return response;
+        log.error("Rate limiter triggered in getDailyByClinicAndBranch clinicId={} branchId={} date={}",
+                clinicId, branchId, date, ex);
+        return buildResponse();
     }
 
-    public Response rateLimitFallback(
+    public Response getMonthlyByClinicAndBranchFallback(
             String clinicId,
             String branchId,
             String userId,
             String startDate,
             String endDate,
             Exception ex) {
+        log.error("Rate limiter triggered in getMonthlyByClinicAndBranch clinicId={} branchId={} userId={}",
+                clinicId, branchId, userId, ex);
+        return buildResponse();
+    }
+
+    private Response buildResponse() {
         Response response = new Response();
         response.setSuccess(false);
         response.setStatus(429);
         response.setMessage("Too many requests. Please try again later.");
         return response;
     }
-
 }

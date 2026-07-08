@@ -1,19 +1,15 @@
 package physiotherapydoctor.serviceImpl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
+
 import physiotherapydoctor.dto.AccessTokenAndRefreshToken;
 import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.Response;
@@ -22,60 +18,118 @@ import physiotherapydoctor.util.JwtUtil;
 import physiotherapydoctor.util.RolesStore;
 
 @Service
-public class AuthServiceImpl implements AuthService {	
-	
-	@Autowired
-	@Lazy
-	private AuthenticationManager authManager;
-	
-	@Autowired
-	public CustomDoctorLoginDetailsService customDoctorLoginDetailsService;
-	
-	@Autowired
-	private JwtUtil jwtUtil;
-	
-	@Autowired
-	public RolesStore rolesStore;
+public class AuthServiceImpl implements AuthService {
 
-		
-	public ResponseEntity<Response> doctorLogin( DoctorLoginDTO doctorLoginDTO) {
-		//System.out.println("hlo");
-				Response response = new Response();
-				///System.out.println(doctorLoginDTO.getUsername());
-				customDoctorLoginDetailsService.deviceId = doctorLoginDTO.getDeviceId();
-				try {			
-					authManager.authenticate(new UsernamePasswordAuthenticationToken(doctorLoginDTO.getUsername(),doctorLoginDTO.getPassword()));
-					//System.out.println("invoked after auth");
-					List<String> roles = rolesStore.getRoles();					
-					 String accessToken = jwtUtil.generateJwtToken(doctorLoginDTO.getUsername(),roles);	
-					   String refreshToken = jwtUtil.generateRefreshToken(doctorLoginDTO.getUsername(),roles);
-					   response.setMessage("Login successful");
-					   response.setStatus(200);
-					   AccessTokenAndRefreshToken tokens = new AccessTokenAndRefreshToken();
-					   tokens.setAccessToken(accessToken);
-		               tokens.setRefreshToken(refreshToken);
-		               tokens.setAccessTokenExpireTime(jwtUtil.formattedTimeByZone);
-					   response.setData(tokens);
-					   	//System.out.println(tokens);
-					   response.setSuccess(true);					  
-				}catch(Exception e) {
-					response.setMessage(e.getMessage());
-			        response.setStatus(500);
-			        response.setSuccess(false);		        
-				}
-				return ResponseEntity.status(response.getStatus()).body(response);
-			}
-	
-	
-	 public ResponseEntity<Response> requestForNewJwtTokenByRefreshToken(String refreshToken){
-		   try {
-			  Response res = jwtUtil.validateAndGenerateRefreshToken(refreshToken);
-			  return ResponseEntity.status(res.getStatus()).body(res);
-		   }catch(Exception e) {
-			   Response respnse = new Response();
-			   respnse.setMessage(e.getMessage());
-			   respnse.setStatus(500);
-			   return ResponseEntity.status(respnse.getStatus()).body(respnse);
-		   }}
-	 
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+
+    @Autowired
+    @Lazy
+    private AuthenticationManager authManager;
+
+    @Autowired
+    public CustomDoctorLoginDetailsService customDoctorLoginDetailsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    public RolesStore rolesStore;
+
+    public ResponseEntity<Response> doctorLogin(DoctorLoginDTO doctorLoginDTO) {
+
+        log.info("Doctor login request received for username: {}", doctorLoginDTO.getUsername());
+
+        Response response = new Response();
+        customDoctorLoginDetailsService.deviceId = doctorLoginDTO.getDeviceId();
+
+        log.debug("Device ID set for authentication. Username: {}, DeviceId: {}",
+                doctorLoginDTO.getUsername(),
+                doctorLoginDTO.getDeviceId());
+
+        try {
+
+            log.info("Authenticating doctor: {}", doctorLoginDTO.getUsername());
+
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            doctorLoginDTO.getUsername(),
+                            doctorLoginDTO.getPassword()));
+
+            log.info("Authentication successful for doctor: {}", doctorLoginDTO.getUsername());
+
+            List<String> roles = rolesStore.getRoles();
+
+            log.debug("Roles fetched for doctor {} : {}", doctorLoginDTO.getUsername(), roles);
+
+            String accessToken =
+                    jwtUtil.generateJwtToken(doctorLoginDTO.getUsername(), roles);
+
+            String refreshToken =
+                    jwtUtil.generateRefreshToken(doctorLoginDTO.getUsername(), roles);
+
+            log.info("JWT access token and refresh token generated successfully for doctor: {}",
+                    doctorLoginDTO.getUsername());
+
+            Response responseData = response;
+
+            responseData.setMessage("Login successful");
+            responseData.setStatus(200);
+
+            AccessTokenAndRefreshToken tokens = new AccessTokenAndRefreshToken();
+            tokens.setAccessToken(accessToken);
+            tokens.setRefreshToken(refreshToken);
+            tokens.setAccessTokenExpireTime(jwtUtil.formattedTimeByZone);
+
+            responseData.setData(tokens);
+            responseData.setSuccess(true);
+
+            log.info("Doctor login completed successfully for username: {}",
+                    doctorLoginDTO.getUsername());
+
+            log.debug("Access token expiry time: {}", jwtUtil.formattedTimeByZone);
+
+        } catch (Exception e) {
+
+            log.error("Doctor login failed for username: {}. Error: {}",
+                    doctorLoginDTO.getUsername(),
+                    e.getMessage(),
+                    e);
+
+            response.setMessage(e.getMessage());
+            response.setStatus(500);
+            response.setSuccess(false);
+        }
+
+        log.info("Returning login response with status: {}", response.getStatus());
+
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+    public ResponseEntity<Response> requestForNewJwtTokenByRefreshToken(String refreshToken) {
+
+        log.info("Refresh token request received");
+
+        try {
+
+            log.debug("Validating refresh token");
+
+            Response response = jwtUtil.validateAndGenerateRefreshToken(refreshToken);
+
+            log.info("New JWT token generated successfully using refresh token");
+
+            return ResponseEntity.status(response.getStatus()).body(response);
+
+        } catch (Exception e) {
+
+            log.error("Failed to generate JWT token using refresh token. Error: {}",
+                    e.getMessage(),
+                    e);
+
+            Response response = new Response();
+            response.setMessage(e.getMessage());
+            response.setStatus(500);
+
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
 }

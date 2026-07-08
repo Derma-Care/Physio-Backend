@@ -24,9 +24,11 @@ import com.clinicadmin.repository.TherophyProgramRepository;
 import com.clinicadmin.service.TherophyProgramService;
 import lombok.RequiredArgsConstructor;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TherophyProgramServiceImpl implements TherophyProgramService {
 
     private final TherophyProgramRepository repository;
@@ -37,6 +39,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     private TherapyExercisesRepository therapyExercisesRepository;
 
     private TherophyProgramEntity mapToEntity(TherophyProgramsDTO dto) {
+        log.debug("Mapping DTO to Entity programName={} clinicId={} branchId={}", dto.getProgramName(), dto.getClinicId(), dto.getBranchId());
         return new TherophyProgramEntity(
                 dto.getId(),
                 dto.getProgramName(),
@@ -47,6 +50,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     }
 
     private TherophyProgramsDTO mapToDTO(TherophyProgramEntity entity) {
+        log.debug("Mapping Entity to DTO id={}", entity.getId());
         return new TherophyProgramsDTO(
                 entity.getId(),
                 entity.getProgramName(),
@@ -61,6 +65,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFallback")
     public ResponseEntity<Response> create(TherophyProgramsDTO dto) {
+        log.info("Entering create programName={} clinicId={} branchId={}", dto.getProgramName(), dto.getClinicId(), dto.getBranchId());
         try {
             TherophyProgramEntity saved = repository.save(mapToEntity(dto));
 
@@ -74,6 +79,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
@@ -88,6 +94,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdFallback")
     public ResponseEntity<Response> getById(String id) {
+        log.info("Entering getById id={}", id);
         try {
             TherophyProgramEntity entity = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Program not found"));
@@ -111,6 +118,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
@@ -125,6 +133,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByclinicAndBranchIdAndIdFallback")
     public ResponseEntity<Response> getByclinicAndBranchIdAndId(String cid,String bid,String id) {
+        log.info("Entering getByclinicAndBranchIdAndId clinicId={} branchId={} id={}", cid,bid,id);
         try {
             TherophyProgramEntity entity = repository.findByClinicIdAndBranchIdAndId(cid, bid, id);
             ProgramWithTherophy programWithTherophy = null;           
@@ -171,6 +180,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
@@ -184,6 +194,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByclinicAndBranchIdFallback")
     public ResponseEntity<Response> getByclinicAndBranchId(String cid, String bid) {
+        log.info("Entering getByclinicAndBranchId clinicId={} branchId={}", cid,bid);
 
         try {
 
@@ -303,6 +314,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
 
             return ResponseEntity.internalServerError().body(
                     Response.builder()
@@ -319,6 +331,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFallback")
     public ResponseEntity<Response> getAll() {
+        log.info("Entering getAll");
         try {
             List<TherophyProgramsDTO> list = repository.findAll()
                     .stream()
@@ -335,6 +348,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
@@ -349,6 +363,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFallback")
     public ResponseEntity<Response> update(String id, TherophyProgramsDTO dto) {
+        log.info("Entering update id={} programName={}", id, dto.getProgramName());
         try {
             TherophyProgramEntity existing = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Program not found"));
@@ -379,6 +394,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
@@ -393,8 +409,10 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFallback")
     public ResponseEntity<Response> delete(String id) {
+        log.info("Entering delete id={}", id);
         try {
             if (!repository.existsById(id)) {
+                log.warn("Program not found");
                 throw new RuntimeException("Program not found");
             }
 
@@ -418,6 +436,7 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             return ResponseEntity.internalServerError().body(
                     Response.builder()
                             .success(false)
@@ -431,37 +450,45 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public ResponseEntity<Response> createFallback(TherophyProgramsDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> getByIdFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> getByclinicAndBranchIdAndIdFallback(
             String cid, String bid, String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> getByclinicAndBranchIdFallback(
             String cid, String bid, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> getAllFallback(Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> updateFallback(
             String id, TherophyProgramsDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> deleteFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public ResponseEntity<Response> buildRateLimitResponse() {
+        log.warn("Returning rate limit response");
         return ResponseEntity.status(429).body(
                 Response.builder()
                         .success(false)

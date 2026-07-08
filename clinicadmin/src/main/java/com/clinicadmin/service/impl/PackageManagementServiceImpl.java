@@ -27,8 +27,10 @@ import com.clinicadmin.repository.TherophyProgramRepository;
 import com.clinicadmin.service.PackageManagementService;
 import com.clinicadmin.service.TherophyProgramService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class PackageManagementServiceImpl implements PackageManagementService {
 
     @Autowired
@@ -46,6 +48,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createPackageFallback")
     public Response createPackage(PackageManagementDTO dto) {
+        log.info("Creating package clinicId={} branchId={} packageName={}", dto.getClinicId(), dto.getBranchId(), dto.getPackageName());
 
         Response response = new Response();
 
@@ -53,7 +56,9 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             PackageManagement entity = mapToEntity(dto);
             entity.setPackageId(generatePackageId());
 
+            log.debug("Saving package entity");
             PackageManagement saved = repository.save(entity);
+            log.info("Package created successfully packageId={}", saved.getPackageId());
 
             PackageManagementDTO responseDto = mapToDTO(saved);
 
@@ -67,6 +72,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             response.setStatus(HttpStatus.CREATED.value());
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setData(null);
             response.setMessage("Error: " + e.getMessage());
@@ -80,12 +86,14 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicAndBranchFallback")
     public Response getByClinicAndBranch(String clinicId, String branchId) {
+        log.info("Fetching packages clinicId={} branchId={}", clinicId, branchId);
 
         Response response = new Response();
 
         try {
             List<PackageManagement> list =
                     repository.findByClinicIdAndBranchId(clinicId, branchId);
+            log.info("Fetched {} packages", list.size());
 
             List<PackageManagementDTO> dtoList = new ArrayList<>();
 
@@ -123,6 +131,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             response.setStatus(HttpStatus.OK.value());
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setData(null);
             response.setMessage("Error: " + e.getMessage());
@@ -136,6 +145,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicBranchAndPackageIdFallback")
     public Response getByClinicBranchAndPackageId(String clinicId, String branchId, String packageId) {
+        log.info("Fetching package clinicId={} branchId={} packageId={}", clinicId, branchId, packageId);
 
         Response response = new Response();
 
@@ -160,6 +170,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             }
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setData(null);
             response.setMessage("Error: " + e.getMessage());
@@ -173,6 +184,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePackageFallback")
     public Response updatePackage(String packageId, PackageManagementDTO dto) {
+        log.info("Updating package packageId={}", packageId);
 
         Response response = new Response();
 
@@ -186,7 +198,9 @@ public class PackageManagementServiceImpl implements PackageManagementService {
                 // ✅ Use separate update mapper
                 updateEntityFromDTO(entity, dto);
 
+                log.debug("Saving updated package packageId={}", packageId);
                 PackageManagement updated = repository.save(entity);
+                log.info("Package updated successfully packageId={}", packageId);
 
                 response.setSuccess(true);
                 response.setData(mapToDTO(updated));
@@ -201,6 +215,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             }
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setData(null);
             response.setMessage("Error: " + e.getMessage());
@@ -215,6 +230,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deletePackageFallback")
     public Response deletePackage(String packageId) {
+        log.info("Deleting package packageId={}", packageId);
 
         Response response = new Response();
 
@@ -223,7 +239,9 @@ public class PackageManagementServiceImpl implements PackageManagementService {
 
             if (optional.isPresent()) {
 
+                log.debug("Deleting package packageId={}", packageId);
                 repository.delete(optional.get());
+                log.info("Package deleted successfully packageId={}", packageId);
 
                 response.setSuccess(true);
                 response.setData(null);
@@ -238,6 +256,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             }
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setData(null);
             response.setMessage("Error: " + e.getMessage());
@@ -423,66 +442,12 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             entity.setDiscountPercentage(finalDiscount);
         }
     }
-//    @Override
-//    public Response getPackageWithPrograms( String clinicId, String branchId,String packageId) {
-//
-//        Response response = new Response();
-//
-//        try {
-//            Optional<PackageManagement> optional =
-//                    repository.findByClinicIdAndBranchIdAndPackageId(
-//                            clinicId, branchId, packageId);
-//
-//            if (optional.isEmpty()) {
-//                response.setSuccess(false);
-//                response.setMessage("Package not found");
-//                response.setStatus(HttpStatus.NOT_FOUND.value());
-//                return response;
-//            }
-//
-//            PackageManagement entity = optional.get();
-//
-//            List<String> programIds = entity.getProgramIds();
-//            List<TherophyProgramEntity> programList = new ArrayList<>();
-//
-//            if (programIds != null && !programIds.isEmpty()) {
-//
-//                programList = therophyProgramRepository.findByIdIn(programIds);
-//
-//                // 🔥 CLEANUP LOGIC
-//                List<String> validIds = programList.stream()
-//                        .map(TherophyProgramEntity::getId)
-//                        .toList();
-//
-//                if (!programIds.equals(validIds)) {
-//                    entity.setProgramIds(validIds);
-//                    repository.save(entity); // ✅ removes deleted IDs
-//                }
-//            }
-//
-//            PackageManagementDTO dto = mapToDTO(entity);
-//
-//            dto.setPrograms(programList);
-//            dto.setNoOfPrograms(programList.size());
-//
-//            response.setSuccess(true);
-//            response.setData(dto);
-//            response.setMessage("Fetched successfully with programs");
-//            response.setStatus(HttpStatus.OK.value());
-//
-//        } catch (Exception e) {
-//            response.setSuccess(false);
-//            response.setMessage("Error: " + e.getMessage());
-//            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//        }
-//
-//        return response;
-//    }
-    
+
     @Override
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPackageWithProgramsFallback")
     public Response getPackageWithPrograms(String clinicId, String branchId, String packageId) {
+        log.info("Fetching package with programs clinicId={} branchId={} packageId={}", clinicId, branchId, packageId);
 
         Response response = new Response();
 
@@ -567,6 +532,7 @@ public class PackageManagementServiceImpl implements PackageManagementService {
             response.setStatus(HttpStatus.OK.value());
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setMessage("Error: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -576,17 +542,17 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     }
 
 
-    public Response createPackageFallback(PackageManagementDTO dto, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response createPackageFallback(PackageManagementDTO dto, Exception ex) { log.error("Rate limit createPackage", ex); return buildRateLimitResponse(ex); }
 
-    public Response getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex) { log.error("Rate limit getByClinicAndBranch clinicId={} branchId={}", clinicId, branchId, ex); return buildRateLimitResponse(ex); }
 
-    public Response getByClinicBranchAndPackageIdFallback(String clinicId, String branchId, String packageId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getByClinicBranchAndPackageIdFallback(String clinicId, String branchId, String packageId, Exception ex) { log.error("Rate limit getByClinicBranchAndPackageId packageId={}", packageId, ex); return buildRateLimitResponse(ex); }
 
-    public Response updatePackageFallback(String packageId, PackageManagementDTO dto, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response updatePackageFallback(String packageId, PackageManagementDTO dto, Exception ex) { log.error("Rate limit updatePackage packageId={}", packageId, ex); return buildRateLimitResponse(ex); }
 
-    public Response deletePackageFallback(String packageId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response deletePackageFallback(String packageId, Exception ex) { log.error("Rate limit deletePackage packageId={}", packageId, ex); return buildRateLimitResponse(ex); }
 
-    public Response getPackageWithProgramsFallback(String clinicId, String branchId, String packageId, Exception ex) { return buildRateLimitResponse(ex); }
+    public Response getPackageWithProgramsFallback(String clinicId, String branchId, String packageId, Exception ex) { log.error("Rate limit getPackageWithPrograms packageId={}", packageId, ex); return buildRateLimitResponse(ex); }
 
     public Response buildRateLimitResponse(Exception ex) {
         Response response = new Response();

@@ -5,6 +5,11 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerService?connectTimeoutMS=30000&socketTimeoutMS=60000
+    
+    redis:
+     host: localhost
+     port: 6379
+#    password: your-password
 
   mvc:
     async:
@@ -53,7 +58,8 @@ eureka:
 resilience4j:
   circuitbreaker:
     instances:
-      customerService:
+
+      adminService:
         register-health-indicator: true
         sliding-window-type: COUNT_BASED
         automatic-transition-from-open-to-half-open-enabled: true
@@ -63,28 +69,89 @@ resilience4j:
         wait-duration-in-open-state: 10s
         failure-rate-threshold: 50
         record-exceptions:
-                - java.lang.Exception
-                - feign.FeignException
+          - java.lang.Exception
+          - feign.FeignException
         ignore-exceptions:
-                - java.lang.IllegalArgumentException
+          - java.lang.IllegalArgumentException
+
+      clinicAdminadminService:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+      notificationService:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+      physioDoctorService:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
 
   retry:
-   instances:
-    customerService:
-    max-attempts: 3
-    wait-duration: 2s
+    instances:
+
+      adminService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      clinicAdminService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      notificationService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      physioDoctorService:
+        max-attempts: 3
+        wait-duration: 2s
 
   timelimiter:
     instances:
-      customerService:
+
+      bookingService:
         timeout-duration: 60s
 
-  ratelimiter:
-    instances:
-     customerService:
-      limit-for-period: 50
-      limit-refresh-period: 1m
-      timeout-duration: 1s
+      clinicAdminService:
+        timeout-duration: 60s
+
+      notificationService:
+        timeout-duration: 60s
+
+      physioDoctorService:
+        timeout-duration: 60s
 
 # ===============================
 # Actuator

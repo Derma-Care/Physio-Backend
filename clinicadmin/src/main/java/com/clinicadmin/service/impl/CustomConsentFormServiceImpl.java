@@ -28,152 +28,13 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	@Autowired
 	private CustomConsentFormRepository customConsentFormRepository;
 
-//	@Autowired
-//	private ServiceFeignClient serviceFeignClient;
-
-	// ------------------------------- Add Consent Form
-	// -------------------------------
-//	@Override
-//	public Response addCustomConsentForm(String hospitalId, String consentFormType, CustomConsentFormDTO dto) {
-//		Response response = new Response();
-//
-//		// Basic Validations
-//		if (hospitalId == null || hospitalId.trim().isEmpty()) {
-//			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
-//		}
-//		if (!isValidConsentFormType(consentFormType)) {
-//			return buildErrorResponse("Invalid Consent Form Type. Allowed values: 1 (Generic), 2 (Procedure)", 400);
-//		}
-//		if (dto == null || dto.getConsentFormQuestions() == null || dto.getConsentFormQuestions().isEmpty()) {
-//			return buildErrorResponse("Consent form questions cannot be empty", 400);
-//		}
-//		
-//
-//		try {
-//		    dto.getConsentFormQuestions().forEach(heading -> {
-//		        if (heading.getQuestionsAndAnswers() != null) {
-//		            heading.getQuestionsAndAnswers().forEach(qa -> {
-//		            	if (qa.isAnswer() ) {  
-//		            	    qa.setAnswer(true);       
-//		            	}
-//
-//		            });
-//		        }
-//		    });
-//
-//			// Generic Consent Form (only one per hospital)
-//			if (consentFormType.equals("1")) {
-//				if (customConsentFormRepository.findByHospitalIdAndConsentFormType(hospitalId, "1").isPresent()) {
-//					return buildErrorResponse("Generic Consent Form already exists for this hospital", 409);
-//				}
-//
-//				CustomConsentForm newForm = new CustomConsentForm();
-//				newForm.setHospitalId(hospitalId);
-//				newForm.setConsentFormType(consentFormType);
-//				newForm.setConsentFormQuestions(dto.getConsentFormQuestions());
-//				CustomConsentForm savedForm = customConsentFormRepository.save(newForm);
-//				CustomConsentFormDTO savedDTO = new CustomConsentFormDTO();
-//				savedDTO.setId(savedForm.getId());
-//				savedDTO.setHospitalId(savedForm.getHospitalId());
-//				savedDTO.setConsentFormType(savedForm.getConsentFormType());
-//				
-//				savedDTO.setConsentFormQuestions(savedForm.getConsentFormQuestions());
-//
-//				return buildSuccessResponse(savedDTO, "Generic Consent Questions added successfully");
-//			}
-//
-//			// Procedure Consent Form (only one per subService)
-//			else {
-//				if (dto.getSubServiceid() == null) {
-//					return buildErrorResponse("SubService ID is required for Procedure Consent Form", 400);
-//				}
-//
-//				SubServicesDto subDTO = validateAndGetSubService(hospitalId, dto.getSubServiceid());
-//				if (subDTO == null) {
-//					return buildErrorResponse("SubService not found for ID: " + dto.getSubServiceid(), 404);
-//				}
-//
-//				if (customConsentFormRepository.findByHospitalIdAndSubServiceid(hospitalId, subDTO.getSubServiceId())
-//						.isPresent()) {
-//					return buildErrorResponse(
-//							"Procedure Consent Form already exists for SubService: " + subDTO.getSubServiceName(), 409);
-//				}
-//
-//				CustomConsentForm newForm = new CustomConsentForm(null, hospitalId, subDTO.getSubServiceId(),
-//						subDTO.getSubServiceName(), consentFormType, dto.getConsentFormQuestions());
-//				CustomConsentForm savedForm = customConsentFormRepository.save(newForm);
-//
-//				return buildSuccessResponse(mapToDTO(savedForm), "Procedure Consent Questions added successfully");
-//			}
-//		} catch (Exception ex) {
-//			log.error("Error while saving Consent Form", ex);
-//			return buildErrorResponse("Error while saving Consent Form: " + ex.getMessage(), 500);
-//		}
-//	}
-
-	// ------------------------------- Update Consent Form
-	// -------------------------------
-//	@Override
-//	public Response updateCustomConsentForm(String hospitalId, String consentFormType, CustomConsentFormDTO dto) {
-//		Response response = new Response();
-//
-//		// Basic Validations
-//		if (hospitalId == null || hospitalId.trim().isEmpty()) {
-//			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
-//		}
-//		if (!isValidConsentFormType(consentFormType)) {
-//			return buildErrorResponse("Invalid Consent Form Type. Allowed values: 1 (Generic), 2 (Procedure)", 400);
-//		}
-//		if (dto == null || dto.getConsentFormQuestions() == null || dto.getConsentFormQuestions().isEmpty()) {
-//			return buildErrorResponse("Consent form questions cannot be empty", 400);
-//		}
-//
-//		try {
-//			if (consentFormType.equals("1")) {
-//				CustomConsentForm existingForm = customConsentFormRepository
-//						.findByHospitalIdAndConsentFormType(hospitalId, "1").orElse(null);
-//				if (existingForm == null) {
-//					return buildErrorResponse("Generic Consent Form not found for this hospital", 404);
-//				}
-//
-//				existingForm.setConsentFormQuestions(dto.getConsentFormQuestions());
-//				CustomConsentForm updatedForm = customConsentFormRepository.save(existingForm);
-//				return buildSuccessResponse(mapToDTO(updatedForm), "Generic Consent Form updated successfully");
-//			} else {
-//				if (dto.getSubServiceid() == null) {
-//					return buildErrorResponse("SubService ID is required for Procedure Consent Form", 400);
-//				}
-//
-//				SubServicesDto subDTO = validateAndGetSubService(hospitalId, dto.getSubServiceid());
-//				if (subDTO == null) {
-//					return buildErrorResponse("SubService not found for ID: " + dto.getSubServiceid(), 404);
-//				}
-//
-//				CustomConsentForm existingForm = customConsentFormRepository
-//						.findByHospitalIdAndSubServiceid(hospitalId, subDTO.getSubServiceId()).orElse(null);
-//				if (existingForm == null) {
-//					return buildErrorResponse(
-//							"Procedure Consent Form not found for SubService: " + subDTO.getSubServiceName(), 404);
-//				}
-//
-//				existingForm.setConsentFormQuestions(dto.getConsentFormQuestions());
-//				existingForm.setSubServiceName(subDTO.getSubServiceName());
-//
-//				CustomConsentForm updatedForm = customConsentFormRepository.save(existingForm);
-//				return buildSuccessResponse(mapToDTO(updatedForm), "Procedure Consent Form updated successfully");
-//			}
-//		} catch (Exception ex) {
-//			log.error("Error while updating Consent Form", ex);
-//			return buildErrorResponse("Error while updating Consent Form: " + ex.getMessage(), 500);
-//		}
-//	}
-
 	// ------------------------------- Get Consent Form
 	// -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getConsentFormFallback")
 	public Response getConsentForm(String hospitalId, String consentFormType) {
+		log.info("Fetching consent form hospitalId={} consentFormType={}", hospitalId, consentFormType);
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
 		}
@@ -218,8 +79,9 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getProcedureConsentFormFallback")
 	public Response getProcedureConsentForm(String hospitalId, String subServiceId) {
+		log.info("Fetching procedure consent form hospitalId={} subServiceId={}", hospitalId, subServiceId);
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
 		}
@@ -283,8 +145,9 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllConsentFormsByHospitalFallback")
 	public Response getAllConsentFormsByHospital(String hospitalId) {
+		log.info("Fetching all consent forms hospitalId={}", hospitalId);
 		if (hospitalId == null || hospitalId.trim().isEmpty()) {
 			return buildErrorResponse("Hospital ID cannot be null or empty", 400);
 		}
@@ -309,8 +172,9 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 	// ------------------------------- Delete Consent Form by ID -------------------------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteConsentFormByIdFallback")
 	public Response deleteConsentFormById(String formId) {
+		log.info("Deleting consent form formId={}", formId);
 	    if (formId == null || formId.trim().isEmpty()) {
 	        return buildErrorResponse("Consent Form ID cannot be null or empty", 400);
 	    }
@@ -330,22 +194,27 @@ public class CustomConsentFormServiceImpl implements CustomConsentFormService {
 
 	
     
+    
+
     // ================= RATE LIMIT FALLBACK METHODS =================
 
-    public Response rateLimitFallback(String hospitalId, String consentFormType, Exception ex) {
+    public Response getConsentFormFallback(String hospitalId, String consentFormType, Exception ex) {
+        log.error("Rate limiter triggered in getConsentForm hospitalId={} consentFormType={}", hospitalId, consentFormType, ex);
         return buildErrorResponse("Too many requests. Please try again later.", 429);
     }
 
-    public Response rateLimitFallback(String hospitalId, String subServiceId, RuntimeException ex) {
+    public Response getProcedureConsentFormFallback(String hospitalId, String subServiceId, Exception ex) {
+        log.error("Rate limiter triggered in getProcedureConsentForm hospitalId={} subServiceId={}", hospitalId, subServiceId, ex);
         return buildErrorResponse("Too many requests. Please try again later.", 429);
     }
 
-    public Response rateLimitFallback(String hospitalId, Exception ex) {
+    public Response getAllConsentFormsByHospitalFallback(String hospitalId, Exception ex) {
+        log.error("Rate limiter triggered in getAllConsentFormsByHospital hospitalId={}", hospitalId, ex);
         return buildErrorResponse("Too many requests. Please try again later.", 429);
     }
 
-    public Response rateLimitFallback(String formId, RuntimeException ex) {
+    public Response deleteConsentFormByIdFallback(String formId, Exception ex) {
+        log.error("Rate limiter triggered in deleteConsentFormById formId={}", formId, ex);
         return buildErrorResponse("Too many requests. Please try again later.", 429);
     }
-
 }

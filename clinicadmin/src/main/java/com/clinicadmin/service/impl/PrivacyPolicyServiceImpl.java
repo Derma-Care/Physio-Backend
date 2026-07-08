@@ -13,8 +13,10 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
 
     @Autowired
@@ -24,8 +26,11 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createPolicyFallback")
     public Response createPolicy(PrivacyPolicyDTO dto) {
+        log.info("Creating privacy policy clinicId={}", dto.getClinicId());
         PrivacyPolicy entity = toEntity(dto);
+        log.debug("Saving privacy policy");
         PrivacyPolicy saved = repository.save(entity);
+        log.info("Privacy policy created successfully id={}", saved.getId());
 
         return Response.builder()
                 .success(true)
@@ -40,6 +45,8 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllPoliciesFallback")
     public Response getAllPolicies() {
+        log.info("Fetching all privacy policies");
+        log.debug("Calling repository.findAll()");
         List<PrivacyPolicyDTO> dtos = repository.findAll()
                 .stream()
                 .map(this::toDTO) // Helper converts entity → DTO
@@ -58,6 +65,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPolicyByIdFallback")
     public Response getPolicyById(String id) {
+        log.info("Fetching privacy policy id={}", id);
         return repository.findById(id)
                 .map(policy -> Response.builder()
                         .success(true)
@@ -76,8 +84,11 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getPoliciesByClinicIdFallback")
     public Response getPoliciesByClinicId(String clinicId) {
+        log.info("Fetching privacy policies clinicId={}", clinicId);
         Response response = new Response();
+        log.debug("Fetching policies by clinicId={}", clinicId);
         List<PrivacyPolicyDTO> policies = repository.findByClinicId(clinicId);
+        log.info("Fetched {} policies", policies.size());
         response.setSuccess(true);
         response.setData(policies);
         response.setMessage(policies.isEmpty() 
@@ -92,6 +103,7 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePolicyFallback")
     public Response updatePolicy(PrivacyPolicyDTO dto) {
+        log.info("Updating privacy policy id={}", dto.getId());
         if (dto.getId() == null) {
             return Response.builder()
                     .success(false)
@@ -121,7 +133,9 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
         }
 
         // Save updated entity
+        log.debug("Saving updated privacy policy id={}", dto.getId());
         PrivacyPolicy updated = repository.save(existingPolicy);
+        log.info("Privacy policy updated successfully id={}", updated.getId());
 
         return Response.builder()
                 .success(true)
@@ -137,8 +151,11 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deletePolicyFallback")
     public Response deletePolicy(String id) {
+        log.info("Deleting privacy policy id={}", id);
         if (repository.existsById(id)) {
+            log.debug("Deleting privacy policy from repository id={}", id);
             repository.deleteById(id);
+            log.info("Privacy policy deleted successfully id={}", id);
             return Response.builder()
                     .success(true)
                     .message("Policy deleted successfully")
@@ -167,26 +184,32 @@ public class PrivacyPolicyServiceImpl implements PrivacyPolicyService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public Response createPolicyFallback(PrivacyPolicyDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getAllPoliciesFallback(Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getPolicyByIdFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getPoliciesByClinicIdFallback(String clinicId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response updatePolicyFallback(PrivacyPolicyDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response deletePolicyFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 

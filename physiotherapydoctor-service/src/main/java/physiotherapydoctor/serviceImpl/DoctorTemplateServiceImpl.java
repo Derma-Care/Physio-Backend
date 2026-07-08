@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import physiotherapydoctor.dto.DatesDTO;
 import physiotherapydoctor.dto.DoctorTemplateDTO;
 import physiotherapydoctor.dto.FollowUpDetailsDTO;
@@ -41,37 +42,67 @@ import physiotherapydoctor.service.DoctorTemplateService;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
     private final DoctorTemplateRepository repository;
 
     @Override
     @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createTemplateFallback")
-@Secured("ROLE_DOCTOR")
+    @Secured("ROLE_DOCTOR")
     public Response createTemplate(DoctorTemplateDTO dto) {
-        try {
-            String normalizedTitle = dto.getTitle().trim().replaceAll("\\s+", " ").toLowerCase();
 
-            Optional<DoctorTemplate> existingTemplateOpt = repository.findAll().stream()
-                    .filter(t -> t.getTitle() != null &&
-                            t.getTitle().trim().replaceAll("\\s+", " ").toLowerCase().equals(normalizedTitle))
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered createTemplate() with title : {}", dto.getTitle());
+
+        try {
+
+            String normalizedTitle = dto.getTitle()
+                    .trim()
+                    .replaceAll("\\s+", " ")
+                    .toLowerCase();
+
+            log.debug("Normalized title : {}", normalizedTitle);
+
+            log.debug("Fetching existing templates from repository");
+
+            Optional<DoctorTemplate> existingTemplateOpt = repository.findAll()
+                    .stream()
+                    .filter(t -> t.getTitle() != null
+                            && t.getTitle()
+                            .trim()
+                            .replaceAll("\\s+", " ")
+                            .toLowerCase()
+                            .equals(normalizedTitle))
                     .findFirst();
 
             DoctorTemplate savedTemplate;
 
             if (existingTemplateOpt.isPresent()) {
-               
+
+                log.info("Existing template found for title : {}", dto.getTitle());
+
                 DoctorTemplate existingTemplate = existingTemplateOpt.get();
 
-                // Keep the title unchanged
                 dto.setTitle(existingTemplate.getTitle());
 
-                // Map updated details from DTO to entity
                 DoctorTemplate updatedEntity = convertToEntity(dto);
-                updatedEntity.setId(existingTemplate.getId()); // keep same ID
-                updatedEntity.setTitle(existingTemplate.getTitle()); // keep original title
+                updatedEntity.setId(existingTemplate.getId());
+                updatedEntity.setTitle(existingTemplate.getTitle());
+
+                log.debug("Updating existing template with id : {}",
+                        existingTemplate.getId());
 
                 savedTemplate = repository.save(updatedEntity);
+
+                log.info("Template updated successfully with id : {}",
+                        savedTemplate.getId());
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("createTemplate() completed successfully in {} ms",
+                        executionTime);
 
                 return Response.builder()
                         .success(true)
@@ -79,19 +110,34 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                         .message("Existing template updated successfully")
                         .data(savedTemplate)
                         .build();
-            } else {
-                // ✅ Create new template
-                savedTemplate = repository.save(convertToEntity(dto));
-
-                return Response.builder()
-                        .success(true)
-                        .status(HttpStatus.CREATED.value())
-                        .message("Doctor template created successfully")
-                        .data(savedTemplate)
-                        .build();
             }
 
+            log.info("No existing template found. Creating new template");
+
+            savedTemplate = repository.save(convertToEntity(dto));
+
+            log.info("Template created successfully with id : {}",
+                    savedTemplate.getId());
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("createTemplate() completed successfully in {} ms",
+                    executionTime);
+
+            return Response.builder()
+                    .success(true)
+                    .status(HttpStatus.CREATED.value())
+                    .message("Doctor template created successfully")
+                    .data(savedTemplate)
+                    .build();
+
         } catch (Exception e) {
+
+            log.error("Exception occurred while creating/updating template. Title : {} Error : {}",
+                    dto.getTitle(),
+                    e.getMessage(),
+                    e);
+
             return Response.builder()
                     .success(false)
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -100,90 +146,181 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                     .build();
         }
     }
-
+    
     @Override
     @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplateByIdFallback")
-@Secured("ROLE_DOCTOR")
+    @Secured("ROLE_DOCTOR")
     public Response getTemplateById(String id) {
-        Optional<DoctorTemplate> template = repository.findById(id);
-        if (template.isPresent()) {
-            DoctorTemplateDTO dto = convertToDto(template.get());
-            return Response.builder()
-                    .success(true)
-                    .status(HttpStatus.OK.value())
-                    .message("Doctor template found")
-                    .data(dto)
-                    .build();
-        } else {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getTemplateById() with id : {}", id);
+
+        try {
+
+            log.debug("Fetching template from repository with id : {}", id);
+
+            Optional<DoctorTemplate> template = repository.findById(id);
+
+            if (template.isPresent()) {
+
+                log.info("Template found with id : {}", id);
+
+                DoctorTemplateDTO dto = convertToDto(template.get());
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("getTemplateById() completed successfully in {} ms",
+                        executionTime);
+
+                return Response.builder()
+                        .success(true)
+                        .status(HttpStatus.OK.value())
+                        .message("Doctor template found")
+                        .data(dto)
+                        .build();
+            }
+
+            log.warn("Doctor template not found with id : {}", id);
+
             return Response.builder()
                     .success(false)
                     .status(HttpStatus.NOT_FOUND.value())
                     .message("Doctor template not found with ID: " + id)
                     .data(null)
                     .build();
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching template id : {} Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
+
+            return Response.builder()
+                    .success(false)
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Failed to fetch doctor template: " + e.getMessage())
+                    .data(null)
+                    .build();
         }
     }
-
-
+    
     @Override
     @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllTemplatesFallback")
-@Secured("ROLE_DOCTOR")
+    @Secured("ROLE_DOCTOR")
     public Response getAllTemplates() {
-        List<DoctorTemplate> templates = repository.findAll();
-        List<DoctorTemplateDTO> dtos = templates.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
 
-        return Response.builder()
-                .success(true)
-                .status(HttpStatus.OK.value())
-                .message("All doctor templates fetched successfully")
-                .data(dtos)
-                .build();
-    }
+        long startTime = System.currentTimeMillis();
 
+        log.info("Entered getAllTemplates()");
 
-    @Override
-    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteTemplateFallback")
-@Secured("ROLE_DOCTOR")
-    public Response deleteTemplate(String id) {
-        Optional<DoctorTemplate> existing = repository.findById(id);
-        if (existing.isPresent()) {
-            repository.deleteById(id);
+        try {
+
+            log.debug("Fetching all doctor templates from repository");
+
+            List<DoctorTemplate> templates = repository.findAll();
+
+            log.info("Retrieved {} templates from repository",
+                    templates.size());
+
+            List<DoctorTemplateDTO> dtos = templates.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("getAllTemplates() completed successfully in {} ms",
+                    executionTime);
+
             return Response.builder()
                     .success(true)
                     .status(HttpStatus.OK.value())
-                    .message("Doctor template deleted successfully")
+                    .message("All doctor templates fetched successfully")
+                    .data(dtos)
+                    .build();
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching all templates. Error : {}",
+                    e.getMessage(),
+                    e);
+
+            return Response.builder()
+                    .success(false)
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Failed to fetch doctor templates: " + e.getMessage())
                     .data(null)
                     .build();
-        } else {
+        }
+    }
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteTemplateFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response deleteTemplate(String id) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered deleteTemplate() with id : {}", id);
+
+        try {
+
+            log.debug("Checking template existence with id : {}", id);
+
+            Optional<DoctorTemplate> existing = repository.findById(id);
+
+            if (existing.isPresent()) {
+
+                log.info("Template found. Deleting template with id : {}", id);
+
+                repository.deleteById(id);
+
+                log.info("Template deleted successfully with id : {}", id);
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("deleteTemplate() completed successfully in {} ms",
+                        executionTime);
+
+                return Response.builder()
+                        .success(true)
+                        .status(HttpStatus.OK.value())
+                        .message("Doctor template deleted successfully")
+                        .data(null)
+                        .build();
+            }
+
+            log.warn("Doctor template not found with id : {}", id);
+
             return Response.builder()
                     .success(false)
                     .status(HttpStatus.NOT_FOUND.value())
                     .message("Doctor template not found with ID: " + id)
                     .data(null)
                     .build();
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while deleting template id : {} Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
+
+            return Response.builder()
+                    .success(false)
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Failed to delete doctor template: " + e.getMessage())
+                    .data(null)
+                    .build();
         }
     }
-
     private DoctorTemplate convertToEntity(DoctorTemplateDTO dto) {
         return DoctorTemplate.builder()
                 .title(dto.getTitle())
                 .createdAt(LocalDateTime.now())
                 .clinicId(dto.getClinicId())
                 .symptoms(dto.getSymptoms())
-
-
-                // Mapping symptoms
-//                .symptoms(dto.getSymptoms() != null
-//                        ? SymptomDetails.builder()
-//                            .symptomDetails(dto.getSymptoms().getSymptomDetails())
-//                            .doctorObs(dto.getSymptoms().getDoctorObs())
-//                            .diagnosis(dto.getSymptoms().getDiagnosis())
-//                            .duration(dto.getSymptoms().getDuration())
-//                          .reports(encodeFileToBase64(dto.getSymptoms().getReports())) // <-- Base64 here
-//                            .build()
-//                        : null)
 
                 // Mapping tests
                 .tests(dto.getTests() != null
@@ -266,63 +403,148 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
     @Override
     @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateTemplateFallback")
-@Secured("ROLE_DOCTOR")
+    @Secured("ROLE_DOCTOR")
     public ResponseEntity<Response> updateTemplate(String id, DoctorTemplateDTO dto) {
-        Optional<DoctorTemplate> existingTemplate = repository.findById(id);
 
-        if (existingTemplate.isPresent()) {
-            String newTitleNormalized = dto.getTitle().trim().replaceAll("\\s+", " ").toLowerCase();
+        long startTime = System.currentTimeMillis();
 
-            // Check if title is changed
-            String currentTitleNormalized = existingTemplate.get().getTitle().trim().replaceAll("\\s+", " ").toLowerCase();
+        log.info("Entered updateTemplate() with templateId : {}, title : {}",
+                id,
+                dto.getTitle());
 
-            if (!newTitleNormalized.equals(currentTitleNormalized)) {
-                boolean titleExists = repository.findAll().stream()
-                    .anyMatch(t -> !t.getId().equals(id) && t.getTitle() != null &&
-                            t.getTitle().trim().replaceAll("\\s+", " ").toLowerCase().equals(newTitleNormalized));
+        try {
 
-                if(titleExists) {
-                    Response conflictResponse = Response.builder()
-                            .success(false)
-                            .status(HttpStatus.CONFLICT.value())
-                            .message("Another template already exists with the new title")
-                            .data(null)
-                            .build();
-                    return ResponseEntity.status(HttpStatus.CONFLICT).body(conflictResponse);
+            log.debug("Fetching template from repository with id : {}", id);
+
+            Optional<DoctorTemplate> existingTemplate = repository.findById(id);
+
+            if (existingTemplate.isPresent()) {
+
+                log.info("Template found with id : {}", id);
+
+                String newTitleNormalized =
+                        dto.getTitle().trim().replaceAll("\\s+", " ").toLowerCase();
+
+                String currentTitleNormalized =
+                        existingTemplate.get()
+                                .getTitle()
+                                .trim()
+                                .replaceAll("\\s+", " ")
+                                .toLowerCase();
+
+                log.debug("Current Title : {}, New Title : {}",
+                        currentTitleNormalized,
+                        newTitleNormalized);
+
+                if (!newTitleNormalized.equals(currentTitleNormalized)) {
+
+                    log.info("Template title modified. Checking duplicate titles");
+
+                    boolean titleExists = repository.findAll()
+                            .stream()
+                            .anyMatch(t ->
+                                    !t.getId().equals(id)
+                                            && t.getTitle() != null
+                                            && t.getTitle()
+                                            .trim()
+                                            .replaceAll("\\s+", " ")
+                                            .toLowerCase()
+                                            .equals(newTitleNormalized));
+
+                    if (titleExists) {
+
+                        log.warn("Duplicate template title found : {}",
+                                dto.getTitle());
+
+                        Response conflictResponse = Response.builder()
+                                .success(false)
+                                .status(HttpStatus.CONFLICT.value())
+                                .message("Another template already exists with the new title")
+                                .data(null)
+                                .build();
+
+                        return ResponseEntity.status(HttpStatus.CONFLICT)
+                                .body(conflictResponse);
+                    }
                 }
+
+                DoctorTemplate updatedEntity = convertToEntity(dto);
+                updatedEntity.setId(id);
+                updatedEntity.setCreatedAt(
+                        existingTemplate.get().getCreatedAt());
+
+                log.debug("Saving updated template with id : {}", id);
+
+                DoctorTemplate saved =
+                        repository.save(updatedEntity);
+
+                log.info("Template updated successfully with id : {}",
+                        saved.getId());
+
+                long executionTime =
+                        System.currentTimeMillis() - startTime;
+
+                log.info("updateTemplate() completed successfully in {} ms",
+                        executionTime);
+
+                Response response = Response.builder()
+                        .success(true)
+                        .status(HttpStatus.OK.value())
+                        .message("Doctor template updated successfully")
+                        .data(saved)
+                        .build();
+
+                return ResponseEntity.ok(response);
+
+            } else {
+
+                log.warn("Template not found with id : {}", id);
+
+                Response response = Response.builder()
+                        .success(false)
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .message("Doctor template not found with ID: " + id)
+                        .data(null)
+                        .build();
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(response);
             }
 
-            // Update entity
-            DoctorTemplate updatedEntity = convertToEntity(dto);
-            updatedEntity.setId(id);  
-            updatedEntity.setCreatedAt(existingTemplate.get().getCreatedAt()); // preserve original creation time
+        } catch (Exception e) {
 
-            DoctorTemplate saved = repository.save(updatedEntity);
+            log.error("Exception occurred while updating template id : {}. Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
 
-            Response response = Response.builder()
-                    .success(true)
-                    .status(HttpStatus.OK.value())
-                    .message("Doctor template updated successfully")
-                    .data(saved)
-                    .build();
-            return ResponseEntity.ok(response);
-        } else {
             Response response = Response.builder()
                     .success(false)
-                    .status(HttpStatus.NOT_FOUND.value())
-                    .message("Doctor template not found with ID: " + id)
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Failed to update template : " + e.getMessage())
                     .data(null)
                     .build();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(response);
         }
     }
-
+    
     @Override
     @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "searchTemplatesByTitleFallback")
-@Secured("ROLE_DOCTOR")
+    @Secured("ROLE_DOCTOR")
     public Response searchTemplatesByTitle(String keyword) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered searchTemplatesByTitle() with keyword : {}", keyword);
+
         try {
+
             if (keyword == null || keyword.trim().isEmpty()) {
+
+                log.warn("Search keyword is null or empty");
+
                 return Response.builder()
                         .success(false)
                         .status(HttpStatus.BAD_REQUEST.value())
@@ -331,73 +553,47 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                         .build();
             }
 
-            String normalizedKeyword = keyword.trim().replaceAll("\\s+", " ").toLowerCase();
+            String normalizedKeyword =
+                    keyword.trim()
+                            .replaceAll("\\s+", " ")
+                            .toLowerCase();
 
-            List<DoctorTemplate> allTemplates = repository.findAll();
+            log.debug("Normalized keyword : {}", normalizedKeyword);
+
+            log.debug("Fetching all templates from repository");
+
+            List<DoctorTemplate> allTemplates =
+                    repository.findAll();
+
+            log.info("Retrieved {} templates from repository",
+                    allTemplates.size());
+
             List<DoctorTemplate> filtered = allTemplates.stream()
-                .filter(t -> {
-                    String keywordLower = normalizedKeyword;
+                    .filter(t -> {
 
-                    // ✅ Title: exact match only
-                    boolean inTitle = t.getTitle() != null &&
-                            t.getTitle().trim().replaceAll("\\s+", " ").toLowerCase().equals(keywordLower);
+                        String keywordLower = normalizedKeyword;
 
-                    // 🔁 Other fields (optional: you can also change these to exact match if needed)
-//                    boolean inSymptoms = t.getSymptoms() != null &&
-//                            (
-////                                    (t.getSymptoms().getSymptomDetails() != null &&
-////                                            t.getSymptoms().getSymptomDetails().toLowerCase().contains(keywordLower)) ||
-//                                    (t.getSymptoms().getDiagnosis() != null &&
-//                                            t.getSymptoms().getDiagnosis().toLowerCase().contains(keywordLower)) ||\
-////                                    (t.getSymptoms().getDoctorObs() != null &&
-////                                            t.getSymptoms().getDoctorObs().toLowerCase().contains(keywordLower))
-//                            );
+                        boolean inTitle =
+                                t.getTitle() != null &&
+                                t.getTitle()
+                                        .trim()
+                                        .replaceAll("\\s+", " ")
+                                        .toLowerCase()
+                                        .equals(keywordLower);
 
-                    boolean inTests = t.getTests() != null &&
-                            t.getTests().getSelectedTests() != null &&
-                            t.getTests().getSelectedTests().stream()
-                                    .anyMatch(test -> test != null && test.toLowerCase().contains(keywordLower));
+                        return inTitle;
 
-                    boolean inTreatments = t.getTreatments() != null && (
-                    	    // Check in selectedTreatment list
-                    	    (t.getTreatments().getSelectedTestTreatment() != null &&
-                    	        t.getTreatments().getSelectedTestTreatment().stream()
-                    	            .anyMatch(sel -> sel != null && sel.toLowerCase().contains(keywordLower))
-                    	    )
-                    	    ||
-                    	    // Check in generatedData map
-                    	    (t.getTreatments().getGeneratedData() != null &&
-                    	        t.getTreatments().getGeneratedData().entrySet().stream()
-                    	            .anyMatch(entry -> {
-                    	                TreatmentDetails td = entry.getValue();
-                    	                return
-                    	                    (entry.getKey() != null && entry.getKey().toLowerCase().contains(keywordLower)) ||
-                    	                    (td.getReason() != null && td.getReason().toLowerCase().contains(keywordLower)) ||
-                    	                    (td.getFrequency() != null && td.getFrequency().toLowerCase().contains(keywordLower)) ||
-                    	                    (String.valueOf(td.getSittings()).toLowerCase().contains(keywordLower)) ||
-                    	                    (td.getStartDate() != null && td.getStartDate().toLowerCase().contains(keywordLower)) ||
-                    	                    (td.getDates() != null && td.getDates().stream()
-                    	                        .anyMatch(d ->
-                    	                            (d.getDate() != null && d.getDate().toLowerCase().contains(keywordLower)) ||
-                    	                            String.valueOf(d.getSitting()).toLowerCase().contains(keywordLower)
-                    	                        )
-                    	                    );
-                    	            })
-                    	    )
-                    	);
+                    }).collect(Collectors.toList());
 
-                    boolean inMedicines = t.getPrescription() != null &&
-                            t.getPrescription().getMedicines() != null &&
-                            t.getPrescription().getMedicines().stream()
-                                    .anyMatch(med -> med.getName() != null &&
-                                            med.getName().toLowerCase().contains(keywordLower));
-
-                    // ✅ Match only on exact title
-                    return inTitle;
-                })
-                .collect(Collectors.toList());
+            log.info("Found {} matching templates for keyword : {}",
+                    filtered.size(),
+                    keyword);
 
             if (filtered.isEmpty()) {
+
+                log.warn("No templates found with title : {}",
+                        keyword);
+
                 return Response.builder()
                         .success(false)
                         .status(HttpStatus.NOT_FOUND.value())
@@ -405,6 +601,12 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                         .data(null)
                         .build();
             }
+
+            long executionTime =
+                    System.currentTimeMillis() - startTime;
+
+            log.info("searchTemplatesByTitle() completed successfully in {} ms",
+                    executionTime);
 
             return Response.builder()
                     .success(true)
@@ -414,6 +616,12 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                     .build();
 
         } catch (Exception e) {
+
+            log.error("Exception occurred while searching templates with keyword : {}. Error : {}",
+                    keyword,
+                    e.getMessage(),
+                    e);
+
             return Response.builder()
                     .success(false)
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -429,18 +637,7 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                 .clinicId(entity.getClinicId())
                 .createdAt(entity.getCreatedAt())
                 .symptoms(entity.getSymptoms())
-                
-//                .symptoms(entity.getSymptoms() != null ? 
-//                    com.dermacare.doctorservice.dto.SymptomDetailsDTO.builder()
-//                        .symptomDetails(entity.getSymptoms().getSymptomDetails())
-//                        .doctorObs(entity.getSymptoms().getDoctorObs())
-//                        .diagnosis(entity.getSymptoms().getDiagnosis())
-//                        .duration(entity.getSymptoms().getDuration())
-//                       .reports(encodeFileToBase64(entity.getSymptoms().getReports())) // <-- Base64 here
-//                        .build()
-//                    : null)
-
-                .tests(entity.getTests() != null ?
+                     .tests(entity.getTests() != null ?
                     TestDetailsDTO.builder()
                         .selectedTests(entity.getTests().getSelectedTests())
                         .testReason(entity.getTests().getTestReason())
@@ -510,14 +707,34 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
 
                 .build();
     }
+  
     @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplatesByClinicIdFallback")
+    @Secured("ROLE_DOCTOR")
     public Response getTemplatesByClinicId(String clinicId) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getTemplatesByClinicId() with clinicId : {}", clinicId);
+
         try {
+
+            log.debug("Fetching templates from repository for clinicId : {}", clinicId);
+
             List<DoctorTemplate> templates = repository.findByClinicId(clinicId);
+
+            log.info("Retrieved {} templates for clinicId : {}",
+                    templates.size(),
+                    clinicId);
 
             List<DoctorTemplateDTO> dtos = templates.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList());
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("getTemplatesByClinicId() completed successfully in {} ms",
+                    executionTime);
 
             return Response.builder()
                     .success(true)
@@ -527,6 +744,12 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                     .build();
 
         } catch (Exception e) {
+
+            log.error("Exception occurred while fetching templates for clinicId : {}. Error : {}",
+                    clinicId,
+                    e.getMessage(),
+                    e);
+
             return Response.builder()
                     .success(false)
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -536,25 +759,27 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
         }
     }
     
-    public String encodeFileToBase64(String filePath) {
-        if (filePath == null) {
-            return null;
-        }
-        try {
-            byte[] fileBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(filePath));
-            return Base64.getEncoder().encodeToString(fileBytes);
-        } catch (IOException e) {
-            throw new RuntimeException("Error encoding file to Base64", e);
-        }
-    }
     
     @Override
     @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplatesByClinicIdAndTitleFallback")
-@Secured("ROLE_DOCTOR")
+    @Secured("ROLE_DOCTOR")
     public Response getTemplatesByClinicIdAndTitle(String clinicId, String title) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getTemplatesByClinicIdAndTitle() with clinicId : {}, title : {}",
+                clinicId,
+                title);
+
         try {
-            if (clinicId == null || clinicId.trim().isEmpty() ||
-                title == null || title.trim().isEmpty()) {
+
+            if (clinicId == null || clinicId.trim().isEmpty()
+                    || title == null || title.trim().isEmpty()) {
+
+                log.warn("ClinicId or Title is empty. clinicId : {}, title : {}",
+                        clinicId,
+                        title);
+
                 return Response.builder()
                         .success(false)
                         .status(HttpStatus.BAD_REQUEST.value())
@@ -563,19 +788,49 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                         .build();
             }
 
-            String normalizedTitle = title.trim().replaceAll("\\s+", " ").toLowerCase();
+            String normalizedTitle =
+                    title.trim()
+                            .replaceAll("\\s+", " ")
+                            .toLowerCase();
 
-            List<DoctorTemplate> templates = repository.findByClinicId(clinicId)
-                    .stream()
-                    .filter(t -> t.getTitle() != null &&
-                            t.getTitle().trim().replaceAll("\\s+", " ").toLowerCase()
-                                    .equals(normalizedTitle)) 
+            log.debug("Normalized title : {}", normalizedTitle);
+
+            log.debug("Fetching templates from repository for clinicId : {}", clinicId);
+
+            List<DoctorTemplate> clinicTemplates =
+                    repository.findByClinicId(clinicId);
+
+            log.info("Retrieved {} templates for clinicId : {}",
+                    clinicTemplates.size(),
+                    clinicId);
+
+            List<DoctorTemplate> templates = clinicTemplates.stream()
+                    .filter(t -> t.getTitle() != null
+                            && t.getTitle()
+                            .trim()
+                            .replaceAll("\\s+", " ")
+                            .toLowerCase()
+                            .equals(normalizedTitle))
                     .collect(Collectors.toList());
+
+            log.info("Found {} matching templates for clinicId : {} and title : {}",
+                    templates.size(),
+                    clinicId,
+                    title);
+
             if (templates.isEmpty()) {
+
+                log.warn("No templates found for clinicId : {} and title : {}",
+                        clinicId,
+                        title);
+
                 return Response.builder()
                         .success(false)
                         .status(HttpStatus.OK.value())
-                        .message("No templates found for clinicId: " + clinicId + " and exact title: " + title)
+                        .message("No templates found for clinicId: "
+                                + clinicId
+                                + " and exact title: "
+                                + title)
                         .data(null)
                         .build();
             }
@@ -583,6 +838,11 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
             List<DoctorTemplateDTO> dtos = templates.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList());
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("getTemplatesByClinicIdAndTitle() completed successfully in {} ms",
+                    executionTime);
 
             return Response.builder()
                     .success(true)
@@ -592,6 +852,13 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                     .build();
 
         } catch (Exception e) {
+
+            log.error("Exception occurred while fetching templates for clinicId : {} and title : {}. Error : {}",
+                    clinicId,
+                    title,
+                    e.getMessage(),
+                    e);
+
             return Response.builder()
                     .success(false)
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -600,8 +867,6 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
                     .build();
         }
     }
-
-
 
     private Response buildRateLimitResponse(Exception ex) {
         return Response.builder()
@@ -619,7 +884,8 @@ public class DoctorTemplateServiceImpl implements DoctorTemplateService {
     public Response searchTemplatesByTitleFallback(String keyword, Exception ex) { return buildRateLimitResponse(ex); }
     public Response getTemplatesByClinicIdFallback(String clinicId, Exception ex) { return buildRateLimitResponse(ex); }
     public Response getTemplatesByClinicIdAndTitleFallback(String clinicId, String title, Exception ex) { return buildRateLimitResponse(ex); }
-
+   // public Response getTemplatesByClinicIdFallback(String clinicId, Exception ex) { return buildRateLimitResponse(ex); }
+    
     public ResponseEntity<Response> updateTemplateFallback(String id, DoctorTemplateDTO dto, Exception ex) {
         return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
     }

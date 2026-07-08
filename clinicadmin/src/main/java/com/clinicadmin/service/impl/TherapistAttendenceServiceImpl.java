@@ -30,10 +30,12 @@ import com.clinicadmin.repository.TherapistRecordRepository;
 import com.clinicadmin.service.TherapistAttendenceService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TherapistAttendenceServiceImpl implements TherapistAttendenceService {
 
     private final TherapistAttendanceRepository attendanceRepo;
@@ -46,7 +48,11 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "addManualSessionFallback")
     public Response addManualSession(String therapistId, Map<String, String> body) {
 
+        log.info("Add manual session therapistId={}", therapistId);
+
         Response response = new Response();
+
+        log.info("Processing attendance request");
 
         try {
 
@@ -80,6 +86,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             attendance.setSessions(sessionList);
 
             // ✅ SAVE
+            log.debug("Saving attendance record");
             attendanceRepo.save(attendance);
 
             response.setSuccess(true);
@@ -88,6 +95,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             response.setStatus(200);
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(500);
@@ -101,12 +109,16 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDailyReportFallback")
     public Response getDailyReport(String therapistId, String date) {
 
+        log.info("Get daily report therapistId={} date={}", therapistId, date);
+
         Response response = new Response();
 
         try {
 
             TherapistAttendance attendance =
                     attendanceRepo.findByTherapistIdAndDate(therapistId, date);
+
+            log.debug("Fetching therapist records");
 
             List<TherapistRecord> records =
                     recordRepo.findByTherapistIdAndCompletedDate(therapistId, date);
@@ -196,6 +208,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             response.setStatus(200);
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(500);
@@ -389,6 +402,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             response.setStatus(200);
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(500);
@@ -463,6 +477,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             response.setStatus(200);
 
         } catch (Exception e) {
+            log.error("Operation failed", e);
             response.setSuccess(false);
             response.setMessage(e.getMessage());
             response.setStatus(500);
@@ -555,6 +570,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	        return "Unknown";
 
 	    } catch (Exception e) {
+	    	log.error(e.getMessage());
 	        return "Unknown";
 	    }
 	}
@@ -633,6 +649,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	        response.setStatus(200);
 
 	    } catch (Exception e) {
+	    	log.error(e.getMessage());
 	        response.setSuccess(false);
 	        response.setMessage(e.getMessage());
 	        response.setStatus(500);
@@ -698,6 +715,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
 	        response.setStatus(200);
 
 	    } catch (Exception e) {
+	    	log.error(e.getMessage());
 	        response.setSuccess(false);
 	        response.setMessage(e.getMessage());
 	        response.setStatus(500);
@@ -713,6 +731,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             String therapistId,
             Map<String, String> body,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -720,6 +739,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             String therapistId,
             String date,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -727,6 +747,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             String therapistId,
             Map<String, String> body,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -734,6 +755,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             String therapistId,
             String month,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -742,6 +764,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             String date,
             String sessionId,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -751,6 +774,7 @@ public class TherapistAttendenceServiceImpl implements TherapistAttendenceServic
             String therapistId,
             String date,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 

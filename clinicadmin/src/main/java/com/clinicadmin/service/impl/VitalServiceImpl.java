@@ -47,23 +47,17 @@ public class VitalServiceImpl implements VitalService {
 
         Response res = new Response();
         try {
-
-//            Optional<Vitals> existingVitals = vitalsRepository.findByBookingId(bookingId);
-//            if (existingVitals.isPresent()) {
-//                log.warn("Vitals already exist | bookingId={}", bookingId);
-//
-//                res.setSuccess(false);
-//                res.setMessage("Vitals already exist for bookingId: " + bookingId);
-//                res.setStatus(HttpStatus.CONFLICT.value());
-//                return res;
-//            }
+            log.debug("Calling Booking Service bookingId={}", bookingId);
 
             ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
                     bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
 
             BookingResponse resbody = bookingResponse.getBody().getData();
 
+            log.debug("Booking Service response patientId={} bookingId={}", resbody.getPatientId(), resbody.getBookingId());
+
             if (!resbody.getBookingId().equals(bookingId)) {
+                log.warn("Booking validation failed bookingId={}", bookingId);
                 res.setSuccess(false);
                 res.setMessage("Appointment data is not found for this id: " + bookingId);
                 res.setStatus(HttpStatus.OK.value());
@@ -84,7 +78,11 @@ public class VitalServiceImpl implements VitalService {
             // ✅ ADD DATE
             vital.setDate(LocalDateTime.now());
 
-            Vitals savedVitals = vitalsRepository.save(vital);
+            log.debug("Saving vitals bookingId={} patientId={}", bookingId, resbody.getPatientId());
+           // log.debug("Saving updated vitals bookingId={} patientId={}", bookingId, patientId);
+                Vitals savedVitals = vitalsRepository.save(vital);
+                //log.info("Vitals updated successfully bookingId={} patientId={}", bookingId, patientId);
+            log.info("Vitals saved successfully id={} bookingId={}", savedVitals.getId(), bookingId);
 
             // ✅ Prepare DTO
             VitalsDTO dto1 = new VitalsDTO();
@@ -136,6 +134,8 @@ public class VitalServiceImpl implements VitalService {
             List<Vitals> vitalsList =
                     vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
 
+            log.debug("Repository returned {} vitals records", vitalsList.size());
+
             if (!vitalsList.isEmpty()) {
 
                 List<VitalsDTO> dtoList = new ArrayList<>();
@@ -160,6 +160,7 @@ public class VitalServiceImpl implements VitalService {
                     dtoList.add(dto1);
                 }
 
+                log.info("Vitals retrieved successfully bookingId={} patientId={} count={}", bookingId, patientId, dtoList.size());
                 res.setSuccess(true);
                 res.setData(dtoList);
                 res.setMessage("Vitals data retrieved successfully");
@@ -169,6 +170,7 @@ public class VitalServiceImpl implements VitalService {
 
             } else {
 
+                log.warn("Vitals not found bookingId={} patientId={}", bookingId, patientId);
                 res.setSuccess(true);
                 res.setData(Collections.emptyList());
                 res.setMessage("Vitals data not found");
@@ -202,6 +204,8 @@ public class VitalServiceImpl implements VitalService {
             List<Vitals> vitOpt =
                     vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
 
+            log.debug("Repository returned {} records for update", vitOpt.size());
+
             if (!vitOpt.isEmpty()) {
 
                 Vitals vital = vitOpt.get(0);
@@ -213,7 +217,9 @@ public class VitalServiceImpl implements VitalService {
                 if (dto.getTemperature() != null) vital.setTemperature(dto.getTemperature());
                 if (dto.getWeight() != 0) vital.setWeight(dto.getWeight());
 
-                Vitals savedVitals = vitalsRepository.save(vital);
+                //log.debug("Saving vitals bookingId={} patientId={}", bookingId, resbody.getPatientId());
+            Vitals savedVitals = vitalsRepository.save(vital);
+            log.info("Vitals saved successfully id={} bookingId={}", savedVitals.getId(), bookingId);
 
                 VitalsDTO dtoResp = new VitalsDTO();
                 dtoResp.setId(savedVitals.getId().toString());
@@ -246,6 +252,7 @@ public class VitalServiceImpl implements VitalService {
 
         } catch (Exception e) {
 
+            log.error("Exception occurred while updating vitals bookingId={} patientId={}", bookingId, patientId, e);
             res.setSuccess(false);
             res.setMessage("Exception occurred while updating data: " + e.getMessage());
             res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -268,9 +275,13 @@ public class VitalServiceImpl implements VitalService {
         	List<Vitals> vit =
         	        vitalsRepository.findByBookingIdAndPatientId(bookingId, patientId);
 
+            log.debug("Repository returned {} records for delete", vit.size());
+
             if (!vit.isEmpty()) {
 
+                log.debug("Deleting vitals bookingId={} patientId={}", bookingId, patientId);
                 vitalsRepository.deleteByBookingIdAndPatientId(bookingId, patientId);
+                log.info("Vitals deleted successfully bookingId={} patientId={}", bookingId, patientId);
 
                 resp.setSuccess(true);
                 resp.setMessage("Vitals Deleted");
@@ -286,6 +297,7 @@ public class VitalServiceImpl implements VitalService {
 
         } catch (Exception e) {
 
+            log.error("Exception occurred while deleting vitals bookingId={} patientId={}", bookingId, patientId, e);
             resp.setSuccess(false);
             resp.setMessage("Exception occured during deleting data " + e.getMessage());
             resp.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -301,6 +313,7 @@ public class VitalServiceImpl implements VitalService {
             String bookingId,
             VitalsDTO dto,
             Exception ex) {
+        log.error("Rate limiter triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -308,6 +321,7 @@ public class VitalServiceImpl implements VitalService {
             String bookingId,
             String patientId,
             Exception ex) {
+        log.error("Rate limiter triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -316,6 +330,7 @@ public class VitalServiceImpl implements VitalService {
             String patientId,
             VitalsDTO dto,
             Exception ex) {
+        log.error("Rate limiter triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -323,10 +338,12 @@ public class VitalServiceImpl implements VitalService {
             String bookingId,
             String patientId,
             Exception ex) {
+        log.error("Rate limiter triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response buildRateLimitResponse() {
+        log.warn("Returning rate limit response");
         Response response = new Response();
         response.setSuccess(false);
         response.setMessage("Too many requests. Please try again after some time.");

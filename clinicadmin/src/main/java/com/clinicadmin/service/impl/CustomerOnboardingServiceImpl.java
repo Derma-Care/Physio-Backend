@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,8 +35,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class CustomerOnboardingServiceImpl implements CustomerOnboardingService {
 
 	@Autowired
@@ -55,8 +58,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- CREATE (ONBOARD) -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "onboardCustomerFallback")
 	public Response onboardCustomer(CustomerOnbordingDTO dto) {
+		log.info("Entering onboardCustomer");
 		Response response = new Response();
 
 		try {
@@ -114,6 +118,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			response.setStatus(201);
 
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			response.setSuccess(false);
 			response.setMessage("Error during onboarding: " + e.getMessage());
 			response.setStatus(500);
@@ -125,8 +130,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- READ ALL -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllCustomersFallback")
 	public Response getAllCustomers() {
+		log.info("Entering getAllCustomers");
 		Response response = new Response();
 		try {
 			List<CustomerOnbordingDTO> customers = onboardingRepository.findAll().stream().map(this::convertToDTO)
@@ -137,6 +143,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			response.setData(customers);
 			response.setStatus(200);
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			response.setSuccess(false);
 			response.setMessage("Error fetching customers: " + e.getMessage());
 			response.setStatus(500);
@@ -146,8 +153,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomerByIdFallback")
 	public Response getCustomerById(String id) {
+		log.info("Entering getCustomerById");
 		Response response = new Response();
 		try {
 			Optional<CustomerOnbording> optional = onboardingRepository.findByCustomerId(id);
@@ -162,6 +170,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 				response.setStatus(404);
 			}
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			response.setSuccess(false);
 			response.setMessage("Error fetching customer: " + e.getMessage());
 			response.setStatus(500);
@@ -172,8 +181,10 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
+	@Cacheable(value = "customers",key = "#mobilenumber+ '_' +name")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "CustomerByMobilenumberAndNameRateLimitFallback")
-	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name) {		
+	public Map<String,String> getCustomerByMobilenumberAndName(String mobilenumber,String name) {
+		log.info("Entering getCustomerByMobilenumberAndName");		
 		Map<String,String> details = new LinkedHashMap<>();
 		try {
 			Optional<CustomerOnbording> optional = onboardingRepository.findByMobileNumberAndFullName(mobilenumber, name);
@@ -186,6 +197,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 				return null;
 			}
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			return null;
 		}
 		
@@ -194,8 +206,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomerByMobiileNumberFallback")
 	public Response getCustomerByMobiileNumber(String mobilenumber) {
+		log.info("Entering getCustomerByMobiileNumber");
 		Response response = new Response();
 		try {
 			Optional<CustomerOnbording> optional = onboardingRepository.findByMobileNumber(mobilenumber);
@@ -210,6 +223,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 				response.setStatus(404);
 			}
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			response.setSuccess(false);
 			response.setMessage("Error fetching customer: " + e.getMessage());
 			response.setStatus(500);
@@ -219,8 +233,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
-	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId) {	
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomerByMobileNumberAndClinicIdFallback")
+	public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicId(String mobilenumber,String clinicId) {
+		log.info("Entering getCustomerByMobileNumberAndClinicId");	
 		try {
 			CustomerOnbording optional = onboardingRepository.findByMobileNumberAndHospitalId(mobilenumber,clinicId);
 			//System.out.println(optional);
@@ -230,6 +245,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 				return null;
 			}
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			return null;
 		}}
 	
@@ -238,8 +254,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- UPDATE -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateCustomerFallback")
 	public Response updateCustomer(String customerId, CustomerOnbordingDTO dto) {
+		log.info("Entering updateCustomer");
 		Response response = new Response();
 
 		try {
@@ -300,6 +317,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			response.setStatus(200);
 
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			response.setSuccess(false);
 			response.setMessage("Error updating customer: " + e.getMessage());
 			response.setStatus(500);
@@ -311,8 +329,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- DELETE -----------------
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteCustomerFallback")
 	public Response deleteCustomer(String id) {
+		log.info("Entering deleteCustomer");
 		Response response = new Response();
 
 		try {
@@ -335,6 +354,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			response.setStatus(200);
 
 		} catch (Exception e) {
+			log.error("Exception in method", e);
 			response.setSuccess(false);
 			response.setMessage("Error deleting customer: " + e.getMessage());
 			response.setStatus(500);
@@ -345,8 +365,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomersByHospitalIdFallback")
 	public Response getCustomersByHospitalId(String hospitalId,String branchId) {
+		log.info("Entering getCustomersByHospitalId");
 	    Response response = new Response();
 	    try {
 	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
@@ -359,6 +380,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	        response.setData(customers);
 	        response.setStatus(200);
 	    } catch (Exception e) {
+			log.error("Exception in method", e);
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
@@ -369,8 +391,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomersByPatientIdFallback")
 	public Response getCustomersByPatientId(String patientId,String clinicId) {
+		log.info("Entering getCustomersByPatientId");
 	    Response response = new Response();
 	    try {
 	        CustomerOnbording customers = onboardingRepository.findByPatientIdAndHospitalId(patientId,clinicId);
@@ -384,7 +407,8 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	    	 response.setSuccess(false);
 		        response.setMessage("Customers Object Not Found");
 		        response.setStatus(200);
-	    }}catch(Exception e) {
+	    }}catch (Exception e) {
+			log.error("Exception in method", e);
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
@@ -397,8 +421,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomersByBranchIdFallback")
 	public Response getCustomersByBranchId(String branchId) {
+		log.info("Entering getCustomersByBranchId");
 	    Response response = new Response();
 	    try {
 	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByBranchId(branchId)
@@ -411,6 +436,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	        response.setData(customers);
 	        response.setStatus(200);
 	    } catch (Exception e) {
+			log.error("Exception in method", e);
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
@@ -420,8 +446,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomersByHospitalIdAndBranchIdFallback")
 	public Response getCustomersByHospitalIdAndBranchId(String hospitalId, String branchId) {
+		log.info("Entering getCustomersByHospitalIdAndBranchId");
 	    Response response = new Response();
 	    try {
 	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
@@ -436,6 +463,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	        response.setData(customers);
 	        response.setStatus(200);
 	    } catch (Exception e) {
+			log.error("Exception in method", e);
 	        response.setSuccess(false);
 	        response.setMessage("Error fetching customers: " + e.getMessage());
 	        response.setStatus(500);
@@ -445,75 +473,12 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
 	
 	
-	// ----------------- LOGIN -----------------
-//	@Override
-//	public Response login(CustomerLoginDTO dto) {
-//		Response response = new Response();
-//
-//		try {
-//			Optional<CustomerCredentials> optional = credentialsRepository.findByUserName(dto.getUserName());
-//			if (optional.isEmpty()) {
-//				response.setSuccess(false);
-//				response.setMessage("Invalid username");
-//				response.setStatus(401);
-//				return response;
-//			}
-//
-//			CustomerCredentials credentials = optional.get();
-//
-//			// check password
-//			if (!passwordEncoder.matches(dto.getPassword(), credentials.getPassword())) {
-//				response.setSuccess(false);
-//				response.setMessage("Invalid password");
-//				response.setStatus(401);
-//				return response;
-//			}
-//
-//			// fetch customer onboarding details using userName (or customerId if you store
-//			// it in credentials)
-//			Optional<CustomerOnbording> customerOpt = onboardingRepository.findByCustomerId(credentials.getUserName());
-//
-//			if (customerOpt.isEmpty()) {
-//				response.setSuccess(false);
-//				response.setMessage("Customer profile not found");
-//				response.setStatus(404);
-//				return response;
-//			}
-//
-//			CustomerOnbording customer = customerOpt.get();
-//
-//			customer.setDeviceId(dto.getDeviceId());
-//			CustomerOnbording cs = onboardingRepository.save(customer);
-//
-//			// map to response DTO
-//			CustomerResponseDTO resDTO = new CustomerResponseDTO();
-//			resDTO.setUserName(credentials.getUserName());
-//			resDTO.setCustomerName(customer.getFullName());
-//			resDTO.setCustomerId(customer.getCustomerId());
-//			resDTO.setPatientId(customer.getPatientId());
-//			resDTO.setDeviceId(cs.getDeviceId());
-//			resDTO.setHospitalName(customer.getHospitalName());
-//			resDTO.setHospitalId(customer.getHospitalId());
-//			resDTO.setBranchId(customer.getBranchId());
-//
-//			// final response
-//			response.setSuccess(true);
-//			response.setMessage("Login successful");
-//			response.setData(resDTO);
-//			response.setStatus(200);
-//
-//		} catch (Exception e) {
-//			response.setSuccess(false);
-//			response.setMessage("Login error: " + e.getMessage());
-//			response.setStatus(500);
-//		}
-//
-//		return response;
-//	}
+
 
 	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "customerDeviceIdFallback")
 	public String customerDeviceId(String customerId) {
+		log.info("Entering customerDeviceId");
 		try {
 			Optional<CustomerCredentials> cs = credentialsRepository.findByUserName(customerId);	
 			if(cs.isPresent()) {
@@ -521,7 +486,8 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			}else {
 				return null;
 			}
-		}catch(Exception e) {
+		}catch (Exception e) {
+			log.error("Exception in method", e);
 			return null;
 		}
 	}
@@ -529,6 +495,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	// ----------------- RESET PASSWORD -----------------
 //	@Override
 //	public Response resetPassword(ChangeDoctorPasswordDTO dto) {
+		///log.info("Entering resetPassword");
 //		Response response = new Response();
 //
 //		try {
@@ -557,6 +524,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 //			response.setStatus(200);
 //
 //		} catch (Exception e) {
+		//	log.error("Exception in method", e);
 //			response.setSuccess(false);
 //			response.setMessage("Reset password error: " + e.getMessage());
 //			response.setStatus(500);
@@ -614,8 +582,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	}
 	
 	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getCustomerByTokenFallback")
 	public CustomerOnbordingDTO getCustomerByToken(String token){
+		log.info("Entering getCustomerByToken");
 		try {	
 			CustomerOnbording cstmr = onboardingRepository.findByDeviceId(token);
 			if(cstmr != null) {
@@ -624,15 +593,17 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			else {
 				return null;
 			}
-		}catch(FeignException e) {	
+		}catch (FeignException e) {
+			log.error("Exception in method", e);	
 			return null;	
 		}}
 	
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "bookingByInputFallback")
 	public List<BookingInfoByInput> bookingByInput(String input,String clinicId) {
+		log.info("Entering bookingByInput");
 		   BookingInfoByInput bkng = new BookingInfoByInput();
 		   CustomerOnbordingDTO b = null;
 		   List<BookingInfoByInput> lst = new ArrayList<>();
@@ -687,66 +658,47 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		        bookingInfoByInput.setRelation(null);
 		        lst.add(bookingInfoByInput);}}
 	       }catch (Exception e) {
+			log.error("Exception in method", e);
 	        //System.err.println("Error fetching bookings: " + e.getMessage());
 	        System.out.println(e.getMessage());; // safe fallback
 	    }
 	    return lst;
 	}
 
-    
-    // ================= RATE LIMIT FALLBACK METHODS =================
 
-    public Response rateLimitFallback(CustomerOnbordingDTO dto, Exception ex){
-        Response r = new Response();
-        r.setSuccess(false);
-        r.setStatus(429);
-        r.setMessage("Too many requests. Please try again later.");
-        return r;
+
+    // Generated fallbacks
+    private Response buildRateLimitResponse(){
+      Response r=new Response();
+      r.setSuccess(false);r.setStatus(429);r.setMessage("Too many requests. Please try again later.");return r;
     }
 
-    public Response rateLimitFallback(Exception ex){
-        Response r = new Response();
-        r.setSuccess(false);
-        r.setStatus(429);
-        r.setMessage("Too many requests. Please try again later.");
-        return r;
-    }
+    public Response onboardCustomerFallback(CustomerOnbordingDTO dto, Exception ex){log.error("Rate limit triggered in onboardCustomer", ex); return buildRateLimitResponse();}
 
-    public Response rateLimitFallback(String id, Exception ex){
-        Response r = new Response();
-        r.setSuccess(false);
-        r.setStatus(429);
-        r.setMessage("Too many requests. Please try again later.");
-        return r;
-    }
+    public Response getAllCustomersFallback(Exception ex){log.error("Rate limit triggered in getAllCustomers", ex); return buildRateLimitResponse();}
 
-    public Response rateLimitFallback(String p1, String p2, Exception ex){
-        Response r = new Response();
-        r.setSuccess(false);
-        r.setStatus(429);
-        r.setMessage("Too many requests. Please try again later.");
-        return r;
-    }
+    public Response getCustomerByIdFallback(String id, Exception ex){log.error("Rate limit triggered in getCustomerById", ex); return buildRateLimitResponse();}
 
-    public Map<String,String> CustomerByMobilenumberAndNameRateLimitFallback(String mobile, String name, RuntimeException ex){
-        return Collections.emptyMap();
-    }
+    public Response getCustomerByMobiileNumberFallback(String mobilenumber, Exception ex){log.error("Rate limit triggered in getCustomerByMobiileNumber", ex); return buildRateLimitResponse();}
 
-    public CustomerOnbordingDTO rateLimitFallback(String mobile, String clinicId, RuntimeException ex){
-        return null;
-    }
+    public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicIdFallback(String mobilenumber,String clinicId, Exception ex){log.error("Rate limit triggered in getCustomerByMobileNumberAndClinicId", ex); return null;}
 
-    public String rateLimitFallback(String customerId, RuntimeException ex){
-        return null;
-    }
+    public Response updateCustomerFallback(String customerId, CustomerOnbordingDTO dto, Exception ex){log.error("Rate limit triggered in updateCustomer", ex); return buildRateLimitResponse();}
 
-    public CustomerOnbordingDTO rateLimitFallbackByToken(String token, RuntimeException ex){
-        return null;
-    }
+    public Response deleteCustomerFallback(String id, Exception ex){log.error("Rate limit triggered in deleteCustomer", ex); return buildRateLimitResponse();}
 
-    public List<BookingInfoByInput> rateLimitFallback(String input, String clinicId, Throwable ex){
-        return Collections.emptyList();
-    }
+    public Response getCustomersByHospitalIdFallback(String hospitalId,String branchId, Exception ex){log.error("Rate limit triggered in getCustomersByHospitalId", ex); return buildRateLimitResponse();}
+
+    public Response getCustomersByPatientIdFallback(String patientId,String clinicId, Exception ex){log.error("Rate limit triggered in getCustomersByPatientId", ex); return buildRateLimitResponse();}
+
+    public Response getCustomersByBranchIdFallback(String branchId, Exception ex){log.error("Rate limit triggered in getCustomersByBranchId", ex); return buildRateLimitResponse();}
+
+    public Response getCustomersByHospitalIdAndBranchIdFallback(String hospitalId, String branchId, Exception ex){log.error("Rate limit triggered in getCustomersByHospitalIdAndBranchId", ex); return buildRateLimitResponse();}
+
+    public String customerDeviceIdFallback(String customerId, Exception ex){log.error("Rate limit triggered in customerDeviceId", ex); return null;}
+
+    public CustomerOnbordingDTO getCustomerByTokenFallback(String token, Exception ex){log.error("Rate limit triggered in getCustomerByToken", ex); return null;}
+
+    public List<BookingInfoByInput> bookingByInputFallback(String input,String clinicId, Exception ex){log.error("Rate limit triggered in bookingByInput", ex); return null;}
 
 }
-

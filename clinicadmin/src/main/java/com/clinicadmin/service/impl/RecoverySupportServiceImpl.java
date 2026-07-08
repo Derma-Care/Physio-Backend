@@ -16,8 +16,10 @@ import com.clinicadmin.repository.RecoverySupportRepository;
 import com.clinicadmin.service.RecoverySupportService;
 import com.clinicadmin.service.S3Service;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class RecoverySupportServiceImpl implements RecoverySupportService {
 
     @Autowired
@@ -30,12 +32,15 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "saveRecoverySupportFallback")
     public Response saveRecoverySupport(RecoverySupportDTO dto) {
+        log.info("Saving recovery support clinicId={} name={}", dto.getClinicId(), dto.getName());
 
         Response response = new Response();
 
         RecoverySupport support = convertToEntity(dto);
 
+        log.debug("Saving recovery support entity");
         repository.save(support);
+        log.info("Recovery support saved successfully");
 
         response.setSuccess(true);
         response.setData(convertToDto(support));
@@ -49,9 +54,11 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllRecoverySupportsFallback")
     public Response getAllRecoverySupports() {
+        log.info("Fetching all recovery supports");
 
         Response response = new Response();
 
+        log.debug("Calling repository.findAll()");
         List<RecoverySupportDTO> data = repository.findAll()
                 .stream()
                 .map(this::convertToDto)
@@ -69,6 +76,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getRecoverySupportByIdFallback")
     public Response getRecoverySupportById(String id) {
+        log.info("Fetching recovery support id={}", id);
 
         Response response = new Response();
 
@@ -93,6 +101,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateRecoverySupportFallback")
     public Response updateRecoverySupport(String id, RecoverySupportDTO dto) {
+        log.info("Updating recovery support id={}", id);
 
         Response response = new Response();
 
@@ -128,6 +137,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteRecoverySupportFallback")
     public Response deleteRecoverySupport(String id) {
+        log.info("Deleting recovery support id={}", id);
 
         Response response = new Response();
 
@@ -140,7 +150,9 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
             return response;
         }
 
+        log.debug("Deleting recovery support from repository id={}", id);
         repository.deleteById(id);
+        log.info("Recovery support deleted successfully id={}", id);
 
         response.setSuccess(true);
         response.setMessage("Recovery support deleted successfully");
@@ -153,6 +165,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getRecoverySupportsByClinicIdFallback")
     public Response getRecoverySupportsByClinicId(String clinicId) {
+        log.info("Fetching recovery supports clinicId={}", clinicId);
 
         Response response = new Response();
 
@@ -173,6 +186,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getRecoverySupportByClinicIdAndIdFallback")
     public  Response getRecoverySupportByClinicIdAndId(String clinicId, String id){
+        log.info("Fetching recovery support clinicId={} id={}", clinicId, id);
 
         Response response = new Response();
 
@@ -218,6 +232,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
         dto.setCategory(support.getCategory());
 
         if (support.getImage() != null && !support.getImage().isBlank()) {
+            log.debug("Generating signed URL for recovery support image id={}", support.getId());
             dto.setImage(s3Service.generateSignedUrl(support.getImage()));
         }
 
@@ -228,14 +243,17 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public Response saveRecoverySupportFallback(RecoverySupportDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getAllRecoverySupportsFallback(Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getRecoverySupportByIdFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -243,16 +261,19 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
             String id,
             RecoverySupportDTO dto,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response deleteRecoverySupportFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getRecoverySupportsByClinicIdFallback(
             String clinicId,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -260,6 +281,7 @@ public class RecoverySupportServiceImpl implements RecoverySupportService {
             String clinicId,
             String id,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 

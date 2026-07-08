@@ -20,8 +20,10 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.ExpensesEntity;
 import com.clinicadmin.repository.ExpensesRepository;
 import com.clinicadmin.service.ExpensesService;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class ExpensesServiceImpl implements ExpensesService {
 	
 	@Autowired
@@ -45,13 +47,16 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "createFallback")
 	public ResponseEntity<Response> create(ExpensesDTO dto) {
+		log.info("Creating expense clinicId={} branchId={}", dto.getClinicId(), dto.getBranchId());
 
 	    try {
 	        ExpensesEntity entity = mapToEntity(dto);
 	        //entity.setDate(LocalDate.now());	        
 	        entity.setTimestamp(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
 
+	        log.debug("Saving expense entity");
 	        ExpensesEntity saved = repository.save(entity);
+	        log.info("Expense created successfully id={}", saved.getId());
 	        ExpensesDTO responseDto = mapToDTO(saved);
 
 	        return ResponseEntity.ok(
@@ -64,6 +69,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	        );
 
 	    } catch (Exception e) {
+	        log.error("Operation failed", e);
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body(Response.builder()
 	                        .success(false)
@@ -77,8 +83,10 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFallback")
 	public ResponseEntity<Response> getAll() {
+		log.info("Fetching all expenses");
 
 	    try {
+	        log.debug("Calling repository.findAll()");
 	        List<ExpensesDTO> list = repository.findAll()
 	                .stream()
 	                .map(this::mapToDTO)
@@ -93,6 +101,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	        );
 
 	    } catch (Exception e) {
+	        log.error("Operation failed", e);
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body(Response.builder()
 	                        .success(false)
@@ -106,6 +115,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFallback")
 	public ResponseEntity<Response> update(String id, ExpensesDTO dto) {
+		log.info("Updating expense id={}", id);
 
 	    try {
 	        Optional<ExpensesEntity> optional = repository.findById(id);
@@ -176,6 +186,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	        );
 
 	    } catch (Exception e) {
+	        log.error("Operation failed", e);
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body(Response.builder()
 	                        .success(false)
@@ -189,6 +200,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFallback")
 	public ResponseEntity<Response> delete(String id) {
+		log.info("Deleting expense id={}", id);
 
 	    try {
 	        if (!repository.existsById(id)) {
@@ -211,6 +223,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	        );
 
 	    } catch (Exception e) {
+	        log.error("Operation failed", e);
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body(Response.builder()
 	                        .success(false)
@@ -224,6 +237,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicAndBranchFallback")
 	public ResponseEntity<Response> getByClinicAndBranch(String clinicId, String branchId) {
+		log.info("Fetching expenses clinicId={} branchId={}", clinicId, branchId);
 
 	    try {
 	        List<ExpensesDTO> list = repository
@@ -250,6 +264,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	        );
 
 	    } catch (Exception e) {
+	        log.error("Operation failed", e);
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body(Response.builder()
 	                        .success(false)
@@ -263,6 +278,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getTodayExpensesFallback")
 	public Double getTodayExpenses(String clinicId, String branchId) {
+		log.info("Calculating today expenses clinicId={} branchId={}", clinicId, branchId);
 
 	    LocalDate today = LocalDate.now();
         try{
@@ -287,6 +303,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getWeeklyExpensesFallback")
 	public Double getWeeklyExpenses(String clinicId, String branchId) {
+		log.info("Calculating weekly expenses clinicId={} branchId={}", clinicId, branchId);
 
 		try {
 	    LocalDate today = LocalDate.now();
@@ -313,6 +330,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getMonthlyExpensesFallback")
 	public Double getMonthlyExpenses(String clinicId, String branchId) {
+		log.info("Calculating monthly expenses clinicId={} branchId={}", clinicId, branchId);
 
 		try {
 	    LocalDate today = LocalDate.now();
@@ -339,6 +357,7 @@ public class ExpensesServiceImpl implements ExpensesService {
 	 @Secured({"ROLE_CLINICADMIN","ROLE_BOOKINGSERVICE"})
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "customeFilterFallback")
 	public Double customeFilter(String startDate, String endDate) {
+		log.info("Calculating custom expenses startDate={} endDate={}", startDate, endDate);
 		try {
 	    List<ExpensesEntity> entities = repository
 	            .findByDateBetween(LocalDate.parse(startDate), LocalDate.parse(endDate));
@@ -359,10 +378,10 @@ public class ExpensesServiceImpl implements ExpensesService {
 	
 	////// FALLBACK METHODS //////
 	
-public ResponseEntity<Response> createFallback(ExpensesDTO dto, Exception ex){ return buildRateLimitResponse(); }
-public ResponseEntity<Response> getAllFallback(Exception ex){ return buildRateLimitResponse(); }
-public ResponseEntity<Response> updateFallback(String id, ExpensesDTO dto, Exception ex){ return buildRateLimitResponse(); }
-public ResponseEntity<Response> deleteFallback(String id, Exception ex){ return buildRateLimitResponse(); }
+public ResponseEntity<Response> createFallback(ExpensesDTO dto, Exception ex){ log.error("Rate limit create", ex); return buildRateLimitResponse(); }
+public ResponseEntity<Response> getAllFallback(Exception ex){ log.error("Rate limit getAll", ex); return buildRateLimitResponse(); }
+public ResponseEntity<Response> updateFallback(String id, ExpensesDTO dto, Exception ex){ log.error("Rate limit update id={}", id, ex); return buildRateLimitResponse(); }
+public ResponseEntity<Response> deleteFallback(String id, Exception ex){ log.error("Rate limit delete id={}", id, ex); return buildRateLimitResponse(); }
 public ResponseEntity<Response> getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex){ return buildRateLimitResponse(); }
 public Double getTodayExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
 public Double getWeeklyExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }

@@ -865,7 +865,7 @@ public class TherapistServiceImpl implements TherapistService {
             response.setStatus(200);
 
         } catch (Exception e) {
-
+        log.error("{}",e.getMessage());
             response.setSuccess(false);
             response.setData(null);
             response.setMessage(e.getMessage());
@@ -1319,7 +1319,7 @@ public class TherapistServiceImpl implements TherapistService {
             response.setData(data);
 
         } catch (Exception e) {
-
+log.error("{}",e.getMessage());
             response.setSuccess(false);
             response.setStatus(500);
             response.setMessage(e.getMessage());
@@ -1603,7 +1603,7 @@ public class TherapistServiceImpl implements TherapistService {
             response.setStatus(HttpStatus.OK.value());
 
         } catch (Exception e) {
-
+log.error("{}",e.getMessage());
             response.setSuccess(false);
             response.setData(null);
             response.setMessage(e.getMessage());
@@ -1700,7 +1700,7 @@ public class TherapistServiceImpl implements TherapistService {
             String therapistId) {
 
         Response response = new Response();
-
+log.error("clinicId:{},branchId:{},therapistId:{}",clinicId,branchId,therapistId);
         try {
 
             List<PatientFeedback> patientFeedbacks =
@@ -1875,7 +1875,7 @@ public class TherapistServiceImpl implements TherapistService {
             response.setData(summary);
 
         } catch (Exception e) {
-
+log.error("{}",e.getMessage());
             response.setSuccess(false);
             response.setStatus(500);
             response.setMessage(e.getMessage());
@@ -1894,7 +1894,7 @@ public class TherapistServiceImpl implements TherapistService {
     public Response getTherapistsWithServices(
             String clinicId,
             String branchId) {
-
+    	log.error("clinicId:{},branchId:{}",clinicId,branchId);
         List<Therapist> therapists =
                 repository.findByClinicIdAndBranchId(
                         clinicId,

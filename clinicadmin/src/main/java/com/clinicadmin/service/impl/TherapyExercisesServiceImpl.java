@@ -17,8 +17,10 @@ import com.clinicadmin.repository.TherapyExercisesRepository;
 import com.clinicadmin.service.TherapyExercisesService;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     @Autowired
@@ -29,6 +31,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createTherapyExercisesFallback")
     public ResponseStructure<TherapyExercisesDTO> createTherapyExercises(TherapyExercisesDTO dto) {
+        log.info("Entering createTherapyExercises clinicId={} branchId={}", dto.getClinicId(), dto.getBranchId());
 
         TherapyExercises entity = toEntity(dto);
         entity.setTherapyExercisesId(generateUniqueId());
@@ -48,6 +51,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTherapyExercisesByIdFallback")
     public ResponseStructure<TherapyExercisesDTO> getTherapyExercisesById(String therapyExercisesId) {
+        log.info("Entering getTherapyExercisesById id={}", therapyExercisesId);
 
         TherapyExercises entity = repository.findByTherapyExercisesId(therapyExercisesId)
                 .orElseThrow(() -> new RuntimeException("Therapy Exercise Not Found"));
@@ -241,6 +245,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= ID GENERATION =================
     private String generateCustomId() {
+        log.debug("Generating custom id");
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder();
         Random random = new Random();
@@ -253,6 +258,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     }
 
     private String generateUniqueId() {
+        log.debug("Generating unique id");
         String id;
         do {
             id = generateCustomId();
@@ -262,6 +268,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= DTO → ENTITY =================
     private TherapyExercises toEntity(TherapyExercisesDTO dto) {
+        log.debug("Converting DTO to entity");
         TherapyExercises e = new TherapyExercises();
 
         e.setClinicId(dto.getClinicId());
@@ -320,6 +327,7 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
     }
     // ================= ENTITY → DTO =================
     private TherapyExercisesDTO toDTO(TherapyExercises e) {
+        log.debug("Converting entity to DTO");
         TherapyExercisesDTO dto = new TherapyExercisesDTO();
 
         dto.setTherapyExercisesId(e.getTherapyExercisesId());
@@ -362,11 +370,13 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     // ================= ENCODE / DECODE =================
     private String encode(String value) {
+        log.debug("Encoding image");
         if (value == null) return null;
         return Base64.getEncoder().encodeToString(value.getBytes());
     }
 
     private String decode(String value) {
+        log.debug("Decoding image");
         if (value == null) return null;
         return new String(Base64.getDecoder().decode(value));
     }
@@ -376,11 +386,13 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     public ResponseStructure<TherapyExercisesDTO> createTherapyExercisesFallback(
             TherapyExercisesDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildTherapyExercisesResponse();
     }
 
     public ResponseStructure<TherapyExercisesDTO> getTherapyExercisesByIdFallback(
             String therapyExercisesId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildTherapyExercisesResponse();
     }
 
@@ -391,11 +403,13 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
 
     public ResponseStructure<TherapyExercisesDTO> updateTherapyExercisesByIdFallback(
             String therapyExercisesId, TherapyExercisesDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildTherapyExercisesResponse();
     }
 
     public ResponseStructure<TherapyExercisesDTO> getByClinicIdBranchIdAndTherapyIdFallback(
             String clinicId, String branchId, String therapyExercisesId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildTherapyExercisesResponse();
     }
 

@@ -26,8 +26,10 @@ import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class ReportsServiceImpl implements ReportsService {
 
     @Autowired
@@ -145,6 +147,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "saveReportsFallback")
     public Response saveReports(ReportsDtoList dto) {
+        log.info("Saving reports request");
         try {
             if (dto == null || dto.getReportsList() == null || dto.getReportsList().isEmpty()) {
                 return Response.builder()
@@ -224,7 +227,9 @@ public class ReportsServiceImpl implements ReportsService {
             reportsList.setPatientId(dto.getPatientId());
             reportsList.setReportsList(reports);
 
+            log.debug("Saving reports to repository");
             ReportsList saved = reportsRepository.save(reportsList);
+            log.info("Reports saved successfully");
 
             return Response.builder()
                     .success(true)
@@ -234,6 +239,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
 
         } catch (FeignException e) {
+            log.error("Booking service communication failed", e);
             return Response.builder()
                     .success(false)
                     .data(null)
@@ -241,6 +247,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                     .build();
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             return Response.builder()
                     .success(false)
                     .data(null)
@@ -257,6 +264,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByBookingIdFallback")
     public Response getReportsByBookingId(String bookingId) {
+        log.info("Fetching reports by bookingId={}", bookingId);
         Response res = new Response();
         try {
             List<ReportsList> reportsListData =
@@ -279,6 +287,7 @@ public class ReportsServiceImpl implements ReportsService {
             }
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             res.setSuccess(false);
             res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             res.setMessage("Error fetching reports: " + e.getMessage());
@@ -294,6 +303,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllReportsFallback")
     public Response getAllReports() {
+        log.info("Fetching all reports");
         Response res = new Response();
         try {
             List<ReportsList> reportList = reportsRepository.findAll();
@@ -315,6 +325,7 @@ public class ReportsServiceImpl implements ReportsService {
             }
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             res.setSuccess(false);
             res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             res.setMessage("Error fetching all reports: " + e.getMessage());
@@ -330,6 +341,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByCustomerIdFallback")
     public Response getReportsByCustomerId(String customerId) {
+        log.info("Fetching reports by customerId={}", customerId);
         Response res = new Response();
         try {
             List<ReportsList> reportsListData =
@@ -352,6 +364,7 @@ public class ReportsServiceImpl implements ReportsService {
             }
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             res.setSuccess(false);
             res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             res.setMessage("Error fetching reports: " + e.getMessage());
@@ -367,6 +380,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByPatientIdAndBookingIdFallback")
     public Response getReportsByPatientIdAndBookingId(String patientId, String bookingId) {
+        log.info("Fetching reports patientId={} bookingId={}", patientId, bookingId);
         Response res = new Response();
         try {
             List<ReportsList> reportsListData =
@@ -390,6 +404,7 @@ public class ReportsServiceImpl implements ReportsService {
             }
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             res.setSuccess(false);
             res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             res.setMessage("Error fetching reports: " + e.getMessage());
@@ -405,6 +420,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateReportFallback")
     public Response updateReport(String reportId, ReportsDtoList dto) {
+        log.info("Updating report reportId={}", reportId);
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
             if (optional.isEmpty()) {
@@ -513,6 +529,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             return Response.builder()
                     .success(false)
                     .data(null)
@@ -529,6 +546,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteReportFallback")
     public Response deleteReport(String reportId) {
+        log.info("Deleting report reportId={}", reportId);
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
 
@@ -559,6 +577,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             return Response.builder()
                     .success(false)
                     .message("Error while deleting report: " + e.getMessage())
@@ -575,6 +594,7 @@ public class ReportsServiceImpl implements ReportsService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteReportFileFallback")
     public Response deleteReportFile(String reportId, String bookingId, int fileIndex) {
+        log.info("Deleting report file reportId={} bookingId={} fileIndex={}", reportId, bookingId, fileIndex);
         try {
             Optional<ReportsList> optional = reportsRepository.findById(reportId);
             if (optional.isEmpty()) {
@@ -652,6 +672,7 @@ public class ReportsServiceImpl implements ReportsService {
                     .build();
 
         } catch (Exception e) {
+            log.error("Reports operation failed", e);
             return Response.builder()
                     .success(false)
                     .message("Error while deleting report file: " + e.getMessage())
@@ -665,18 +686,22 @@ public class ReportsServiceImpl implements ReportsService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public Response saveReportsFallback(ReportsDtoList dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getReportsByBookingIdFallback(String bookingId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getAllReportsFallback(Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getReportsByCustomerIdFallback(String customerId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -684,6 +709,7 @@ public class ReportsServiceImpl implements ReportsService {
             String patientId,
             String bookingId,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -691,10 +717,12 @@ public class ReportsServiceImpl implements ReportsService {
             String reportId,
             ReportsDtoList dto,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response deleteReportFallback(String reportId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -703,6 +731,7 @@ public class ReportsServiceImpl implements ReportsService {
             String bookingId,
             int fileIndex,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 

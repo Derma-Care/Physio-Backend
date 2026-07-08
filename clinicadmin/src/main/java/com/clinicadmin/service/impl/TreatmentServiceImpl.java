@@ -20,8 +20,10 @@ import com.clinicadmin.repository.TreatmentRepository;
 import com.clinicadmin.service.TreatmentService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class TreatmentServiceImpl implements TreatmentService {
 
     @Autowired
@@ -38,9 +40,11 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "addTreatmentFallback")
     public Response addTreatment(TreatmentDTO dto) {
+        log.info("Entering addTreatment hospitalId={} treatmentName={}", dto.getHospitalId(), dto.getTreatmentName());
         Response response = new Response();
 
         // Check if hospital exists by calling admin service
+        log.debug("Calling Admin Service getClinicById hospitalId={}", dto.getHospitalId());
         ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getHospitalId());
         Response clinicResponse = clinicResponseEntity.getBody();
 
@@ -53,6 +57,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         }
 
         // 🔑 Check for duplicate treatment in the same hospital
+        log.debug("Checking duplicate treatment");
         Optional<Treatment> existing = treatmentRepository
                 .findByHospitalIdAndTreatmentName(dto.getHospitalId(), dto.getTreatmentName());
 
@@ -67,7 +72,9 @@ public class TreatmentServiceImpl implements TreatmentService {
         Treatment treatment = new Treatment();
         treatment.setTreatmentName(dto.getTreatmentName());
         treatment.setHospitalId(dto.getHospitalId());
+        log.debug("Saving treatment");
         Treatment saved = treatmentRepository.save(treatment);
+        log.info("Treatment saved successfully id={}", saved.getId());
 
         TreatmentDTO responseDto = new TreatmentDTO();
         responseDto.setId(saved.getId().toString());
@@ -85,6 +92,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllTreatmentsFallback")
     public Response getAllTreatments() {
+        log.info("Entering getAllTreatments");
         Response response = new Response();
         try {
             List<Treatment> treatments = treatmentRepository.findAll();
@@ -103,6 +111,7 @@ public class TreatmentServiceImpl implements TreatmentService {
                 response.setStatus(HttpStatus.OK.value());
             }
         } catch (Exception e) {
+            log.error("Treatment operation failed", e);
             response.setSuccess(false);
             response.setMessage("Error while retrieving treatments: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -114,6 +123,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTreatmentByIdFallback")
     public Response getTreatmentById(String id,String hospitalId ) {
+        log.info("Entering getTreatmentById id={} hospitalId={}", id, hospitalId);
         Response response = new Response();
         try {
             Optional<Treatment> optional = treatmentRepository.findByIdAndHospitalId(new ObjectId(id),hospitalId);
@@ -131,6 +141,7 @@ public class TreatmentServiceImpl implements TreatmentService {
                 response.setStatus(HttpStatus.OK.value());
             }
         } catch (Exception e) {
+            log.error("Treatment operation failed", e);
             response.setSuccess(false);
             response.setMessage("Error retrieving treatment: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -142,6 +153,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteTreatmentByIdFallback")
     public Response deleteTreatmentById(String id ,String hospitalId) {
+        log.info("Entering deleteTreatmentById id={} hospitalId={}", id, hospitalId);
         Response response = new Response();
         try {
             Optional<Treatment> optional = treatmentRepository.findByIdAndHospitalId(new ObjectId(id),hospitalId);
@@ -156,6 +168,7 @@ public class TreatmentServiceImpl implements TreatmentService {
                 response.setStatus(HttpStatus.OK.value());
             }
         } catch (Exception e) {
+            log.error("Treatment operation failed", e);
             response.setSuccess(false);
             response.setMessage("Error deleting treatment: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -167,6 +180,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateTreatmentByIdFallback")
     public Response updateTreatmentById(String id, String hospitalId,TreatmentDTO dto) {
+        log.info("Entering updateTreatmentById id={} hospitalId={} treatmentName={}", id, hospitalId, dto.getTreatmentName());
         Response response = new Response();
         try {
             Optional<Treatment> optional = treatmentRepository.findByIdAndHospitalId(new ObjectId(id),hospitalId);
@@ -185,6 +199,7 @@ public class TreatmentServiceImpl implements TreatmentService {
                 response.setStatus(HttpStatus.OK.value());
             }
         } catch (Exception e) {
+            log.error("Treatment operation failed", e);
             response.setSuccess(false);
             response.setMessage("Error updating treatment: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -196,6 +211,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllTreatmentsByHospitalIdFallback")
     public Response getAllTreatmentsByHospitalId(String hospitalId) {
+        log.info("Entering getAllTreatmentsByHospitalId hospitalId={}", hospitalId);
         Response response = new Response();
         try {
             List<Treatment> treatments = treatmentRepository.findByHospitalId(hospitalId);
@@ -215,6 +231,7 @@ public class TreatmentServiceImpl implements TreatmentService {
                 response.setStatus(HttpStatus.OK.value());
             }
         } catch (Exception e) {
+            log.error("Treatment operation failed", e);
             response.setSuccess(false);
             response.setMessage("Error while retrieving treatments by hospitalId: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -226,10 +243,12 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "addOrGetTreatmentFallback")
     public Response addOrGetTreatment(TreatmentDTO dto) {
+        log.info("Entering addOrGetTreatment hospitalId={} treatmentName={}", dto.getHospitalId(), dto.getTreatmentName());
         Response response = new Response();
         try {
             // 1️⃣ Check if hospital exists via Admin Service
-            ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getHospitalId());
+            log.debug("Calling Admin Service getClinicById hospitalId={}", dto.getHospitalId());
+        ResponseEntity<Response> clinicResponseEntity = adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),dto.getHospitalId());
             Response clinicResponse = clinicResponseEntity.getBody();
 
             if (clinicResponse == null || !clinicResponse.isSuccess() || clinicResponse.getData() == null) {
@@ -268,6 +287,7 @@ public class TreatmentServiceImpl implements TreatmentService {
             return response;
 
         } catch (Exception e) {
+            log.error("Treatment operation failed", e);
             response.setSuccess(false);
             response.setMessage("Exception in addOrGetTreatment: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -281,36 +301,44 @@ public class TreatmentServiceImpl implements TreatmentService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public Response addTreatmentFallback(TreatmentDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getAllTreatmentsFallback(Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response deleteTreatmentByIdFallback(String id, String hospitalId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response updateTreatmentByIdFallback(
             String id, String hospitalId, TreatmentDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getAllTreatmentsByHospitalIdFallback(
             String hospitalId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response addOrGetTreatmentFallback(TreatmentDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response buildRateLimitResponse() {
+        log.warn("Returning rate limit response");
         Response response = new Response();
         response.setSuccess(false);
         response.setMessage("Too many requests. Please try again after some time.");

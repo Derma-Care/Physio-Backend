@@ -16,8 +16,10 @@ import com.clinicadmin.repository.TherapistCertificateRepository;
 import com.clinicadmin.service.S3Service;
 import com.clinicadmin.service.TherapistCertificateService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class TherapistCertificateServiceImpl
         implements TherapistCertificateService {
 
@@ -34,6 +36,8 @@ public class TherapistCertificateServiceImpl
     public Response createCertificate(
             TherapistCertificateDTO dto) {
 
+        log.info("Creating therapist certificate clinicId={} branchId={} therapistId={}", dto.getClinicId(), dto.getBranchId(), dto.getTherapistId());
+
         Response response = new Response();
 
         // Store fileKey directly in DB — NOT signed URL
@@ -41,7 +45,9 @@ public class TherapistCertificateServiceImpl
         // e.g. "certificates/uuid.jpg"
         TherapistCertificate entity = dtoToEntity(dto);
 
+        log.debug("Saving therapist certificate");
         repository.save(entity);
+        log.info("Therapist certificate created successfully");
 
         response.setSuccess(true);
         response.setStatus(200);
@@ -58,6 +64,8 @@ public class TherapistCertificateServiceImpl
     public Response getAllCertificates() {
 
         Response response = new Response();
+
+        log.info("Fetching all therapist certificates");
 
         List<TherapistCertificateDTO> list =
                 repository.findAll()
@@ -80,6 +88,8 @@ public class TherapistCertificateServiceImpl
     public Response getCertificateById(String id) {
 
         Response response = new Response();
+
+        log.info("Fetching certificate by id={}", id);
 
         Optional<TherapistCertificate> optional =
                 repository.findById(id);
@@ -118,7 +128,7 @@ public class TherapistCertificateServiceImpl
                         .stream()
                         .map(this::entityToDto)
                         .collect(Collectors.toList());
-
+        log.info("Therapist certificate created successfully:{}",list.size());
         response.setSuccess(true);
         response.setStatus(200);
         response.setMessage("Certificates fetched successfully");
@@ -146,7 +156,7 @@ public class TherapistCertificateServiceImpl
                 .stream()
                 .map(this::entityToDto)
                 .collect(Collectors.toList());
-
+        log.info("Therapist certificate created successfully:{}",list.size());
         response.setSuccess(true);
         response.setStatus(200);
         response.setMessage("Certificates fetched successfully");
@@ -190,7 +200,7 @@ public class TherapistCertificateServiceImpl
             // If null/blank → keep existing fileKey in DB
 
             repository.save(entity);
-
+            log.info("Therapist certificate successfully updated:{}",id);
             response.setSuccess(true);
             response.setStatus(200);
             response.setMessage("Certificate updated successfully");
@@ -226,6 +236,7 @@ public class TherapistCertificateServiceImpl
             response.setStatus(200);
             response.setMessage("Certificate deleted successfully");
             response.setData(null);
+            log.info("Therapist certificate successfully deleted:{}",id);
 
         } else {
 
@@ -330,17 +341,20 @@ public class TherapistCertificateServiceImpl
     public Response createCertificateFallback(
             TherapistCertificateDTO dto,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getAllCertificatesFallback(
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response getCertificateByIdFallback(
             String id,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -348,6 +362,7 @@ public class TherapistCertificateServiceImpl
             String clinicId,
             String branchId,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -356,6 +371,7 @@ public class TherapistCertificateServiceImpl
             String branchId,
             String therapistId,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
@@ -363,12 +379,14 @@ public class TherapistCertificateServiceImpl
             String id,
             TherapistCertificateDTO dto,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 
     public Response deleteCertificateFallback(
             String id,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse();
     }
 

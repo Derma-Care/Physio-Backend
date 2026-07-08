@@ -1,7 +1,5 @@
 package com.AdminService.util;
 
-
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
  @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -27,5 +25,14 @@ public class GlobalExceptionHandler {
      errorResponse.put("Data", fieldErrors);
 
      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+ }
+ 
+ @ExceptionHandler(Exception.class)
+ public Object allException(Exception ex) {	 
+	  Response response = new Response();
+	    response.setStatus(429);
+	    response.setMessage(ex.getMessage());
+	    response.setSuccess(false);
+     return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
  }
 }

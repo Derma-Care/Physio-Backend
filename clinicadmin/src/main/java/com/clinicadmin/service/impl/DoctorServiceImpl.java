@@ -592,48 +592,6 @@ public class DoctorServiceImpl implements DoctorService {
 				return response;
 			}
 
-//			/* ---------- CATEGORY VALIDATION ---------- */
-//			if (dto.getCategory() != null) {
-//				log.debug("Validating categories for doctorId={}", doctorId);
-//				for (DoctorCategoryDTO catDTO : dto.getCategory()) {
-//					if (!serviceFeignClient.isCategoryExists(catDTO.getCategoryId())) {
-//						log.warn("Invalid categoryId={} for doctorId={}", catDTO.getCategoryId(), doctorId);
-//						response.setSuccess(false);
-//						response.setMessage("Category does not exist: " + catDTO.getCategoryId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-//
-//			/* ---------- SERVICE VALIDATION ---------- */
-//			if (dto.getService() != null) {
-//				log.debug("Validating services for doctorId={}", doctorId);
-//				for (DoctorServicesDTO serDTO : dto.getService()) {
-//					if (!serviceFeignClient.isServiceExists(serDTO.getServiceId())) {
-//						log.warn("Invalid serviceId={} for doctorId={}", serDTO.getServiceId(), doctorId);
-//						response.setSuccess(false);
-//						response.setMessage("Service does not exist: " + serDTO.getServiceId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-//
-//			/* ---------- SUB-SERVICE VALIDATION ---------- */
-//			if (dto.getSubServices() != null) {
-//				log.debug("Validating sub-services for doctorId={}", doctorId);
-//				for (DoctorSubServiceDTO subDTO : dto.getSubServices()) {
-//					if (!serviceFeignClient.isSubServiceExists(subDTO.getSubServiceId())) {
-//						log.warn("Invalid subServiceId={} for doctorId={}", subDTO.getSubServiceId(), doctorId);
-//						response.setSuccess(false);
-//						response.setMessage("SubService does not exist: " + subDTO.getSubServiceId());
-//						response.setStatus(HttpStatus.NOT_FOUND.value());
-//						return response;
-//					}
-//				}
-//			}
-
 			Doctors doctor = doctorOptional.get();
 			log.debug("Doctor found. Updating fields for doctorId={}", doctorId);
 
@@ -650,12 +608,6 @@ public class DoctorServiceImpl implements DoctorService {
 				doctor.setDoctorMobileNumber(dto.getDoctorMobileNumber());
 			if (dto.getDoctorName() != null)
 				doctor.setDoctorName(dto.getDoctorName());
-//			if (dto.getCategory() != null)
-//				doctor.setCategory(dto.getCategory());
-//			if (dto.getService() != null)
-//				doctor.setService(dto.getService());
-//			if (dto.getSubServices() != null)
-//				doctor.setSubServices(dto.getSubServices());
 			if (dto.getSpecialization() != null)
 				doctor.setSpecialization(dto.getSpecialization());
 			if (dto.getGender() != null)
@@ -724,13 +676,6 @@ public class DoctorServiceImpl implements DoctorService {
 				doctor.setBankAccountDetails(bankDetails);
 			}
 
-//			if (dto.getConsultation() != null) {
-//				ConsultationType consultation = new ConsultationType();
-//				consultation.setServiceAndTreatments(dto.getConsultation().getServiceAndTreatments());
-//				consultation.setInClinic(dto.getConsultation().getInClinic());
-//				consultation.setVideoOrOnline(dto.getConsultation().getVideoOrOnline());
-//				doctor.setConsultation(consultation);
-//			}
 
 			if (dto.getDoctorAvailabilityStatus() != null) {
 			    doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());

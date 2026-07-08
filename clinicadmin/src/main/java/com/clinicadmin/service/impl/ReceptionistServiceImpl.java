@@ -397,6 +397,10 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	        String role) {
 
 	    // Fetch receptionist
+	    log.info("Fetching receptionist dashboard clinicId={} branchId={} role={}", clinicId, branchId, role);
+
+	    log.info("Updating receptionist dashboard clinicId={} branchId={} role={}", clinicId, branchId, role);
+
 	    ReceptionistEntity receptionist = repository
 	            .findByClinicIdAndBranchIdAndRoleIgnoreCase(
 	                    clinicId,
@@ -405,7 +409,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	            .orElseThrow(() ->
 	                    new RuntimeException("Receptionist not found"));
 
-	    		Response res = 
+	    		log.debug("Calling booking service for today physio bookings");
+
+	    Response res = 
 	            bookingFeign.getTodayPhysioBookings(keyCloakTokenStore.getAccess_token(),clinicId, branchId).getBody();
 
 	    List<Map<String, Object>> bookings = new ObjectMapper().convertValue(res.getData(), new TypeReference<List<Map<String, Object>>>() {});
@@ -448,6 +454,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	                investigationDone++;
 	        }
 	    }
+
+	    log.info("Dashboard metrics calculated pending={} confirmed={}", pending, confirmed);
 
 	    Map<String, Object> dashboard = new LinkedHashMap<>();
 
@@ -516,21 +524,25 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     public ResponseStructure<ReceptionistRequestDTO> createReceptionistFallback(
             ReceptionistRequestDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistResponse();
     }
 
     public ResponseStructure<ReceptionistRequestDTO> getReceptionistByIdFallback(
             String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistResponse();
     }
 
     public ResponseStructure<List<ReceptionistRequestDTO>> getAllReceptionistsFallback(
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistListResponse();
     }
 
     public ResponseStructure<ReceptionistRequestDTO> updateReceptionistFallback(
             String id, ReceptionistRequestDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistResponse();
     }
 
@@ -545,21 +557,26 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
     public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicFallback(
             String clinicId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistListResponse();
     }
 
     public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndIdFallback(
             String clinicId, String receptionistId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistResponse();
     }
 
     public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranchFallback(
             String clinicId, String branchId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildReceptionistListResponse();
     }
 
     public ResponseEntity<Response> getReceptionistDashboardFallback(
             String clinicId, String branchId, String role, Exception ex) {
+
+        log.error("Rate limiter fallback triggered for dashboard API", ex);
 
         Response response = new Response();
         response.setSuccess(false);

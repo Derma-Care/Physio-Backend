@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.dermaCare.customerService.dto.BookingRequset;
 import com.dermaCare.customerService.dto.BookingResponse;
@@ -36,503 +37,416 @@ public class FeignImpl {
 	private final PhysioFeign physiotherapyFeign;
 	
 	
+	  private RuntimeException getFallbackException(Exception ex) {
+
+	        if (ex instanceof io.github.resilience4j.ratelimiter.RequestNotPermitted) {
+	            return new ResponseStatusException(
+	                    HttpStatus.TOO_MANY_REQUESTS,
+	                    "Too many requests. Please try again after some time."
+	                    );      
+	        }else if (ex instanceof io.github.resilience4j.circuitbreaker.CallNotPermittedException) {
+	            return new ResponseStatusException(
+	                    HttpStatus.SERVICE_UNAVAILABLE,
+	                    "Booking Service is temporarily unavailable"); 
+	    }else{ return new ResponseStatusException(
+	                HttpStatus.SERVICE_UNAVAILABLE,
+	                "Booking Service is temporarily unavailable");}
+	    }
+	
+	
+	  /* ================= GET BOOKED SERVICE ================= */
+
 	  @CircuitBreaker(name = "bookingService", fallbackMethod = "getBookedServiceFallback")
-	    @Retry(name = "bookingService", fallbackMethod = "getBookedServiceFallback")
-	    public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(String id) {
-	        return bookingFeign.getBookedService(id);
-	    }
+	  @Retry(name = "bookingService", fallbackMethod = "getBookedServiceFallback")
+	  public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(String id) {
+	      return bookingFeign.getBookedService(id);
+	  }
 
-	    public ResponseEntity<ResponseStructure<BookingResponse>> getBookedServiceFallback(
-	            String id,
-	            Exception ex) {
+	  public ResponseEntity<ResponseStructure<BookingResponse>> getBookedServiceFallback(
+	          String id,
+	          Exception ex) {
 
-	        log.error("Fallback executed for getBookedService : {}", ex.getMessage());
+	      throw getFallbackException(ex);
+	  }
 
-	        ResponseStructure<BookingResponse> response = new ResponseStructure<>();
-	        response.setStatusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
-	        response.setMessage("Service is temporarily unavailable");
+	  /* ================= BOOK SERVICE ================= */
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	  @CircuitBreaker(name = "bookingService", fallbackMethod = "bookServiceFallback")
+	  @Retry(name = "bookingService", fallbackMethod = "bookServiceFallback")
+	  public ResponseEntity<ResponseStructure<BookingResponse>> bookService(
+	          BookingRequset req) {
 
-	    /* ================= BOOK SERVICE ================= */
+	      return bookingFeign.bookService(req);
+	  }
 
-	    @CircuitBreaker(name = "bookingService", fallbackMethod = "bookServiceFallback")
-	    @Retry(name = "bookingService", fallbackMethod = "bookServiceFallback")
-	    public ResponseEntity<ResponseStructure<BookingResponse>> bookService(
-	            BookingRequset req) {
+	  public ResponseEntity<ResponseStructure<BookingResponse>> bookServiceFallback(
+	          BookingRequset req,
+	          Exception ex) {
 
-	        return bookingFeign.bookService(req);
-	    }
+	      throw getFallbackException(ex);
+	  }
 
-	    public ResponseEntity<ResponseStructure<BookingResponse>> bookServiceFallback(
-	            BookingRequset req,
-	            Exception ex) {
+	  /* ================= GET BOOKINGS BY CUSTOMER ================= */
 
-	        log.error("Fallback executed for bookService : {}", ex.getMessage());
+	  @CircuitBreaker(name = "bookingService", fallbackMethod = "getBookingByCustomerIdFallback")
+	  @Retry(name = "bookingService", fallbackMethod = "getBookingByCustomerIdFallback")
+	  public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getBookingByCustomerId(
+	          String token,
+	          String customerId) {
 
-	        ResponseStructure<BookingResponse> response = new ResponseStructure<>();
-	        response.setStatusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
-	        response.setMessage("Service is temporarily unavailable");
+	      return bookingFeign.getBookingByCustomerId(token, customerId);
+	  }
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	  public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getBookingByCustomerIdFallback(
+	          String token,
+	          String customerId,
+	          Exception ex) {
 
-	    /* ================= GET BOOKINGS BY CUSTOMER ================= */
+	      throw getFallbackException(ex);
+	  }
 
-	    @CircuitBreaker(name = "bookingService", fallbackMethod = "getBookingByCustomerIdFallback")
-	    @Retry(name = "bookingService", fallbackMethod = "getBookingByCustomerIdFallback")
-	    public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getBookingByCustomerId(
-	            String token,
-	            String customerId) {
+	  /* ================= BOOK PHYSIO APPOINTMENT ================= */
 
-	        return bookingFeign.getBookingByCustomerId(token, customerId);
-	    }
+	  @CircuitBreaker(name = "bookingService", fallbackMethod = "bookPhysioAppointmentFallback")
+	  @Retry(name = "bookingService", fallbackMethod = "bookPhysioAppointmentFallback")
+	  public ResponseEntity<?> bookPhysioAppointment(
+	          BookingRequset req) {
 
-	    public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getBookingByCustomerIdFallback(
-	            String token,
-	            String customerId,
-	            Exception ex) {
+	      return bookingFeign.bookPhysioAppointment(req);
+	  }
 
-	        log.error("Fallback executed for getBookingByCustomerId : {}", ex.getMessage());
+	  public ResponseEntity<?> bookPhysioAppointmentFallback(
+	          BookingRequset req,
+	          Exception ex) {
 
-	        ResponseStructure<List<Map<String, Object>>> response = new ResponseStructure<>();
-	        response.setStatusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
-	        response.setMessage("Service is temporarily unavailable");
+	      throw getFallbackException(ex);
+	  }
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	  /* ================= COMPLETED BOOKINGS ================= */
 
-	    /* ================= BOOK PHYSIO APPOINTMENT ================= */
+	  @CircuitBreaker(name = "bookingService", fallbackMethod = "getCompletedBookingByCustomerIdFallback")
+	  @Retry(name = "bookingService", fallbackMethod = "getCompletedBookingByCustomerIdFallback")
+	  public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getCompletedBookingByCustomerId(
+	          String customerId) {
 
-	    @CircuitBreaker(name = "bookingService", fallbackMethod = "bookPhysioAppointmentFallback")
-	    @Retry(name = "bookingService", fallbackMethod = "bookPhysioAppointmentFallback")
-	    public ResponseEntity<?> bookPhysioAppointment(
-	            BookingRequset req) {
+	      return bookingFeign.getCompletedBookingByCustomerId(customerId);
+	  }
 
-	        return bookingFeign.bookPhysioAppointment(req);
-	    }
+	  public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getCompletedBookingByCustomerIdFallback(
+	          String customerId,
+	          Exception ex) {
 
-	    public ResponseEntity<?> bookPhysioAppointmentFallback(
-	            BookingRequset req,
-	            Exception ex) {
+	      throw getFallbackException(ex);
+	  }
 
-	        log.error("Fallback executed for bookPhysioAppointment : {}", ex.getMessage());
+	  /* ================= DOCTOR SLOT ================= */
 
-	        com.dermaCare.customerService.util.Response response =
-	                new com.dermaCare.customerService.util.Response();
+	  @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getDoctorSlotFallback")
+	  @Retry(name = "clinicAdminService", fallbackMethod = "getDoctorSlotFallback")
+	  public ResponseEntity<Response> getDoctorSlot(
+	          String hospitalId,
+	          String branchId,
+	          String doctorId) {
 
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	      return clinicAdminFeign.getDoctorSlot(
+	              hospitalId,
+	              branchId,
+	              doctorId);
+	  }
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	  public ResponseEntity<Response> getDoctorSlotFallback(
+	          String hospitalId,
+	          String branchId,
+	          String doctorId,
+	          Exception ex) {
 
-	    /* ================= COMPLETED BOOKINGS ================= */
-
-	    @CircuitBreaker(name = "bookingService", fallbackMethod = "getCompletedBookingByCustomerIdFallback")
-	    @Retry(name = "bookingService", fallbackMethod = "getCompletedBookingByCustomerIdFallback")
-	    public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getCompletedBookingByCustomerId(
-	            String customerId) {
-
-	        return bookingFeign.getCompletedBookingByCustomerId(customerId);
-	    }
-
-	    public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getCompletedBookingByCustomerIdFallback(
-	            String customerId,
-	            Exception ex) {
-
-	        log.error("Fallback executed for getCompletedBookingByCustomerId : {}", ex.getMessage());
-
-	        ResponseStructure<List<Map<String, Object>>> response = new ResponseStructure<>();
-	        response.setStatusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
-	        response.setMessage("Service is temporarily unavailable");
-
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
-	    
-	    
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getDoctorSlotFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "getDoctorSlotFallback")
-	    public ResponseEntity<Response> getDoctorSlot(
-	            String hospitalId,
-	            String branchId,
-	            String doctorId) {
-
-	        return clinicAdminFeign.getDoctorSlot(hospitalId, branchId, doctorId);
-	    }
-
-	    public ResponseEntity<Response> getDoctorSlotFallback(
-	            String hospitalId,
-	            String branchId,
-	            String doctorId,
-	            Exception ex) {
-
-	        log.error("Fallback executed for getDoctorSlot : {}", ex.getMessage());
-
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
-
-	        return ResponseEntity.status(503).body(response);
-	    }
-
+	      throw getFallbackException(ex);
+	  }
+	  
+	  
 	    /* ================= UPDATE DOCTOR SLOT ================= */
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "updateDoctorSlotWhileBookingFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "updateDoctorSlotWhileBookingFallback")
-	    public boolean updateDoctorSlotWhileBooking(
-	            String token,
-	            String doctorId,
-	            String branchId,
-	            String date,
-	            String time) {
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "updateDoctorSlotWhileBookingFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "updateDoctorSlotWhileBookingFallback")
+	  public boolean updateDoctorSlotWhileBooking(
+	          String token,
+	          String doctorId,
+	          String branchId,
+	          String date,
+	          String time) {
 
-	        return clinicAdminFeign.updateDoctorSlotWhileBooking(
-	                token, doctorId, branchId, date, time);
-	    }
+	      return clinicAdminFeign.updateDoctorSlotWhileBooking(
+	              token, doctorId, branchId, date, time);
+	  }
 
-	    public boolean updateDoctorSlotWhileBookingFallback(
-	            String token,
-	            String doctorId,
-	            String branchId,
-	            String date,
-	            String time,
-	            Exception ex) {
+	  public boolean updateDoctorSlotWhileBookingFallback(
+	          String token,
+	          String doctorId,
+	          String branchId,
+	          String date,
+	          String time,
+	          Exception ex) {
 
-	        log.error("Fallback executed for updateDoctorSlotWhileBooking : {}", ex.getMessage());
-	        return false;
-	    }
+	      throw getFallbackException(ex);
+	  }
 
-	    /* ================= GET REPORTS ================= */
+	  /* ================= GET REPORTS ================= */
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getReportsBycustomerIdFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "getReportsBycustomerIdFallback")
-	    public ResponseEntity<Response> getReportsBycustomerId(String customerId) {
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "getReportsBycustomerIdFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "getReportsBycustomerIdFallback")
+	  public ResponseEntity<Response> getReportsBycustomerId(
+	          String customerId) {
 
-	        return clinicAdminFeign.getReportsBycustomerId(customerId);
-	    }
+	      return clinicAdminFeign.getReportsBycustomerId(customerId);
+	  }
 
-	    public ResponseEntity<Response> getReportsBycustomerIdFallback(
-	            String customerId,
-	            Exception ex) {
+	  public ResponseEntity<Response> getReportsBycustomerIdFallback(
+	          String customerId,
+	          Exception ex) {
 
-	        log.error("Fallback executed for getReportsBycustomerId : {}", ex.getMessage());
+	      throw getFallbackException(ex);
+	  }
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	  /* ================= CUSTOMER LOGIN ================= */
 
-	        return ResponseEntity.status(503).body(response);
-	    }
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "loginFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "loginFallback")
+	  public ResponseEntity<Response> login(
+	          Map<String, String> dto) {
 
-	    /* ================= CUSTOMER LOGIN ================= */
+	      return clinicAdminFeign.login(dto);
+	  }
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "loginFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "loginFallback")
-	    public ResponseEntity<Response> login(Map<String, String> dto) {
+	  public ResponseEntity<Response> loginFallback(
+	          Map<String, String> dto,
+	          Exception ex) {
 
-	        return clinicAdminFeign.login(dto);
-	    }
+	      throw getFallbackException(ex);
+	  }
 
-	    public ResponseEntity<Response> loginFallback(
-	            Map<String, String> dto,
-	            Exception ex) {
+	  /* ================= RECOMMENDED CLINICS ================= */
 
-	        log.error("Fallback executed for login : {}", ex.getMessage());
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "getRecommendedClinicsAndOnDoctorsFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "getRecommendedClinicsAndOnDoctorsFallback")
+	  public ResponseEntity<Response> getRecommendedClinicsAndOnDoctors(
+	          String keyPoints) {
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	      return clinicAdminFeign.getRecommendedClinicsAndOnDoctors(keyPoints);
+	  }
 
-	        return ResponseEntity.status(503).body(response);
-	    }
+	  public ResponseEntity<Response> getRecommendedClinicsAndOnDoctorsFallback(
+	          String keyPoints,
+	          Exception ex) {
 
-	    /* ================= RECOMMENDED CLINICS ================= */
+	      throw getFallbackException(ex);
+	  }
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getRecommendedClinicsAndOnDoctorsFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "getRecommendedClinicsAndOnDoctorsFallback")
-	    public ResponseEntity<Response> getRecommendedClinicsAndOnDoctors(
-	            String keyPoints) {
+	  /* ================= BLOCK SLOT ================= */
 
-	        return clinicAdminFeign.getRecommendedClinicsAndOnDoctors(keyPoints);
-	    }
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "blockSlotFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "blockSlotFallback")
+	  public boolean blockSlot(
+	          TempBlockingSlot tempBlockingSlot) {
 
-	    public ResponseEntity<Response> getRecommendedClinicsAndOnDoctorsFallback(
-	            String keyPoints,
-	            Exception ex) {
+	      return clinicAdminFeign.blockSlot(tempBlockingSlot);
+	  }
 
-	        log.error("Fallback executed for getRecommendedClinicsAndOnDoctors : {}", ex.getMessage());
+	  public boolean blockSlotFallback(
+	          TempBlockingSlot tempBlockingSlot,
+	          Exception ex) {
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	      throw getFallbackException(ex);
+	  }
 
-	        return ResponseEntity.status(503).body(response);
-	    }
+	  /* ================= THERAPIST SESSION DETAILS ================= */
 
-	    /* ================= BLOCK SLOT ================= */
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "getTherapistSessionDetailsFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "getTherapistSessionDetailsFallback")
+	  public ResponseEntity<Response> getTherapistSessionDetails(
+	          String token,
+	          TherapistRecordRequest request) {
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "blockSlotFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "blockSlotFallback")
-	    public boolean blockSlot(TempBlockingSlot tempBlockingSlot) {
+	      return clinicAdminFeign.getTherapistSessionDetails(token, request);
+	  }
 
-	        return clinicAdminFeign.blockSlot(tempBlockingSlot);
-	    }
+	  public ResponseEntity<Response> getTherapistSessionDetailsFallback(
+	          String token,
+	          TherapistRecordRequest request,
+	          Exception ex) {
 
-	    public boolean blockSlotFallback(
-	            TempBlockingSlot tempBlockingSlot,
-	            Exception ex) {
-
-	        log.error("Fallback executed for blockSlot : {}", ex.getMessage());
-	        return false;
-	    }
-
-	    /* ================= THERAPIST SESSION DETAILS ================= */
-
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getTherapistSessionDetailsFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "getTherapistSessionDetailsFallback")
-	    public ResponseEntity<Response> getTherapistSessionDetails(
-	            String token,
-	            TherapistRecordRequest request) {
-
-	        return clinicAdminFeign.getTherapistSessionDetails(token, request);
-	    }
-
-	    public ResponseEntity<Response> getTherapistSessionDetailsFallback(
-	            String token,
-	            TherapistRecordRequest request,
-	            Exception ex) {
-
-	        log.error("Fallback executed for getTherapistSessionDetails : {}", ex.getMessage());
-
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
-
-	        return ResponseEntity.status(503).body(response);
-	    }
-
+	      throw getFallbackException(ex);
+	  }
 	    /* ================= STAFF INFO ================= */
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getStaffInfoFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "getStaffInfoFallback")
-	    public ResponseEntity<Response> getStaffInfo(
-	            String token,
-	            String hospitalId,
-	            String branchId) {
+	  /* ================= GET STAFF INFO ================= */
 
-	        return clinicAdminFeign.getStaffInfo(token, hospitalId, branchId);
-	    }
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "getStaffInfoFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "getStaffInfoFallback")
+	  public ResponseEntity<Response> getStaffInfo(
+	          String token,
+	          String hospitalId,
+	          String branchId) {
 
-	    public ResponseEntity<Response> getStaffInfoFallback(
-	            String token,
-	            String hospitalId,
-	            String branchId,
-	            Exception ex) {
+	      return clinicAdminFeign.getStaffInfo(token, hospitalId, branchId);
+	  }
 
-	        log.error("Fallback executed for getStaffInfo : {}", ex.getMessage());
+	  public ResponseEntity<Response> getStaffInfoFallback(
+	          String token,
+	          String hospitalId,
+	          String branchId,
+	          Exception ex) {
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	      throw getFallbackException(ex);
+	  }
 
-	        return ResponseEntity.status(503).body(response);
-	    }
+	  /* ================= CREATE FEEDBACK ================= */
 
-	    /* ================= CREATE FEEDBACK ================= */
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "createFeedbackFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "createFeedbackFallback")
+	  public Response createFeedback(
+	          String token,
+	          PatientFeedbackDTO dto) {
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
-	    public Response createFeedback(
-	            String token,
-	            PatientFeedbackDTO dto) {
+	      return clinicAdminFeign.createFeedback(token, dto);
+	  }
 
-	        return clinicAdminFeign.createFeedback(token, dto);
-	    }
+	  public Response createFeedbackFallback(
+	          String token,
+	          PatientFeedbackDTO dto,
+	          Exception ex) {
 
-	    public Response createFeedbackFallback(
-	            String token,
-	            PatientFeedbackDTO dto,
-	            Exception ex) {
+	      throw getFallbackException(ex);
+	  }
 
-	        log.error("Fallback executed for createFeedback : {}", ex.getMessage());
+	  /* ================= GET PATIENT FEEDBACK ================= */
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	  @CircuitBreaker(name = "clinicAdminadminService", fallbackMethod = "getByClinicIdAndBranchIdAndPatirntIdFallback")
+	  @Retry(name = "clinicAdminadminService", fallbackMethod = "getByClinicIdAndBranchIdAndPatirntIdFallback")
+	  public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntId(
+	          String token,
+	          String clinicId,
+	          String branchId,
+	          String patientId) {
 
-	        return response;
-	    }
+	      return clinicAdminFeign.getByClinicIdAndBranchIdAndPatirntId(
+	              token, clinicId, branchId, patientId);
+	  }
 
-	    /* ================= GET PATIENT FEEDBACK ================= */
+	  public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntIdFallback(
+	          String token,
+	          String clinicId,
+	          String branchId,
+	          String patientId,
+	          Exception ex) {
 
-	    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdAndPatirntIdFallback")
-	    @Retry(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdAndPatirntIdFallback")
-	    public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntId(
-	            String token,
-	            String clinicId,
-	            String branchId,
-	            String patientId) {
+	      throw getFallbackException(ex);
+	  }
 
-	        return clinicAdminFeign.getByClinicIdAndBranchIdAndPatirntId(
-	                token, clinicId, branchId, patientId);
-	    }
+	  /* ================= CUSTOMER NOTIFICATION ================= */
 
-	    public ResponseEntity<Response> getByClinicIdAndBranchIdAndPatirntIdFallback(
-	            String token,
-	            String clinicId,
-	            String branchId,
-	            String patientId,
-	            Exception ex) {
+	  @CircuitBreaker(name = "notificationService", fallbackMethod = "customerNotificationFallback")
+	  @Retry(name = "notificationService", fallbackMethod = "customerNotificationFallback")
+	  public ResponseEntity<ResBody<List<NotificationToCustomer>>> customerNotification(
+	          String customerMobileNumber) {
 
-	        log.error("Fallback executed for getByClinicIdAndBranchIdAndPatirntId : {}", ex.getMessage());
+	      return notificationFeign.customerNotification(customerMobileNumber);
+	  }
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	  public ResponseEntity<ResBody<List<NotificationToCustomer>>> customerNotificationFallback(
+	          String customerMobileNumber,
+	          Exception ex) {
 
-	        return ResponseEntity.status(503).body(response);
-	    }
-	    
-	    
-	    @CircuitBreaker(name = "notificationService", fallbackMethod = "customerNotificationFallback")
-	    @Retry(name = "notificationService", fallbackMethod = "customerNotificationFallback")
-	    public ResponseEntity<ResBody<List<NotificationToCustomer>>> customerNotification(
-	            String customerMobileNumber) {
+	      throw getFallbackException(ex);
+	  }
 
-	        return notificationFeign.customerNotification(customerMobileNumber);
-	    }
+	  /* ================= VISIT HISTORY ================= */
 
-	    public ResponseEntity<ResBody<List<NotificationToCustomer>>> customerNotificationFallback(
-	            String customerMobileNumber,
-	            Exception ex) {
+	  @CircuitBreaker(name = "physioDoctorService", fallbackMethod = "getVisitHistoryByDoctorFallback")
+	  @Retry(name = "physioDoctorService", fallbackMethod = "getVisitHistoryByDoctorFallback")
+	  public ResponseEntity<Response> getVisitHistoryByDoctor(
+	          String token,
+	          VisitHistoryRequest request) {
 
-	        log.error("Fallback executed for customerNotification : {}", ex.getMessage());
+	      return physiotherapyFeign.getVisitHistoryByDoctor(token, request);
+	  }
 
-	        ResBody<List<NotificationToCustomer>> response = new ResBody<>();
-	        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-	        response.setMessage("Service is temporarily unavailable");
+	  public ResponseEntity<Response> getVisitHistoryByDoctorFallback(
+	          String token,
+	          VisitHistoryRequest request,
+	          Exception ex) {
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-	                .body(response);
-	    }
-	    
-	    /* ================= VISIT HISTORY ================= */
+	      throw getFallbackException(ex);
+	  }
 
-	    @CircuitBreaker(name = "physioService", fallbackMethod = "getVisitHistoryByDoctorFallback")
-	    @Retry(name = "physioService", fallbackMethod = "getVisitHistoryByDoctorFallback")
-	    public ResponseEntity<Response> getVisitHistoryByDoctor(
-	            String token,
-	            VisitHistoryRequest request) {
+	  /* ================= FIRST VISIT HISTORY ================= */
 
-	        return physiotherapyFeign.getVisitHistoryByDoctor(token, request);
-	    }
+	  @CircuitBreaker(name = "physioDoctorService", fallbackMethod = "getFirstVisitHistoryFallback")
+	  @Retry(name = "physioDoctorService", fallbackMethod = "getFirstVisitHistoryFallback")
+	  public ResponseEntity<Response> getFirstVisitHistory(
+	          String token,
+	          FirstVisitHistoryRequest request) {
 
-	    public ResponseEntity<Response> getVisitHistoryByDoctorFallback(
-	            String token,
-	            VisitHistoryRequest request,
-	            Exception ex) {
+	      return physiotherapyFeign.getFirstVisitHistory(token, request);
+	  }
 
-	        log.error("Fallback executed for getVisitHistoryByDoctor : {}", ex.getMessage());
+	  public ResponseEntity<Response> getFirstVisitHistoryFallback(
+	          String token,
+	          FirstVisitHistoryRequest request,
+	          Exception ex) {
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	      throw getFallbackException(ex);
+	  }
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	  /* ================= EXERCISE SESSIONS WITH RECORDS ================= */
 
+	  @CircuitBreaker(name = "physioDoctorService", fallbackMethod = "getExerciseSessionsWithRecordsFallback")
+	  @Retry(name = "physioDoctorService", fallbackMethod = "getExerciseSessionsWithRecordsFallback")
+	  public ResponseEntity<Response> getExerciseSessionsWithRecords(
+	          String token,
+	          String clinicId,
+	          String branchId,
+	          String bookingId,
+	          String patientId,
+	          String therapistId,
+	          String therapistRecordId) {
 
-	    /* ================= FIRST VISIT HISTORY ================= */
+	      return physiotherapyFeign.getExerciseSessionsWithRecords(
+	              token,
+	              clinicId,
+	              branchId,
+	              bookingId,
+	              patientId,
+	              therapistId,
+	              therapistRecordId);
+	  }
 
-	    @CircuitBreaker(name = "physioService", fallbackMethod = "getFirstVisitHistoryFallback")
-	    @Retry(name = "physioService", fallbackMethod = "getFirstVisitHistoryFallback")
-	    public ResponseEntity<Response> getFirstVisitHistory(
-	            String token,
-	            FirstVisitHistoryRequest request) {
+	  public ResponseEntity<Response> getExerciseSessionsWithRecordsFallback(
+	          String token,
+	          String clinicId,
+	          String branchId,
+	          String bookingId,
+	          String patientId,
+	          String therapistId,
+	          String therapistRecordId,
+	          Exception ex) {
 
-	        return physiotherapyFeign.getFirstVisitHistory(token, request);
-	    }
+	      throw getFallbackException(ex);
+	  }
 
-	    public ResponseEntity<Response> getFirstVisitHistoryFallback(
-	            String token,
-	            FirstVisitHistoryRequest request,
-	            Exception ex) {
+	  /* ================= DOCTOR SAVE DETAILS ================= */
 
-	        log.error("Fallback executed for getFirstVisitHistory : {}", ex.getMessage());
+	  @CircuitBreaker(name = "physioDoctorService", fallbackMethod = "getDoctorSaveDetailsByCustomerIdFallback")
+	  @Retry(name = "physioDoctorService", fallbackMethod = "getDoctorSaveDetailsByCustomerIdFallback")
+	  public ResponseEntity<Response> getDoctorSaveDetailsByCustomerId(
+	          String customerId) {
 
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
+	      return physiotherapyFeign.getDoctorSaveDetailsByCustomerId(customerId);
+	  }
 
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	  public ResponseEntity<Response> getDoctorSaveDetailsByCustomerIdFallback(
+	          String customerId,
+	          Exception ex) {
 
-
-	    /* ================= EXERCISE SESSIONS WITH RECORDS ================= */
-
-	    @CircuitBreaker(name = "physioService", fallbackMethod = "getExerciseSessionsWithRecordsFallback")
-	    @Retry(name = "physioService", fallbackMethod = "getExerciseSessionsWithRecordsFallback")
-	    public ResponseEntity<Response> getExerciseSessionsWithRecords(
-	            String token,
-	            String clinicId,
-	            String branchId,
-	            String bookingId,
-	            String patientId,
-	            String therapistId,
-	            String therapistRecordId) {
-
-	        return physiotherapyFeign.getExerciseSessionsWithRecords(
-	                token,
-	                clinicId,
-	                branchId,
-	                bookingId,
-	                patientId,
-	                therapistId,
-	                therapistRecordId);
-	    }
-
-	    public ResponseEntity<Response> getExerciseSessionsWithRecordsFallback(
-	            String token,
-	            String clinicId,
-	            String branchId,
-	            String bookingId,
-	            String patientId,
-	            String therapistId,
-	            String therapistRecordId,
-	            Exception ex) {
-
-	        log.error("Fallback executed for getExerciseSessionsWithRecords : {}", ex.getMessage());
-
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
-
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
-
-
-	    /* ================= DOCTOR SAVE DETAILS ================= */
-
-	    @CircuitBreaker(name = "physioService", fallbackMethod = "getDoctorSaveDetailsByCustomerIdFallback")
-	    @Retry(name = "physioService", fallbackMethod = "getDoctorSaveDetailsByCustomerIdFallback")
-	    public ResponseEntity<Response> getDoctorSaveDetailsByCustomerId(
-	            String customerId) {
-
-	        return physiotherapyFeign.getDoctorSaveDetailsByCustomerId(customerId);
-	    }
-
-	    public ResponseEntity<Response> getDoctorSaveDetailsByCustomerIdFallback(
-	            String customerId,
-	            Exception ex) {
-
-	        log.error("Fallback executed for getDoctorSaveDetailsByCustomerId : {}", ex.getMessage());
-
-	        Response response = new Response();
-	        response.setStatus(503);
-	        response.setMessage("Service is temporarily unavailable");
-
-	        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
-	    }
+	      throw getFallbackException(ex);
+	  }
 }

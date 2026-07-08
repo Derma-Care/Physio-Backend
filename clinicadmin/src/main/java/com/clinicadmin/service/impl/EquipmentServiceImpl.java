@@ -15,9 +15,11 @@ import com.clinicadmin.repository.EquipmentRepository;
 import com.clinicadmin.service.EquipmentService;
 import com.clinicadmin.service.S3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EquipmentServiceImpl implements EquipmentService {
 
     private final EquipmentRepository repository;
@@ -26,12 +28,15 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "createEquipmentFallback")
     public Response createEquipment(EquipmentDTO dto) {
+        log.info("Creating equipment clinicId={} branchId={} name={}", dto.getClinicId(), dto.getBranchId(), dto.getName());
 
         Equipment equipment = convertToEntity(dto);
 
+        log.debug("Saving equipment entity to repository");
         Equipment savedEquipment = repository.save(equipment);
+        log.info("Equipment created successfully equipmentId={}", savedEquipment.getEquipmentId());
 
         Response response = new Response();
         response.setSuccess(true);
@@ -44,9 +49,11 @@ public class EquipmentServiceImpl implements EquipmentService {
   
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getEquipmentByIdFallback")
     public Response getEquipmentById(String equipmentId) {
+        log.info("Fetching equipment equipmentId={}", equipmentId);
 
+        log.debug("Looking up equipment by id");
         Equipment equipment = repository.findById(equipmentId).orElse(null);
 
         Response response = new Response();
@@ -70,8 +77,9 @@ public class EquipmentServiceImpl implements EquipmentService {
  
     		@Override
     		 @Secured("ROLE_CLINICADMIN")
-    		  @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    		  @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllEquipmentFallback")
     		public Response getAllEquipment() {
+            log.info("Fetching all equipment records");
 
     		    List<EquipmentDTO> equipmentList = repository.findAll()
     		            .stream()
@@ -98,7 +106,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     	   
       				@Override
     				 @Secured("ROLE_CLINICADMIN")			
-    				  @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    				  @RateLimiter(name = "clinicAdminService", fallbackMethod = "getEquipmentByIdFallback")
     				public Response getEquipmentByClinicIdAndBranchId(
     				        String clinicId,
     				        String branchId) {
@@ -130,12 +138,14 @@ public class EquipmentServiceImpl implements EquipmentService {
 
  @Override
  @Secured("ROLE_CLINICADMIN")
- @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+ @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateEquipmentFallback")
  public Response updateEquipment(
     				        String equipmentId,
     				        EquipmentDTO dto) {
 
-    				    Equipment existing = repository.findById(equipmentId).orElse(null);
+    				    log.info("Updating equipment equipmentId={}", equipmentId);
+                    log.debug("Looking up equipment equipmentId={}", equipmentId);
+                    Equipment existing = repository.findById(equipmentId).orElse(null);
 
     				    Response response = new Response();
 
@@ -178,7 +188,9 @@ public class EquipmentServiceImpl implements EquipmentService {
     				    existing.setNotes(dto.getNotes());
     				    existing.setVendorDetails(dto.getVendorDetails());
 
-    				    Equipment updated = repository.save(existing);
+    				    log.debug("Saving updated equipment equipmentId={}", equipmentId);
+                    Equipment updated = repository.save(existing);
+                    log.info("Equipment updated successfully equipmentId={}", updated.getEquipmentId());
 
     				    response.setSuccess(true);
     				    response.setMessage("Equipment Updated Successfully");
@@ -191,8 +203,9 @@ public class EquipmentServiceImpl implements EquipmentService {
    
     @Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteEquipmentFallback")
     public Response deleteEquipment(String equipmentId) {
+        log.info("Deleting equipment equipmentId={}", equipmentId);
 
         Equipment equipment = repository.findById(equipmentId).orElse(null);
 
@@ -206,7 +219,9 @@ public class EquipmentServiceImpl implements EquipmentService {
             return response;
         }
 
+        log.debug("Deleting equipment from repository equipmentId={}", equipmentId);
         repository.delete(equipment);
+        log.info("Equipment deleted successfully equipmentId={}", equipmentId);
 
         Response response = new Response();
         response.setSuccess(true);
@@ -316,42 +331,36 @@ public class EquipmentServiceImpl implements EquipmentService {
     }
 
 
+    
     // ================= RATE LIMITER FALLBACK METHODS =================
 
-    public Response rateLimitFallback(
-            EquipmentDTO dto,
-            Exception ex) {
+    public Response createEquipmentFallback(EquipmentDTO dto, Exception ex){
+        log.error("Rate limit triggered in createEquipment", ex);
         return buildRateLimitResponse(ex);
     }
 
-    public Response rateLimitFallback(
-            String equipmentId,
-            Exception ex) {
+    public Response getEquipmentByIdFallback(String equipmentId, Exception ex){
+        log.error("Rate limit triggered in getEquipmentById equipmentId={}", equipmentId, ex);
         return buildRateLimitResponse(ex);
     }
 
-    public Response rateLimitFallback(
-            Exception ex) {
+    public Response getAllEquipmentFallback(Exception ex){
+        log.error("Rate limit triggered in getAllEquipment", ex);
         return buildRateLimitResponse(ex);
     }
 
-    public Response rateLimitFallback(
-            String clinicId,
-            String branchId,
-            Exception ex) {
+    public Response getEquipmentByClinicIdAndBranchIdFallback(String clinicId,String branchId, Exception ex){
+        log.error("Rate limit triggered in getEquipmentByClinicIdAndBranchId clinicId={} branchId={}", clinicId, branchId, ex);
         return buildRateLimitResponse(ex);
     }
 
-    public Response rateLimitFallback(
-            String equipmentId,
-            EquipmentDTO dto,
-            Exception ex) {
+    public Response updateEquipmentFallback(String equipmentId, EquipmentDTO dto, Exception ex){
+        log.error("Rate limit triggered in updateEquipment equipmentId={}", equipmentId, ex);
         return buildRateLimitResponse(ex);
     }
 
-    public Response rateLimitFallbackDelete(
-            String equipmentId,
-            Exception ex) {
+    public Response deleteEquipmentFallback(String equipmentId, Exception ex){
+        log.error("Rate limit triggered in deleteEquipment equipmentId={}", equipmentId, ex);
         return buildRateLimitResponse(ex);
     }
 
@@ -362,12 +371,8 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .message("Too many requests. Please try again later.")
                 .build();
     }
-    
+
 private String generateEquipmentId() {
-    return "EQU-" + UUID.randomUUID()
-            .toString()
-            .replace("-", "")
-            .substring(0, 10)
-            .toUpperCase();
+    return "EQU-" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
 }
 }

@@ -23,8 +23,10 @@ import com.clinicadmin.utils.Base64CompressionUtil;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class PatientConsentFormServiceImpl implements PatientConsentFormService {
 	
 	@Autowired
@@ -51,7 +53,9 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 	@Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getPatientDetailsForFormUsingBookingFallback")
 	public Response getPatientDetailsForFormUsingBooking(String bookingId, String patientId, String mobileNumber) {
+		log.info("Generating patient consent form bookingId={} patientId={}", bookingId, patientId);
 		Response response = new Response();
+		log.debug("Calling booking service for patient details");
 		ResponseEntity<Response> responseEntity = bookingFeign.getPatientDetailsForConsentForm(keyCloakTokenStore.getAccess_token(),bookingId, patientId,
 				mobileNumber);
 		Response resData = responseEntity.getBody();
@@ -66,6 +70,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 		
 		BookingResponse bookingDto = objectMapper.convertValue(resData.getData(), BookingResponse.class);
 
+		log.debug("Fetching doctor details doctorId={}", bookingDto.getDoctorId());
 		Doctors doctordata = doctorsRepository.findByDoctorId(bookingDto.getDoctorId()).orElse(null);
 		if (doctordata == null) {
 			response.setSuccess(false);
@@ -123,7 +128,9 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 		formdata.setHospitalLogo(decompressedLogo);
 
 		// Save entity
+		log.debug("Saving patient consent form");
 		PatientConsentForm savedForm = patientConsentFormRepository.save(formdata);
+		log.info("Patient consent form created successfully id={}", savedForm.getId());
 
 		// Convert saved entity to DTO
 		PatientConsentFormDTO formDTO = objectMapper.convertValue(savedForm, PatientConsentFormDTO.class);
@@ -138,6 +145,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 	@Secured("ROLE_CLINICADMIN")
 	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updatePatientConsentFormFallback")
 	public Response updatePatientConsentForm(String id, PatientConsentFormDTO dto) {
+		log.info("Updating patient consent form id={}", id);
 		Response response = new Response();
 
 		if (id == null || id.isEmpty()) {
@@ -211,7 +219,9 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
 			
 
 		// Save the updated form
+		log.debug("Saving updated patient consent form id={}", id);
 		PatientConsentForm updatedForm = patientConsentFormRepository.save(existingForm);
+		log.info("Patient consent form updated successfully id={}", id);
 
 		// Convert entity to DTO
 		PatientConsentFormDTO updatedDTO = objectMapper.convertValue(updatedForm, PatientConsentFormDTO.class);
@@ -230,6 +240,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
             String patientId,
             String mobileNumber,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse(ex);
     }
 
@@ -237,6 +248,7 @@ public class PatientConsentFormServiceImpl implements PatientConsentFormService 
             String id,
             PatientConsentFormDTO dto,
             Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
         return buildRateLimitResponse(ex);
     }
 

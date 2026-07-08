@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import lombok.extern.slf4j.Slf4j;
 
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
@@ -32,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
+@Slf4j
 public class TherapistRecordServiceImpl implements TherapistRecordService {
 
     @Autowired
@@ -111,8 +113,8 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
             }
         } catch (Exception e) {
-            System.out.println("Physio update failed");
-            e.printStackTrace();
+            log.info("DEBUG_PRINT: {}", "Physio update failed");
+            log.error("Unexpected exception", e);
         }
 
         // ✅ Return signed URLs in response (not raw keys)
@@ -131,17 +133,27 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
     public ResponseStructure<TherapistRecordDTO> getByIds(
             String clinicId, String branchId, String therapistRecordId,String sessionId) {
 
-        TherapistRecord record = repository
+    	try{
+        Optional<TherapistRecord> record = repository
         		.findByClinicIdAndBranchIdAndTherapistRecordIdAndSessionId(
-        		        clinicId, branchId, therapistRecordId, sessionId)
-        		.orElseThrow(() -> new RuntimeException("Record not found"));
+        		        clinicId, branchId, therapistRecordId, sessionId);
 
         return ResponseStructure.buildResponse(
-        		 mapToDTOWithSignedUrls(record), // ✅
+        		 mapToDTOWithSignedUrls(record.get()), // ✅
                 "Record fetched successfully",
                 HttpStatus.OK,
                 200
         );
+    	}catch(Exception e) {
+    		 log.error(e.getMessage());
+    		  return ResponseStructure.buildResponse(
+    	        		null, // ✅
+    	               e.getMessage(),
+    	                HttpStatus.INTERNAL_SERVER_ERROR,
+    	                500
+    	        );
+    		 
+    	}
     }
 
     // ================= MAPPING =================
@@ -271,7 +283,7 @@ public class TherapistRecordServiceImpl implements TherapistRecordService {
 
         List<TherapistRecord> records =
                 repository.findAllByPatientIdAndBookingId(patientId, bookingId);
-
+       log.info("record size:{}",records.size());
         if (records == null || records.isEmpty()) {
             throw new RuntimeException("No records found");
         }

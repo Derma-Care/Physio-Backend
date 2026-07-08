@@ -30,8 +30,10 @@ import com.clinicadmin.service.AuthService;
 import com.clinicadmin.utils.ClinicRelatedInfo;
 import com.clinicadmin.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class AuthServiceImpl implements AuthService {	
 	
 	@Autowired
@@ -60,16 +62,19 @@ public class AuthServiceImpl implements AuthService {
 	
 	@Override
 	public ResponseEntity<Response> cliniLogin(ClinicCredentialsDTO clinicCredentialsDTO) {
+		log.info("Clinic login request received for username={}", clinicCredentialsDTO.getUsername());
 		//System.out.println("hlo");
 				Response response = new Response();
 				//System.out.println(response);
 				try {			
+					log.debug("Authenticating clinic admin user={}", clinicCredentialsDTO.getUsername());
 					authManager.authenticate(new UsernamePasswordAuthenticationToken(clinicCredentialsDTO.getUsername(),clinicCredentialsDTO.getPassword()));
 					//System.out.println("invoked after auth");
 					List<String> roles = rolesStore.getRoles();	
 					//System.out.println(rolesStore);
 					 String accessToken = jwtUtil.generateJwtToken(clinicCredentialsDTO.getUsername(),roles);	
 					  String refreshToken = jwtUtil.generateRefreshToken(clinicCredentialsDTO.getUsername(),roles);
+					   log.info("Login successful for user={}", clinicCredentialsDTO.getUsername());
 					   response.setMessage("Login successful");
 					   response.setStatus(200);
 					   response.setBranchId(rolesStore.getBranchId());
@@ -97,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
 					   clinicAdminWebFcmTokenRepository.save(c);}
 					   return ResponseEntity.status(response.getStatus()).body(response);	
 				}catch(Exception e) {
+					log.error("Clinic login failed", e);
 					response.setMessage(e.getMessage());
 			        response.setStatus(500);
 			        response.setSuccess(false);
@@ -108,6 +114,7 @@ public class AuthServiceImpl implements AuthService {
 	
 	@Override
 	public ResponseEntity<Response> doctorLogin( Map<String,String> dto) {
+		log.info("Doctor login request received username={}", dto.get("username"));
 		Response responseDTO = new Response();
         try {
         	///System.out.println(dto);
@@ -117,6 +124,7 @@ public class AuthServiceImpl implements AuthService {
 		if (credentialsOptional.isPresent()) {
 			DoctorLoginCredentials credentials = credentialsOptional.get();	
 			credentials.setDeviceId(dto.get("deviceId"));
+			log.info("Updating deviceId for username={}", credentials.getUsername());
 			credentialsRepository.save(credentials);
 			DoctorLoginDTO  cred = new ObjectMapper().convertValue(credentials, DoctorLoginDTO.class);
 			cred.setRoles(Collections.singletonList(cred.getRole()));
@@ -155,6 +163,7 @@ public class AuthServiceImpl implements AuthService {
 	 
 	 @Override
 		public Response login(Map<String,String> dto) {
+			log.info("Customer login request username={}", dto.get("username"));
 			Response response = new Response();
        ///System.out.println(dto);
 			try {
@@ -188,6 +197,7 @@ public class AuthServiceImpl implements AuthService {
 	 
 	 @Override
 		public Response loginUsingRoles(DoctorLoginDTO dto) {
+			log.info("Role based login request username={}", dto.getUsername());
 			Response response = new Response();
 			DoctorLoginDTO resDto = rolesStore.getDoctorLoginDTO();
 			try {

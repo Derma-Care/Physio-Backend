@@ -82,9 +82,11 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	
 		log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
 
+		log.debug("Calling Admin Service to fetch branch details");
 		ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
 		Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
 
+		log.debug("Mapping DTO to SecurityStaff entity");
 		SecurityStaff staff = SecurityStaffMapper.toEntity(dto);
 		staff.setBranchName(br.getBranchName());
 
@@ -100,6 +102,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
+		log.debug("Saving login credentials");
 		credentialsRepository.save(credentials);
 		
 		log.info("Login credentials created | securityStaffId={}", saved.getSecurityStaffId());
@@ -311,12 +314,15 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
     public ResponseStructure<SecurityStaffDTO> addSecurityStaffFallback(
             SecurityStaffDTO dto,
             Exception ex) {
+        log.error("Rate limiter triggered in addSecurityStaff", ex);
+        log.error("Rate limiter triggered in getSecurityStaffById staffId={}", dto.getPreviousEmployeeHistory(), ex);
         return buildSecurityStaffResponse();
     }
 
     public ResponseStructure<SecurityStaff> updateSecurityStaffFallback(
             SecurityStaff staff,
             Exception ex) {
+        log.error("Rate limiter triggered in updateSecurityStaff securityStaffId={}", staff != null ? staff.getSecurityStaffId() : null, ex);
         return ResponseStructure.buildResponse(
                 null,
                 "Too many requests. Please try again after some time.",
@@ -333,6 +339,8 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
     public ResponseStructure<List<SecurityStaffDTO>> getAllByClinicIdFallback(
             String clinicId,
             Exception ex) {
+        log.error("Rate limiter triggered in getAllByClinicId clinicId={}", clinicId, ex);
+        log.error("Rate limiter triggered in getSecurityStaffByClinicIdAndBranchId clinicId={}", clinicId,  ex);
         return buildSecurityStaffListResponse();
     }
 

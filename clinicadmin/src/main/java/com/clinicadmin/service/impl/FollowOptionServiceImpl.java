@@ -14,10 +14,12 @@ import com.clinicadmin.repository.FollowOptionRepository;
 import com.clinicadmin.service.FollowOptionService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FollowOptionServiceImpl implements FollowOptionService {
 
     private final FollowOptionRepository repository;
@@ -39,7 +41,11 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFallback")
     public Response create(FollowOptionDTO dto) {
+        log.info("Creating follow option");
+        log.debug("Request contains {} options", dto.getFollowOptions() != null ? dto.getFollowOptions().size() : 0);
+        log.debug("Saving follow option to repository");
         FollowOption saved = repository.save(toEntity(dto));
+        log.info("Follow option created successfully id={}", saved.getId());
         return Response.builder()
                 .success(true)
                 .status(201)
@@ -52,6 +58,8 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFallback")
     public Response getAll() {
+        log.info("Fetching all follow options");
+        log.debug("Calling repository.findAll()");
         List<FollowOptionDTO> all = repository.findAll()
                 .stream()
                 .map(this::toDTO)
@@ -69,6 +77,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByIdFallback")
     public Response getById(String id) {
+        log.info("Fetching follow option id={}", id);
         Optional<FollowOption> option = repository.findById(id);
         if (option.isPresent()) {
             return Response.builder()
@@ -89,6 +98,7 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFallback")
     public Response update(String id, FollowOptionDTO dto) {
+        log.info("Updating follow option id={}", id);
         if (dto == null || dto.getFollowOptions() == null || dto.getFollowOptions().isEmpty()) {
             return Response.builder()
                     .success(false)
@@ -127,7 +137,9 @@ public class FollowOptionServiceImpl implements FollowOptionService {
             // Update with valid options only
             entityToUpdate.setFollowOptions(validOptions);
 
+            log.debug("Saving updated follow option id={}", id);
             FollowOption updated = repository.save(entityToUpdate);
+            log.info("Follow option updated successfully id={}", updated.getId());
             return Response.builder()
                     .success(true)
                     .status(200)
@@ -147,8 +159,11 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFallback")
     public Response delete(String id) {
+        log.info("Deleting follow option id={}", id);
         if (repository.existsById(id)) {
+            log.debug("Deleting follow option from repository id={}", id);
             repository.deleteById(id);
+            log.info("Follow option deleted successfully id={}", id);
             return Response.builder()
                     .success(true)
                     .status(200)
@@ -164,22 +179,27 @@ public class FollowOptionServiceImpl implements FollowOptionService {
     }
 
     public Response createFallback(FollowOptionDTO dto, Exception ex) {
+        log.error("Rate limit triggered in create", ex);
         return buildRateLimitResponse(ex);
     }
 
     public Response getAllFallback(Exception ex) {
+        log.error("Rate limit triggered in getAll", ex);
         return buildRateLimitResponse(ex);
     }
 
     public Response getByIdFallback(String id, Exception ex) {
+        log.error("Rate limit triggered in getById id={}", id, ex);
         return buildRateLimitResponse(ex);
     }
 
     public Response updateFallback(String id, FollowOptionDTO dto, Exception ex) {
+        log.error("Rate limit triggered in update id={}", id, ex);
         return buildRateLimitResponse(ex);
     }
 
     public Response deleteFallback(String id, Exception ex) {
+        log.error("Rate limit triggered in delete id={}", id, ex);
         return buildRateLimitResponse(ex);
     }
 

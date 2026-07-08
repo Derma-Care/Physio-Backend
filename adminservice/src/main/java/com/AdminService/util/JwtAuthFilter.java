@@ -17,8 +17,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
 
 @Component
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 	
 	@Autowired
@@ -28,48 +31,48 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 		try {
-		String authHeader = request.getHeader("Authorization");
+	    String authHeader = request.getHeader("Authorization");
 		String token;
 		String userName;
 		if("OPTIONS".equalsIgnoreCase(request.getMethod())) {
 			response.setStatus(HttpServletResponse.SC_OK);
 			return;}
 		if(authHeader != null && authHeader.startsWith("Bearer ")){
-		//System.out.println(authHeader);
+		log.info("token is received");
 		token = authHeader.substring(7);
 		String extractHeader = jwtUtil.decodeTokenWithoutKey(token);
 		 String[] parts = extractHeader.split("\\:");
 		 String alg = parts[1].substring(1, 6);
-		//System.out.println(alg);
+		 log.info("alg is extracted from token");
 		if(alg.equalsIgnoreCase("HS256")){
-		///System.out.println(extractHeader);
 		if(jwtUtil.validateToken(token)){
+		log.info("token is validated");
 		userName = jwtUtil.extractServiceNameFromToken(token);
+		 log.info("username is extracted");
 		List<String> roles = jwtUtil.extractRoleFromToken(token);
-//		System.out.println(userName);
-//		System.out.println(roles);
-		if(userName != null && SecurityContextHolder.getContext().getAuthentication() == null ) {		
-			//UserDetails userDetails = customUserDetailsService.loadUserByUsername(userName);
+		log.info("roles are extracted");
+		if(userName != null && SecurityContextHolder.getContext().getAuthentication() == null ) {				
 			List<SimpleGrantedAuthority> rls = roles.stream().map(n->new SimpleGrantedAuthority(n)).toList();
 			UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
 			new UsernamePasswordAuthenticationToken(userName,null,rls);
-	////its used to add information related to request to authenticated object along with userdetails
 			usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-			SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);		
+			SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);	
+			log.info("authentication object is set into security context");
 		    }}}else{
 		    Map<Object,Object> map = jwtUtil.tokenIntrospection(token);
-		    //System.out.println(map);
+		    log.info("service details are received from tokenIntrospection");
 //		    Map<Object,Object> lst = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<Object,Object>>(){});	
 //		    Object client_id = map.get("client_id");
 		    Map<String,List<String>> client = new ObjectMapper().convertValue(map.get("realm_access"),new TypeReference<Map<String,List<String>>>(){});		   
-		   // System.out.println(client);
 		    List<String> roles = client.get("roles");
+		    log.info("realm_access roles are extracted");
 		  // List<String> roles = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<List<String>>(){}); 			  
-		    if(map.get("active").equals(true)) {		    	
+		    if(map.get("active").equals(true)) {
+		    	  log.info("Introspection response showing token is active");
 		    	if(SecurityContextHolder.getContext().getAuthentication() == null ) {		
 					//UserDetails userDetails = customUserDetailsService.loadUserByUsername(userName);
 					List<SimpleGrantedAuthority> rls = roles.stream().map(n->new SimpleGrantedAuthority(n)).toList();
-					///System.out.println(rls);
+					  log.info("realm_access roles are:{}",rls);
 					UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
 					new UsernamePasswordAuthenticationToken(map.get("username"),null,rls);
 			///its used to add information related to request to authenticated object along with userdetails
@@ -85,4 +88,4 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		   	   response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		       response.setContentType("application/json");
 		       new ObjectMapper().writeValue(response.getOutputStream(), error);
-      }}}
+		   }}}

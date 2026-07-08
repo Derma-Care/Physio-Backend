@@ -22,10 +22,12 @@ import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GenerateTableServiceImpl implements GenerateTableService {
 
 
@@ -43,11 +45,13 @@ public class GenerateTableServiceImpl implements GenerateTableService {
             name = "generateTableService",
             fallbackMethod = "generateTableFallback")
     public Response generateTable(PhysiotherapyRecordDTO request) {
+        log.info("Generating table clinicId={} branchId={} patientId={} bookingId={}", request.getClinicId(), request.getBranchId(), request.getPatientId(), request.getBookingId());
 
         Response response = new Response();
 
         try {
 
+            log.debug("Calling physiotherapy record service");
             Response doctorResponse = feignClient.getRecord(keyCloakTokenStore.getAccess_token(),
                     request.getClinicId(),
                     request.getBranchId(),
@@ -56,6 +60,7 @@ public class GenerateTableServiceImpl implements GenerateTableService {
                     request.getTherapistRecordId()
             );
 
+            log.info("Physiotherapy record response received success={}", doctorResponse.isSuccess());
             if (!doctorResponse.isSuccess()) {
                 return doctorResponse;
             }
@@ -79,6 +84,7 @@ public class GenerateTableServiceImpl implements GenerateTableService {
 
             List<ProgramResponseDTO> result = new ArrayList<>();
 
+            log.info("Processing {} therapy sessions", therapySessions.size());
             for (Map<String, Object> session : therapySessions) {
 
                 List<Map<String, Object>> programs =
@@ -261,9 +267,11 @@ public class GenerateTableServiceImpl implements GenerateTableService {
             response.setSuccess(true);
             response.setData(result);
             response.setStatus(200);
+            log.info("Table generated successfully records={}", result.size());
             response.setMessage("Table generated successfully");
 
         } catch (Exception e) {
+            log.error("Failed to generate table", e);
 
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -278,6 +286,7 @@ public class GenerateTableServiceImpl implements GenerateTableService {
             List<Map<String, Object>> therapyDataList,
             LocalDate startDate) {
 
+        log.debug("Building program DTO from therapy data size={}", therapyDataList != null ? therapyDataList.size() : 0);
         ProgramResponseDTO programDTO = new ProgramResponseDTO();
         programDTO.setTherapyData(new ArrayList<>());
 
@@ -435,6 +444,7 @@ public class GenerateTableServiceImpl implements GenerateTableService {
             int total
     ) {
 
+        log.debug("Generating sessions startDate={} total={}", startDate, total);
         List<SessionDTO> list = new ArrayList<>();
 
         // Normalize frequency
@@ -574,6 +584,7 @@ public class GenerateTableServiceImpl implements GenerateTableService {
     }
     
     public Response generateTableFallback(PhysiotherapyRecordDTO request, Exception ex) {
+        log.error("Rate limit triggered in generateTable clinicId={} patientId={}", request.getClinicId(), request.getPatientId(), ex);
         Response response = new Response();
         response.setSuccess(false);
         response.setStatus(429);

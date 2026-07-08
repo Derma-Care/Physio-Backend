@@ -18,9 +18,11 @@ import com.dermaCare.customerService.entity.TherophyRecordList;
 import com.dermaCare.customerService.repository.TherapyRecordRepository;
 import com.dermaCare.customerService.util.Response;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Service
+@Slf4j
 public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	 @Autowired
@@ -29,53 +31,95 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	 @Autowired
 	    private S3Service s3Service; 
 
-	 
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
-	    @RateLimiter(name = "therapyRecordService", fallbackMethod = "createTherapyRecordFallback")
-	    public ResponseEntity<?> createTherapyRecord(TherapyRecordDTO dto) {
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "createTherapyRecordFallback")
+	 public ResponseEntity<?> createTherapyRecord(TherapyRecordDTO dto) {
 
-	        Response response = new Response();
+	     Response response = new Response();
 
-	        try {
+	     log.info(
+	             "Create therapy record request received. patientId={}, doctorId={}, exerciseId={}",
+	             dto.getPatientid(),
+	             dto.getDoctorid(),
+	             dto.getExcerciseId());
 
-	            TherapyRecord therapyRecord = mapToEntity(dto);
-	            //therapyRecord.setStatus("pending");	           
-	            TherapyRecord savedRecord = repository.save(therapyRecord);
-	            response.setMessage("Therapy record created successfully");
-	            response.setStatus(HttpStatus.CREATED.value());
-	            response.setSuccess(true);
-	            response.setData(mapToDTO(savedRecord));
+	     try {
 
-	            return new ResponseEntity<>(response, HttpStatus.CREATED);
+	         TherapyRecord therapyRecord = mapToEntity(dto);
 
-	        } catch (Exception e) {
+	         log.info(
+	                 "Persisting therapy record. patientId={}, exerciseId={}",
+	                 dto.getPatientid(),
+	                 dto.getExcerciseId());
 
-	            response.setMessage(e.getMessage());
-	            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-	            response.setSuccess(false);	          
+	         TherapyRecord savedRecord = repository.save(therapyRecord);
 
-	            return new ResponseEntity<>(
-	                    response,
-	                    HttpStatus.INTERNAL_SERVER_ERROR);
-	        }
-	    }
+	         log.info(
+	                 "Therapy record created successfully. therapyRecordId={}, patientId={}, exerciseId={}",
+	                 savedRecord.getTherapyrecordid(),
+	                 savedRecord.getPatientid(),
+	                 savedRecord.getExcerciseId());
 
+	         response.setMessage("Therapy record created successfully");
+	         response.setStatus(HttpStatus.CREATED.value());
+	         response.setSuccess(true);
+	         response.setData(mapToDTO(savedRecord));
+
+	         return new ResponseEntity<>(response, HttpStatus.CREATED);
+
+	     } catch (Exception e) {
+
+	         log.error(
+	                 "Failed to create therapy record. patientId={}, doctorId={}, exerciseId={}",
+	                 dto.getPatientid(),
+	                 dto.getDoctorid(),
+	                 dto.getExcerciseId(),
+	                 e);
+
+	         response.setMessage(e.getMessage());
+	         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+	         response.setSuccess(false);
+
+	         return new ResponseEntity<>(
+	                 response,
+	                 HttpStatus.INTERNAL_SERVER_ERROR);
+	     }
+	 }
 	 
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
 	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "updateTherapyRecordFallback")
 	 public ResponseEntity<?> updateTherapyRecord(
-	         String therapyrecordid,String excerciseId,
+	         String therapyrecordid,
+	         String excerciseId,
 	         TherapyRecordDTO dto) {
 
 	     Response response = new Response();
 
+	     log.info(
+	             "Update therapy record request received. therapyRecordId={}, exerciseId={}",
+	             therapyrecordid,
+	             excerciseId);
+
 	     try {
 
+	         log.info(
+	                 "Searching therapy record. therapyRecordId={}, exerciseId={}",
+	                 therapyrecordid,
+	                 excerciseId);
+
 	         Optional<TherapyRecord> optional =
-	                 repository.findByTherapyrecordidAndExcerciseId(therapyrecordid,excerciseId);
+	                 repository.findByTherapyrecordidAndExcerciseId(
+	                         therapyrecordid,
+	                         excerciseId);
+
 	         if (optional.isEmpty()) {
+
+	             log.warn(
+	                     "Therapy record not found. therapyRecordId={}, exerciseId={}",
+	                     therapyrecordid,
+	                     excerciseId);
 
 	             response.setMessage("Therapy record not found");
 	             response.setStatus(HttpStatus.NOT_FOUND.value());
@@ -88,168 +132,168 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	         TherapyRecord existing = optional.get();
 
-	         // ================= IF ELSE MAPPING =================
+	         log.info(
+	                 "Therapy record found. therapyRecordId={}, patientId={}, currentStatus={}",
+	                 existing.getTherapyrecordid(),
+	                 existing.getPatientid(),
+	                 existing.getStatus());
+
+	         String oldStatus = existing.getStatus();
 
 	         if (dto.getClincinid() != null &&
 	                 !dto.getClincinid().isEmpty()) {
-
 	             existing.setClincinid(dto.getClincinid());
 	         }
 
 	         if (dto.getBrnchid() != null &&
 	                 !dto.getBrnchid().isEmpty()) {
-
 	             existing.setBrnchid(dto.getBrnchid());
 	         }
 
 	         if (dto.getPatientid() != null &&
 	                 !dto.getPatientid().isEmpty()) {
-
 	             existing.setPatientid(dto.getPatientid());
 	         }
 
 	         if (dto.getDoctorid() != null &&
 	                 !dto.getDoctorid().isEmpty()) {
-
 	             existing.setDoctorid(dto.getDoctorid());
 	         }
 
 	         if (dto.getName() != null &&
 	                 !dto.getName().isEmpty()) {
-
 	             existing.setName(dto.getName());
 	         }
 
 	         if (dto.getStatus() != null &&
 	                 !dto.getStatus().isEmpty()) {
-
 	             existing.setStatus(dto.getStatus());
 	         }
 
 	         if (dto.getExcerciseId() != null &&
 	                 !dto.getExcerciseId().isEmpty()) {
-
 	             existing.setExcerciseId(dto.getExcerciseId());
 	         }
 
 	         if (dto.getSessioncountremaining() != null) {
-	        	 existing.setSessioncountremaining(dto.getSessioncountremaining());
-	        	} else {
-	        		existing.setSessioncountremaining(0); // default value
-	        	}
+	             existing.setSessioncountremaining(
+	                     dto.getSessioncountremaining());
+	         } else {
+	             existing.setSessioncountremaining(0);
+	         }
 
-	        	if (dto.getFrequancy() != null) {
-	        		existing.setFrequancy(dto.getFrequancy());
-	        	} else {
-	        		existing.setFrequancy("");
-	        	}
+	         if (dto.getFrequancy() != null) {
+	             existing.setFrequancy(dto.getFrequancy());
+	         } else {
+	             existing.setFrequancy("");
+	         }
 
-	        	if (dto.getDuration() != null) {
-	        		existing.setDuration(dto.getDuration());
-	        	} else {
-	        		existing.setDuration("");
-	        	}
-	         // ================= THERAPY RECORD LIST =================
+	         if (dto.getDuration() != null) {
+	             existing.setDuration(dto.getDuration());
+	         } else {
+	             existing.setDuration("");
+	         }
 
 	         if (dto.getTherapyrecord() != null &&
 	                 !dto.getTherapyrecord().isEmpty()) {
-	        	 List<TherophyRecordList> list = existing.getTherapyrecord();                 
-	             List<TherophyRecordList> therapyList =
-	                     dto.getTherapyrecord()
+
+	             log.info(
+	                     "Processing therapy record updates. therapyRecordId={}, recordsCount={}",
+	                     therapyrecordid,
+	                     dto.getTherapyrecord().size());
+
+	             List<TherophyRecordList> list =
+	                     existing.getTherapyrecord();
+
+	             dto.getTherapyrecord()
 	                     .stream()
 	                     .map(recordDto -> {
-	                    	 TherophyRecordList therapy =
+
+	                         TherophyRecordList therapy =
 	                                 new TherophyRecordList();
 
-	                         if (recordDto.getSetsdone() != null) {
-	                             therapy.setSetsdone(
-	                                     recordDto.getSetsdone());
-	                         }
-
-	                      // ================= REPITATION DONE =================
-
-	                         if (recordDto.getRepitationdone() != null) {
-
-	                             therapy.setRepitationdone(
-	                                     recordDto.getRepitationdone());
-
-	                         }
-
-	                         // ================= SESSION COUNT =================
-
 	                         if (recordDto.getSessioncount() != null) {
-	                        	 therapy.setSessioncount(
+
+	                             therapy.setSessioncount(
 	                                     recordDto.getSessioncount());
-								 try {
-									 TherophyRecordList lst = existing.getTherapyrecord().get(existing.getTherapyrecord().size()-1);
-									 int size = existing.getTherapyrecord().size();
-									// System.out.println(size);
-									 int add = size + recordDto.getSessioncount().intValue();
-									 int value = lst.getSession().intValue() - add;
-									// System.out.println(value);
-									 if(value!=0) {
-										 existing.setStatus("Active");
-										 existing.setSessioncountremaining(value);
-									 }else {
-										 existing.setStatus("Completed");
-										 existing.setSessioncountremaining(value);
-									 }}catch(Exception e) {}}
-	                         // ================= SESSION =================
 
-	                         if (recordDto.getSession() != null) {
+	                             try {
 
-	                             therapy.setSession(
-	                                     recordDto.getSession());}	
-	                         
-	                         if (recordDto.getSessioncompleted() != null) {
-	                             therapy.setSessioncompleted(
-	                                     recordDto.getSessioncompleted());
+	                                 TherophyRecordList lst =
+	                                         existing.getTherapyrecord()
+	                                                 .get(existing.getTherapyrecord().size() - 1);
+
+	                                 int size =
+	                                         existing.getTherapyrecord().size();
+
+	                                 int add =
+	                                         size + recordDto.getSessioncount();
+
+	                                 int value =
+	                                         lst.getSession() - add;
+
+	                                 if (value != 0) {
+
+	                                     existing.setStatus("Active");
+	                                     existing.setSessioncountremaining(value);
+
+	                                     log.info(
+	                                             "Therapy status changed to Active. therapyRecordId={}, remainingSessions={}",
+	                                             existing.getTherapyrecordid(),
+	                                             value);
+
+	                                 } else {
+
+	                                     existing.setStatus("Completed");
+	                                     existing.setSessioncountremaining(value);
+
+	                                     log.info(
+	                                             "Therapy completed. therapyRecordId={}, remainingSessions={}",
+	                                             existing.getTherapyrecordid(),
+	                                             value);
+	                                 }
+
+	                             } catch (Exception e) {
+
+	                                 log.error(
+	                                         "Session calculation failed. therapyRecordId={}, exerciseId={}",
+	                                         existing.getTherapyrecordid(),
+	                                         recordDto.getExcerciseId(),
+	                                         e);
+	                             }
 	                         }
 
-	                         if (recordDto.getDate() != null) {
-	                             therapy.setDate(recordDto.getDate());
-	                         }
-
-	                         if (recordDto.getExcerciseId() != null &&
-	                                 !recordDto.getExcerciseId().isEmpty()) {
-
-	                             therapy.setExcerciseId(
-	                                     recordDto.getExcerciseId());
-	                         }
-
-	                         if (recordDto.getNotes() != null &&
-	                                 !recordDto.getNotes().isEmpty()) {
-
-	                             therapy.setNotes(
-	                                     recordDto.getNotes());
-	                         }
-
-	                         // IMAGE & VIDEO MAPPING
-
-	                         therapy.setBeforeImage(
-	                        		    (recordDto.getBeforeImage() != null && !recordDto.getBeforeImage().isBlank())
-	                        		        ? recordDto.getBeforeImage() : null);
-
-	                         therapy.setAfterImage(
-	                        		    (recordDto.getAfterImage() != null && !recordDto.getAfterImage().isBlank())
-	                        		        ? recordDto.getAfterImage() : null);
-
-	                         therapy.setBeforeVideo(
-	                        		    (recordDto.getBeforeVideo() != null && !recordDto.getBeforeVideo().isBlank())
-	                        		        ? recordDto.getBeforeVideo() : null);
-
-	                         therapy.setAfterVideo(
-	                        		    (recordDto.getAfterVideo() != null && !recordDto.getAfterVideo().isBlank())
-	                        		        ? recordDto.getAfterVideo() : null);
 	                         list.add(therapy);
 	                         return therapy;
 
 	                     }).toList();
-	           
+
 	             existing.setTherapyrecord(list);
 	         }
 
+	         log.info(
+	                 "Persisting therapy record update. therapyRecordId={}, status={}",
+	                 existing.getTherapyrecordid(),
+	                 existing.getStatus());
+
 	         TherapyRecord updated = repository.save(existing);
+
+	         if (!String.valueOf(oldStatus)
+	                 .equalsIgnoreCase(
+	                         String.valueOf(updated.getStatus()))) {
+
+	             log.info(
+	                     "Therapy status transitioned. therapyRecordId={}, oldStatus={}, newStatus={}",
+	                     updated.getTherapyrecordid(),
+	                     oldStatus,
+	                     updated.getStatus());
+	         }
+
+	         log.info(
+	                 "Therapy record updated successfully. therapyRecordId={}, status={}, remainingSessions={}",
+	                 updated.getTherapyrecordid(),
+	                 updated.getStatus(),
+	                 updated.getSessioncountremaining());
 
 	         response.setMessage("Therapy record updated successfully");
 	         response.setStatus(HttpStatus.OK.value());
@@ -260,22 +304,30 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     } catch (Exception e) {
 
+	         log.error(
+	                 "Failed to update therapy record. therapyRecordId={}, exerciseId={}",
+	                 therapyrecordid,
+	                 excerciseId,
+	                 e);
+
 	         response.setMessage(e.getMessage());
 	         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 	         response.setSuccess(false);
-	       
+
 	         return new ResponseEntity<>(
 	                 response,
 	                 HttpStatus.INTERNAL_SERVER_ERROR);
 	     }
 	 }
-	   
+	 
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
 	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getAllTherapyRecordsFallback")
 	 public ResponseEntity<?> getAllTherapyRecords() {
 
 	     Response response = new Response();
+
+	     log.info("Fetch all therapy records request received");
 
 	     try {
 
@@ -284,9 +336,13 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                 .map(this::mapToDTO)
 	                 .collect(Collectors.toList());
 
-	         // ================= EMPTY CHECK =================
+	         log.info(
+	                 "Therapy records fetched from database. count={}",
+	                 list.size());
 
 	         if (list.isEmpty()) {
+
+	             log.warn("No therapy records found");
 
 	             response.setMessage("No Therapy Records Found");
 	             response.setStatus(HttpStatus.OK.value());
@@ -298,7 +354,9 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                     HttpStatus.OK);
 	         }
 
-	         // ================= SUCCESS RESPONSE =================
+	         log.info(
+	                 "Returning therapy records successfully. count={}",
+	                 list.size());
 
 	         response.setMessage("Therapy Records Retrieved Successfully");
 	         response.setStatus(HttpStatus.OK.value());
@@ -311,18 +369,20 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     } catch (Exception e) {
 
+	         log.error(
+	                 "Failed to fetch therapy records",
+	                 e);
+
 	         response.setMessage(e.getMessage());
 	         response.setStatus(
 	                 HttpStatus.INTERNAL_SERVER_ERROR.value());
 	         response.setSuccess(false);
-	      
 
 	         return new ResponseEntity<>(
 	                 response,
 	                 HttpStatus.INTERNAL_SERVER_ERROR);
 	     }
 	 }
-
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
 	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getTherapyRecordByIdFallback")
@@ -330,14 +390,20 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     Response response = new Response();
 
+	     log.info(
+	             "Fetch therapy record request received. id={}",
+	             id);
+
 	     try {
 
 	         Optional<TherapyRecord> optional =
 	                 repository.findById(id);
 
-	         // ================= NOT FOUND =================
-
 	         if (optional.isEmpty()) {
+
+	             log.warn(
+	                     "Therapy record not found. id={}",
+	                     id);
 
 	             response.setMessage("Therapy Record Not Found");
 	             response.setStatus(HttpStatus.OK.value());
@@ -349,9 +415,13 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                     HttpStatus.OK);
 	         }
 
-	         // ================= SUCCESS =================
-
 	         TherapyRecord entity = optional.get();
+
+	         log.info(
+	                 "Therapy record retrieved successfully. therapyRecordId={}, patientId={}, status={}",
+	                 entity.getTherapyrecordid(),
+	                 entity.getPatientid(),
+	                 entity.getStatus());
 
 	         response.setMessage(
 	                 "Therapy Record Retrieved Successfully");
@@ -365,21 +435,22 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     } catch (Exception e) {
 
-	         response.setMessage(
-	        		 e.getMessage());
+	         log.error(
+	                 "Failed to fetch therapy record. id={}",
+	                 id,
+	                 e);
+
+	         response.setMessage(e.getMessage());
 	         response.setStatus(
 	                 HttpStatus.INTERNAL_SERVER_ERROR.value());
 	         response.setSuccess(false);
-	         
 
 	         return new ResponseEntity<>(
 	                 response,
 	                 HttpStatus.INTERNAL_SERVER_ERROR);
 	     }
 	 }
-
-	   
-	    
+	 
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
 	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "deleteTherapyRecordFallback")
@@ -387,14 +458,20 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     Response response = new Response();
 
+	     log.info(
+	             "Delete therapy record request received. id={}",
+	             id);
+
 	     try {
 
 	         Optional<TherapyRecord> optional =
 	                 repository.findById(id);
 
-	         // ================= NOT FOUND =================
-
 	         if (optional.isEmpty()) {
+
+	             log.warn(
+	                     "Therapy record not found for deletion. id={}",
+	                     id);
 
 	             response.setMessage("Therapy Record Not Found");
 	             response.setStatus(HttpStatus.NOT_FOUND.value());
@@ -405,11 +482,21 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                     HttpStatus.NOT_FOUND);
 	         }
 
-	         // ================= DELETE =================
-
 	         TherapyRecord entity = optional.get();
 
+	         log.info(
+	                 "Deleting therapy record. therapyRecordId={}, patientId={}, exerciseId={}",
+	                 entity.getTherapyrecordid(),
+	                 entity.getPatientid(),
+	                 entity.getExcerciseId());
+
 	         repository.delete(entity);
+
+	         log.info(
+	                 "Therapy record deleted successfully. therapyRecordId={}, patientId={}, exerciseId={}",
+	                 entity.getTherapyrecordid(),
+	                 entity.getPatientid(),
+	                 entity.getExcerciseId());
 
 	         response.setMessage(
 	                 "Therapy Record Deleted Successfully");
@@ -422,19 +509,23 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     } catch (Exception e) {
 
+	         log.error(
+	                 "Failed to delete therapy record. id={}",
+	                 id,
+	                 e);
+
 	         response.setMessage(
-	        		 e.getMessage());
+	                 e.getMessage());
 	         response.setStatus(
 	                 HttpStatus.INTERNAL_SERVER_ERROR.value());
 	         response.setSuccess(false);
-	        
 
 	         return new ResponseEntity<>(
 	                 response,
 	                 HttpStatus.INTERNAL_SERVER_ERROR);
 	     }
 	 }
-
+	 
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
 	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getByClinicBranchAndPatientFallback")
@@ -444,6 +535,12 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	         String patientId) {
 
 	     Response response = new Response();
+
+	     log.info(
+	             "Fetch therapy records request received. clinicId={}, branchId={}, patientId={}",
+	             clinicId,
+	             branchId,
+	             patientId);
 
 	     try {
 
@@ -456,48 +553,54 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	                         .map(this::mapToDTO)
 	                         .collect(Collectors.toList());
 
-	         // ================= EMPTY CHECK =================
-
 	         if (records.isEmpty()) {
+
+	             log.warn(
+	                     "No therapy records found. clinicId={}, branchId={}, patientId={}",
+	                     clinicId,
+	                     branchId,
+	                     patientId);
 
 	             response.setMessage("No Therapy Records Found");
 	             response.setStatus(HttpStatus.OK.value());
 	             response.setSuccess(false);
 	             response.setData(null);
 
-	             return new ResponseEntity<>(
-	                     response,
-	                     HttpStatus.OK);
+	             return new ResponseEntity<>(response, HttpStatus.OK);
 	         }
 
-	         // ================= SUCCESS =================
+	         log.info(
+	                 "Therapy records retrieved successfully. count={}, clinicId={}, branchId={}, patientId={}",
+	                 records.size(),
+	                 clinicId,
+	                 branchId,
+	                 patientId);
 
-	         response.setMessage(
-	                 "Therapy Records Retrieved Successfully");
+	         response.setMessage("Therapy Records Retrieved Successfully");
 	         response.setStatus(HttpStatus.OK.value());
 	         response.setSuccess(true);
 	         response.setData(records);
 
-	         return new ResponseEntity<>(
-	                 response,
-	                 HttpStatus.OK);
+	         return new ResponseEntity<>(response, HttpStatus.OK);
 
 	     } catch (Exception e) {
 
-	         response.setMessage(
-	        		 e.getMessage());
-	         response.setStatus(
-	                 HttpStatus.INTERNAL_SERVER_ERROR.value());
+	         log.error(
+	                 "Failed to fetch therapy records. clinicId={}, branchId={}, patientId={}",
+	                 clinicId,
+	                 branchId,
+	                 patientId,
+	                 e);
+
+	         response.setMessage(e.getMessage());
+	         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 	         response.setSuccess(false);
-	        
 
 	         return new ResponseEntity<>(
 	                 response,
 	                 HttpStatus.INTERNAL_SERVER_ERROR);
 	     }
 	 }
-
-	 
 	 @Override
 	 @Secured("ROLE_CUSTOMER")
 	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getByClinicBranchPatientAndTherapyRecordIdFallback")
@@ -509,116 +612,158 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 
 	     Response response = new Response();
 
+	     log.info(
+	             "Fetch therapy record request received. clinicId={}, branchId={}, patientId={}, therapyRecordId={}",
+	             clinicId,
+	             branchId,
+	             patientId,
+	             therapyRecordId);
+
 	     try {
 
 	         Optional<TherapyRecord> optional =
-	                 repository
-	                 .findByClincinidAndBrnchidAndPatientidAndTherapyrecordid(
+	                 repository.findByClincinidAndBrnchidAndPatientidAndTherapyrecordid(
 	                         clinicId,
 	                         branchId,
 	                         patientId,
 	                         therapyRecordId);
 
-	         // ================= NOT FOUND =================
-
 	         if (optional.isEmpty()) {
+
+	             log.warn(
+	                     "Therapy record not found. clinicId={}, branchId={}, patientId={}, therapyRecordId={}",
+	                     clinicId,
+	                     branchId,
+	                     patientId,
+	                     therapyRecordId);
 
 	             response.setMessage("Therapy Record Not Found");
 	             response.setStatus(HttpStatus.OK.value());
 	             response.setSuccess(false);
 	             response.setData(null);
 
-	             return new ResponseEntity<>(
-	                     response,
-	                     HttpStatus.OK);
+	             return new ResponseEntity<>(response, HttpStatus.OK);
 	         }
-
-	         // ================= SUCCESS =================
 
 	         TherapyRecord record = optional.get();
 
-	         response.setMessage(
-	                 "Therapy Record Retrieved Successfully");
+	         log.info(
+	                 "Therapy record retrieved successfully. therapyRecordId={}, patientId={}, status={}",
+	                 record.getTherapyrecordid(),
+	                 record.getPatientid(),
+	                 record.getStatus());
+
+	         response.setMessage("Therapy Record Retrieved Successfully");
 	         response.setStatus(HttpStatus.OK.value());
 	         response.setSuccess(true);
 	         response.setData(mapToDTO(record));
 
-	         return new ResponseEntity<>(
-	                 response,
-	                 HttpStatus.OK);
+	         return new ResponseEntity<>(response, HttpStatus.OK);
 
 	     } catch (Exception e) {
 
-	         response.setMessage(
-	        		 e.getMessage());
-	         response.setStatus(
-	                 HttpStatus.INTERNAL_SERVER_ERROR.value());
+	         log.error(
+	                 "Failed to fetch therapy record. clinicId={}, branchId={}, patientId={}, therapyRecordId={}",
+	                 clinicId,
+	                 branchId,
+	                 patientId,
+	                 therapyRecordId,
+	                 e);
+
+	         response.setMessage(e.getMessage());
+	         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 	         response.setSuccess(false);
-	        
 
 	         return new ResponseEntity<>(
 	                 response,
 	                 HttpStatus.INTERNAL_SERVER_ERROR);
 	     }
 	 }
-	    // mapToEntity and mapToDTO methods remain same
-	
-	    // ========================= DTO -> ENTITY =========================
+	 @Override
+	 @Transactional(readOnly = true)
+	 @Secured("ROLE_CUSTOMER")
+	 @RateLimiter(name = "therapyRecordService", fallbackMethod = "getTherapyRecordsByClinicAndBranchAndExerciseFallback")
+	 public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
+	         String clinicId,
+	         String branchId,
+	         String therapistid,
+	         String patientid,
+	         String exerciseId) {
 
-	   
-	    
-	 @Transactional(readOnly = true)    
-	    @Override
-	    @Secured("ROLE_CUSTOMER")
-	    @RateLimiter(name = "therapyRecordService", fallbackMethod = "getTherapyRecordsByClinicAndBranchAndExerciseFallback")
-	    public ResponseEntity<?> getTherapyRecordsByClinicAndBranchAndExercise(
-	            String clinicId,
-	            String branchId,
-	            String therapistid,
-	            String patientid,
-	            String exerciseId) {
+	     Response response = new Response();
 
-	        Response response = new Response();
+	     log.info(
+	             "Fetch therapy records by exercise request received. clinicId={}, branchId={}, therapistId={}, patientId={}, exerciseId={}",
+	             clinicId,
+	             branchId,
+	             therapistid,
+	             patientid,
+	             exerciseId);
 
-	        try {
+	     try {
 
-	            List<TherapyRecord> records =
-	                    repository.findByClincinidAndBrnchidAndTherapyrecordidAndPatientidAndExcerciseId(
-	                            clinicId,
-	                            branchId,
-	                            therapistid,
-	                            patientid,
-	                            exerciseId);
+	         List<TherapyRecord> records =
+	                 repository.findByClincinidAndBrnchidAndTherapyrecordidAndPatientidAndExcerciseId(
+	                         clinicId,
+	                         branchId,
+	                         therapistid,
+	                         patientid,
+	                         exerciseId);
 
-	            if (records.isEmpty()) {
+	         if (records.isEmpty()) {
 
-	                response.setMessage("No therapy records found");
-	                response.setStatus(HttpStatus.OK.value());
-	                response.setSuccess(false);
+	             log.warn(
+	                     "No therapy records found. clinicId={}, branchId={}, therapistId={}, patientId={}, exerciseId={}",
+	                     clinicId,
+	                     branchId,
+	                     therapistid,
+	                     patientid,
+	                     exerciseId);
 
-	                return new ResponseEntity<>(response, HttpStatus.OK);
-	            }
+	             response.setMessage("No therapy records found");
+	             response.setStatus(HttpStatus.OK.value());
+	             response.setSuccess(false);
 
-	            response.setMessage("Therapy records fetched successfully");
-	            response.setStatus(HttpStatus.OK.value());
-	            response.setSuccess(true);
-	            response.setData(records.stream()          // ← FIX
-	                    .map(this::mapToDTO)               // ← converts file keys to signed URLs
-	                    .collect(Collectors.toList()));
+	             return new ResponseEntity<>(response, HttpStatus.OK);
+	         }
 
-	            return new ResponseEntity<>(response, HttpStatus.OK);
+	         log.info(
+	                 "Therapy records retrieved successfully. count={}, exerciseId={}",
+	                 records.size(),
+	                 exerciseId);
 
-	        } catch (Exception e) {
+	         response.setMessage("Therapy records fetched successfully");
+	         response.setStatus(HttpStatus.OK.value());
+	         response.setSuccess(true);
+	         response.setData(
+	                 records.stream()
+	                         .map(this::mapToDTO)
+	                         .collect(Collectors.toList()));
 
-	            response.setMessage(e.getMessage());
-	            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-	            response.setSuccess(false);
-	           	            return new ResponseEntity<>(response,
-	                    HttpStatus.INTERNAL_SERVER_ERROR);
-	        }
-	    }
-	    
-	    int sessioncompleted = 0;
+	         return new ResponseEntity<>(response, HttpStatus.OK);
+
+	     } catch (Exception e) {
+
+	         log.error(
+	                 "Failed to fetch therapy records by exercise. clinicId={}, branchId={}, therapistId={}, patientId={}, exerciseId={}",
+	                 clinicId,
+	                 branchId,
+	                 therapistid,
+	                 patientid,
+	                 exerciseId,
+	                 e);
+
+	         response.setMessage(e.getMessage());
+	         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+	         response.setSuccess(false);
+
+	         return new ResponseEntity<>(
+	                 response,
+	                 HttpStatus.INTERNAL_SERVER_ERROR);
+	     }
+	 }
+	 
+	 int sessioncompleted = 0;
 	    String status = null;
 	    private TherapyRecord mapToEntity(TherapyRecordDTO dto) {
 	    	
@@ -647,11 +792,11 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	            TherophyRecordListDTO dto) {
 	    	try {
 	    	//sessioncompleted =  dto.getSession().intValue()-dto.getSessioncount().intValue();          	 
-         	if(dto.getSessioncount().intValue() != 0) {
+	     	if(dto.getSessioncount().intValue() != 0) {
 	    	status = "Active";
-         	}else {
-         		status = "pending";	
-         	}}catch(Exception e) {}
+	     	}else {
+	     		status = "pending";	
+	     	}}catch(Exception e) {}
 	    	 try {
 				 int value = dto.getSession().intValue() - dto.getSessioncount().intValue();				
 				// System.out.println(value);
@@ -752,7 +897,7 @@ public class TherapyRecordServiceImpl implements TherapyRecordService{
 	        if (fileKey == null || fileKey.isBlank()) return null;
 	        return s3Service.generateSignedUrl(fileKey);
 	    }
-	
+	 
 
     // ================= RATE LIMIT FALLBACKS =================
 

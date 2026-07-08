@@ -31,8 +31,10 @@ import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
     @Autowired
@@ -51,11 +53,14 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
     public Response createFeedback(PatientFeedbackDTO dto) {
+        log.info("Creating patient feedback patientId={} clinicId={}", dto.getPatientId(), dto.getClinicId());
 
     	PatientFeedback feedback = mapToEntity(dto);
 		feedback.setCreatedAt(LocalDateTime.now());
 		feedback.setUpdatedAt(LocalDateTime.now());
+		log.debug("Saving patient feedback");
 		PatientFeedback saved = repository.save(feedback);
+		log.info("Patient feedback created successfully id={}", saved.getId());
 
 		if (dto.getDoctorFeedback() != null && dto.getDoctorFeedback().getTargetId() != null) {
 
@@ -69,6 +74,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
 			notification.setFeedback(dto.getDoctorFeedback().getFeedbackText());
 
+			log.debug("Sending doctor rating notification");
 			notificationFeign.sendDoctorRatingNotification(keyCloakTokenStore.getAccess_token(),notification);}
 		        try {
 	        	if(dto.getTherapistFeedback() != null && dto.getTherapistFeedback().getTargetId() != null ) {
@@ -78,8 +84,11 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 				map.put("patientName",dto.getPatientName() );
 				map.put("feedbackText", dto.getTherapistFeedback().getFeedbackText());
 				map.put("rating",dto.getTherapistFeedback().getRating() );
+	        	log.debug("Sending therapist feedback notification");
 	        	notificationFeign.therapistOverallFeedback(keyCloakTokenStore.getAccess_token(),map);}}
-	        }catch (Exception e) {}
+	        }catch (Exception e) {
+	        log.error("Failed to send therapist feedback notification", e);
+	    }
 
 		Response response = new Response();
 
@@ -97,6 +106,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFeedbacksFallback")
     public Response getAllFeedbacks() {
+        log.info("Fetching all patient feedbacks");
 
         List<PatientFeedbackDTO> list = repository.findAll()
                 .stream()
@@ -119,6 +129,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getFeedbackByIdFallback")
     public Response getFeedbackById(String id) {
+        log.info("Fetching feedback id={}", id);
 
         PatientFeedback feedback = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Feedback not found"));
@@ -138,6 +149,8 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdFallback")
     public Response getByClinicIdAndBranchId(String clinicId,
                                              String branchId) {
+        log.info("Fetching feedbacks clinicId={} branchId={}", clinicId, branchId);
+                                           
 
         List<PatientFeedback> feedbackList = repository
                 .findByClinicIdAndBranchId(clinicId, branchId);
@@ -162,6 +175,8 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getByClinicIdAndBranchIdAndPatientIdFallback")
     public Response getByClinicIdAndBranchIdAndPatientId(String clinicId,
                                              String branchId,String patientId) {
+        log.info("Fetching feedbacks clinicId={} branchId={} patientId={}", clinicId, branchId, patientId);
+                                           
 
         List<PatientFeedback> feedbackList = repository
                 .findByClinicIdAndBranchIdAndPatientId(clinicId, branchId,patientId);
@@ -188,6 +203,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateFeedbackFallback")
     public Response updateFeedback(String id, PatientFeedbackDTO dto) {
+        log.info("Updating feedback id={}", id);
 
         PatientFeedback existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Feedback not found"));
@@ -274,7 +290,9 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 
         // ================= SAVE =================
 
+        log.debug("Saving updated feedback id={}", id);
         PatientFeedback updated = repository.save(existing);
+        log.info("Feedback updated successfully id={}", id);
 
         Response response = new Response();
 
@@ -292,11 +310,14 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFeedbackFallback")
     public Response deleteFeedback(String id) {
+        log.info("Deleting feedback id={}", id);
 
         PatientFeedback feedback = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Feedback not found"));
 
+        log.debug("Deleting feedback id={}", id);
         repository.delete(feedback);
+        log.info("Feedback deleted successfully id={}", id);
 
         Response response = new Response();
 
@@ -549,6 +570,7 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getDoctorFeedbackSummaryFallback")
     public Response getDoctorFeedbackSummary(String doctorId, String clinicId) {
+        log.info("Fetching doctor feedback summary doctorId={} clinicId={}", doctorId, clinicId);
 
         List<PatientFeedback> feedbacks =
                 repository.findByClinicIdAndDoctorFeedbackTargetId(clinicId, doctorId);
@@ -595,38 +617,46 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public Response createFeedbackFallback(PatientFeedbackDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response getAllFeedbacksFallback(Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response getFeedbackByIdFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response getByClinicIdAndBranchIdFallback(
             String clinicId, String branchId, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response getByClinicIdAndBranchIdAndPatientIdFallback(
             String clinicId, String branchId, String patientId, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response updateFeedbackFallback(
             String id, PatientFeedbackDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response deleteFeedbackFallback(String id, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 
     public Response getDoctorFeedbackSummaryFallback(
             String doctorId, String clinicId, Exception ex) {
+        log.error("Rate limiter fallback triggered");
         return buildRateLimitResponse();
     }
 

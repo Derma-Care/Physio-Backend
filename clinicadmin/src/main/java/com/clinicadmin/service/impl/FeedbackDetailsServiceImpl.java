@@ -56,6 +56,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
     public Response createFeedback(
             FeedbackDetailsDTO feedbackDetailsDTO) {
+		log.info("Entering createFeedback");
 
         Response response = new Response();
 
@@ -127,6 +128,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllFeedbacksFallback")
     public Response getAllFeedbacks() {
+		log.info("Entering getAllFeedbacks");
 
         Response response = new Response();
 
@@ -160,6 +162,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "getFeedbackByIdFallback")
     public Response getFeedbackById(String id) {
+		log.info("Entering getFeedbackById");
 
         Response response = new Response();
 
@@ -196,6 +199,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     public Response updateFeedback(
             String id,
             FeedbackDetailsDTO feedbackDetailsDTO) {
+		log.info("Entering updateFeedback");
 
         Response response = new Response();
 
@@ -338,6 +342,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteFeedbackFallback")
     public Response deleteFeedback(String id) {
+		log.info("Entering deleteFeedback");
 
         Response response = new Response();
 
@@ -374,6 +379,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     public Response getFeedbackDetails(
             String clinicId,
             String branchId) {
+		log.info("Entering getFeedbackDetails");
 
         Response response = new Response();
 
@@ -868,6 +874,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 public Response getAllFeedbacksByClinicIdAndBranchId(
         String clinicId,
         String branchId) {
+		log.info("Entering getAllFeedbacksByClinicIdAndBranchId");
 
     Response response = new Response();
 
@@ -977,34 +984,42 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
     }
 
     public Response createFeedbackFallback(FeedbackDetailsDTO feedbackDetailsDTO, Exception ex) {
+		log.info("Entering createFeedbackFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response getAllFeedbacksFallback(Exception ex) {
+		log.info("Entering getAllFeedbacksFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response getFeedbackByIdFallback(String id, Exception ex) {
+		log.info("Entering getFeedbackByIdFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response updateFeedbackFallback(String id, FeedbackDetailsDTO feedbackDetailsDTO, Exception ex) {
+		log.info("Entering updateFeedbackFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response deleteFeedbackFallback(String id, Exception ex) {
+		log.info("Entering deleteFeedbackFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response getFeedbackDetailsFallback(String clinicId, String branchId, Exception ex) {
+		log.info("Entering getFeedbackDetailsFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response getAllFeedbacksByClinicIdAndBranchIdFallback(String clinicId, String branchId, Exception ex) {
+		log.info("Entering getAllFeedbacksByClinicIdAndBranchIdFallback");
         return buildRateLimitResponse(ex);
     }
 
     public Response getDoctorFeedbackSummaryFallback(String doctorId, Exception ex) {
+		log.info("Entering getDoctorFeedbackSummaryFallback");
         return buildRateLimitResponse(ex);
     }
 
@@ -1015,6 +1030,7 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
     public void processFeedbackNotification(
             String clinicId,
             String branchId) {
+		log.info("Entering processFeedbackNotification");
 
         try {
 
@@ -1270,6 +1286,7 @@ public Response getAllFeedbacksByClinicIdAndBranchId(
     
     public void processFeedbackNotificationFallback(  String clinicId,
             String branchId, Exception ex) {
+		log.info("Entering processFeedbackNotificationFallback");
       throw new RuntimeException(ex);
     }
 }

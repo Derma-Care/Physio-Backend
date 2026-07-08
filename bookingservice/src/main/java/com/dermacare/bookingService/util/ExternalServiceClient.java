@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.BranchDTO;
@@ -40,8 +42,8 @@ public class ExternalServiceClient {
     // ============================================================
 
     
-    @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getBranchByIdFallback")
-    @Retry(name = "clinicAdminService", fallbackMethod = "getBranchByIdFallback")
+    @CircuitBreaker(name = "adminService", fallbackMethod = "getBranchByIdFallback")
+    @Retry(name = "adminService", fallbackMethod = "getBranchByIdFallback")
     public ResponseEntity<ResponseStructure<BranchDTO>> getBranchById(String branchId) {
 
         
@@ -59,10 +61,7 @@ public class ExternalServiceClient {
                                                     String patientId,
                                                     String clinicId,
                                                     Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setMessage("Unable to fetch customer details.");
-        return response;
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getTodayExpensesFallback")
@@ -75,7 +74,7 @@ public class ExternalServiceClient {
                                             String clinicId,
                                             String branchId,
                                             Exception ex) {
-    	 throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getWeeklyExpensesFallback")
@@ -88,7 +87,7 @@ public class ExternalServiceClient {
                                              String clinicId,
                                              String branchId,
                                              Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getMonthlyExpensesFallback")
@@ -101,7 +100,7 @@ public class ExternalServiceClient {
                                               String clinicId,
                                               String branchId,
                                               Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "customFilterFallback")
@@ -114,7 +113,7 @@ public class ExternalServiceClient {
                                         String startDate,
                                         String endDate,
                                         Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getCustomerByMobilenumberAndNameFallback")
@@ -129,7 +128,7 @@ public class ExternalServiceClient {
                                                                          String mobileNumber,
                                                                          String name,
                                                                          Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getCustomerByMobileNumberAndClinicIdFallback")
@@ -144,7 +143,7 @@ public class ExternalServiceClient {
                                                                               String mobileNumber,
                                                                               String clinicId,
                                                                               Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getCustomerByNameAndClinicIdFallback")
@@ -159,7 +158,7 @@ public class ExternalServiceClient {
                                                                             String name,
                                                                             String clinicId,
                                                                             Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "clinicAdminService", fallbackMethod = "getSignedUrlFallback")
@@ -171,7 +170,7 @@ public class ExternalServiceClient {
     public String getSignedUrlFallback(String token,
                                         String fileKey,
                                         Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     // ============================================================
@@ -186,7 +185,7 @@ public class ExternalServiceClient {
 
     public NotificationDTO getNotificationByBookingIdFallback(String bookingId,
                                                                Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "notificationService", fallbackMethod = "updateNotificationFallback")
@@ -197,7 +196,7 @@ public class ExternalServiceClient {
 
     public NotificationDTO updateNotificationFallback(NotificationDTO notificationDTO,
                                                        Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "notificationService", fallbackMethod = "createNotificationFallback")
@@ -210,10 +209,7 @@ public class ExternalServiceClient {
     public Response createNotificationFallback(String token,
                                                 BookingResponse booking,
                                                 Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setMessage("Notification service unavailable.");
-        return response;
+    	 throw getFallbackException(ex);
     }
 
     // ============================================================
@@ -232,7 +228,7 @@ public class ExternalServiceClient {
                                                                  String bookingId,
                                                                  String date,
                                                                  Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "physioDoctorService", fallbackMethod = "getTodayFollowUpBookingIdsFallback")
@@ -243,7 +239,7 @@ public class ExternalServiceClient {
 
     public List<String> getTodayFollowUpBookingIdsFallback(String token,
                                                             Exception ex) {
-    	throw new RuntimeException(ex);
+    	 throw getFallbackException(ex);
     }
 
     @CircuitBreaker(name = "physioDoctorService", fallbackMethod = "getByBookingIdFallback")
@@ -255,6 +251,22 @@ public class ExternalServiceClient {
     public String getByBookingIdFallback(String token,
                                           String bookingId,
                                           Exception ex) {
-        throw new RuntimeException(ex);
+        throw getFallbackException(ex);
+    }
+    
+    private RuntimeException getFallbackException(Exception ex) {
+
+        if (ex instanceof io.github.resilience4j.ratelimiter.RequestNotPermitted) {
+            return new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many requests. Please try again after some time."
+                    );      
+        }else if (ex instanceof io.github.resilience4j.circuitbreaker.CallNotPermittedException) {
+            return new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Booking Service is temporarily unavailable"); 
+    }else{ return new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Booking Service is temporarily unavailable");}
     }
 }

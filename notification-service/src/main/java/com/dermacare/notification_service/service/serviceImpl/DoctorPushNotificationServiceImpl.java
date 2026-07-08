@@ -31,127 +31,201 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 	@Override
 	@RateLimiter(name = "notification-service", fallbackMethod = "sendNotificationFallback")
 	public ResponseEntity<?> sendNotification(DoctorPushNotificationDTO dto) {
-		System.out.println(dto);
-		Response res = new Response();
 
-		try {
+	    long startTime = System.currentTimeMillis();
 
-			log.info("Doctor notification request received. BookingId: {}, DoctorId: {}, AppointmentType: {}",
-					dto.getBookingId(), dto.getDoctorId(), dto.getAppointmentType());
+	    log.info(
+	            "Doctor notification request received. BookingId={}, DoctorId={}, AppointmentType={}, PatientName={}",
+	            dto.getBookingId(),
+	            dto.getDoctorId(),
+	            dto.getAppointmentType(),
+	            dto.getPatientName());
 
-			// Check duplicate notification
-			if (repository.existsByBookingIdAndAppointmentType(dto.getBookingId(), dto.getAppointmentType())) {
+	    log.debug("Complete request payload: {}", dto);
 
-				log.warn("Notification already exists for BookingId: {} and AppointmentType: {}", dto.getBookingId(),
-						dto.getAppointmentType());
+	    Response res = new Response();
 
-				res.setMessage("Notification Already Sent");
-				res.setStatus(200);
-				res.setSuccess(true);
+	    try {
 
-				return ResponseEntity.status(res.getStatus()).body(res);
-			}
+	        log.debug(
+	                "Checking duplicate notification. BookingId={}, AppointmentType={}",
+	                dto.getBookingId(),
+	                dto.getAppointmentType());
 
-			log.info("Fetching FCM token for DoctorId: {}", dto.getDoctorId());
+	        boolean notificationExists =
+	                repository.existsByBookingIdAndAppointmentType(
+	                        dto.getBookingId(),
+	                        dto.getAppointmentType());
 
-			String token = clinicFeign.getDoctorDeviceId(dto.getDoctorId());
+	        log.debug("Duplicate notification check result={}", notificationExists);
 
-			if (token == null || token.isBlank()) {
+	        if (notificationExists) {
 
-				log.error("FCM token not found for DoctorId: {}", dto.getDoctorId());
+	            log.warn(
+	                    "Notification already exists. BookingId={}, AppointmentType={}",
+	                    dto.getBookingId(),
+	                    dto.getAppointmentType());
 
-				res.setMessage("Doctor FCM Token Not Found");
-				res.setStatus(404);
-				res.setSuccess(false);
+	            res.setMessage("Notification Already Sent");
+	            res.setStatus(200);
+	            res.setSuccess(true);
 
-				return ResponseEntity.status(res.getStatus()).body(res);
-			}
+	            return ResponseEntity.status(res.getStatus()).body(res);
+	        }
 
-			log.info("FCM token fetched successfully for DoctorId: {}", dto.getDoctorId());
+	        log.info("Fetching doctor device token. DoctorId={}",
+	                dto.getDoctorId());
 
-			String title;
-			String body;
+	        String token = clinicFeign.getDoctorDeviceId(dto.getDoctorId());
 
-//			if ("FOLLOW_UP".equalsIgnoreCase(dto.getAppointmentType())) {
-//
-//				title = "Follow-up Appointment Scheduled";
-//				body = "A follow-up session has been scheduled for Patient " + dto.getPatientName() + " at "
-//						+ dto.getAppointmentTime();
-//
-//				log.info("Preparing Follow-up notification.");
-//
-//			} else {
-//
-//				title = "New Appointment Booked";
-//				body = "A new appointment has been booked for Patient " + dto.getPatientName() + " at "
-//						+ dto.getAppointmentTime();
-//
-//				log.info("Preparing New Appointment notification.");
-//			}
+	        if (token == null || token.isBlank()) {
 
-			if ("FOLLOW_UP".equalsIgnoreCase(dto.getAppointmentType())) {
+	            log.error("Doctor FCM token not found. DoctorId={}",
+	                    dto.getDoctorId());
 
-				title = "Follow-up Appointment Scheduled";
+	            res.setMessage("Doctor FCM Token Not Found");
+	            res.setStatus(404);
+	            res.setSuccess(false);
 
-				body = "A follow-up appointment has been scheduled.\n\n" + "Patient: " + dto.getPatientName()
-						+ "\nDate: " + dto.getAppointmentDate() + "\nTime: " + dto.getAppointmentTime();
+	            return ResponseEntity.status(res.getStatus()).body(res);
+	        }
 
-			} else {
+	        log.info("Doctor device token fetched successfully");
 
-				title = "New Appointment Booked";
+	        String title;
+	        String body;
 
-				body = "A new appointment has been booked.\n\n" + "Patient: " + dto.getPatientName() + "\nDate: "
-						+ dto.getAppointmentDate() + "\nTime: " + dto.getAppointmentTime();
-			}
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	        if ("FOLLOW_UP".equalsIgnoreCase(dto.getAppointmentType())) {
 
-			LocalDate appointmentDate = LocalDate.parse(dto.getAppointmentDate(), formatter);
-			LocalDate today = LocalDate.now();
+	            log.info("Preparing follow-up appointment notification");
 
-			String navigationScreen = appointmentDate.isEqual(today) ? "dashboard" : "appointments";
+	            title = "Follow-up Appointment Scheduled";
 
-			log.info("Navigation Screen: {}", navigationScreen);
+	            body =
+	                    "A follow-up appointment has been scheduled.\n\n"
+	                            + "Patient: "
+	                            + dto.getPatientName()
+	                            + "\nDate: "
+	                            + dto.getAppointmentDate()
+	                            + "\nTime: "
+	                            + dto.getAppointmentTime();
 
-			log.info("Sending push notification to DoctorId: {}", dto.getDoctorId());
+	        } else {
 
-			appNotification.sendPushNotification(token, title, body, "DOCTOR_APPOINTMENT", "Doctor Appointment ",
-					"default", navigationScreen);
+	            log.info("Preparing new appointment notification");
 
-			log.info("Push notification sent successfully for BookingId: {}", dto.getBookingId());
+	            title = "New Appointment Booked";
 
-			DoctorPushNotification notification = new DoctorPushNotification();
+	            body =
+	                    "A new appointment has been booked.\n\n"
+	                            + "Patient: "
+	                            + dto.getPatientName()
+	                            + "\nDate: "
+	                            + dto.getAppointmentDate()
+	                            + "\nTime: "
+	                            + dto.getAppointmentTime();
+	        }
 
-			notification.setDoctorId(dto.getDoctorId());
-			notification.setBookingId(dto.getBookingId());
-			notification.setAppointmentType(dto.getAppointmentType());
-			notification.setPatientName(dto.getPatientName());
-			notification.setAppointmentDate(dto.getAppointmentDate());
-			notification.setAppointmentTime(dto.getAppointmentTime());
-			notification.setTitle(title);
-			notification.setBody(body);
-			notification.setSent(true);
-			notification.setCreatedAt(LocalDateTime.now().toString());
+	        log.debug("Notification title prepared: {}", title);
 
-			repository.save(notification);
+	        DateTimeFormatter formatter =
+	                DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-			log.info("Notification details saved successfully. BookingId: {}", dto.getBookingId());
+	        LocalDate appointmentDate =
+	                LocalDate.parse(dto.getAppointmentDate(), formatter);
 
-			res.setMessage("Doctor Notification Sent Successfully");
-			res.setStatus(200);
-			res.setSuccess(true);
+	        LocalDate today = LocalDate.now();
 
-		} catch (Exception e) {
+	        String navigationScreen =
+	                appointmentDate.isEqual(today)
+	                        ? "dashboard"
+	                        : "appointments";
 
-			log.error("Exception occurred while sending doctor notification for BookingId: {}", dto.getBookingId(), e);
+	        log.info(
+	                "Navigation screen determined. AppointmentDate={}, Today={}, Screen={}",
+	                appointmentDate,
+	                today,
+	                navigationScreen);
 
-			res.setMessage(e.getMessage());
-			res.setStatus(500);
-			res.setSuccess(false);
-		}
+	        log.info(
+	                "Sending push notification. DoctorId={}, BookingId={}",
+	                dto.getDoctorId(),
+	                dto.getBookingId());
 
-		return ResponseEntity.status(res.getStatus()).body(res);
+	        appNotification.sendPushNotification(
+	                token,
+	                title,
+	                body,
+	                "DOCTOR_APPOINTMENT",
+	                "Doctor Appointment",
+	                "default",
+	                navigationScreen);
+
+	        log.info(
+	                "Push notification sent successfully. BookingId={}",
+	                dto.getBookingId());
+
+	        log.debug(
+	                "Creating notification audit entity. BookingId={}",
+	                dto.getBookingId());
+
+	        DoctorPushNotification notification =
+	                new DoctorPushNotification();
+
+	        notification.setDoctorId(dto.getDoctorId());
+	        notification.setBookingId(dto.getBookingId());
+	        notification.setAppointmentType(dto.getAppointmentType());
+	        notification.setPatientName(dto.getPatientName());
+	        notification.setAppointmentDate(dto.getAppointmentDate());
+	        notification.setAppointmentTime(dto.getAppointmentTime());
+	        notification.setTitle(title);
+	        notification.setBody(body);
+	        notification.setSent(true);
+	        notification.setCreatedAt(LocalDateTime.now().toString());
+
+	        log.info(
+	                "Saving notification record. BookingId={}, DoctorId={}",
+	                dto.getBookingId(),
+	                dto.getDoctorId());
+
+	        DoctorPushNotification savedNotification =
+	                repository.save(notification);
+
+	        log.info(
+	                "Notification record saved successfully. NotificationId={}, BookingId={}",
+	                savedNotification.getId(),
+	                dto.getBookingId());
+
+	        res.setMessage("Doctor Notification Sent Successfully");
+	        res.setStatus(200);
+	        res.setSuccess(true);
+
+	        log.info(
+	                "Doctor notification completed successfully. BookingId={}",
+	                dto.getBookingId());
+
+	    } catch (Exception e) {
+
+	        log.error(
+	                "Error while sending doctor notification. BookingId={}, DoctorId={}, Error={}",
+	                dto.getBookingId(),
+	                dto.getDoctorId(),
+	                e.getMessage(),
+	                e);
+
+	        res.setMessage(e.getMessage());
+	        res.setStatus(500);
+	        res.setSuccess(false);
+	    }
+
+	    log.info(
+	            "sendNotification completed. BookingId={}, Status={}, ExecutionTime={} ms",
+	            dto.getBookingId(),
+	            res.getStatus(),
+	            (System.currentTimeMillis() - startTime));
+
+	    return ResponseEntity.status(res.getStatus()).body(res);
 	}
-
     
     public ResponseEntity<?> sendNotificationFallback(
             DoctorPushNotificationDTO dto,
@@ -165,44 +239,108 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
         return ResponseEntity.status(429).body(res);
     }
 
-	@Override
-	public ResponseEntity<?> sendDoctorRatingNotification(DoctorRatingNotificationDTO dto) {
+    @Override
+    public ResponseEntity<?> sendDoctorRatingNotification(
+            DoctorRatingNotificationDTO dto) {
 
-		Response response = new Response();
+        long startTime = System.currentTimeMillis();
 
-		try {
+        log.info(
+                "Doctor rating notification request received. DoctorId={}, PatientName={}, Rating={}",
+                dto.getDoctorId(),
+                dto.getPatientName(),
+                dto.getRating());
 
-			String token = clinicFeign.getDoctorDeviceId(dto.getDoctorId());
+        log.debug("Doctor rating notification payload: {}", dto);
 
-			if (token == null || token.isBlank()) {
+        Response response = new Response();
 
-				response.setSuccess(false);
-				response.setStatus(404);
-				response.setMessage("Doctor FCM Token Not Found");
+        try {
 
-				return ResponseEntity.status(404).body(response);
-			}
+            log.info("Fetching doctor device token. DoctorId={}",
+                    dto.getDoctorId());
 
-			String title = "New Patient Rating";
+            String token =
+                    clinicFeign.getDoctorDeviceId(dto.getDoctorId());
 
-			String body = "You received a new rating.\n\n" + "Patient: " + dto.getPatientName() + "\nRating: "
-					+ dto.getRating() + "\nReview: " + dto.getFeedback();
+            if (token == null || token.isBlank()) {
 
-			appNotification.sendPushNotification(token, title, body, "DOCTOR_RATING", "Doctor Rating", "default",
-					"feedback");
+                log.warn(
+                        "Doctor FCM token not found. DoctorId={}",
+                        dto.getDoctorId());
 
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Doctor Rating Notification Sent");
+                response.setSuccess(false);
+                response.setStatus(404);
+                response.setMessage("Doctor FCM Token Not Found");
 
-		} catch (Exception e) {
+                return ResponseEntity.status(404).body(response);
+            }
 
-			response.setSuccess(false);
-			response.setStatus(500);
-			response.setMessage(e.getMessage());
-		}
+            log.info(
+                    "Doctor device token fetched successfully. DoctorId={}",
+                    dto.getDoctorId());
 
-		return ResponseEntity.status(response.getStatus()).body(response);
-	}
+            String title = "New Patient Rating";
 
+            String body =
+                    "You received a new rating.\n\n"
+                            + "Patient: "
+                            + dto.getPatientName()
+                            + "\nRating: "
+                            + dto.getRating()
+                            + "\nReview: "
+                            + dto.getFeedback();
+
+            log.debug(
+                    "Notification content prepared. DoctorId={}, Rating={}",
+                    dto.getDoctorId(),
+                    dto.getRating());
+
+            log.info(
+                    "Sending doctor rating notification. DoctorId={}",
+                    dto.getDoctorId());
+
+            appNotification.sendPushNotification(
+                    token,
+                    title,
+                    body,
+                    "DOCTOR_RATING",
+                    "Doctor Rating",
+                    "default",
+                    "feedback");
+
+            log.info(
+                    "Doctor rating notification sent successfully. DoctorId={}",
+                    dto.getDoctorId());
+
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage("Doctor Rating Notification Sent");
+
+            log.info(
+                    "Doctor rating notification process completed successfully. DoctorId={}",
+                    dto.getDoctorId());
+
+        } catch (Exception e) {
+
+            log.error(
+                    "Failed to send doctor rating notification. DoctorId={}, PatientName={}, Error={}",
+                    dto.getDoctorId(),
+                    dto.getPatientName(),
+                    e.getMessage(),
+                    e);
+
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+        }
+
+        log.info(
+                "sendDoctorRatingNotification completed. DoctorId={}, Status={}, ExecutionTime={} ms",
+                dto.getDoctorId(),
+                response.getStatus(),
+                (System.currentTimeMillis() - startTime));
+
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }

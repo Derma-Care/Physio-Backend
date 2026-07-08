@@ -59,7 +59,10 @@ public class WardBoyServiceImpl implements WardBoyService {
 	private static final SecureRandom random = new SecureRandom();
 
 	private String generateWardBoyId() {
-		return "WB_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+		log.debug("Generating WardBoy ID");
+		String generatedId = "WB_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+		log.debug("Generated WardBoy ID={}", generatedId);
+		return generatedId;
 	}
 
 	@Override
@@ -69,12 +72,14 @@ public class WardBoyServiceImpl implements WardBoyService {
 		log.info("Add WardBoy started | clinicId={}, branchId={}, contact={}",
 				dto.getClinicId(), dto.getBranchId(), dto.getContactNumber());
 
+		log.debug("Checking existing WardBoy by contactNumber={}", dto.getContactNumber());
 		if (wardBoyRepository.findByContactNumber(dto.getContactNumber()).isPresent()) {
 			log.warn("WardBoy already exists | contactNumber={}", dto.getContactNumber());
 			return ResponseStructure.buildResponse(null,
 					"WardBoy already exists with contact number : " + dto.getContactNumber(), HttpStatus.CONFLICT,
 					HttpStatus.CONFLICT.value());
 		}
+		log.debug("Checking existing login credentials username={}", dto.getContactNumber());
 		if (credentialsRepository.existsByUsername(dto.getContactNumber())) {
 			log.warn("Login credentials already exist | username={}", dto.getContactNumber());
 			return ResponseStructure.buildResponse(null, "Login credentials already exist for this mobile number",
@@ -83,11 +88,13 @@ public class WardBoyServiceImpl implements WardBoyService {
 		log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
 		ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
 		Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
+		log.debug("Admin Service response received branchId={}", dto.getBranchId());
 
 		WardBoy wardBoy = WardBoyMapper.toEntity(dto);
 		wardBoy.setBranchName(br.getBranchName());
 		wardBoy.setWardBoyId(generateWardBoyId());
 
+		log.debug("Saving WardBoy entity clinicId={} branchId={}", dto.getClinicId(), dto.getBranchId());
 		WardBoy saved = wardBoyRepository.save(wardBoy);
 		log.info("WardBoy saved successfully | wardBoyId={}", saved.getWardBoyId());
 		
@@ -101,10 +108,12 @@ public class WardBoyServiceImpl implements WardBoyService {
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
+		log.debug("Saving login credentials staffId={}", saved.getWardBoyId());
 		credentialsRepository.save(credentials);
 
 		log.info("Login credentials created | wardBoyId={}", saved.getWardBoyId());
 
+		log.debug("Mapping WardBoy entity to DTO wardBoyId={}", saved.getWardBoyId());
 		WardBoyDTO responseDto = WardBoyMapper.toDTO(saved);
 		responseDto.setBranchName(saved.getBranchName());
 		responseDto.setUserName(username);
@@ -122,6 +131,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	public ResponseStructure<WardBoyDTO> getWardBoyById(String id) {
 		log.info("Fetching WardBoy by ID | id={}", id);
 
+		log.debug("Calling repository.findById({})", id);
 		WardBoy wardBoy = wardBoyRepository.findById(id)
 				.orElseThrow(() ->{
 					log.warn("WardBoy not found | id={}", id);
@@ -140,6 +150,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	public ResponseStructure<List<WardBoyDTO>> getAllWardBoys() {
 		log.info("Fetching all WardBoys");
 
+		log.debug("Fetching all WardBoy entities");
 		List<WardBoyDTO> wardBoys = wardBoyRepository.findAll().stream().map(WardBoyMapper::toDTO)
 				.collect(Collectors.toList());
 		log.info("Total WardBoys fetched | count={}", wardBoys.size());
@@ -163,7 +174,8 @@ public class WardBoyServiceImpl implements WardBoyService {
 		if (dto.getContactNumber() != null && !existing.getContactNumber().equals(dto.getContactNumber())) {
 			log.debug("Updating contact number | old={}, new={}",
 					existing.getContactNumber(), dto.getContactNumber());
-			if (wardBoyRepository.findByContactNumber(dto.getContactNumber()).isPresent()) {
+			log.debug("Checking existing WardBoy by contactNumber={}", dto.getContactNumber());
+		if (wardBoyRepository.findByContactNumber(dto.getContactNumber()).isPresent()) {
 				log.warn("Duplicate contact number detected | contact={}", dto.getContactNumber());
 
 				throw new RuntimeException("WardBoy already exists with contact number: " + dto.getContactNumber());
@@ -281,6 +293,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 		WardBoy saved = wardBoyRepository.save(existing);
 		
 		log.info("WardBoy updated successfully | id={}", id);
+		log.debug("Mapping WardBoy entity to DTO wardBoyId={}", saved.getWardBoyId());
 		WardBoyDTO responseDto = WardBoyMapper.toDTO(saved);
 
 		return ResponseStructure.buildResponse(responseDto, "WardBoy updated successfully", HttpStatus.OK,
@@ -381,12 +394,14 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	// -------------- Generate password--------------------------
 	private String generateStructuredPassword() {
+		log.debug("Generating structured password");
 		String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
 		SecureRandom random = new SecureRandom();
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 10; i++) {
 			sb.append(chars.charAt(random.nextInt(chars.length())));
 		}
+		log.debug("Structured password generated successfully");
 		return sb.toString();
 	}
 
@@ -436,20 +451,24 @@ public class WardBoyServiceImpl implements WardBoyService {
     // ================= RATE LIMIT FALLBACKS =================
 
     public ResponseStructure<WardBoyDTO> addWardBoyFallback(WardBoyDTO dto, Exception ex) {
-        return buildWardBoyResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyResponse();
     }
 
     public ResponseStructure<WardBoyDTO> getWardBoyByIdFallback(String id, Exception ex) {
-        return buildWardBoyResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyResponse();
     }
 
     public ResponseStructure<List<WardBoyDTO>> getAllWardBoysFallback(Exception ex) {
-        return buildWardBoyListResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyListResponse();
     }
 
     public ResponseStructure<WardBoyDTO> updateWardBoyFallback(
             String id, WardBoyDTO dto, Exception ex) {
-        return buildWardBoyResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyResponse();
     }
 
     public ResponseStructure<Void> deleteWardBoyFallback(String id, Exception ex) {
@@ -462,20 +481,24 @@ public class WardBoyServiceImpl implements WardBoyService {
 
     public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdFallback(
             String clinicId, Exception ex) {
-        return buildWardBoyListResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyListResponse();
     }
 
     public ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicIdFallback(
             String wardBoyId, String clinicId, Exception ex) {
-        return buildWardBoyResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyResponse();
     }
 
     public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdAndBranchIdFallback(
             String clinicId, String branchId, Exception ex) {
-        return buildWardBoyListResponse();
+        log.error("Rate limiter fallback triggered", ex);
+		return buildWardBoyListResponse();
     }
 
     public ResponseStructure<WardBoyDTO> buildWardBoyResponse() {
+		log.warn("Returning WardBoy rate limit response");
         return ResponseStructure.buildResponse(
                 null,
                 "Too many requests. Please try again after some time.",
@@ -484,6 +507,7 @@ public class WardBoyServiceImpl implements WardBoyService {
     }
 
     public ResponseStructure<List<WardBoyDTO>> buildWardBoyListResponse() {
+		log.warn("Returning WardBoy list rate limit response");
         return ResponseStructure.buildResponse(
                 null,
                 "Too many requests. Please try again after some time.",

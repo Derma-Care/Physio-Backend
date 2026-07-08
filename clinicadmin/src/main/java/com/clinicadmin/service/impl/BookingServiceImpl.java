@@ -20,10 +20,12 @@ import com.clinicadmin.utils.ExtractFeignMessage;
 import com.clinicadmin.utils.FeignImpl;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.extern.slf4j.Slf4j;
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @Service
+@Slf4j
 public class BookingServiceImpl implements BookingService {
 	
 	
@@ -44,12 +46,15 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
     @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteBookedServiceFallback")
 	public ResponseEntity<?> deleteBookedService(String id) {
+		log.info("Deleting booked service bookingId={}", id);
 		Response response = new Response();
 		try {
 			return bookingFeign.deleteBookedService(id);					
 		} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
+			log.error("Feign call failed", e);
 			response.setStatus(e.status());
 			response.setMessage(ExtractFeignMessage.clearMessage(e));
 			response.setSuccess(false);
@@ -61,14 +66,16 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllBookedServicesDetailsByBranchIdFallback")
 	public ResponseEntity<?> getAllBookedServicesDetailsByBranchId(String branchId,int page) {
+		log.info("Fetching bookings by branchId={} page={}", branchId, page);
 		Response response = new Response();
 		try {
 			return bookingFeign
 					.bookingByBranchId(keyCloakTokenStore.getAccess_token(),branchId, page, 10);		
 
 		} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 			response.setStatus(e.status());
 			response.setMessage(ExtractFeignMessage.clearMessage(e));
 			response.setSuccess(false);
@@ -79,14 +86,16 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	@Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBookingsByClinicIdWithBranchIdFallback")
 	public ResponseEntity<?> getBookingsByClinicIdWithBranchId(String clinicId,
 			String branchId,int page) {
+		log.info("Fetching bookings clinicId={} branchId={} page={}", clinicId, branchId, page);
 
 		ResponseStructure<List<Map<String,Object>>> res = new ResponseStructure<>();
 		try {
 			return bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),clinicId, branchId, page, 10);
 		} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
 			return ResponseEntity.status(res.getStatusCode()).body(res);
@@ -95,12 +104,14 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
    @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "retrieveOneWeekAppointmentsFallback")
 	public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId,int page) {
+		log.info("Fetching one week appointments clinicId={} branchId={} page={}", clinicId, branchId, page);
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
 			return bookingFeign.retrieveOneWeekAppointments(keyCloakTokenStore.getAccess_token(),clinicId, branchId,page,10);
 		} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), null, e.status());
 			return ResponseEntity.status(res.getStatusCode()).body(res);
 		}
@@ -108,12 +119,14 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "retrieveAppointnmentsByServiceDateFallback")
 	public ResponseEntity<?> retrieveAppointnmentsByServiceDate(String clinicId, String branchId, String date) {
+		log.info("Fetching appointments clinicId={} branchId={} date={}", clinicId, branchId, date);
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
 			return bookingFeign.retrieveAppointnmentsByServiceDate(keyCloakTokenStore.getAccess_token(),clinicId, branchId, date);
 		} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
 			return ResponseEntity.status(res.getStatusCode()).body(res);
@@ -122,8 +135,9 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "updateAppointmentBasedOnBookingIdFallback")
 	public ResponseEntity<?> updateAppointmentBasedOnBookingId(BookingResponse response) {
+		log.info("Updating appointment bookingId={}", response.getBookingId());
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
 			ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse = bookingFeign.updateAppointmentBasedOnBookingId(keyCloakTokenStore.getAccess_token(),response);
@@ -132,13 +146,15 @@ public class BookingServiceImpl implements BookingService {
 						 response.getBranchId()!= null&&
 						 response.getServiceDate()!= null&&
 						 response.getServicetime()!= null) {
-				 doctorServiceImpl.updateSlot(         
+				 log.info("Updating doctor slot doctorId={} date={} time={}",  bookingResponse.getBody().getData().getDoctorId(), 	 bookingResponse.getBody().getData().getServiceDate(), bookingResponse.getBody().getData().getServicetime());					
+		          		 doctorServiceImpl.updateSlot(         
 						 bookingResponse.getBody().getData().getDoctorId(),
 						 bookingResponse.getBody().getData().getBranchId(),
 						 bookingResponse.getBody().getData().getServiceDate(),
 						 bookingResponse.getBody().getData().getServicetime());			
 			  }} return bookingResponse;
 			} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
 			return ResponseEntity.status(res.getStatusCode()).body(res);
@@ -148,12 +164,14 @@ public class BookingServiceImpl implements BookingService {
 	
 	@Override
 	 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "retrieveAppointnmentsByPatientIdFallback")
 	public ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId,int page) {
+		log.info("Fetching appointments patientId={} page={}", patientId, page);
 		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
 		try {
 			return bookingFeign.getAppointmentsByPatientId(keyCloakTokenStore.getAccess_token(),patientId, page, 10);
 		} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 			res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR,
 					e.status());
 			return ResponseEntity.status(res.getStatusCode()).body(res);
@@ -164,8 +182,9 @@ public class BookingServiceImpl implements BookingService {
 		// BOOKING MANAGEMENT
 		@Override
 		 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "bookServiceFallback")
 		public Response bookService(BookingResponse req) throws JsonProcessingException {
+			log.info("Booking service request patientId={} doctorId={}", req.getPatientId(), req.getDoctorId());
 			Response response = new Response();
 			try {
 				ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(keyCloakTokenStore.getAccess_token(),req);
@@ -182,6 +201,7 @@ public class BookingServiceImpl implements BookingService {
 					response.setStatus(res.getBody().getStatusCode());
 					
 					try {
+						log.info("Publishing websocket booking notification");
 						messagingTemplate.convertAndSend(
 								"/topic/bookings",
 								response
@@ -196,6 +216,7 @@ public class BookingServiceImpl implements BookingService {
 					response.setStatus(res.getStatusCode().value());
 				}
 			} catch (FeignException e) {
+			log.error("Feign exception occurred", e);
 				response.setStatus(e.status());
 				response.setMessage( ExtractFeignMessage.clearMessage(e));
 				response.setSuccess(false);
@@ -212,6 +233,7 @@ public class BookingServiceImpl implements BookingService {
 //    try {
 //        return bookingFeign.getInprogressAppointmentsByPatientId(keyCloakTokenStore.getAccess_token(),patientId);
 //    } catch (FeignException e) {
+			//log.error("Feign exception occurred", e);
 //        res = new ResponseStructure<>(null, ExtractFeignMessage.clearMessage(e), HttpStatus.INTERNAL_SERVER_ERROR, e.status());
 //        return ResponseEntity.status(res.getStatusCode()).body(res);
 //    }
@@ -225,6 +247,7 @@ public class BookingServiceImpl implements BookingService {
 //    try {
 //        return bookingFeign.getInprogressAppointmentsByPatientIdAndClinicId(keyCloakTokenStore.getAccess_token(),patientId, clinicId);
 //    } catch (FeignException e) {
+			//log.error("Feign exception occurred", e);
 //        res = new ResponseStructure<>(
 //                null,
 //                ExtractFeignMessage.clearMessage(e),
@@ -238,16 +261,18 @@ public class BookingServiceImpl implements BookingService {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReprtsFallback")
 public ResponseEntity<?> getReprts(String clinicId,
 		String branchId,
 		Integer number,
 	    String startDate,
 		String endDate) {
+		log.info("Generating report clinicId={} branchId={} startDate={} endDate={}", clinicId, branchId, startDate, endDate);
     ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
     try {
         return bookingFeign.getReport(keyCloakTokenStore.getAccess_token(),clinicId, branchId, number, startDate, endDate);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
         res = new ResponseStructure<>(
                 null,
                 ExtractFeignMessage.clearMessage(e),
@@ -261,13 +286,15 @@ public ResponseEntity<?> getReprts(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTodayPhysioBookingsFallback")
 public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
 		String branchId) {
+		log.info("Fetching today physio bookings clinicId={} branchId={}", clinicId, branchId);
 	Response response = new Response();
     try {
         return bookingFeign.getTodayPhysioBookings(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -277,13 +304,15 @@ public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getInProgressBookingsByIdsFallback")
 public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 		String bookingId) {
+		log.info("Fetching in-progress booking patientId={} bookingId={}", patientId, bookingId);
 	Response response = new Response();
     try {
         return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(keyCloakTokenStore.getAccess_token(),patientId, bookingId);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -294,12 +323,14 @@ public ResponseEntity<?> getInProgressBookingsByIds(String patientId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getReportsByPatientIdFallback")
 public ResponseEntity<?> getReportsByPatientId(String patientId) {
+		log.info("Fetching reports patientId={}", patientId);
 	Response response = new Response();
     try {
         return bookingFeign.getReportsByPatientId(keyCloakTokenStore.getAccess_token(),patientId);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage(ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -309,13 +340,15 @@ public ResponseEntity<?> getReportsByPatientId(String patientId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getUpcomingBookingsFallback")
 public ResponseEntity<?> getUpcomingBookings(String clinicId,
 		String branchId,int option) {
+		log.info("Fetching upcoming bookings clinicId={} branchId={} option={}", clinicId, branchId, option);
 	Response response = new Response();
     try {
         return bookingFeign.getUpcomingBookings(keyCloakTokenStore.getAccess_token(),clinicId, branchId, option);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -325,13 +358,15 @@ public ResponseEntity<?> getUpcomingBookings(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBookingsByDateFallback")
 public ResponseEntity<?> getBookingsByDate(String clinicId,
 		String branchId, String date) {
+		log.info("Fetching bookings by date clinicId={} branchId={} date={}", clinicId, branchId, date);
 	Response response = new Response();
     try {
         return bookingFeign.getPhysioBookingBasedOnDate(keyCloakTokenStore.getAccess_token(),clinicId, branchId, date);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -342,13 +377,15 @@ public ResponseEntity<?> getBookingsByDate(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBookingsByDateRangeFallback")
 public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 		String branchId,String start, String end) {
+		log.info("Fetching bookings by range clinicId={} branchId={} start={} end={}", clinicId, branchId, start, end);
 	Response response = new Response();
     try {
         return bookingFeign.getPhysioBookingsByCustomeRange(keyCloakTokenStore.getAccess_token(),clinicId, branchId, start, end);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -359,12 +396,14 @@ public ResponseEntity<?> getBookingsByDateRange(String clinicId,
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBookedServiceByIdFallback")
 public ResponseEntity<?> getBookedServiceById(String bookingId) {
+		log.info("Fetching booked service bookingId={}", bookingId);
 	Response response = new Response();
     try {
         return bookingFeign.getBookedService(keyCloakTokenStore.getAccess_token(),bookingId);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -375,12 +414,14 @@ public ResponseEntity<?> getBookedServiceById(String bookingId) {
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getBookingByIdFallback")
 public ResponseEntity<?> getBookingById(String bookingId){
+		log.info("Fetching booking bookingId={}", bookingId);
 	Response response = new Response();
     try {
         return bookingFeign.getBookingById(keyCloakTokenStore.getAccess_token(),bookingId);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -391,12 +432,14 @@ public ResponseEntity<?> getBookingById(String bookingId){
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "getTodayBookingsByClinicIdAndBranchIdFallback")
 public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,String branchId,int page){
+		log.info("Fetching today bookings clinicId={} branchId={} page={}", clinicId, branchId, page);
 	Response response = new Response();
     try {
         return bookingFeign.getTodayBookings(keyCloakTokenStore.getAccess_token(),clinicId, branchId, page, 10);
     } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
 		response.setSuccess(false);
@@ -406,8 +449,9 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
 
 @Override
 @Secured("ROLE_CLINICADMIN")
-    @RateLimiter(name = "clinicAdminService", fallbackMethod = "rateLimitFallback")
+    @RateLimiter(name = "clinicAdminService", fallbackMethod = "physioAppointmentFallback")
 public ResponseEntity<?> physioAppointment(BookingRequset req) {
+    log.info("Physio appointment request clinicId={} branchId={} patientId={}", req.getClinicId(), req.getBranchId(), req.getPatientId());
     ResponseEntity<Response> res = null;
     //System.out.println(keyCloakTokenStore.access_token);
     Response response = new Response();
@@ -427,7 +471,7 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	        	        QuestionsByPartEntity entity = null;
 	        	        try {
 	        	        entity = customerServiceFeignClient.getByKey(keyCloakTokenStore.getAccess_token(),key).getBody();
-	        	        }catch(Exception e) {}
+	        	        }catch(Exception e) { log.warn("Failed to fetch questionnaire data", e); }
 	        	        if (entity == null || entity.getQuestionsByPart() == null) {
 	        	            continue;
 	        	        }	        	       
@@ -466,7 +510,7 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	                    req.getServicetime()
 	            );
     			try {
-    				System.out.println("WebSocket notification triggered: /topic/clinic-admin/bookings");
+    				log.info("WebSocket notification triggered: /topic/clinic-admin/bookings");
 
         			messagingTemplate.convertAndSend(
         					  "/topic/clinic-admin/bookings",
@@ -484,6 +528,7 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 	            }
     	return res;
       } catch (FeignException e) {
+			log.error("Feign exception occurred", e);
     	    response.setStatus(e.status());
 			response.setMessage(ExtractFeignMessage.clearMessage(e));
 			response.setSuccess(false);
@@ -492,9 +537,12 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 }
 
     
-    // ================= RATE LIMIT FALLBACK METHODS =================
     
-    public ResponseEntity<?> rateLimitFallback(String id, Exception ex) {
+
+    // ================= RATE LIMIT FALLBACK METHODS =================
+
+    private ResponseEntity<?> rateLimitResponse(String methodName, Exception ex) {
+        log.error("Rate limiter triggered in {}", methodName, ex);
         Response response = new Response();
         response.setStatus(429);
         response.setSuccess(false);
@@ -502,52 +550,23 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
         return ResponseEntity.status(429).body(response);
     }
 
-    public ResponseEntity<?> rateLimitFallback(String p1, String p2, Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setSuccess(false);
-        response.setMessage("Too many requests. Please try again later.");
-        return ResponseEntity.status(429).body(response);
-    }
-
-    public ResponseEntity<?> rateLimitFallback(String p1, String p2, int page, Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setSuccess(false);
-        response.setMessage("Too many requests. Please try again later.");
-        return ResponseEntity.status(429).body(response);
-    }
-
-    public ResponseEntity<?> rateLimitFallback(String p1, String p2, String p3, Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setSuccess(false);
-        response.setMessage("Too many requests. Please try again later.");
-        return ResponseEntity.status(429).body(response);
-    }
-
-    public ResponseEntity<?> rateLimitFallback(String p1, String p2, String p3, int page, Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setSuccess(false);
-        response.setMessage("Too many requests. Please try again later.");
-        return ResponseEntity.status(429).body(response);
-    }
-
-    public ResponseEntity<?> rateLimitFallback(BookingRequset req, Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setSuccess(false);
-        response.setMessage("Too many requests. Please try again later.");
-        return ResponseEntity.status(429).body(response);
-    }
-
-    public Response rateLimitFallback(BookingResponse req, Exception ex) {
-        Response response = new Response();
-        response.setStatus(429);
-        response.setSuccess(false);
-        response.setMessage("Too many requests. Please try again later.");
-        return response;
-    }
-
+    public ResponseEntity<?> deleteBookedServiceFallback(String id, Exception ex){ return rateLimitResponse("deleteBookedService", ex); }
+    public ResponseEntity<?> getAllBookedServicesDetailsByBranchIdFallback(String branchId,int page, Exception ex){ return rateLimitResponse("getAllBookedServicesDetailsByBranchId", ex); }
+    public ResponseEntity<?> getBookingsByClinicIdWithBranchIdFallback(String clinicId,String branchId,int page, Exception ex){ return rateLimitResponse("getBookingsByClinicIdWithBranchId", ex); }
+    public ResponseEntity<?> retrieveOneWeekAppointmentsFallback(String clinicId,String branchId,int page, Exception ex){ return rateLimitResponse("retrieveOneWeekAppointments", ex); }
+    public ResponseEntity<?> retrieveAppointnmentsByServiceDateFallback(String clinicId,String branchId,String date, Exception ex){ return rateLimitResponse("retrieveAppointnmentsByServiceDate", ex); }
+    public ResponseEntity<?> updateAppointmentBasedOnBookingIdFallback(BookingResponse responseObj, Exception ex){ return rateLimitResponse("updateAppointmentBasedOnBookingId", ex); }
+    public ResponseEntity<?> retrieveAppointnmentsByPatientIdFallback(String patientId,int page, Exception ex){ return rateLimitResponse("retrieveAppointnmentsByPatientId", ex); }
+    public Response bookServiceFallback(BookingResponse req, Exception ex){ log.error("Rate limiter triggered in bookService", ex); Response r=new Response(); r.setStatus(429); r.setSuccess(false); r.setMessage("Too many requests. Please try again later."); return r; }
+    public ResponseEntity<?> getReprtsFallback(String clinicId,String branchId,Integer number,String startDate,String endDate, Exception ex){ return rateLimitResponse("getReprts", ex); }
+    public ResponseEntity<?> getTodayPhysioBookingsFallback(String clinicId,String branchId, Exception ex){ return rateLimitResponse("getTodayPhysioBookings", ex); }
+    public ResponseEntity<?> getInProgressBookingsByIdsFallback(String patientId,String bookingId, Exception ex){ return rateLimitResponse("getInProgressBookingsByIds", ex); }
+    public ResponseEntity<?> getReportsByPatientIdFallback(String patientId, Exception ex){ return rateLimitResponse("getReportsByPatientId", ex); }
+    public ResponseEntity<?> getUpcomingBookingsFallback(String clinicId,String branchId,int option, Exception ex){ return rateLimitResponse("getUpcomingBookings", ex); }
+    public ResponseEntity<?> getBookingsByDateFallback(String clinicId,String branchId,String date, Exception ex){ return rateLimitResponse("getBookingsByDate", ex); }
+    public ResponseEntity<?> getBookingsByDateRangeFallback(String clinicId,String branchId,String start,String end, Exception ex){ return rateLimitResponse("getBookingsByDateRange", ex); }
+    public ResponseEntity<?> getBookedServiceByIdFallback(String bookingId, Exception ex){ return rateLimitResponse("getBookedServiceById", ex); }
+    public ResponseEntity<?> getBookingByIdFallback(String bookingId, Exception ex){ return rateLimitResponse("getBookingById", ex); }
+    public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchIdFallback(String clinicId,String branchId,int page, Exception ex){ return rateLimitResponse("getTodayBookingsByClinicIdAndBranchId", ex); }
+    public ResponseEntity<?> physioAppointmentFallback(BookingRequset req, Exception ex){ return rateLimitResponse("physioAppointment", ex); }
 }

@@ -19,6 +19,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -30,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
 import com.dermacare.bookingService.dto.ConsultationFeesDTO;
@@ -39,7 +41,6 @@ import com.dermacare.bookingService.dto.PatientInfo;
 import com.dermacare.bookingService.dto.RelationInfoDTO;
 import com.dermacare.bookingService.dto.ReportsDTO;
 import com.dermacare.bookingService.dto.ReportsDtoList;
-import com.dermacare.bookingService.dto.Session;
 import com.dermacare.bookingService.dto.SessionForBooking;
 import com.dermacare.bookingService.entity.Booking;
 import com.dermacare.bookingService.entity.ConsultationFees;
@@ -48,8 +49,6 @@ import com.dermacare.bookingService.entity.Reports;
 import com.dermacare.bookingService.entity.ReportsList;
 import com.dermacare.bookingService.entity.Status;
 import com.dermacare.bookingService.entity.TheraphyAnswersEntity;
-import com.dermacare.bookingService.feign.NotificationFeign;
-import com.dermacare.bookingService.feign.PhysioDoctorFeign;
 import com.dermacare.bookingService.repository.BookingServiceRepository;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.service.S3Service;
@@ -62,13 +61,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 
 
 @Service
 @Slf4j
-@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
 public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Autowired
@@ -106,7 +105,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "followUpBookingFallback")
 	public ResponseEntity<?> followUpBooking(BookingResponse request) {
 		ResponseStructure<BookingResponse> response = new ResponseStructure<>();
 		ObjectMapper mapper = new ObjectMapper();
@@ -130,7 +129,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						HttpStatus.BAD_REQUEST.value());}
 		}catch (Exception e){
 			// Log properly (avoid System.out in real apps)
-			e.printStackTrace();
+			log.error("Unhandled exception", e);
 			response = ResponseStructure.buildResponse(
 					null,
 					"Exception occurred: " + e.getMessage(),
@@ -163,7 +162,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					res = clinnicfeign.getCustomerByMobilenumberAndName(keyCloakTokenStore.getAccess_token(),request.getMobileNumber(), request.getName());
 					customerId = res.get("customerId");
 					patientId = res.get("patientId");}
-			}catch(Exception e) {System.out.println(e.getMessage());}
+			}catch(Exception e) {log.info("DEBUG: {}", e.getMessage());}
 			if(request.getCustomerId().isEmpty()){
 				entity.setCustomerId(customerId);}
 			if(request.getPatientId().isEmpty()){
@@ -255,7 +254,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				lst.add(followup);
 				entity.setFollwupBookings(lst);
 			}}catch (Exception e) {
-			System.out.println(e.getMessage());
+			log.info("DEBUG: {}", e.getMessage());
 		}return entity;}
 
 	private BookingResponse toResponse(Booking entity) {
@@ -289,7 +288,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		            response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
 		        }
 		    } catch (Exception e) {
-		        System.out.println("partImage URL error: " + e.getMessage());
+		        log.info("DEBUG: {}", "partImage URL error: " + e.getMessage());
 		    }
 
 		    try {
@@ -297,7 +296,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		            response.setConsentFormPdf(s3Service.generateSignedUrl(entity.getConsentFormPdf()));
 		        }
 		    } catch (Exception e) {
-		        System.out.println("consentFormPdf URL error: " + e.getMessage());
+		        log.info("DEBUG: {}", "consentFormPdf URL error: " + e.getMessage());
 		    }
 
 		    try {
@@ -311,7 +310,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		            response.setAttachments(signedUrls);
 		        }
 		    } catch (Exception e) {
-		        System.out.println("attachments URL error: " + e.getMessage());
+		        log.info("DEBUG: {}", "attachments URL error: " + e.getMessage());
 		    }
 
 		    // ── ✅ NEW: Sign report file keys → signed URLs ──
@@ -327,7 +326,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		                                try {
 		                                    return clinicAdminFeign.getSignedUrl(keyCloakTokenStore.getAccess_token(),key); // ✅ calls Clinic Admin
 		                                } catch (Exception ex) {
-		                                    System.out.println("report sign error: " + ex.getMessage());
+		                                    log.info("DEBUG: {}", "report sign error: " + ex.getMessage());
 		                                    return key; // fallback to raw key
 		                                }
 		                            })
@@ -337,7 +336,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		            }
 		        }
 		    } catch (Exception e) {
-		        System.out.println("reports URL signing error: " + e.getMessage());
+		        log.info("DEBUG: {}", "reports URL signing error: " + e.getMessage());
 		    }
 
 		    return response;
@@ -373,7 +372,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                bres.setPartImage(s3Service.generateSignedUrl(bres.getPartImage()));
 	            }
 	        } catch (Exception e) {
-	            System.out.println("partImage URL error: " + e.getMessage());
+	            log.info("DEBUG: {}", "partImage URL error: " + e.getMessage());
 	        }
 
 	        // ── consentFormPdf ──────────────────────────────
@@ -382,7 +381,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                bres.setConsentFormPdf(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
 	            }
 	        } catch (Exception e) {
-	            System.out.println("consentFormPdf URL error: " + e.getMessage());
+	            log.info("DEBUG: {}", "consentFormPdf URL error: " + e.getMessage());
 	        }
 
 	        // ── attachments ─────────────────────────────────
@@ -397,7 +396,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                bres.setAttachments(signedUrls);
 	            }
 	        } catch (Exception e) {
-	            System.out.println("attachments URL error: " + e.getMessage());
+	            log.info("DEBUG: {}", "attachments URL error: " + e.getMessage());
 	        }
 
 	        // ── ✅ NEW: reports — sign raw S3 keys via Clinic Admin Feign ──
@@ -413,7 +412,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                                    try {
 	                                        return clinicAdminFeign.getSignedUrl(keyCloakTokenStore.getAccess_token(),key); // ✅ Clinic Admin signs it
 	                                    } catch (Exception ex) {
-	                                        System.out.println("report sign error: " + ex.getMessage());
+	                                        log.info("DEBUG: {}", "report sign error: " + ex.getMessage());
 	                                        return key; // fallback to raw key
 	                                    }
 	                                })
@@ -423,7 +422,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                }
 	            }
 	        } catch (Exception e) {
-	            System.out.println("reports URL signing error: " + e.getMessage());
+	            log.info("DEBUG: {}", "reports URL signing error: " + e.getMessage());
 	        }
 
 	        // ── prescriptionPdf ─────────────────────────────
@@ -438,7 +437,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "physioAppointmentFallback")
 	 public ResponseEntity<?> physioAppointment(BookingRequset request) {
 		 Response res = new Response();
 		  ObjectMapper mapper = new ObjectMapper();
@@ -588,7 +587,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getAppointsByPatientIdFallback")
 	public ResponseEntity<?> getAppointsByPatientId(String patientId, int page, int size) {
 
 		ResponseStructure<Map<String, Object>> res =
@@ -682,7 +681,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			res.setStatusCode(500);
 			res.setMessage(e.getMessage());
-
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(500).body(res);
 		}
 	}
@@ -690,7 +689,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getAppointsByInputFallback")
 	public ResponseEntity<?> getAppointsByInput(
 			String input,
 			int page,
@@ -747,6 +746,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			res.setStatusCode(500);
 			res.setMessage(e.getMessage());
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(500).body(res);
 		}
 	}
@@ -754,7 +754,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getTodayDoctorAppointmentsByDoctorIdFallback")
 	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(
 			String clinicId,
 			String doctorId,
@@ -860,6 +860,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			res.setStatusCode(500);
 			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			res.setMessage("Error occurred : " + e.getMessage());
+			log.error("{}",e.getMessage());
 		}
 		return ResponseEntity
 				.status(res.getStatusCode())
@@ -869,7 +870,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 @Override
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "filterDoctorAppointmentsByDoctorIdFallback")
 public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
         String hospitalId,
         String doctorId,
@@ -946,13 +947,14 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
         res.setStatusCode(500);
         res.setData(null);
         res.setMessage(e.getMessage());
+    	log.error("{}",e.getMessage());
     }
 
     return ResponseEntity.status(res.getStatusCode()).body(res);
 }
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getCompletedApntsByDoctorIdFallback")
 	public ResponseEntity<?> getCompletedApntsByDoctorId(String hospitalId,String doctorId) {
 		Map<String,Object> m = new LinkedHashMap<>();
 		try {
@@ -973,12 +975,13 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}catch(Exception e) {
 			m.put("Message",e.getMessage());
 			m.put("status",500);
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(500).body(m);}
 	}
 
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getSizeOfConsultationTypesByDoctorIdFallback")
 	public ResponseEntity<?> getSizeOfConsultationTypesByDoctorId(String hospitalId,String doctorId) {
 		Map<String,Object> m = new LinkedHashMap<>();
 		try {
@@ -1008,16 +1011,17 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 		}catch(Exception e) {
 			m.put("Message",e.getMessage());
 			m.put("status",500);
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(500).body(m);}
 	}
 
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookedServiceFallback")
 	public BookingResponse getBookedService(String bookingId) {
 		try {
 			Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();
-			System.out.println(entity);
+			log.info("DEBUG: {}", entity);
 			if(entity != null) {
 				BookingResponse res = toResponse(entity);
 				List<SessionForBooking> lst = new ArrayList<>();
@@ -1029,13 +1033,13 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 			}else{
 				return null;}
 		}catch(Exception e) {
-			System.out.println(e.getMessage());
+			log.info("DEBUG: {}", e.getMessage());
 			return null;
 		}
 	}
 
 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "deleteBookedServiceReportsFallback")
 	public void deleteBookedServiceReports(String bookingId,String index) {
 		try {
 			Booking entity = repository.findByBookingIdIgnoreCase(bookingId).get();
@@ -1048,12 +1052,12 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 				if(entity != null && index != null) {
 					entity.getReports().remove(Integer.valueOf(index).intValue());
 					repository.save(entity);
-				}}}catch(Exception e) {}
+				}}}catch(Exception e) {	log.error("{}",e.getMessage());}
 	}
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "deleteServiceFallback")
 	public BookingResponse deleteService(String id) {
 		Booking entity = repository.findByBookingIdIgnoreCase(id)
 				.orElseThrow(() -> new RuntimeException("Invalid Booking Id Please provide Valid Id"));
@@ -1063,7 +1067,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookedServicesFallback")
 	public Page<BookingResponse> getBookedServices(
 			String mobileNumber,
 			int page,
@@ -1090,7 +1094,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getAllBookedServicesFallback")
 	public Page<BookingResponse> getAllBookedServices(int page, int size) {
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -1119,7 +1123,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "bookingByDoctorIdFallback")
 	public Page<BookingResponse> bookingByDoctorId(
 			String doctorId,
 			int page,
@@ -1150,19 +1154,6 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 		return bookingPage.map(this::toResponse);
 	}
-
-//	@Override
-//	public List<BookingResponse> bookingByServiceId(String serviceId) {
-//		List<Booking> bookings = repository.findBySubServiceId(serviceId);
-//		List<Booking> reversedBookings = new ArrayList<>();
-//		for(int i = bookings.size()-1; i >= 0; i--) {
-//			reversedBookings.add(bookings.get(i));
-//		}
-//		if (bookings == null  || bookings.isEmpty()) {
-//			return null;
-//		}
-//		return toResponses(reversedBookings);
-//	}
 
 
 //	@Override
@@ -1265,7 +1256,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "bookingByCustomerIdFallback")
 	public List<Map<String, Object>> bookingByCustomerId(String customerId) {
 
 	    List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -1318,7 +1309,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "bookingByPatientIdFallback")
 	public Page<BookingResponse> bookingByPatientId(String clincId,String patientId, int page, int size) {
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -1336,7 +1327,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "bookingByPatientIdAndBookingIdFallback")
 	public Page<BookingResponse> bookingByPatientIdAndBookingId(
 			String patientId,
 			String bookingId,
@@ -1368,7 +1359,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	 @Override
 	 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getReportsByPatientIdFallback")
 	  public List<ReportsDTO> getReportsByPatientId(String patientId) {
 		  ObjectMapper mapper = new ObjectMapper();
 	         mapper.registerModule(new JavaTimeModule());
@@ -1386,7 +1377,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	    }
 		
 	 @Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "CompletedbookingByCustomerIdFallback")
 	public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId) {
 
 	    List<Booking> bookings = repository.findByCustomerId(customerId);
@@ -1447,7 +1438,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "bookingByClinicIdFallback")
 	public ResponseEntity<?> bookingByClinicId(
 			String clinicId,
 			int page,
@@ -1509,7 +1500,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 			response.setStatus(
 					HttpStatus.INTERNAL_SERVER_ERROR.value());
 			response.setSuccess(false);
-
+			log.error("{}",e.getMessage());
 			return new ResponseEntity<>(
 					response,
 					HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1517,149 +1508,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 	}
 
 
-//	@Override
-//	public ResponseEntity<?> updateAppointment(BookingResponse bookingResponse) {
-//	    try {
-//	        // --- Fetch booking from DB ---
-//	        Booking entity = repository.findByBookingId(bookingResponse.getBookingId())
-//	                .orElseThrow(() -> new RuntimeException("Invalid Booking Id. Please provide a valid Id."));
-//
-//	        // --- Update fields from bookingResponse to entity ---
-//	        if (bookingResponse.getAge() != null) entity.setAge(bookingResponse.getAge());
-//	        if (bookingResponse.getBookedAt() != null) entity.setBookedAt(bookingResponse.getBookedAt());
-//	        if (bookingResponse.getBookingFor() != null) entity.setBookingFor(bookingResponse.getBookingFor());
-//	        if (bookingResponse.getClinicId() != null) entity.setClinicId(bookingResponse.getClinicId());
-//	        if (bookingResponse.getConsultationFee() != 0) entity.setConsultationFee(bookingResponse.getConsultationFee());
-//	        if (bookingResponse.getConsultationType() != null) entity.setConsultationType(bookingResponse.getConsultationType());
-//	        if (bookingResponse.getDoctorId() != null) entity.setDoctorId(bookingResponse.getDoctorId());
-//	        if (bookingResponse.getGender() != null) entity.setGender(bookingResponse.getGender());
-//	        if (bookingResponse.getMobileNumber() != null) entity.setMobileNumber(bookingResponse.getMobileNumber());
-//	        if (bookingResponse.getName() != null) entity.setName(bookingResponse.getName());
-//	        if (bookingResponse.getProblem() != null) entity.setProblem(bookingResponse.getProblem());
-//	        if (bookingResponse.getServiceDate() != null) entity.setServiceDate(bookingResponse.getServiceDate());
-//	        if (bookingResponse.getServicetime() != null) entity.setServicetime(bookingResponse.getServicetime());
-//	        if (bookingResponse.getStatus() != null) {entity.setStatus(bookingResponse.getStatus());
-//	        List<Status> status = entity.getCurrentStatus();
-//        	Status s = new Status();
-//        	ZoneId zone = ZoneId.of("Asia/Kolkata");
-//        	LocalDateTime dateTime = LocalDateTime.now(zone);
-//        	s.setDATE_TIME(dateTime);
-//        	s.setStatus(bookingResponse.getStatus());
-//        	status.add(s);
-//        	 Collections.reverse(status);
-//        	 entity.setCurrentStatus(status);
-//	        }
-//	        if (bookingResponse.getNotes() != null) entity.setNotes(bookingResponse.getNotes());
-//	        if (bookingResponse.getReports() != null) {
-//	            entity.setReports(new ObjectMapper().convertValue(
-//	                    bookingResponse.getReports(),
-//	                    new TypeReference<List<ReportsList>>() {}));
-//	        }
-//	        if( bookingResponse.getPaymentType() != null && bookingResponse.getPaymentType().equalsIgnoreCase("paid")) {
-//	        	entity.setStatus("confirmed");
-//	        	List<Status> status = new LinkedList<>();
-//            	Status s = new Status();
-//            	ZoneId zone = ZoneId.of("Asia/Kolkata");
-//            	LocalDateTime dateTime = LocalDateTime.now(zone);
-//            	s.setDATE_TIME(dateTime);
-//            	s.setStatus(entity.getStatus());
-//            	status.add(s);
-//            	 Collections.reverse(status);
-//            	 entity.setCurrentStatus(status);}
-//	        if (bookingResponse.getSubServiceId() != null) entity.setSubServiceId(bookingResponse.getSubServiceId());
-//	        if (bookingResponse.getSubServiceName() != null) entity.setSubServiceName(bookingResponse.getSubServiceName());
-//	        if (bookingResponse.getReasonForCancel() != null) entity.setReasonForCancel(bookingResponse.getReasonForCancel());
-//	        if (bookingResponse.getTotalFee() != 0) entity.setTotalFee(bookingResponse.getTotalFee());
-//	        if (bookingResponse.getFreeFollowUpsLeft() != null) entity.setFreeFollowUpsLeft(bookingResponse.getFreeFollowUpsLeft());
-//	        if (bookingResponse.getFreeFollowUps() != null) entity.setFreeFollowUps(bookingResponse.getFreeFollowUps());
-//	        if (bookingResponse.getVisitCount() != null) entity.setVisitCount(bookingResponse.getVisitCount());
-//	        if (bookingResponse.getFollowupDate() != null) entity.setFollowupDate(bookingResponse.getFollowupDate());
-//
-//	        // --- Update sitting summary ---
-//	        if (bookingResponse.getTotalSittings() != null) entity.setTotalSittings(bookingResponse.getTotalSittings());
-//	        if (bookingResponse.getTakenSittings() != null) entity.setTakenSittings(bookingResponse.getTakenSittings());
-//	        if (bookingResponse.getPendingSittings() != null) entity.setPendingSittings(bookingResponse.getPendingSittings());
-//	        if (bookingResponse.getCurrentSitting() != null) entity.setCurrentSitting(bookingResponse.getCurrentSitting());
-//
-//	        // --- Update treatments (map + sitting summary inside) ---
-//	        if (bookingResponse.getTreatments() != null) {
-//	            entity.setTreatments(bookingResponse.getTreatments());
-//	        }
-//
-//	        // --- Save updated booking ---
-//	        Booking updatedBooking = repository.save(entity);
-//
-//	        // --- Build response DTO ---
-//	        BookingResponse responseDTO = new BookingResponse();
-//	        responseDTO.setBookingId(updatedBooking.getBookingId());
-//	        responseDTO.setBookingFor(updatedBooking.getBookingFor());
-//	        responseDTO.setName(updatedBooking.getName());
-//	        responseDTO.setRelation(updatedBooking.getRelation());
-//	        responseDTO.setPatientMobileNumber(updatedBooking.getPatientMobileNumber());
-//	        responseDTO.setPatientId(updatedBooking.getPatientId());
-//	        responseDTO.setVisitType(updatedBooking.getVisitType());
-//	        responseDTO.setFreeFollowUpsLeft(updatedBooking.getFreeFollowUpsLeft());
-//	        responseDTO.setFreeFollowUps(updatedBooking.getFreeFollowUps());
-//	        responseDTO.setPatientAddress(updatedBooking.getPatientAddress());
-//	        responseDTO.setAge(updatedBooking.getAge());
-//	        responseDTO.setGender(updatedBooking.getGender());
-//	        responseDTO.setMobileNumber(updatedBooking.getMobileNumber());
-//	        responseDTO.setCustomerId(updatedBooking.getCustomerId());
-//	        responseDTO.setConsultationExpiration(updatedBooking.getConsultationExpiration());
-//	        responseDTO.setCustomerDeviceId(updatedBooking.getCustomerDeviceId());
-//	        responseDTO.setProblem(updatedBooking.getProblem());
-//	        responseDTO.setSymptomsDuration(updatedBooking.getSymptomsDuration());
-//	        responseDTO.setClinicId(updatedBooking.getClinicId());
-//	        responseDTO.setClinicName(updatedBooking.getClinicName());
-//	        responseDTO.setBranchId(updatedBooking.getBranchId());
-//	        responseDTO.setBranchname(updatedBooking.getBranchname());
-//	        responseDTO.setDoctorId(updatedBooking.getDoctorId());
-//	        responseDTO.setDoctorName(updatedBooking.getDoctorName());
-//	        responseDTO.setSubServiceId(updatedBooking.getSubServiceId());
-//	        responseDTO.setSubServiceName(updatedBooking.getSubServiceName());
-//	        responseDTO.setServiceDate(updatedBooking.getServiceDate());
-//	        responseDTO.setServicetime(updatedBooking.getServicetime());
-//	        responseDTO.setConsultationType(updatedBooking.getConsultationType());
-//	        responseDTO.setConsultationFee(updatedBooking.getConsultationFee());
-//	        responseDTO.setStatus(updatedBooking.getStatus());
-//	        responseDTO.setTotalFee(updatedBooking.getTotalFee());
-//
-//	        // ✅ Sitting summary
-//	        responseDTO.setTotalSittings(updatedBooking.getTotalSittings());
-//	        responseDTO.setPendingSittings(updatedBooking.getPendingSittings());
-//	        responseDTO.setTakenSittings(updatedBooking.getTakenSittings());
-//	        responseDTO.setCurrentSitting(updatedBooking.getCurrentSitting());
-//
-//	        responseDTO.setBookedAt(updatedBooking.getBookedAt());
-//
-//	        // ✅ Treatments (with dates, sittings, status)
-//	        responseDTO.setTreatments(updatedBooking.getTreatments());
-//
-//	        // --- Return wrapped response ---
-//	        return new ResponseEntity<>(
-//	                ResponseStructure.buildResponse(
-//	                        responseDTO,
-//	                        "Booking updated successfully",
-//	                        HttpStatus.OK,
-//	                        HttpStatus.OK.value()
-//	                ),
-//	                HttpStatus.OK
-//	        );
-//
-//	    } catch (Exception e) {
-//	        return new ResponseEntity<>(
-//	                ResponseStructure.buildResponse(
-//	                        null,
-//	                        e.getMessage(),
-//	                        HttpStatus.INTERNAL_SERVER_ERROR,
-//	                        HttpStatus.INTERNAL_SERVER_ERROR.value()
-//	                ),
-//	                HttpStatus.INTERNAL_SERVER_ERROR
-//	        );
-//	    }
-//	}
-//
-//
+
 //	@Scheduled(cron = "0 01 0 * * ?")
 //	////@Scheduled(fixedRate = 20000)
 //	private void changingStatusFromConfirmedToCompleted() {
@@ -1670,17 +1519,17 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //
 //	                DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
 //	                LocalDateTime bookedDateTime = LocalDateTime.parse(b.getBookedAt(), inputFormatter);
-//                   // System.out.println(bookedDateTime);
+//                   // log.info("DEBUG: {}", bookedDateTime);
 //
 //	                ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 //	                LocalDate todayDate = istTime.toLocalDate(); // only date part
 //	                LocalDate bookedDate = bookedDateTime.toLocalDate(); // only date part
-//                   // System.out.println(bookedDate);
+//                   // log.info("DEBUG: {}", bookedDate);
 //	                long gap = ChronoUnit.DAYS.between(bookedDate, todayDate);
-//                   // System.out.println(gap);
+//                   // log.info("DEBUG: {}", gap);
 //	                int expirationDays = Integer.parseInt(Character.toString(b.getConsultationExpiration().charAt(0)) +
 //	            			Character.toString(b.getConsultationExpiration().charAt(1)));
-//                   // System.out.println(expirationDays);
+//                   // log.info("DEBUG: {}", expirationDays);
 //
 //	                if (gap > expirationDays) {
 //	                    b.setStatus("Completed");
@@ -1689,7 +1538,7 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //	                    NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //	                    n.getData().setStatus("Completed");
 //	                    notificationFeign.updateNotification(n);
-//	                    //System.out.println("Updated to Completed for bookingId: " + b.getBookingId());
+//	                    //log.info("DEBUG: {}", "Updated to Completed for bookingId: " + b.getBookingId());
 //	                    }}}}catch (Exception e) {}}
 //
 //
@@ -1704,16 +1553,16 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //
 //	                DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
 //	                LocalDateTime bookedDateTime = LocalDateTime.parse(b.getBookedAt(), inputFormatter);
-//	               // System.out.println(bookedDateTime);
+//	               // log.info("DEBUG: {}", bookedDateTime);
 //	                ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 //	                LocalDate todayDate = istTime.toLocalDate(); // only date part
 //	                LocalDate bookedDate = bookedDateTime.toLocalDate(); // only date part
-//	               // System.out.println(bookedDate);
+//	               // log.info("DEBUG: {}", bookedDate);
 //	                long gap = ChronoUnit.DAYS.between(bookedDate, todayDate);
 //	                int expirationDays = Integer.parseInt(Character.toString(b.getConsultationExpiration().charAt(0)) +
 //	            			Character.toString(b.getConsultationExpiration().charAt(1)));
-//	                //System.out.println(gap);
-//	               // System.out.println(expirationDays);
+//	                //log.info("DEBUG: {}", gap);
+//	               // log.info("DEBUG: {}", expirationDays);
 //	                if (gap > expirationDays) {
 //	                    b.setStatus("Completed");
 //	                    repository.save(b);
@@ -1722,33 +1571,33 @@ public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(
 //	                    n.getData().setStatus("Completed");
 //	                    notificationFeign.updateNotification(n);
 //
-//	                    //System.out.println("Updated to Completed for bookingId: " + b.getBookingId());
+//	                    //log.info("DEBUG: {}", "Updated to Completed for bookingId: " + b.getBookingId());
 //	                }}}}catch (Exception e) {}}
 //
 //
 
 	@Scheduled(fixedRate = 60 * 60 * 1000)
-		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+		@RateLimiter(name = "bookingApi", fallbackMethod = "autoCalculatePatientCompletedAppointmentsFallback")
 public void autoCalculatePatientCompletedAppointments() {
 		Map<String,Integer> map = new LinkedHashMap<>();
 		Set<String> ids = new LinkedHashSet<>();
 		try {
 			List<Booking> existingBooking = repository.findAll();
-			//System.out.println("existingBooking");
+			//log.info("DEBUG: {}", "existingBooking");
 			if(existingBooking != null && !existingBooking.isEmpty()){
-				//System.out.println("not null");
+				//log.info("DEBUG: {}", "not null");
 				for(Booking b:existingBooking) {
 					if(b.getStatus().equalsIgnoreCase("Completed")) {
-						//System.out.println("find complted");
+						//log.info("DEBUG: {}", "find complted");
 						if(!ids.contains(b.getPatientId())){
 							List<Booking> bookings = repository.findByPatientId(b.getPatientId());
 							ids.add(b.getPatientId());
-							//System.out.println("got obj by patient id");
+							//log.info("DEBUG: {}", "got obj by patient id");
 							for(Booking c:bookings) {
 								if(c.getStatus().equalsIgnoreCase("Completed")) {
-									//System.out.println("patient id with cmplted");
+									//log.info("DEBUG: {}", "patient id with cmplted");
 									if(map.containsKey(b.getPatientId())){
-										//System.out.println("adding to map");
+										//log.info("DEBUG: {}", "adding to map");
 										Integer value = map.get(b.getPatientId());
 										int vlue = value.intValue();
 										vlue += 1;
@@ -1759,18 +1608,18 @@ public void autoCalculatePatientCompletedAppointments() {
 									}
 									for(String key : map.keySet()) {
 										List<Booking> bkings = repository.findByPatientId(key);
-										//System.out.println("got obj with key in map");
+										//log.info("DEBUG: {}", "got obj with key in map");
 										for(Booking bkng : bkings ) {
 											bkng.setVisitCount(map.get(key));
 											repository.save(bkng);}
-									}}}}}}}}catch(Exception e) {}
+									}}}}}}}}catch(Exception e) {	log.error("{}",e.getMessage());}
 	}
 
 
 
 	//---------------------------to get patientdetails by bookingId,pateintId,mobileNumber---------------------------
 	@Override
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getPatientDetailsForConsetFormFallback")
 	public Response getPatientDetailsForConsetForm(String bookingId, String patientId, String mobileNumber) {
 		try {
 			Optional<Booking> optionalBooking = repository.findByBookingIdAndPatientIdAndMobileNumber(bookingId, patientId, mobileNumber);
@@ -1797,6 +1646,7 @@ public void autoCalculatePatientCompletedAppointments() {
 						.message("No booking found with the given details.")
 						.build();}
 		}catch(Exception e){
+			log.error("{}",e.getMessage());
 			return Response.builder()
 					.success(false)
 					.status(500)
@@ -1805,7 +1655,7 @@ public void autoCalculatePatientCompletedAppointments() {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getInProgressAppointmentsFallback")
 	public ResponseEntity<?> getInProgressAppointments(
 			String number,
 			int page,
@@ -1860,6 +1710,7 @@ public void autoCalculatePatientCompletedAppointments() {
 			}
 
 		} catch (Exception e) {
+			log.error("{}",e.getMessage());
 		return ResponseEntity
 				.status(res.getStatusCode())
 				.body(res);
@@ -1868,7 +1719,7 @@ public void autoCalculatePatientCompletedAppointments() {
 
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getInProgressAppointmentsByCustomerIdFallback")
 		public ResponseEntity<?> getInProgressAppointmentsByCustomerId(String customerId) {
 
 		    try {
@@ -1920,7 +1771,7 @@ public void autoCalculatePatientCompletedAppointments() {
 		        );
 
 		    } catch (Exception e) {
-
+		    	log.error("{}",e.getMessage());
 		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 		                .body(ResponseStructure.buildResponse(
 		                        null,
@@ -1935,7 +1786,7 @@ public void autoCalculatePatientCompletedAppointments() {
 
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getInProgressAppointmentsByPatientIdFallback")
 		public ResponseEntity<?> getInProgressAppointmentsByPatientId(String patientId, String clinicId) {
 
 		    try {
@@ -1994,7 +1845,7 @@ public void autoCalculatePatientCompletedAppointments() {
 		        );
 
 		    } catch (Exception e) {
-
+		    	log.error("{}",e.getMessage());
 		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 		                .body(ResponseStructure.buildResponse(
 		                        null,
@@ -2017,13 +1868,13 @@ public void autoCalculatePatientCompletedAppointments() {
 		    for (DateTimeFormatter fmt : formatters) {
 		        try {
 		            return LocalDate.parse(dateStr, fmt);
-		        } catch (Exception ignored) {}
+		        } catch (Exception e) {	log.error("{}",e.getMessage());}
 		    }
 		    return null;
 		}
 
 
-@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+@RateLimiter(name = "bookingApi", fallbackMethod = "inprogressAppointmentsByConsultationExpirationFallback")
 public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(LocalDate exp,Booking booking, DoctorSaveDetailsDTO saveDetails ) {
 		List<BookingResponse> finalList = new ArrayList<>();
 		try {
@@ -2036,7 +1887,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 					int days = 0;
 					if(exp == null ){
 						days = Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", ""));
-						//System.out.println(days);
+						//log.info("DEBUG: {}", days);
 						LocalDate serviceDate  = LocalDate.parse(booking.getServiceDate(), isoFormatter);
 						exp = serviceDate.plusDays(days);}
 					LocalDate followDate = LocalDate.parse(saveDetails.getFollowUp().getNextFollowUpDate(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
@@ -2047,7 +1898,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 						finalList.add(toResponse(bkng));
 					}
 				} catch (Exception e) {
-					System.out.println(e.getMessage());
+					log.info("DEBUG: {}", e.getMessage());
 				}
 			}else {
 				// ✅ Consultation expiration fallback
@@ -2056,29 +1907,29 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 						int days = 0;
 						if(exp == null ){
 							days = Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", ""));
-							// System.out.println(days);
+							// log.info("DEBUG: {}", days);
 							LocalDate serviceDate  = LocalDate.parse(booking.getServiceDate(), isoFormatter);
 							exp = serviceDate.plusDays(days);}
-						// System.out.println(expDate);
+						// log.info("DEBUG: {}", expDate);
 						for (int i = 0; i <= 6; i++) {
 							LocalDate date = today.plusDays(i);
-							//System.out.println(date);
-							// System.out.println(sixthDate);
+							//log.info("DEBUG: {}", date);
+							// log.info("DEBUG: {}", sixthDate);
 							if ((!date.isAfter(sixthDate)) && (date.isBefore(exp) || date.equals(exp))) {
-								//System.out.println("hii");
+								//log.info("DEBUG: {}", "hii");
 								Booking bkng = new Booking(booking);
 								//bkng.setConsentFormPdf(null);
 								//bkng.setAttachments(null);
 								//bkng.setReports(null);
-								// System.out.println(bkng);
+								// log.info("DEBUG: {}", bkng);
 								bkng.setFollowupDate(date.format(isoFormatter));
 								bkng.setStatus("In-Progress");
 								finalList.add(toResponse(bkng));
 							}}
 					}catch (Exception e){
-						System.out.println(e.getMessage());
+						log.info("DEBUG: {}", e.getMessage());
 					}}}}catch(Exception e) {
-			System.out.println(e.getMessage());
+			log.info("DEBUG: {}", e.getMessage());
 			return null;
 		}
 		return finalList;
@@ -2087,7 +1938,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getDoctorFutureAppointmentsFallback")
 	public ResponseEntity<?> getDoctorFutureAppointments(
 			String doctorId,
 			int page,
@@ -2189,7 +2040,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 			}
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			res.setStatusCode(500);
 			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			res.setMessage(e.getMessage());
@@ -2204,7 +2055,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "bookingByBranchIdFallback")
 	public Page<BookingResponse> bookingByBranchId(
 			String branchId,
 			int page,
@@ -2239,7 +2090,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookedServicesByClinicIdWithBranchIdFallback")
 	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchId(
 			String clinicId,
 			String branchId,
@@ -2343,7 +2194,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 					.body(res);
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			res.setStatusCode(500);
 			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			res.setMessage(e.getMessage());
@@ -2358,7 +2209,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 	
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback")
 	public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(
 			String clinicId,
 			String branchId,
@@ -2676,7 +2527,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 			}
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(new Response(
 							false,
@@ -2698,73 +2549,73 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 //			        for (Booking b : bookings) {
 //			            if (b.getStatus().equalsIgnoreCase("In-Progress")) {
 //			            	Response res = doctorFeign.getDoctorSaveDetailsByBookingId(b.getBookingId()).getBody();
-//			            	//System.out.println(b.getBookingId());
+//			            	//log.info("DEBUG: {}", b.getBookingId());
 //			            	DoctorSaveDetailsDTO dto = new ObjectMapper().convertValue(res.getData(),DoctorSaveDetailsDTO.class);
-//			            	//System.out.println(dto);
+//			            	//log.info("DEBUG: {}", dto);
 //			            	if(dto != null) {
 //			            	if(dto.getTreatments() != null) {
 //			            	for(Map.Entry<String,TreatmentDetailsDTO> mp : dto.getTreatments().getGeneratedData().entrySet()){
 //			            	TreatmentDetailsDTO treatments = mp.getValue();
-//			            	//System.out.println(treatments);
+//			            	//log.info("DEBUG: {}", treatments);
 //			            	if(treatments != null) {
 //			            	 List<DatesDTO> dates =	treatments.getDates();
-//			            	 //System.out.println(dates.size());
+//			            	 //log.info("DEBUG: {}", dates.size());
 //			            	 int lastIndex = dates.size()-1;
 //			            	 DatesDTO datesDTO = dates.get(lastIndex);
-//			            	// System.out.println("last index"+datesDTO );
+//			            	// log.info("DEBUG: {}", "last index"+datesDTO );
 //			            	 String date = datesDTO.getDate();
-//			            	 //System.out.println(date);
+//			            	 //log.info("DEBUG: {}", date);
 //			                DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //			                LocalDate lastSitting = LocalDate.parse(date, inputFormatter);
-//		                    //System.out.println(lastSitting);
+//		                    //log.info("DEBUG: {}", lastSitting);
 //			                LocalDate todayDate = LocalDate.now();
-//		                  // System.out.println(todayDate);
-//		                   // System.out.println(gap);
+//		                  // log.info("DEBUG: {}", todayDate);
+//		                   // log.info("DEBUG: {}", gap);
 //			                int expirationDays = Integer.parseInt(Character.toString(b.getConsultationExpiration().charAt(0)) +
 //			            			Character.toString(b.getConsultationExpiration().charAt(1)));
-//		                    //System.out.println(expirationDays);
+//		                    //log.info("DEBUG: {}", expirationDays);
 //			                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //			                LocalDate serviceDate = LocalDate.parse(b.getServiceDate(),formatter);
 //			                LocalDate plusedTime = serviceDate.plusDays(expirationDays);
 //			                if(!lastSitting.isBefore(plusedTime)) {  /// if it is before plustime they its status should be in inprogress
 //			                	  if(!lastSitting.isBefore(serviceDate) && lastSitting.isBefore(todayDate)) {
 //			                		b.setStatus("Completed");
-//			                		//System.out.println("status changed");
+//			                		//log.info("DEBUG: {}", "status changed");
 //			                		  repository.save(b);
 //			                		  try {
 //			                		  NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //					                    n.getData().setStatus("Completed");
 //					                    notificationFeign.updateNotification(n);
 //			                		  }catch(Exception e) {
-//			                			  System.out.println(e.getMessage());
+//			                			  log.info("DEBUG: {}", e.getMessage());
 //			                		  }
 //			                	}}else{
 //			                		if(todayDate.isAfter(plusedTime)) {
 //				                		b.setStatus("Completed");
-//				                		//System.out.println("status changed");
+//				                		//log.info("DEBUG: {}", "status changed");
 //				                		  repository.save(b);
 //				                		  try {
 //					                		  NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //							                    n.getData().setStatus("Completed");
 //							                    notificationFeign.updateNotification(n);
 //					                		  }catch(Exception e) {
-//					                			  System.out.println(e.getMessage());
+//					                			  log.info("DEBUG: {}", e.getMessage());
 //					                		  }}}}}}else{
 //				                	DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //						            LocalDate followUpDate = LocalDate.parse(dto.getFollowUp().getNextFollowUpDate(), inputFormatter);
-//					                    //System.out.println(followUpDate);
+//					                    //log.info("DEBUG: {}", followUpDate);
 //						             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //						             LocalDate serviceDate = LocalDate.parse(b.getServiceDate(),formatter);
 //						             LocalDate todayDate = LocalDate.now();
 //						             if(!followUpDate.isBefore(serviceDate) && followUpDate.isBefore(todayDate)) {
 //						                	b.setStatus("Completed");
-//						                	//System.out.println("status changed");
+//						                	//log.info("DEBUG: {}", "status changed");
 //					                		  repository.save(b);
 //					                		  NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //							                    n.getData().setStatus("Completed");
 //							                    notificationFeign.updateNotification(n);
 //						               }}}}}}catch (Exception e) {
-//						            	   System.out.println(e.getMessage());
+//						            	   log.info("DEBUG: {}", e.getMessage());
 //						               }}
 //
 //
@@ -2777,393 +2628,80 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 //		        for (Booking b : bookings) {
 //		            if (b.getStatus().equalsIgnoreCase("In-Progress")) {
 //		            	Response res = doctorFeign.getDoctorSaveDetailsByBookingId(b.getBookingId()).getBody();
-//		            	//System.out.println(b.getBookingId());
+//		            	//log.info("DEBUG: {}", b.getBookingId());
 //		            	DoctorSaveDetailsDTO dto = new ObjectMapper().convertValue(res.getData(),DoctorSaveDetailsDTO.class);
-//		            	//System.out.println(dto);
+//		            	//log.info("DEBUG: {}", dto);
 //		            	if(dto != null) {
 //		            	if(dto.getTreatments() != null) {
 //		            	for(Map.Entry<String,TreatmentDetailsDTO> mp : dto.getTreatments().getGeneratedData().entrySet()){
 //		            	TreatmentDetailsDTO treatments = mp.getValue();
-//		            	//System.out.println(treatments);
+//		            	//log.info("DEBUG: {}", treatments);
 //		            	if(treatments != null) {
 //		            	 List<DatesDTO> dates =	treatments.getDates();
-//		            	 //System.out.println(dates.size());
+//		            	 //log.info("DEBUG: {}", dates.size());
 //		            	 int lastIndex = dates.size()-1;
 //		            	 DatesDTO datesDTO = dates.get(lastIndex);
-//		            	// System.out.println("last index"+datesDTO );
+//		            	// log.info("DEBUG: {}", "last index"+datesDTO );
 //		            	 String date = datesDTO.getDate();
-//		            	 //System.out.println(date);
+//		            	 //log.info("DEBUG: {}", date);
 //		                DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //		                LocalDate lastSitting = LocalDate.parse(date, inputFormatter);
-//	                    //System.out.println(lastSitting);
+//	                    //log.info("DEBUG: {}", lastSitting);
 //		                LocalDate todayDate = LocalDate.now();
-//	                  // System.out.println(todayDate);
-//	                   // System.out.println(gap);
+//	                  // log.info("DEBUG: {}", todayDate);
+//	                   // log.info("DEBUG: {}", gap);
 //		                int expirationDays = Integer.parseInt(Character.toString(b.getConsultationExpiration().charAt(0)) +
 //		            			Character.toString(b.getConsultationExpiration().charAt(1)));
-//	                    //System.out.println(expirationDays);
+//	                    //log.info("DEBUG: {}", expirationDays);
 //		                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //		                LocalDate serviceDate = LocalDate.parse(b.getServiceDate(),formatter);
 //		                LocalDate plusedTime = serviceDate.plusDays(expirationDays);
 //		                if(!lastSitting.isBefore(plusedTime)) {  /// if it is before plustime they its status should be in inprogress
 //		                	  if(!lastSitting.isBefore(serviceDate) && lastSitting.isBefore(todayDate)) {
 //		                		b.setStatus("Completed");
-//		                		//System.out.println("status changed");
+//		                		//log.info("DEBUG: {}", "status changed");
 //		                		  repository.save(b);
 //		                		  try {
 //		                		  NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //				                    n.getData().setStatus("Completed");
 //				                    notificationFeign.updateNotification(n);
 //		                		  }catch(Exception e) {
-//		                			  System.out.println(e.getMessage());
+//		                			  log.info("DEBUG: {}", e.getMessage());
 //		                		  }
 //		                	}}else{
 //		                		if(todayDate.isAfter(plusedTime)) {
 //			                		b.setStatus("Completed");
-//			                		//System.out.println("status changed");
+//			                		//log.info("DEBUG: {}", "status changed");
 //			                		  repository.save(b);
 //			                		  try {
 //				                		  NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //						                    n.getData().setStatus("Completed");
 //						                    notificationFeign.updateNotification(n);
 //				                		  }catch(Exception e) {
-//				                			  System.out.println(e.getMessage());
+//				                			  log.info("DEBUG: {}", e.getMessage());
 //				                		  }}}}}}else{
 //			                	DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //					            LocalDate followUpDate = LocalDate.parse(dto.getFollowUp().getNextFollowUpDate(), inputFormatter);
-//				                    //System.out.println(followUpDate);
+//				                    //log.info("DEBUG: {}", followUpDate);
 //					             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 //					             LocalDate serviceDate = LocalDate.parse(b.getServiceDate(),formatter);
 //					             LocalDate todayDate = LocalDate.now();
 //					             if(!followUpDate.isBefore(serviceDate) && followUpDate.isBefore(todayDate)) {
 //					                	b.setStatus("Completed");
-//					                	//System.out.println("status changed");
+//					                	//log.info("DEBUG: {}", "status changed");
 //				                		  repository.save(b);
 //				                		  NotificationDTO n = notificationFeign.getNotificationByBookingId(b.getBookingId());
 //						                    n.getData().setStatus("Completed");
 //						                    notificationFeign.updateNotification(n);
 //					               }}}}}}catch (Exception e) {
-//					            	   System.out.println(e.getMessage());
+//					            	   log.info("DEBUG: {}", e.getMessage());
 //					               }}
 //
 
-//    public ResponseEntity<?> retrieveOneWeekAppointments(String cinicId,String branchId){
-//		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-//	    List<BookingResponse> finalList = new ArrayList<>();
-//	   Response response = new Response();
-//	    DoctorSaveDetailsDTO saveDetails = new DoctorSaveDetailsDTO();
-//	    try {
-//	        List<Booking> booked = repository.findByClinicIdAndBranchId(cinicId, branchId);
-//	        if (booked == null || booked.isEmpty()) {
-//	            res.setStatusCode(200);
-//	            res.setHttpStatus(HttpStatus.OK);
-//	            res.setMessage("No bookings found for customer");
-//	            res.setData(finalList);
-//	            return ResponseEntity.ok(res);
-//	        }
-//	        LocalDate today = LocalDate.now();
-//	        LocalDate sixthDate = today.plusDays(6);
-//	        LocalDate exp = null;
-//	        DateTimeFormatter isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//	        for (Booking booking : booked) {
-//	            if (!"In-Progress".equalsIgnoreCase(booking.getStatus())) {
-//	                continue;
-//	            }
-//	            // ✅ Include any In-Progress booking with serviceDate between today and sixthDate
-//	            LocalDate ld = null;
-//	            if(booking.getFollowupDate() != null) {
-//	            	ld = LocalDate.parse(booking.getFollowupDate(), isoFormatter);
-//	            }else {
-//	            	if(booking.getServiceDate() != null) {
-//		            	ld = LocalDate.parse(booking.getServiceDate(), isoFormatter);
-//		            }
-//	            }
-//	            if(!ld.isAfter(sixthDate)) {
-//	            // Fetch doctor save details
-//	            try {
-//	                response = doctorFeign.getDoctorSaveDetailsByBookingId(booking.getBookingId()).getBody();
-//	               // System.out.println(response);
-//	            } catch (Exception e) {
-//	                System.out.println(e.getMessage());
-//	            }
-//
-//	            if (response != null && response.getData() != null) {
-//	                saveDetails = new ObjectMapper().convertValue(response.getData(), DoctorSaveDetailsDTO.class);
-//	               // System.out.println(saveDetails);
-//	            } else {}
-//	            // ✅ Stream-based Treatments + Sittings + Next Follow-Up
-//	            if (saveDetails.getTreatments() != null &&
-//	                saveDetails.getTreatments().getGeneratedData() != null &&
-//	                !saveDetails.getTreatments().getGeneratedData().isEmpty()) {
-//
-//	                // Flatten all treatment dates into sorted list
-//	                List<LocalDate> allDates = saveDetails.getTreatments().getGeneratedData().values().stream()
-//	                        .filter(Objects::nonNull)
-//	                        .flatMap(details -> details.getDates() != null
-//	                                ? details.getDates().stream()
-//	                                    .map(d -> LocalDate.parse(d.getDate(), isoFormatter))
-//	                                : Stream.empty())
-//	                        .sorted()
-//	                        .toList();
-//                        //System.out.println(allDates);
-//	                // Calculate totalSittings and pendingSittings
-//	                int totalSittingsSum = saveDetails.getTreatments().getGeneratedData().values().stream()
-//	                        .filter(Objects::nonNull)
-//	                        .mapToInt(d -> d.getTotalSittings() != null ? d.getTotalSittings() : 0)
-//	                        .sum();
-//	               // System.out.println(totalSittingsSum);
-//	                int pendingSittingsSum = saveDetails.getTreatments().getGeneratedData().values().stream()
-//	                        .filter(Objects::nonNull)
-//	                        .mapToInt(d -> d.getSittings() != null ? d.getSittings() : 0)
-//	                        .sum();
-//	                //System.out.println(pendingSittingsSum);
-//	                AtomicInteger takenSittingsCount = new AtomicInteger(0);
-//
-//	                // Determine next follow-up date according to your rules
-//	                Optional<LocalDate> nextFollowupOpt = allDates.stream()
-//	                        .map(sittingDate -> {
-//	                            boolean sittingBooked = false;
-//	                            try {
-//	                                Booking resp =
-//	                                		repository.findByPatientIdAndFollowupDate(
-//	                                				sd.getPatientId(),
-//	                                                sittingDate.format(isoFormatter));
-//
-//	                                if (resp != null) {
-//	                                    sittingBooked = true;
-//	                                    takenSittingsCount.incrementAndGet();
-//	                                }
-//	                            } catch (Exception ex) {
-//	                                System.err.println("Error checking booking for date "
-//	                                        + sittingDate + ": " + ex.getMessage());
-//	                            }
-//                                if(booking.getFollowupDate() != null) {
-//	                            if (LocalDate.parse(booking.getFollowupDate(), isoFormatter).isBefore(today)) {
-//	                                // Past date → pick first future date if available
-//	                                return allDates.stream()
-//	                                        .filter(f -> f.isAfter(today))
-//	                                        .findFirst()
-//	                                        .orElse(null);
-//	                            } else if (LocalDate.parse(booking.getFollowupDate(), isoFormatter).isEqual(today)) {
-//	                                if (sittingBooked) {
-//	                                    // Today booked → pick first future date if available
-//	                                    return allDates.stream()
-//	                                            .filter(f -> f.isAfter(today))
-//	                                            .findFirst()
-//	                                            .orElse(null);
-//	                                } else {
-//	                                    // Today not booked → keep today
-//	                                    return sittingDate;
-//	                                }
-//	                            } else {
-//	                                // Future dates → do not modify follow-up
-//	                                return null;
-//	                            }
-//	                        }else{
-//	                        	 return allDates.stream()
-//	                                        .findFirst()
-//	                                        .orElse(null);
-//	                        }})
-//	                        .filter(Objects::nonNull)
-//	                        .findFirst();
-//	                LocalDate lstSitting = allDates.get(allDates.size()-1);
-//	                if(lstSitting.equals(LocalDate.now()) || lstSitting.isAfter(LocalDate.now())) {
-//	                	exp = lstSitting.plusDays(Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", "")));
-//	                	finalList = inprogressAppointmentsByConsultationExpiration(exp, booking,saveDetails);
-//	                }
-//	                // Update booking object
-//	                booking.setTotalSittings(totalSittingsSum);
-//	                booking.setPendingSittings(pendingSittingsSum);
-//	                booking.setTakenSittings(takenSittingsCount.get());
-//	                booking.setCurrentSitting(pendingSittingsSum);
-//	                nextFollowupOpt.ifPresent(d -> booking.setFollowupDate(d.format(isoFormatter)));
-//	                finalList.add(toResponse(booking));
-//	                //System.out.println(nextFollowupOpt);
-//	                //System.out.println(finalList);
-//	            }
-//	            // ✅ Existing Follow-Up section
-//	            else if (saveDetails.getFollowUp() != null &&
-//	                saveDetails.getFollowUp().getNextFollowUpDate() != null) {
-//	                try {
-//	                	 int days = 0;
-//		                	if(exp == null ){
-//		                    days = Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", ""));
-//		                    //System.out.println(days);
-//		                    LocalDate serviceDate  = LocalDate.parse(booking.getServiceDate(), isoFormatter);
-//		                    exp = serviceDate.plusDays(days);}
-//	                    LocalDate followDate = LocalDate.parse(saveDetails.getFollowUp().getNextFollowUpDate(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-//	                    if (!followDate.isBefore(today) && !followDate.isAfter(sixthDate) && !followDate.isAfter(exp)) {
-//	                        Booking bkng = new Booking(booking);
-//	                        bkng.setFollowupDate(followDate.format(isoFormatter));
-//	                        bkng.setStatus("In-Progress");
-//	                            finalList.add(toResponse(bkng));
-//	                    }
-//	                } catch (Exception e) {
-//	                    System.out.println(e.getMessage());
-//	                }
-//	            }}
-//	        }
-//	        res.setStatusCode(200);
-//	        res.setHttpStatus(HttpStatus.OK);
-//	        res.setMessage(finalList.isEmpty()
-//	                ? "No In-Progress or Today appointments found"
-//	                : "In-Progress appointments found");
-//	        res.setData(finalList);
-//
-//	    } catch (Exception e) {
-//	        res.setStatusCode(500);
-//	        res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-//	        res.setMessage("Error: " + e.getMessage());
-//	    }
-//
-//	    return ResponseEntity.status(res.getStatusCode()).body(res);
-//	}
-//
-
-//		public ResponseEntity<?> retrieveOneWeekAppointments(String clinicId, String branchId) {
-//		    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-//		    List<BookingResponse> finalList = new ArrayList<>();
-//		    Response response = new Response();
-//		    DoctorSaveDetailsDTO saveDetails = new DoctorSaveDetailsDTO();
-//
-//		    try {
-//		        List<Booking> booked = repository.findByClinicIdAndBranchId(clinicId, branchId);
-//		        if (booked == null || booked.isEmpty()) {
-//		            res.setStatusCode(200);
-//		            res.setHttpStatus(HttpStatus.OK);
-//		            res.setMessage("No bookings found for customer");
-//		            res.setData(finalList);
-//		            return ResponseEntity.ok(res);
-//		        }
-//
-//		        LocalDate today = LocalDate.now();
-//		        LocalDate sixthDate = today.plusDays(6);
-//		        DateTimeFormatter isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//
-//		        for (Booking booking : booked) {
-//		            // Include only In-Progress bookings
-//		            if (!"In-Progress".equalsIgnoreCase(booking.getStatus())) {
-//		                continue;
-//		            }
-//
-//		            // Include both In-Clinic & Online Consultations
-//		            if (!"In-Clinic Consultation".equalsIgnoreCase(booking.getConsultationType()) &&
-//		                !"Services & Treatments".equalsIgnoreCase(booking.getConsultationType()) &&
-//		                !"Online Consultation".equalsIgnoreCase(booking.getConsultationType())) {
-//		                continue;
-//		            }
-//
-//		            LocalDate ld = null;
-//		            if (booking.getFollowupDate() != null) {
-//		                ld = LocalDate.parse(booking.getFollowupDate(), isoFormatter);
-//		            } else if (booking.getServiceDate() != null) {
-//		                ld = LocalDate.parse(booking.getServiceDate(), isoFormatter);
-//		            }
-//
-//		            if (ld == null || ld.isAfter(sixthDate)) {
-//		                continue;
-//		            }
-//
-//		            // fetch doctor details
-//		            try {
-//		                response = doctorFeign.getDoctorSaveDetailsByBookingId(booking.getBookingId()).getBody();
-//		            } catch (Exception e) {
-//		                System.out.println("Feign error: " + e.getMessage());
-//		            }
-//
-//		            if (response != null && response.getData() != null) {
-//		                saveDetails = new ObjectMapper().convertValue(response.getData(), DoctorSaveDetailsDTO.class);
-//		            }
-//
-//		            // Case 1: Treatment Data
-//		            if (saveDetails.getTreatments() != null &&
-//		                    saveDetails.getTreatments().getGeneratedData() != null &&
-//		                    !saveDetails.getTreatments().getGeneratedData().isEmpty()) {
-//
-//		                List<LocalDate> allDates = saveDetails.getTreatments().getGeneratedData().values().stream()
-//		                        .filter(Objects::nonNull)
-//		                        .flatMap(details -> details.getDates() != null
-//		                                ? details.getDates().stream()
-//		                                .map(d -> LocalDate.parse(d.getDate(), isoFormatter))
-//		                                : Stream.empty())
-//		                        .sorted()
-//		                        .toList();
-//
-//		                int totalSittingsSum = saveDetails.getTreatments().getGeneratedData().values().stream()
-//		                        .filter(Objects::nonNull)
-//		                        .mapToInt(d -> d.getTotalSittings() != null ? d.getTotalSittings() : 0)
-//		                        .sum();
-//
-//		                int pendingSittingsSum = saveDetails.getTreatments().getGeneratedData().values().stream()
-//		                        .filter(Objects::nonNull)
-//		                        .mapToInt(d -> d.getSittings() != null ? d.getSittings() : 0)
-//		                        .sum();
-//
-//		                AtomicInteger takenSittingsCount = new AtomicInteger(0);
-//
-//		                Optional<LocalDate> nextFollowupOpt = allDates.stream().findFirst();
-//
-//		                LocalDate lstSitting = allDates.get(allDates.size() - 1);
-//		                LocalDate exp = lstSitting.plusDays(Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", "")));
-//
-//		                booking.setTotalSittings(totalSittingsSum);
-//		                booking.setPendingSittings(pendingSittingsSum);
-//		                booking.setTakenSittings(takenSittingsCount.get());
-//		                booking.setCurrentSitting(pendingSittingsSum);
-//		                nextFollowupOpt.ifPresent(d -> booking.setFollowupDate(d.format(isoFormatter)));
-//
-//		                finalList.add(toResponse(booking));
-//		            }
-//
-//		            // Case 2: FollowUp Data
-//		            else if (saveDetails.getFollowUp() != null &&
-//		                    saveDetails.getFollowUp().getNextFollowUpDate() != null) {
-//
-//		                try {
-//		                    int days = Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", ""));
-//		                    LocalDate exp = LocalDate.parse(booking.getServiceDate(), isoFormatter).plusDays(days);
-//
-//		                    LocalDate followDate = LocalDate.parse(saveDetails.getFollowUp().getNextFollowUpDate(),
-//		                            DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-//
-//		                    if (!followDate.isBefore(today) && !followDate.isAfter(sixthDate) && !followDate.isAfter(exp)) {
-//		                        Booking bkng = new Booking(booking);
-//		                        bkng.setFollowupDate(followDate.format(isoFormatter));
-//		                        bkng.setStatus("In-Progress");
-//		                        finalList.add(toResponse(bkng));
-//		                    }
-//		                } catch (Exception e) {
-//		                    System.out.println("Followup error: " + e.getMessage());
-//		                }
-//		            }
-//
-//		            // Case 3: Plain In-Clinic or Online Consultation (No Treatments/Followup)
-//		            else {
-//		                if (ld != null && !ld.isBefore(today) && !ld.isAfter(sixthDate)) {
-//		                    finalList.add(toResponse(booking));
-//		                }
-//		            }
-//		        }
-//
-//		        res.setStatusCode(200);
-//		        res.setHttpStatus(HttpStatus.OK);
-//		        res.setMessage(finalList.isEmpty()
-//		                ? "No In-Progress or Today appointments found"
-//		                : "In-Progress appointments found");
-//		        res.setData(finalList);
-//
-//		    } catch (Exception e) {
-//		        res.setStatusCode(500);
-//		        res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-//		        res.setMessage("Error: " + e.getMessage());
-//		    }
-//
-//		    return ResponseEntity.status(res.getStatusCode()).body(res);
-//		}
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "retrieveOneWeekAppointmentsFallback")
 	public ResponseEntity<?> retrieveOneWeekAppointments(
 			String clinicId,
 			String branchId,
@@ -3288,7 +2826,7 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 					HttpStatus.OK);
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			response.setMessage(
 					e.getMessage());
 			response.setStatus(
@@ -3301,12 +2839,12 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 		}
 	}
 
-		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+		@RateLimiter(name = "bookingApi", fallbackMethod = "retrieveAppointmentsFallback")
 public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,String date){
 		ResponseStructure< List<BookingResponse>> res = new ResponseStructure< List<BookingResponse>>();
 		try {
 			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateOrderByServicetimeAsc(cinicId, branchId, date);
-			// System.out.println(todayBookings);
+			// log.info("DEBUG: {}", todayBookings);
 			bookings = bookings.stream().filter(n->n.getStatus().equalsIgnoreCase("In-Progress")).toList();
 			List<BookingResponse> todayBookingsDto = toResponses(bookings);
 			if(todayBookingsDto!= null && !todayBookingsDto.isEmpty()) {
@@ -3319,6 +2857,7 @@ public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,Str
 				res.setHttpStatus(HttpStatus.NOT_FOUND);
 				res.setMessage("appointments Not found with date");}
 		}catch(Exception e) {
+			log.error("{}",e.getMessage());
 			res.setStatusCode(500);
 			res.setMessage(e.getMessage());
 		}
@@ -3327,7 +2866,7 @@ public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,Str
 
 
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "updateAppointmentBasedOnBookingIdFallback")
 	public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingId(
 			BookingResponse dto) {
 
@@ -3638,7 +3177,7 @@ public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,Str
 					HttpStatus.OK);
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			return new ResponseEntity<>(
 					ResponseStructure.buildResponse(null,
 							e.getMessage(),
@@ -3650,7 +3189,7 @@ public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,Str
 
 
 
-		@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+		@RateLimiter(name = "bookingApi", fallbackMethod = "getRelationsByCustomerIdFallback")
 public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 		ResponseStructure<Map<String, List<RelationInfoDTO>>> res = new ResponseStructure<>();
 		try {
@@ -3680,6 +3219,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			res.setData(data);
 			res.setMessage("Relations found successfully");
 		} catch (Exception e) {
+			log.error("{}",e.getMessage());
 			res.setStatusCode(500);
 			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			res.setMessage("Error: " + e.getMessage());
@@ -3691,7 +3231,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "checkBookingByDateAndTimeFallback")
 	public BookingResponse checkBookingByDateAndTime(String date,String time,String doctorId) {
 		Booking booking = repository.findByServiceDateAndServicetimeAndDoctorId(date, time, doctorId);
 		if(booking != null) {
@@ -3705,7 +3245,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getPatientAndPriceInfoFallback")
 	public ResponseEntity<Response> getPatientAndPriceInfo(
 			String clinicId,
 			String branchId,
@@ -3833,7 +3373,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			);
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(Response.builder()
 							.success(false)
@@ -3846,7 +3386,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getTodayBookingsFallback")
 	public ResponseEntity<?> getTodayBookings(
 			String cId,
 			String bId,
@@ -3953,7 +3493,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			}
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			res.setStatusCode(500);
 			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			res.setMessage(e.getMessage());
@@ -3968,129 +3508,11 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
 
-// ✅ API 1 → TODAY BOOKINGS
-//@Override
-//public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
-//
-//	try {
-//		String today = LocalDate.now().format(FORMATTER);
-//
-//		// ✅ Fetch ALL bookings (no status filter)
-//		List<Booking> bookings =
-//				repository.findByClinicIdAndBranchIdAndServiceDate(
-//						clinicId,
-//						branchId,
-//						today
-//				);
-//		List<String> followup = physioDoctorFeign.getTodayFollowUpBookingIds();
-//
-//		List<Booking> bkngs = repository.findByBookingIdIn(followup);
-//		  List<Booking> modifiedBookings = null;
-//		if (!bkngs.isEmpty()) {
-//
-//		      modifiedBookings = bkngs.stream().map(n -> {
-//
-//		        n.setStatus("follow-up");
-//
-//		        List<Status> statusList = n.getCurrentStatus();
-//
-//		        if (statusList == null || statusList.isEmpty()) {
-//		            statusList = new ArrayList<>();
-//		        }
-//
-//		        Status status = new Status();
-//
-//		        status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-//		        status.setStatus("follow-up");
-//
-//		        statusList.add(status);
-//
-//		        n.setCurrentStatus(statusList);
-//		        bookings.add(n);
-//		        return n;
-//
-//		    }).toList();
-//		    repository.saveAll(modifiedBookings);
-//		}
-//		// ✅ Convert to response DTO
-//		List<BookingResponse> res = null;
-//		List<BookingResponse> bookingres = null;
-//		try {
-//		if(!bookings.isEmpty()) {
-//	    bookingres = toResponses(bookings);}
-//	    if(modifiedBookings != null || !modifiedBookings.isEmpty()) {
-//		res = toResponses(modifiedBookings);
-//		bookingres.addAll(res);}}catch(Exception e) {}
-//		//System.out.println(res.get(1));
-//		// ✅ Enrich with session details (Feign call)
-//		    try {
-//		    if(bookingres != null) {
-//			bookingres = bookingres.stream().map(n -> {
-//						List<Session> lst = physioDoctorFeign
-//						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
-//						.getBody();
-//			 // System.out.println(n.getBookingId());
-//			  // System.out.println(lst);
-//                if(lst != null ) {
-//				n.setSession(lst);
-//				n.setVisitType("session");
-//				}else {
-//				n.setSession(null);}
-//				return n;
-//			}).toList();}
-//
-//		} catch (Exception e) {
-//			// log error instead of silent ignore
-//			System.out.println("Error while fetching session details: " + e.getMessage());
-//		}
-//		Map<String, Object> summary = null;
-//		// ✅ Total count
-//		if(bookingres != null) {
-//		long totalCount = bookings.size();
-//
-//		// ✅ Status counts (case-insensitive + null safe)
-//		long pendingCount = bookingres.stream()
-//				.filter(b -> "PENDING".equalsIgnoreCase(
-//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
-//				))
-//				.count();
-//
-//		long confirmedCount = bookingres.stream()
-//				.filter(b -> "CONFIRMED".equalsIgnoreCase(
-//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
-//				))
-//				.count();
-//
-//		long inProgressCount = bookingres.stream()
-//				.filter(b -> "IN-PROGRESS".equalsIgnoreCase(
-//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
-//				))
-//				.count();
-//
-//		// ✅ Summary response
-//		summary = new HashMap<>();
-//		summary.put("totalAppointments", totalCount);
-//		summary.put("pending", pendingCount);
-//		summary.put("confirmed", confirmedCount);
-//		summary.put("inProgress", inProgressCount);
-//		return ResponseEntity.ok(
-//				new Response(true, bookingres, summary, "Today bookings fetched", 200, null, null)
-//		);}
-//		else {
-//			return ResponseEntity.ok(
-//					new Response(true, bookingres, summary, "Today bookings not found", 200, null, null));}
-//
-//	} catch (Exception e) {
-//		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//				.body(new Response(false, null, null,
-//						"Error fetching today bookings: " + e.getMessage(),
-//						500, null, null));
-//	}
-//}
+
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getTodayAllBookingsFallback")
 	public ResponseEntity<Response> getTodayAllBookings(
 			String clinicId,
 			String branchId,
@@ -4346,7 +3768,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			}
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			return ResponseEntity
 					.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(
@@ -4367,7 +3789,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 	// ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getUpcomingBookingsFallback")
 	public ResponseEntity<Response> getUpcomingBookings(
 			String clinicId,
 			String branchId,
@@ -4475,11 +3897,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 				}).toList();
 
 			} catch (Exception e) {
-
-				System.out.println(
-						"Error while fetching session details: "
-								+ e.getMessage()
-				);
+				log.error("{}",e.getMessage());
 			}
 
 			// ================= RESPONSE MAPPING =================
@@ -4592,7 +4010,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			);
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			return ResponseEntity
 					.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(
@@ -4611,7 +4029,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 	}
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookingByDateFallback")
 	public ResponseEntity<Response> getBookingByDate(String clinicId,
 													 String branchId,
 													 String date) {
@@ -4639,7 +4057,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 				}).toList();
 
 			} catch (Exception e) {
-				System.out.println("Error while fetching session details: " + e.getMessage());
+				log.info("DEBUG: {}", "Error while fetching session details: " + e.getMessage());
 			}
 
 			// ✅ Total count
@@ -4668,6 +4086,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			return ResponseEntity.ok(new Response(true, res, summary, "Bookings fetched", 200, null, null));
 
 		} catch (Exception e) {
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
 					new Response(false, null, null, "Error fetching bookings: " + e.getMessage(), 500, null, null));
 		}
@@ -4677,7 +4096,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookingByCustomRangeFallback")
 	public ResponseEntity<Response> getBookingByCustomRange(
 			String clinicId,
 			String branchId,
@@ -4767,10 +4186,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			} catch (Exception e) {
 
-				System.out.println(
-						"Error while fetching session details: "
-								+ e.getMessage()
-				);
+				log.error("{}",e.getMessage());
 			}
 
 			// ================= RESPONSE MAPPING =================
@@ -4887,7 +4303,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			);
 
 		} catch (Exception e) {
-
+			log.error("{}",e.getMessage());
 			return ResponseEntity
 					.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(
@@ -4906,7 +4322,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 	}
 
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookingByIdFallback")
 	public ResponseEntity<Response> getBookingById(String bookingId) {
 		try {
 			Optional<Booking> booking = repository.findByBookingIdIgnoreCase(bookingId);
@@ -4939,6 +4355,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 						.body(new Response(false, null, null, "Booking not found", 200, null, null));
 			}
 		} catch (Exception e) {
+			log.error("{}",e.getMessage());
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(new Response(false, null, null, e.getMessage(), 500, null, null));
 		}
@@ -4997,7 +4414,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			if(dto.getFollowupStatus() != null ) {
 				entity.setFollowupStatus(dto.getFollowupStatus());}
-			// System.out.println(dto.getFollowupStatus()); }
+			// log.info("DEBUG: {}", dto.getFollowupStatus()); }
 			// -------- PROBLEM --------
 			if (dto.getProblem() != null && !dto.getProblem().isEmpty())
 				entity.setProblem(dto.getProblem());
@@ -5207,14 +4624,14 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			Booking booking = repository.save(entity);
 			booking.setFollwupBookings(null);
 			return booking;
-		}catch (Exception e) {
-			///System.out.println(e.getMessage());
+		}catch (Exception e) {	log.error("{}",e.getMessage());
+			///log.info("DEBUG: {}", e.getMessage());
 			return null;
 		}}
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_DOCTOR"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "searchBookingsFallback")
 	public List<Map<String, Object>> searchBookings(String clinicId, String input) {
 
 		try {
@@ -5286,13 +4703,13 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			return list;
 
-		} catch (Exception e) {
+		} catch (Exception e) {	log.error("{}",e.getMessage());
 			throw e;
 		}}
 		
 		@Override
 		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
-	@RateLimiter(name = "bookingApi", fallbackMethod = "rateLimitFallback")
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getTodayBookingsFallback")
 		public ResponseEntity<Response> getTodayBookings(String clinicId, String branchId) {
 			try {
 
@@ -5375,10 +4792,9 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 							booking.setSession(null);
 						}
 
-					} catch (Exception ex) {
+					} catch (Exception e) {
 
-						System.out.println("Session fetch failed for BookingId : " + booking.getBookingId() + " Error : "
-								+ ex.getMessage());
+						log.error("{}",e.getMessage());
 					}
 				}
 
@@ -5445,7 +4861,7 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 			} catch (Exception e) {
 
-				e.printStackTrace();
+				log.error("Unhandled exception", e);
 
 				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Response(false, null, null,
 						"Error fetching today bookings : " + e.getMessage(), 500, null, null));
@@ -5453,50 +4869,266 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 
 		}
 	
-
-    // ================= RATE LIMIT FALLBACK METHODS =================
-
-    public ResponseEntity<?> rateLimitFallback(Exception ex){
-        log.warn("Rate limit exceeded", ex);
-        return ResponseEntity.status(429).body("Too many requests. Please try again later.");
+//// FALLBACK METHODS ///////
+		
+	 public Object CompletedbookingByCustomerIdFallback(Exception ex) {
+        log.error("CompletedbookingByCustomerIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
 
-    public BookingResponse rateLimitFallback(String bookingId, Exception ex){
-        log.warn("Rate limit exceeded for bookingId={}", bookingId, ex);
-        return new BookingResponse();
+    public Object autoCalculatePatientCompletedAppointmentsFallback(Exception ex) {
+        log.error("autoCalculatePatientCompletedAppointmentsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
 
-    public Page<BookingResponse> rateLimitFallback(int page, int size, Exception ex){
-        log.warn("Rate limit exceeded", ex);
-        return Page.empty();
+    public Object bookingByBranchIdFallback(Exception ex) {
+        log.error("bookingByBranchIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
 
-    public List<Map<String,Object>> rateLimitFallback(String customerId, Exception ex, boolean dummy){
-        log.warn("Rate limit exceeded for customerId={}", customerId, ex);
-        return Collections.emptyList();
+    public Object bookingByClinicIdFallback(Exception ex) {
+        log.error("bookingByClinicIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
 
-    public List<ReportsDTO> rateLimitReportsFallback(String patientId, Exception ex){
-        log.warn("Rate limit exceeded for patientId={}", patientId, ex);
-        return Collections.emptyList();
+    public Object bookingByCustomerIdFallback(Exception ex) {
+        log.error("bookingByCustomerIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
 
-    public Response rateLimitResponseFallback(
-            String bookingId,
-            String patientId,
-            String mobileNumber,
-            Exception ex){
-        log.warn("Rate limit exceeded", ex);
-        return Response.builder()
-                .success(false)
-                .status(429)
-                .message("Too many requests. Please try again later.")
-                .build();
+    public Object bookingByDoctorIdFallback(Exception ex) {
+        log.error("bookingByDoctorIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
 
-    public void rateLimitVoidFallback(Exception ex){
-        log.warn("Rate limit exceeded", ex);
+    public Object bookingByPatientIdAndBookingIdFallback(Exception ex) {
+        log.error("bookingByPatientIdAndBookingIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
     }
+
+    public Object bookingByPatientIdFallback(Exception ex) {
+        log.error("bookingByPatientIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object checkBookingByDateAndTimeFallback(Exception ex) {
+        log.error("checkBookingByDateAndTimeFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object deleteBookedServiceReportsFallback(Exception ex) {
+        log.error("deleteBookedServiceReportsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object deleteServiceFallback(Exception ex) {
+        log.error("deleteServiceFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object filterDoctorAppointmentsByDoctorIdFallback(Exception ex) {
+        log.error("filterDoctorAppointmentsByDoctorIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object followUpBookingFallback(Exception ex) {
+        log.error("followUpBookingFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getAllBookedServicesFallback(Exception ex) {
+        log.error("getAllBookedServicesFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getAppointsByInputFallback(Exception ex) {
+        log.error("getAppointsByInputFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getAppointsByPatientIdFallback(Exception ex) {
+        log.error("getAppointsByPatientIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookedServiceFallback(Exception ex) {
+        log.error("getBookedServiceFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback(Exception ex) {
+        log.error("getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookedServicesByClinicIdWithBranchIdFallback(Exception ex) {
+        log.error("getBookedServicesByClinicIdWithBranchIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookedServicesFallback(Exception ex) {
+        log.error("getBookedServicesFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookingByCustomRangeFallback(Exception ex) {
+        log.error("getBookingByCustomRangeFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookingByDateFallback(Exception ex) {
+        log.error("getBookingByDateFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getBookingByIdFallback(Exception ex) {
+        log.error("getBookingByIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getCompletedApntsByDoctorIdFallback(Exception ex) {
+        log.error("getCompletedApntsByDoctorIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getDoctorFutureAppointmentsFallback(Exception ex) {
+        log.error("getDoctorFutureAppointmentsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getInProgressAppointmentsByCustomerIdFallback(Exception ex) {
+        log.error("getInProgressAppointmentsByCustomerIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getInProgressAppointmentsByPatientIdFallback(Exception ex) {
+        log.error("getInProgressAppointmentsByPatientIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getInProgressAppointmentsFallback(Exception ex) {
+        log.error("getInProgressAppointmentsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getPatientAndPriceInfoFallback(Exception ex) {
+        log.error("getPatientAndPriceInfoFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getPatientDetailsForConsetFormFallback(Exception ex) {
+        log.error("getPatientDetailsForConsetFormFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getRelationsByCustomerIdFallback(Exception ex) {
+        log.error("getRelationsByCustomerIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getReportsByPatientIdFallback(Exception ex) {
+        log.error("getReportsByPatientIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getSizeOfConsultationTypesByDoctorIdFallback(Exception ex) {
+        log.error("getSizeOfConsultationTypesByDoctorIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getTodayAllBookingsFallback(Exception ex) {
+        log.error("getTodayAllBookingsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getTodayBookingsFallback(Exception ex) {
+        log.error("getTodayBookingsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getTodayDoctorAppointmentsByDoctorIdFallback(Exception ex) {
+        log.error("getTodayDoctorAppointmentsByDoctorIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object getUpcomingBookingsFallback(Exception ex) {
+        log.error("getUpcomingBookingsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object inprogressAppointmentsByConsultationExpirationFallback(Exception ex) {
+        log.error("inprogressAppointmentsByConsultationExpirationFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object physioAppointmentFallback(Exception ex) {
+        log.error("physioAppointmentFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object retrieveAppointmentsFallback(Exception ex) {
+        log.error("retrieveAppointmentsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object retrieveOneWeekAppointmentsFallback(Exception ex) {
+        log.error("retrieveOneWeekAppointmentsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object searchBookingsFallback(Exception ex) {
+        log.error("searchBookingsFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    public Object updateAppointmentBasedOnBookingIdFallback(Exception ex) {
+        log.error("updateAppointmentBasedOnBookingIdFallback triggered", ex);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Service temporarily unavailable. Please try again later.");
+    }
+
+    
 
 }
-

@@ -1,8 +1,10 @@
 
 package com.AdminService.util;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.AdminService.entity.QuestionsByPartEntity;
 import com.AdminService.feign.CustomerFeign;
@@ -17,8 +19,8 @@ public class CustomerFeignImpl {
 
     private final CustomerFeign customerFeign;
 
-    @CircuitBreaker(name = "adminService", fallbackMethod = "getByKeyFallback")
-    @Retry(name = "adminService", fallbackMethod = "getByKeyFallback")
+    @CircuitBreaker(name = "customerService", fallbackMethod = "getByKeyFallback")
+    @Retry(name = "customerService", fallbackMethod = "getByKeyFallback")
     public ResponseEntity<QuestionsByPartEntity> getByKey(String key) {
         return customerFeign.getByKey(key);
     }
@@ -27,6 +29,22 @@ public class CustomerFeignImpl {
             String key,
             Exception ex) {
 
-    	 throw new RuntimeException(ex.getMessage());
+    	 throw getFallbackException(ex);
+    }
+    
+    private RuntimeException getFallbackException(Exception ex) {
+
+        if (ex instanceof io.github.resilience4j.ratelimiter.RequestNotPermitted) {
+            return new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many requests. Please try again after some time."
+                    );      
+        }else if (ex instanceof io.github.resilience4j.circuitbreaker.CallNotPermittedException) {
+            return new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    " Service is temporarily unavailable"); 
+    }else{ return new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                " Service is temporarily unavailable");}
     }
 }
