@@ -1,22 +1,18 @@
 package com.AdminService.util;
 
-import com.AdminService.feign.KeyCloakFeign;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.RetryableException;
-import jakarta.ws.rs.*;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Component
@@ -25,8 +21,7 @@ import java.util.Map;
 public class KeyCloakTokenStore {
 	
 	@Autowired
-	private KeyCloakFeign keyCloakFeign;
-	
+	private KeyCloakFeignImpl keyCloakFeign;	
 	
 	@Autowired
 	private AutoReqForNewAccessTokenBeforeTokenExpiration autoReqForNewAccessToken;
@@ -34,8 +29,7 @@ public class KeyCloakTokenStore {
 	private String access_token;
 	private Long expires_in;
 		
-	 @Retryable(value = {RetryableException.class,NotAuthorizedException.class,ForbiddenException.class,NotFoundException.class,BadRequestException.class,InternalServerErrorException.class}, maxAttempts = 4, backoff = @Backoff(delay = 4000))
-	 public void obtainKeycloakToken(){ // CHECK TOKEN FOR SERVICE PRESENT OT NOT
+	  public void obtainKeycloakToken(){ // CHECK TOKEN FOR SERVICE PRESENT OT NOT
 		 log.info("obtainKeycloakToken method is invoked");
 		 try {
 			 if(access_token == null) {
@@ -49,14 +43,7 @@ public class KeyCloakTokenStore {
 				 access_token = "Bearer "+token.get("access_token");
 				 expires_in = Long.valueOf(token.get("expires_in"));
 				    }}}catch(Exception e) { log.error(e.getMessage());}
-	            }
-	 	
-	 	 
-		@Recover
-		public void backOffMessage(RetryableException e) {
-			log.error(e.getMessage());
-		}
-				
+	            }			
 				
 		  @Scheduled(initialDelay = 1000 * 60 * 1, fixedRate = 1000 * 60 * 8) 
 			 public void reqForKeycloakTokenBeforeExpireWithScheduler(){				
@@ -64,6 +51,4 @@ public class KeyCloakTokenStore {
 			  autoReqForNewAccessToken.reqforNewServiceToken();
 			  }catch(Exception e) {log.error(e.getMessage());}
 		  }
-
-
 }

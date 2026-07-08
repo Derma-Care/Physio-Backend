@@ -32,19 +32,19 @@ public class CustomerFeignImpl {
     	 throw getFallbackException(ex);
     }
     
-    private RuntimeException getFallbackException(Exception ex) {
+    private RuntimeException getFallbackException(Throwable ex) {
 
         if (ex instanceof io.github.resilience4j.ratelimiter.RequestNotPermitted) {
             return new ResponseStatusException(
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    "Too many requests. Please try again after some time."
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Booking service is currently unavailable after multiple retry attempts."
                     );      
         }else if (ex instanceof io.github.resilience4j.circuitbreaker.CallNotPermittedException) {
             return new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    " Service is temporarily unavailable"); 
+                    "Booking Service is temporarily unavailable"); 
     }else{ return new ResponseStatusException(
-                HttpStatus.SERVICE_UNAVAILABLE,
-                " Service is temporarily unavailable");}
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
     }
 }

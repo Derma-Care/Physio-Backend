@@ -41,20 +41,20 @@ public class FeignImpl {
 	    private final NotificationFeign notificationFeign;
 	    private final PhysiotherapyFeignClient physiotherapyFeign;
 	    
-	    private RuntimeException getFallbackException(Exception ex) {
+	    private RuntimeException getFallbackException(Throwable ex) {
 
 	        if (ex instanceof io.github.resilience4j.ratelimiter.RequestNotPermitted) {
 	            return new ResponseStatusException(
-	                    HttpStatus.TOO_MANY_REQUESTS,
-	                    "Too many requests. Please try again after some time."
+	                    HttpStatus.SERVICE_UNAVAILABLE,
+	                    "Booking service is currently unavailable after multiple retry attempts."
 	                    );      
 	        }else if (ex instanceof io.github.resilience4j.circuitbreaker.CallNotPermittedException) {
 	            return new ResponseStatusException(
 	                    HttpStatus.SERVICE_UNAVAILABLE,
 	                    "Booking Service is temporarily unavailable"); 
 	    }else{ return new ResponseStatusException(
-	                HttpStatus.SERVICE_UNAVAILABLE,
-	                "Booking Service is temporarily unavailable");}
+	                HttpStatus.TOO_MANY_REQUESTS,
+	                "Too many requests. Please try again after some time.");}
 	    }
 	  
 	    @CircuitBreaker(name = "adminService", fallbackMethod = "clinicLoginFallback")

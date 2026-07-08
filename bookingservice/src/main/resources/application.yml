@@ -149,7 +149,24 @@ resilience4j:
           - java.lang.Exception
           - feign.FeignException
         ignore-exceptions:
-          - java.lang.IllegalArgumentException
+
+      keyclaok:
+       failure-rate-threshold: 50
+       sliding-window-size: 10
+       sliding-window-type: COUNT_BASED
+       minimum-number-of-calls: 5
+       automatic-transition-from-open-to-half-open-enabled: true
+       permitted-number-of-calls-in-half-open-state: 4
+       wait-duration-in-open-state: 1m
+       record-exceptions:
+         - java.lang.Exception
+         - feign.FeignException
+         - java.io.IOException
+         - java.util.concurrent.TimeoutException
+       ignore-exceptions:
+         - java.lang.IllegalArgumentException
+         - org.springframework.web.bind.MethodArgumentNotValidException
+         - org.springframework.web.server.ResponseStatusException
 
   retry:
     instances:
@@ -167,6 +184,10 @@ resilience4j:
         wait-duration: 2s
 
       physioDoctorService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      keyclaok:
         max-attempts: 3
         wait-duration: 2s
 
@@ -194,6 +215,10 @@ resilience4j:
       limit-for-period: 50
       limit-refresh-period: 1m
       timeout-duration: 1s
+     keyclaok:
+      limit-for-period: 100
+      limit-refresh-period: 1s
+      timeout-duration: 2s
 
 # =========================================================
 # ACTUATOR

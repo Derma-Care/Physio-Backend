@@ -1,4 +1,4 @@
-package physiotherapydoctor.util;
+package com.dermacare.bookingService.util;
 
 import java.util.Map;
 
@@ -7,12 +7,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.dermacare.bookingService.feign.KeyCloakFeign;
+
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import physiotherapydoctor.feign.KeyCloakFeign;
+
 
 @Component
 @RequiredArgsConstructor

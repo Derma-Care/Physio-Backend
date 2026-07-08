@@ -5,11 +5,11 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerService?connectTimeoutMS=30000&socketTimeoutMS=60000
-    
+
     redis:
-     host: localhost
-     port: 6379
-#    password: your-password
+      host: localhost
+      port: 6379
+#     password: your-password
 
   mvc:
     async:
@@ -21,10 +21,10 @@ spring:
         config:
           default:
             connectTimeout: 30000
+            readTimeout: 60000
 
-            readTimeout: 60000					
 #  config:
-#   import: optional:classpath:application-secrets.yml  
+#    import: optional:classpath:application-secrets.yml
 
 server:
   port: 8083
@@ -56,6 +56,7 @@ eureka:
 # ===============================
 
 resilience4j:
+
   circuitbreaker:
     instances:
 
@@ -119,6 +120,27 @@ resilience4j:
         ignore-exceptions:
           - java.lang.IllegalArgumentException
 
+      keycloak:
+        register-health-indicator: true
+        failure-rate-threshold: 50
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        permitted-number-of-calls-in-half-open-state: 4
+        wait-duration-in-open-state: 1m
+
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+          - org.springframework.web.bind.MethodArgumentNotValidException
+          - org.springframework.web.server.ResponseStatusException
+
   retry:
     instances:
 
@@ -138,6 +160,10 @@ resilience4j:
         max-attempts: 3
         wait-duration: 2s
 
+      keycloak:
+        max-attempts: 3
+        wait-duration: 2s
+
   timelimiter:
     instances:
 
@@ -153,9 +179,18 @@ resilience4j:
       physioDoctorService:
         timeout-duration: 60s
 
+  ratelimiter:
+    instances:
+
+      keycloak:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 2s
+
 # ===============================
 # Actuator
 # ===============================
+
 management:
   server:
     base-path: /
@@ -176,36 +211,36 @@ management:
 # ===============================
 
 aws:
-   accessKeyId:     
-   secretAccessKey: 
-   region: ap-south-1
-   s3:
+  accessKeyId:
+  secretAccessKey:
+  region: ap-south-1
+
+  s3:
     bucket: physiocare-prod-storage
 
 # ===============================
 # Firebase
 # ===============================
 
-#app:
-#  firebase-configuration-file: firebase-key.json
+# app:
+#   firebase-configuration-file: firebase-key.json
 
 # ===============================
 # Logging
 # ===============================
+
 logging:
   level:
     org.springframework.web: INFO
     com.sureCare.CustomerService: DEBUG
 
 jwt:
- secret-key: /rJI4OoQToPuSEENNowcQBvIOBH7W6oQM0KqqVRky0g=
+  secret-key: /rJI4OoQToPuSEENNowcQBvIOBH7W6oQM0KqqVRky0g=
 
 refresh-token:
- secret-key: 59M85FqbFUldVO+GgMa5gHcxW3bvgUEeI60+tOLAjG0=
- 
+  secret-key: 59M85FqbFUldVO+GgMa5gHcxW3bvgUEeI60+tOLAjG0=
+
 # google:
 #   client:
 #     id: ${GOOGLE_CLIENT_ID}
 #     secret: ${GOOGLE_CLIENT_SECRET}
-#
-#
