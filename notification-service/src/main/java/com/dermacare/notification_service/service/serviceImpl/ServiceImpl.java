@@ -73,7 +73,7 @@ public class ServiceImpl implements ServiceInterface{
 //    @Autowired
 //    private FirbaseConfig firbaseConfig;
 
-	private Set<String> bookings = new LinkedHashSet<>();
+	//private Set<String> bookings = new LinkedHashSet<>();
 	
 //	 private BookingResponse bookingResponse;	 
 //	 private boolean isCalledAlready;	 
@@ -219,7 +219,7 @@ public class ServiceImpl implements ServiceInterface{
   public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data) {	  
 	  try {
 		  //System.out.println(data);
-		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("therapistId"));		
+		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("reassignedTherapistId"));		
 		  //System.out.println(deviceId);
 		  if(deviceId != null) {		  
 				String content = 
@@ -471,23 +471,23 @@ public class ServiceImpl implements ServiceInterface{
 //   		}}}}
 
 	
-	 @Scheduled(fixedRate = 1 * 60 * 1000)
-	 public void sendAlertNotifications() {		 
-		 try {
-			 //System.out.println("sendAlertNotifications method invoked");
-			 List<NotificationEntity> notifications = repository.findAll();
-			 DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-				String currentDate = LocalDate.now().format(dateFormatter);
-		        for (NotificationEntity notification : notifications) {
-		            if ("Confirmed".equalsIgnoreCase(notification.getData().getStatus()) && notification.isAlerted() == false 
-		             && notification.getData().getServiceDate().equals(currentDate) && calculateTimeDifferenceForAlertNotification(notification.getData().getServicetime())) {
-		            if(notification.getData().getConsultationType().equalsIgnoreCase("online consultation") ||
-		            notification.getData().getConsultationType().equalsIgnoreCase("video consultation")) {
-		            sendAlertPushNotification(notification.getData().getBookingId());
-		            notification.setAlerted(true);
-		            repository.save(notification);}}}
-		 }catch(Exception e) {}
- }
+//	 @Scheduled(fixedRate = 1 * 60 * 1000)
+//	 public void sendAlertNotifications() {		 
+//		 try {
+//			 //System.out.println("sendAlertNotifications method invoked");
+//			 List<NotificationEntity> notifications = repository.findAll();
+//			 DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//				String currentDate = LocalDate.now().format(dateFormatter);
+//		        for (NotificationEntity notification : notifications) {
+//		            if ("Confirmed".equalsIgnoreCase(notification.getData().getStatus()) && notification.isAlerted() == false 
+//		             && notification.getData().getServiceDate().equals(currentDate) && calculateTimeDifferenceForAlertNotification(notification.getData().getServicetime())) {
+//		            if(notification.getData().getConsultationType().equalsIgnoreCase("online consultation") ||
+//		            notification.getData().getConsultationType().equalsIgnoreCase("video consultation")) {
+//		            sendAlertPushNotification(notification.getData().getBookingId());
+//		            notification.setAlerted(true);
+//		            repository.save(notification);}}}
+//		 }catch(Exception e) {}
+// }
 	
 	 
 	 
@@ -1090,36 +1090,36 @@ public class ServiceImpl implements ServiceInterface{
 	 }
 	 	
 	 
-	 @Scheduled(cron = "0 30 8 * * ?")
-	 public void sendBirthdayWishes() {
-		 try {
-			 List<CustomerOnbordingDTO> cusmr =  new ObjectMapper().convertValue(cllinicFeign.getAllCustomers().getBody().getData(), new TypeReference< List<CustomerOnbordingDTO>>() {});
-			 //System.out.println(cusmr);
-			 cusmr.stream().map(n->{ 
-				 if(n.getDateOfBirth() != null) {
-				 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-			        LocalDate dob = LocalDate.parse(n.getDateOfBirth(), formatter);	
-			        //System.out.println(dob);
-			        LocalDate today = LocalDate.now();	
-			       // System.out.println(today);
-			        MonthDay customerdobMonthDay = MonthDay.from(dob);
-			        //System.out.println(customerdobMonthDay);
-			        MonthDay todayMonthDay = MonthDay.from(today);	
-			        //System.out.println(customerdobMonthDay);
-			        if (customerdobMonthDay.equals(todayMonthDay)) {
-			        	//System.out.println(n);
-			        	if(n.getDeviceId() != null) {
-			        		System.out.println(n.getDeviceId());
-			 appNotification.sendPushNotification(n.getDeviceId(),"🎉 Happy Birthday, " + n.getFullName() + "!","Your health and happiness are our priority. Have a great birthday!", "birthdayGreeting",
-					    "bithdayGreetingsScreen","default","dashboard");
-			        	//System.out.println("notifications sent successfully");
-			 }}
-			 return n;}return null;}).toList();
-		 }catch(Exception e) {
-			 System.out.println(e.getMessage());
-		 }
-		 
-	 }	
+//	 @Scheduled(cron = "0 30 8 * * ?")
+//	 public void sendBirthdayWishes() {
+//		 try {
+//			 List<CustomerOnbordingDTO> cusmr =  new ObjectMapper().convertValue(cllinicFeign.getAllCustomers().getBody().getData(), new TypeReference< List<CustomerOnbordingDTO>>() {});
+//			 //System.out.println(cusmr);
+//			 cusmr.stream().map(n->{ 
+//				 if(n.getDateOfBirth() != null) {
+//				 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+//			        LocalDate dob = LocalDate.parse(n.getDateOfBirth(), formatter);	
+//			        //System.out.println(dob);
+//			        LocalDate today = LocalDate.now();	
+//			       // System.out.println(today);
+//			        MonthDay customerdobMonthDay = MonthDay.from(dob);
+//			        //System.out.println(customerdobMonthDay);
+//			        MonthDay todayMonthDay = MonthDay.from(today);	
+//			        //System.out.println(customerdobMonthDay);
+//			        if (customerdobMonthDay.equals(todayMonthDay)) {
+//			        	//System.out.println(n);
+//			        	if(n.getDeviceId() != null) {
+//			        		System.out.println(n.getDeviceId());
+//			 appNotification.sendPushNotification(n.getDeviceId(),"🎉 Happy Birthday, " + n.getFullName() + "!","Your health and happiness are our priority. Have a great birthday!", "birthdayGreeting",
+//					    "bithdayGreetingsScreen","default","dashboard");
+//			        	//System.out.println("notifications sent successfully");
+//			 }}
+//			 return n;}return null;}).toList();
+//		 }catch(Exception e) {
+//			 System.out.println(e.getMessage());
+//		 }
+//		 
+//	 }	
 	 
 	 	
 	 public ResponseEntity<?> updatePriceDropAlert(
@@ -1185,6 +1185,78 @@ public class ServiceImpl implements ServiceInterface{
 
 	     return ResponseEntity.status(res.getStatus()).body(res);
 	 } 
+	 
+	 
+		@Scheduled(cron = "0 10 7 * * ?")
+		public void remindHomeExcercises() {
+			     try {
+			        // Fetch doctor details
+			        Response obj = doctorFeign.getAllDoctorSaveDetails().getBody();     
+			        ObjectMapper mapper = new ObjectMapper();
+			        mapper.registerModule(new JavaTimeModule());
+			        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			        List<DoctorSaveDetails> doctorSaveDetailsDTOs =
+			        		mapper.convertValue(obj.getData(), new TypeReference<List<DoctorSaveDetails>>() {});
+	
+			       // System.out.println("Fetched doctors: " + doctorSaveDetailsDTOs.size());
+	
+			        for (DoctorSaveDetails doctorSaveDetailsDTO : doctorSaveDetailsDTOs) {
+	
+			            LocalDateTime visitedDate = doctorSaveDetailsDTO.getVisitDateTime();
+	
+			            // Fetch booking details
+			            // Iterate over prescribed medicines
+			            for (Medicines m : doctorSaveDetailsDTO.getPrescription().getMedicines()) {
+			                long duration = convertDurationToDays(m.getDuration(),m.getDurationUnit()); // already long?
+			               // System.out.println(duration);
+			                LocalDateTime plusDays = visitedDate.plusDays(duration);
+		                   // System.out.println(plusDays);
+			                LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+		                    //System.out.println(now);
+		                    //System.out.println(visitedDate);
+			                // Check if today is within duration
+			                if (!now.isBefore(visitedDate) && !now.isAfter(plusDays)) {
+			                	//System.out.println("invoked for times");
+			                    boolean isEvening = Arrays.stream(m.getRemindWhen().split(" "))
+			                            .anyMatch(time -> time.equalsIgnoreCase("Evening"));
+			                    if(isEvening){
+				                    if(bookingResponse == null) {
+				                    	isCalledAlready = true;
+				                    }else{
+				                    if(!bookingResponse.getBookingId().equalsIgnoreCase(doctorSaveDetailsDTO.getBookingId())) {
+				                    	isCalledAlready = true;
+				                    }else {
+				                    	isCalledAlready = false;	
+				                    }}
+				                    if(isCalledAlready){
+			                    try{
+			    		            ResponseEntity<ResponseStructure<BookingResponse>> res =
+			    		                    bookServiceFeign.getBookedService(doctorSaveDetailsDTO.getBookingId());
+			    		            bookingResponse = res.getBody().getData();
+	
+			    		            if (bookingResponse == null) {
+			    		                //System.out.println("No booking found for ID: " + doctorSaveDetailsDTO.getBookingId());
+			    		                continue;
+			    		            }
+	
+			    		            //System.out.println("Booking: " + bookingResponse);
+			    		            }catch(Exception e) {
+			    		            	 System.out.println(e.getMessage());
+			    		            }}
+			                    //System.out.println(isAfternoon);
+			                    if (bookingResponse != null && bookingResponse.getCustomerDeviceId() != null) {
+			                   // System.out.println(bookingResponse.getCustomerDeviceId());	
+			                   // System.out.println("not invoke");
+				 
+				 	        appNotification.sendPushNotification(
+				 			bookingResponse.getCustomerDeviceId(),
+				             "🌆 Good evening!",
+				            "Time to take your prescribed "+m.getName()+","+m.getDose()+" with water.",
+				             "MEDICINE REMINDER",
+				 		    "reminderScreen","default","dashboard"
+				         );	
+			             }}}}}}catch (Exception e) {e.printStackTrace();}}
+	
 	 
 
 }

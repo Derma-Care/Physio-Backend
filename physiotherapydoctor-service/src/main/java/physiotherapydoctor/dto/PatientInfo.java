@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class PatientInfo {
+	
     private String patientId;
     private String patientName;
     private String mobileNumber;

@@ -32,7 +32,7 @@ public interface ServiceInterface {
     public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomer(
 			 String customerMobileNumber);
     
-    public void sendAlertNotifications();
+   // public void sendAlertNotifications();
     
     public ResponseEntity<?> sendImageNotifications(PriceDropAlertDto priceDropAlertDto);
    
