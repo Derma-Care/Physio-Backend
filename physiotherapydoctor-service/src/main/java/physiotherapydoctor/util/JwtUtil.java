@@ -212,7 +212,7 @@ public class JwtUtil {
 		boolean exp = false;
 		try {
 				Key currentSecretKeyBytes = Keys.hmacShaKeyFor(REFRESH_TOEKN_SECRET_KEY.getBytes());				
-				//System.out.println(REFRESH_TOEKN_SECRET_KEY);
+				System.out.println(REFRESH_TOEKN_SECRET_KEY);
 				Claims claims = Jwts.parserBuilder()
 						.setSigningKey(currentSecretKeyBytes)
 						.build()

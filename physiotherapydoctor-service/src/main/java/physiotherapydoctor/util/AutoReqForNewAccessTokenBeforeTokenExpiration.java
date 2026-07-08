@@ -2,11 +2,8 @@ package physiotherapydoctor.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import feign.FeignException;
 import feign.RetryableException;
 import jakarta.ws.rs.*;
-import lombok.extern.slf4j.Slf4j;
 import physiotherapydoctor.feign.KeyCloakFeign;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +18,6 @@ import java.util.Map;
 
 
 @Component
-@Slf4j
 public class AutoReqForNewAccessTokenBeforeTokenExpiration {
 
 	
@@ -34,26 +30,31 @@ public class AutoReqForNewAccessTokenBeforeTokenExpiration {
 	
 	@Retryable(value = {RetryableException.class,NotAuthorizedException.class,ForbiddenException.class,NotFoundException.class,BadRequestException.class,InternalServerErrorException.class}, maxAttempts = 8, backoff = @Backoff(delay = 10000))
 	public void reqforNewServiceToken() { // TO GET JWKS FROM AUTH SERVICE
-		  log.info("reqforNewServiceToken method is invoked");
-		try {
+		// System.out.println("autoCheckForJwks method invoked");
+		//try {	if(utilityForStoreJwtTokenAndExpiryTime.getAccess_token() == null && utilityForStoreJwtTokenAndExpiryTime.getExpires_in() == null) {
 			 MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 			 form.add("grant_type", "client_credentials");
-			 form.add("client_id", "notification_service");
-			 form.add("client_secret", "MsHiOtmJfzc86dz9n2fbKgDa6ZOFnNIX");
-			  Map<String, Object> data = keyCloakFeign.getToken(form);			
+			 form.add("client_id", "physio_doctor");
+			 form.add("client_secret", "MGPG79FeVBT1BfclezvBce9LdwsYlMXB");
+			  Map<String, Object> data = keyCloakFeign.getToken(form);
+			 // System.out.println(data);
 			  if(data != null) {
 				  Map<String,String> token  =  new ObjectMapper().convertValue(data,new TypeReference<Map<String,String>>() {});
 				  keyCloakTokenStore.setAccess_token("Bearer "+token.get("access_token"));
-				  keyCloakTokenStore.setExpires_in(Long.valueOf(token.get("expires_in")));				 
-			  }}catch(FeignException e) {
-			log.error("exception occured", e.getMessage());;
-		}}
+				  keyCloakTokenStore.setExpires_in(Long.valueOf(token.get("expires_in")));
+					 /// System.out.println(keyCloakTokenStore.access_token);
+//					  System.out.println(keyCloakTokenStore.expires_in);
+			  //System.out.println(utilityForStoreJwtTokenAndExpiryTime);
+	          }}
+//		}catch(FeignException e) {
+//			System.out.println( e.getClass());
+//		}
 	
 	
 	
 	@Recover
 	public void message(RetryableException e) {
-		log.error(e.getMessage());
+		System.out.println(e.getMessage());
 	}	
 	
 }

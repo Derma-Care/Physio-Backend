@@ -85,7 +85,7 @@ public interface  BookingFeignClient {
 			@PathVariable int size);
 
 	 @GetMapping("/api/v1/searchBookings/{clinicId}/{input}")
-	 ResponseEntity<ResponseStructure<List<Map<String, Object>>>> searchBookings(
+	 ResponseEntity<ResponseStructure<List<Map<String, Object>>>> searchBookings(@RequestHeader("Authorization") String token,
 	         @PathVariable("clinicId") String clinicId,
 	         @PathVariable("input") String input);
 

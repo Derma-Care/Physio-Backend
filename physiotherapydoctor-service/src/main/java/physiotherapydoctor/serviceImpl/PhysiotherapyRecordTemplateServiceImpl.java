@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import physiotherapydoctor.dto.Exercise;
 import physiotherapydoctor.dto.ExerciseCalculationsForTemplate;
 import physiotherapydoctor.dto.PackageCalculationForTemplate;
@@ -56,7 +55,6 @@ import physiotherapydoctor.service.S3Service;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyRecordTemplateService {
 
 	private final PhysiotherapyRecordTemplateRepository repository;
@@ -65,931 +63,435 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	private PaymentRepository paymentRepository;
 
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
-	@Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
+@Secured("ROLE_DOCTOR")
 	public Response create(PhysiotherapyRecordTemplateDTO dto) {
 
-	    log.info("Create physiotherapy record template request received");
+		Response response = new Response();
 
-	    Response response = new Response();
+		if (dto == null) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("Request body is null");
+			response.setStatus(400);
+			return response;
+		}
 
-	    if (dto == null) {
+		calculateTherapyPrices(dto.getTherapySessions());
 
-	        log.warn("PhysiotherapyRecordTemplateDTO is null");
+		PhysiotherapyRecordTemplate entity = mapToEntity(dto);
 
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage("Request body is null");
-	        response.setStatus(400);
+		LocalDateTime now = LocalDateTime.now();
 
-	        return response;
-	    }
+		String createdDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+		String createdTime = now.format(DateTimeFormatter.ofPattern("hh:mm a"));
 
-	    try {
+		entity.setCreatedAt(createdDate);
+		entity.setCreatedTime(createdTime);
+		entity.setUpdatedAt(createdDate);
 
-	        log.debug("Calculating therapy prices");
+		PhysiotherapyRecordTemplate saved = repository.save(entity);
 
-	        calculateTherapyPrices(dto.getTherapySessions());
+		List<Map<String, Object>> cleanSessions = transformTherapySessions(saved.getTherapySessions());
 
-	        log.debug("Mapping DTO to entity");
+		saved.setTherapySessions((List) cleanSessions);
 
-	        PhysiotherapyRecordTemplate entity =
-	                mapToEntity(dto);
+		response.setSuccess(true);
+		response.setData(saved);
+		response.setMessage("Record created successfully");
+		response.setStatus(201);
 
-	        LocalDateTime now = LocalDateTime.now();
-
-	        String createdDate =
-	                now.format(
-	                        DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-	        String createdTime =
-	                now.format(
-	                        DateTimeFormatter.ofPattern("hh:mm a"));
-
-	        entity.setCreatedAt(createdDate);
-	        entity.setCreatedTime(createdTime);
-	        entity.setUpdatedAt(createdDate);
-
-	        log.debug(
-	                "Saving physiotherapy record template. createdDate={}, createdTime={}",
-	                createdDate,
-	                createdTime);
-
-	        PhysiotherapyRecordTemplate saved =
-	                repository.save(entity);
-
-	        log.info(
-	                "Physiotherapy record template saved successfully. id={}",
-	                saved.getTemplateRecordId());
-
-	        List<Map<String, Object>> cleanSessions =
-	                transformTherapySessions(
-	                        saved.getTherapySessions());
-
-	        saved.setTherapySessions((List) cleanSessions);
-
-	        response.setSuccess(true);
-	        response.setData(saved);
-	        response.setMessage("Record created successfully");
-	        response.setStatus(201);
-
-	        log.info("Physiotherapy record template created successfully");
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error while creating physiotherapy record template. Error={}",
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
 
-	private List<Map<String, Object>> transformTherapySessions(
-	        List<TherapySession> sessions) {
+	private List<Map<String, Object>> transformTherapySessions(List<TherapySession> sessions) {
 
-	    log.debug("Transforming therapy sessions");
+		if (sessions == null)
+			return null;
 
-	    if (sessions == null) {
+		List<Map<String, Object>> result = new ArrayList<>();
 
-	        log.debug("Therapy sessions list is null");
+		for (TherapySession s : sessions) {
 
-	        return null;
-	    }
+			Map<String, Object> obj = new LinkedHashMap<>();
 
-	    log.debug(
-	            "Total therapy sessions received={}",
-	            sessions.size());
+			// ✅ Always include
+			obj.put("serviceType", s.getServiceType());
+			obj.put("totalPrice", s.getTotalPrice());
 
-	    List<Map<String, Object>> result =
-	            new ArrayList<>();
+			switch (s.getServiceType().toLowerCase()) {
 
-	    for (TherapySession s : sessions) {
+			case "package":
+				obj.put("packageId", s.getPackageId());
+				obj.put("packageName", s.getPackageName());
+				obj.put("programs", s.getPrograms());
+				break;
 
-	        log.debug(
-	                "Processing serviceType={}",
-	                s.getServiceType());
+			case "program":
+				obj.put("programId", s.getProgramId());
+				obj.put("programName", s.getProgramName());
+				obj.put("therapyData", s.getTherapyData());
+				break;
 
-	        Map<String, Object> obj =
-	                new LinkedHashMap<>();
+			case "therapy":
+				obj.put("therapyId", s.getTherapyId());
+				obj.put("therapyName", s.getTherapyName());
+				obj.put("exercises", s.getExercises());
+				break;
 
-	        obj.put("serviceType", s.getServiceType());
-	        obj.put("totalPrice", s.getTotalPrice());
+			case "exercise":
+				obj.put("exercises", s.getExercises());
+				break;
+			}
 
-	        switch (s.getServiceType().toLowerCase()) {
+			// 🔥 Remove null fields
+			obj.values().removeIf(Objects::isNull);
 
-	        case "package":
+			result.add(obj);
+		}
 
-	            log.debug(
-	                    "Transforming package. packageId={}, packageName={}",
-	                    s.getPackageId(),
-	                    s.getPackageName());
-
-	            obj.put("packageId", s.getPackageId());
-	            obj.put("packageName", s.getPackageName());
-	            obj.put("programs", s.getPrograms());
-
-	            break;
-
-	        case "program":
-
-	            log.debug(
-	                    "Transforming program. programId={}, programName={}",
-	                    s.getProgramId(),
-	                    s.getProgramName());
-
-	            obj.put("programId", s.getProgramId());
-	            obj.put("programName", s.getProgramName());
-	            obj.put("therapyData", s.getTherapyData());
-
-	            break;
-
-	        case "therapy":
-
-	            log.debug(
-	                    "Transforming therapy. therapyId={}, therapyName={}",
-	                    s.getTherapyId(),
-	                    s.getTherapyName());
-
-	            obj.put("therapyId", s.getTherapyId());
-	            obj.put("therapyName", s.getTherapyName());
-	            obj.put("exercises", s.getExercises());
-
-	            break;
-
-	        case "exercise":
-
-	            log.debug("Transforming exercise level data");
-
-	            obj.put("exercises", s.getExercises());
-
-	            break;
-
-	        default:
-
-	            log.warn(
-	                    "Unknown serviceType encountered={}",
-	                    s.getServiceType());
-	        }
-
-	        obj.values().removeIf(Objects::isNull);
-
-	        result.add(obj);
-	    }
-
-	    log.debug(
-	            "Therapy session transformation completed. transformedCount={}",
-	            result.size());
-
-	    return result;
+		return result;
 	}
+
 	private void calculateTherapyPrices(List<TherapySession> sessions) {
 
-	    log.debug("Calculating therapy prices");
-
-	    if (sessions == null) {
-
-	        log.warn("Therapy sessions list is null. Skipping price calculation");
-
-	        return;
-	    }
-
-	    log.debug("Total therapy sessions received={}", sessions.size());
-
-	    for (TherapySession session : sessions) {
-
-	        log.debug(
-	                "Processing serviceType={}",
-	                session.getServiceType());
-
-	        // ================= PACKAGE =================
-	        if (session.getPrograms() != null) {
-
-	            double packageTotal = 0;
-
-	            log.debug(
-	                    "Calculating package price. Program count={}",
-	                    session.getPrograms().size());
-
-	            for (Program p : session.getPrograms()) {
-
-	                double programTotal = 0;
-
-	                log.debug(
-	                        "Processing programId={}, programName={}",
-	                        p.getProgramId(),
-	                        p.getProgramName());
-
-	                if (p.getTherapyData() != null) {
-
-	                    for (TherapyData t : p.getTherapyData()) {
-
-	                        double therapyTotal = 0;
-
-	                        log.debug(
-	                                "Processing therapyId={}, therapyName={}",
-	                                t.getTherapyId(),
-	                                t.getTherapyName());
-
-	                        if (t.getExercises() != null) {
-
-	                            for (TherapyExercise ex : t.getExercises()) {
-
-	                                double exTotal = 0;
-
-	                                if (ex.getTotalExercisePrice() != null) {
-
-	                                    exTotal =
-	                                            ex.getTotalExercisePrice();
-
-	                                } else if (ex.getPricePerSession() != null
-	                                        && ex.getNoOfSessions() != null) {
-
-	                                    exTotal =
-	                                            ex.getPricePerSession()
-	                                                    * ex.getNoOfSessions();
-	                                }
-
-	                                ex.setTotalExercisePrice(exTotal);
-
-	                                therapyTotal += exTotal;
-
-	                                log.debug(
-	                                        "ExerciseId={}, ExercisePrice={}",
-	                                        ex.getExerciseId(),
-	                                        exTotal);
-	                            }
-	                        }
-
-	                        t.setTotalTherapyPrice(therapyTotal);
-
-	                        log.debug(
-	                                "TherapyId={} TotalTherapyPrice={}",
-	                                t.getTherapyId(),
-	                                therapyTotal);
-
-	                        programTotal += therapyTotal;
-	                    }
-	                }
-
-	                p.setTotalProgramPrice(programTotal);
-
-	                log.debug(
-	                        "ProgramId={} TotalProgramPrice={}",
-	                        p.getProgramId(),
-	                        programTotal);
-
-	                packageTotal += programTotal;
-	            }
-
-	            session.setTotalPackageCost(packageTotal);
-	            session.setTotalPrice(packageTotal);
-
-	            log.info(
-	                    "Package total calculated. TotalPackageCost={}",
-	                    packageTotal);
-	        }
-
-	        // ================= PROGRAM =================
-	        if (session.getTherapyData() != null) {
-
-	            double programTotal = 0;
-
-	            log.debug(
-	                    "Calculating program price. Therapy count={}",
-	                    session.getTherapyData().size());
-
-	            for (TherapyData t : session.getTherapyData()) {
-
-	                double therapyTotal = 0;
-
-	                log.debug(
-	                        "Processing therapyId={}, therapyName={}",
-	                        t.getTherapyId(),
-	                        t.getTherapyName());
-
-	                if (t.getExercises() != null) {
-
-	                    for (TherapyExercise ex : t.getExercises()) {
-
-	                        double exTotal = 0;
-
-	                        if (ex.getTotalExercisePrice() != null) {
-
-	                            exTotal =
-	                                    ex.getTotalExercisePrice();
-
-	                        } else if (ex.getPricePerSession() != null
-	                                && ex.getNoOfSessions() != null) {
-
-	                            exTotal =
-	                                    ex.getPricePerSession()
-	                                            * ex.getNoOfSessions();
-	                        }
-
-	                        ex.setTotalExercisePrice(exTotal);
-
-	                        therapyTotal += exTotal;
-
-	                        log.debug(
-	                                "ExerciseId={}, ExercisePrice={}",
-	                                ex.getExerciseId(),
-	                                exTotal);
-	                    }
-	                }
-
-	                t.setTotalTherapyPrice(therapyTotal);
-
-	                log.debug(
-	                        "TherapyId={} TotalTherapyPrice={}",
-	                        t.getTherapyId(),
-	                        therapyTotal);
-
-	                programTotal += therapyTotal;
-	            }
-
-	            session.setTotalProgramCost(programTotal);
-	            session.setTotalPrice(programTotal);
-
-	            log.info(
-	                    "Program total calculated. TotalProgramCost={}",
-	                    programTotal);
-	        }
-
-	        // ================= THERAPY =================
-	        if (session.getExercises() != null
-	                && session.getPrograms() == null
-	                && session.getTherapyData() == null) {
-
-	            double therapyTotal = 0;
-
-	            log.debug(
-	                    "Calculating therapy price. Exercise count={}",
-	                    session.getExercises().size());
-
-	            for (TherapyExercise ex : session.getExercises()) {
-
-	                double exTotal = 0;
-
-	                if (ex.getTotalExercisePrice() != null) {
-
-	                    exTotal =
-	                            ex.getTotalExercisePrice();
-
-	                } else if (ex.getPricePerSession() != null
-	                        && ex.getNoOfSessions() != null) {
-
-	                    exTotal =
-	                            ex.getPricePerSession()
-	                                    * ex.getNoOfSessions();
-	                }
-
-	                ex.setTotalExercisePrice(exTotal);
-
-	                therapyTotal += exTotal;
-
-	                log.debug(
-	                        "ExerciseId={}, ExercisePrice={}",
-	                        ex.getExerciseId(),
-	                        exTotal);
-	            }
-
-	            session.setTotalTherapyCost(therapyTotal);
-	            session.setTotalPrice(therapyTotal);
-
-	            log.info(
-	                    "Therapy total calculated. TotalTherapyCost={}",
-	                    therapyTotal);
-	        }
-
-	        log.debug(
-	                "Completed price calculation for serviceType={}, TotalPrice={}",
-	                session.getServiceType(),
-	                session.getTotalPrice());
-	    }
-
-	    log.info("Therapy price calculation completed successfully");
+		if (sessions == null)
+			return;
+
+		for (TherapySession session : sessions) {
+
+			// ================= PACKAGE =================
+			if (session.getPrograms() != null) {
+
+				double packageTotal = 0;
+
+				for (Program p : session.getPrograms()) {
+
+					double programTotal = 0;
+
+					if (p.getTherapyData() != null) {
+
+						for (TherapyData t : p.getTherapyData()) {
+
+							double therapyTotal = 0;
+
+							if (t.getExercises() != null) {
+								for (TherapyExercise ex : t.getExercises()) {
+									double exTotal = 0;
+									if (ex.getTotalExercisePrice() != null) {
+										exTotal = ex.getTotalExercisePrice();
+									} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
+										exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
+									}
+									ex.setTotalExercisePrice(exTotal);
+									therapyTotal += exTotal;
+								}
+							}
+
+							t.setTotalTherapyPrice(therapyTotal);
+							programTotal += therapyTotal;
+						}
+					}
+
+					p.setTotalProgramPrice(programTotal);
+					packageTotal += programTotal;
+				}
+
+				// ✅ Set package total
+				session.setTotalPackageCost(packageTotal);
+				session.setTotalPrice(packageTotal);
+			}
+
+			// ================= PROGRAM =================
+			if (session.getTherapyData() != null) {
+
+				double programTotal = 0;
+
+				for (TherapyData t : session.getTherapyData()) {
+
+					double therapyTotal = 0;
+
+					if (t.getExercises() != null) {
+						for (TherapyExercise ex : t.getExercises()) {
+							double exTotal = 0;
+							if (ex.getTotalExercisePrice() != null) {
+								exTotal = ex.getTotalExercisePrice();
+							} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
+								exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
+							}
+							ex.setTotalExercisePrice(exTotal);
+							therapyTotal += exTotal;
+						}
+					}
+
+					t.setTotalTherapyPrice(therapyTotal);
+					programTotal += therapyTotal;
+				}
+
+				// ✅ Set program total
+				session.setTotalProgramCost(programTotal);
+				session.setTotalPrice(programTotal);
+			}
+
+			// ================= THERAPY =================
+			if (session.getExercises() != null && session.getPrograms() == null && session.getTherapyData() == null) {
+
+				double therapyTotal = 0;
+
+				for (TherapyExercise ex : session.getExercises()) {
+					double exTotal = 0;
+					if (ex.getTotalExercisePrice() != null) {
+						exTotal = ex.getTotalExercisePrice();
+					} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
+						exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
+					}
+					ex.setTotalExercisePrice(exTotal);
+					therapyTotal += exTotal;
+				}
+
+				// ✅ Set therapy total
+				session.setTotalTherapyCost(therapyTotal);
+				session.setTotalPrice(therapyTotal);
+			}
+		}
 	}
-	
+
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplatesByClinicIdFallback")
-	@Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplatesByClinicIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getTemplatesByClinicId(String clinicId) {
 
-	    log.info("Fetching templates by clinicId={}", clinicId);
+		Response response = new Response();
 
-	    Response response = new Response();
+		List<PhysiotherapyRecordTemplate> templates = repository.findByClinicId(clinicId);
 
-	    try {
+		if (templates == null || templates.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("No templates found");
+			response.setStatus(404);
+			return response;
+		}
 
-	        List<PhysiotherapyRecordTemplate> templates =
-	                repository.findByClinicId(clinicId);
+		List<TemplateSummaryDTO> result = new ArrayList<>();
 
-	        if (templates == null || templates.isEmpty()) {
+		for (PhysiotherapyRecordTemplate template : templates) {
 
-	            log.warn(
-	                    "No templates found for clinicId={}",
-	                    clinicId);
+			TemplateSummaryDTO dto = new TemplateSummaryDTO();
 
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("No templates found");
-	            response.setStatus(404);
+			dto.setTemplateRecordId(template.getTemplateRecordId());
 
-	            return response;
-	        }
+			if (template.getDiagnosis() != null) {
+				dto.setPhysioDiagnosis(template.getDiagnosis().getPhysioDiagnosis());
+			}
 
-	        log.info(
-	                "Found {} templates for clinicId={}",
-	                templates.size(),
-	                clinicId);
+			result.add(dto);
+		}
 
-	        List<TemplateSummaryDTO> result =
-	                new ArrayList<>();
+		response.setSuccess(true);
+		response.setData(result);
+		response.setMessage("Templates fetched successfully");
+		response.setStatus(200);
 
-	        for (PhysiotherapyRecordTemplate template : templates) {
-
-	            log.debug(
-	                    "Processing templateRecordId={}",
-	                    template.getTemplateRecordId());
-
-	            TemplateSummaryDTO dto =
-	                    new TemplateSummaryDTO();
-
-	            dto.setTemplateRecordId(
-	                    template.getTemplateRecordId());
-
-	            if (template.getDiagnosis() != null) {
-
-	                dto.setPhysioDiagnosis(
-	                        template.getDiagnosis()
-	                                .getPhysioDiagnosis());
-	            }
-
-	            result.add(dto);
-	        }
-
-	        response.setSuccess(true);
-	        response.setData(result);
-	        response.setMessage("Templates fetched successfully");
-	        response.setStatus(200);
-
-	        log.info(
-	                "Templates fetched successfully for clinicId={}",
-	                clinicId);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error fetching templates for clinicId={}. Error={}",
-	                clinicId,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
-
 
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplateByClinicIdAndTemplateIdFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getTemplateByClinicIdAndTemplateId(
-	        String clinicId,
-	        String templateRecordId) {
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTemplateByClinicIdAndTemplateIdFallback")
+@Secured("ROLE_DOCTOR")
+	public Response getTemplateByClinicIdAndTemplateId(String clinicId, String templateRecordId) {
 
-	    log.info(
-	            "Fetching template by clinicId={} and templateRecordId={}",
-	            clinicId,
-	            templateRecordId);
+		Response response = new Response();
 
-	    Response response = new Response();
+		Optional<PhysiotherapyRecordTemplate> template = repository.findByClinicIdAndTemplateRecordId(clinicId,
+				templateRecordId);
 
-	    try {
+		if (template.isEmpty()) {
 
-	        Optional<PhysiotherapyRecordTemplate> template =
-	                repository.findByClinicIdAndTemplateRecordId(
-	                        clinicId,
-	                        templateRecordId);
+			response.setSuccess(false);
+			response.setMessage("Template not found");
+			response.setStatus(404);
 
-	        if (template.isEmpty()) {
+			return response;
+		}
 
-	            log.warn(
-	                    "Template not found. clinicId={}, templateRecordId={}",
-	                    clinicId,
-	                    templateRecordId);
+		response.setSuccess(true);
+		response.setData(template.get());
+		response.setMessage("Template fetched successfully");
+		response.setStatus(200);
 
-	            response.setSuccess(false);
-	            response.setMessage("Template not found");
-	            response.setStatus(404);
-
-	            return response;
-	        }
-
-	        log.info(
-	                "Template fetched successfully. templateRecordId={}",
-	                templateRecordId);
-
-	        response.setSuccess(true);
-	        response.setData(template.get());
-	        response.setMessage("Template fetched successfully");
-	        response.setStatus(200);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error fetching template. clinicId={}, templateRecordId={}, error={}",
-	                clinicId,
-	                templateRecordId,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
-
 
 	// ✅ GET BY ID
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
-	@Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
 
-	    log.info("Fetching template by id={}", id);
+		Response response = new Response();
 
-	    Response response = new Response();
+		if (id == null || id.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("ID is required");
+			response.setStatus(400);
+			return response;
+		}
 
-	    try {
+		Optional<PhysiotherapyRecordTemplate> optional = repository.findById(id);
 
-	        if (id == null || id.isEmpty()) {
+		if (optional.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("Template not found");
+			response.setStatus(404);
+			return response;
+		}
 
-	            log.warn("Template id is null or empty");
+		PhysiotherapyRecordTemplate record = optional.get();
+		response.setSuccess(true);
+		response.setData(record);
+		response.setMessage("Success");
+		response.setStatus(200);
 
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("ID is required");
-	            response.setStatus(400);
-
-	            return response;
-	        }
-
-	        Optional<PhysiotherapyRecordTemplate> optional =
-	                repository.findById(id);
-
-	        if (optional.isEmpty()) {
-
-	            log.warn(
-	                    "Template not found for id={}",
-	                    id);
-
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("Template not found");
-	            response.setStatus(404);
-
-	            return response;
-	        }
-
-	        log.info(
-	                "Template fetched successfully for id={}",
-	                id);
-
-	        PhysiotherapyRecordTemplate record =
-	                optional.get();
-
-	        response.setSuccess(true);
-	        response.setData(record);
-	        response.setMessage("Success");
-	        response.setStatus(200);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error fetching template by id={}. Error={}",
-	                id,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
-	
+
 	// ✅ GET ALL
 	@Override
-	@RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getAllFallback")
-	@Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapyRecordTemplateService", fallbackMethod = "getAllFallback")
+@Secured("ROLE_DOCTOR")
 	public Response getAll() {
 
-	    log.info("Fetching all physiotherapy record templates");
+		Response response = new Response();
 
-	    Response response = new Response();
+		List<PhysiotherapyRecordTemplate> list = repository.findAll();
 
-	    try {
+		if (list.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(list);
+			response.setMessage("No records found");
+			response.setStatus(204);
+			return response;
+		}
 
-	        List<PhysiotherapyRecordTemplate> list =
-	                repository.findAll();
+		response.setSuccess(true);
+		response.setData(list);
+		response.setMessage("Success");
+		response.setStatus(200);
 
-	        log.info(
-	                "Total templates found={}",
-	                list.size());
-
-	        if (list.isEmpty()) {
-
-	            log.warn("No physiotherapy record templates found");
-
-	            response.setSuccess(false);
-	            response.setData(list);
-	            response.setMessage("No records found");
-	            response.setStatus(204);
-
-	            return response;
-	        }
-
-	        response.setSuccess(true);
-	        response.setData(list);
-	        response.setMessage("Success");
-	        response.setStatus(200);
-
-	        log.info(
-	                "Successfully fetched {} physiotherapy record templates",
-	                list.size());
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error while fetching all physiotherapy record templates. Error={}",
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
 
-
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response update(
-	        String id,
-	        PhysiotherapyRecordTemplateDTO dto) {
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
+@Secured("ROLE_DOCTOR")
+	public Response update(String id, PhysiotherapyRecordTemplateDTO dto) {
 
-	    log.info(
-	            "Update physiotherapy record template request received. id={}",
-	            id);
+		Response response = new Response();
 
-	    Response response = new Response();
+		if (id == null || id.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("ID is required");
+			response.setStatus(400);
+			return response;
+		}
 
-	    try {
+		if (dto == null) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("Request body is null");
+			response.setStatus(400);
+			return response;
+		}
 
-	        if (id == null || id.isEmpty()) {
+		Optional<PhysiotherapyRecordTemplate> optional = repository.findById(id);
 
-	            log.warn("Template id is null or empty");
+		if (optional.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("Template not found");
+			response.setStatus(404);
+			return response;
+		}
 
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("ID is required");
-	            response.setStatus(400);
+		PhysiotherapyRecordTemplate existing = optional.get();
 
-	            return response;
-	        }
+		if (dto.getDiagnosis() != null) {
+			existing.setDiagnosis(dto.getDiagnosis());
+		}
 
-	        if (dto == null) {
+		if (dto.getTreatmentPlan() != null) {
+			existing.setTreatmentPlan(dto.getTreatmentPlan());
+		}
 
-	            log.warn(
-	                    "Request body is null for template id={}",
-	                    id);
+		// ✅ IMPORTANT: handle sessions properly
+		if (dto.getTherapySessions() != null) {
 
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("Request body is null");
-	            response.setStatus(400);
+			existing.setTherapySessions(dto.getTherapySessions());
+		}
 
-	            return response;
-	        }
+		// ✅ HOME EXERCISE UPDATE
+		if (dto.getExercisePlan() != null) {
+			existing.setExercisePlan(dto.getExercisePlan());
+		}
 
-	        Optional<PhysiotherapyRecordTemplate> optional =
-	                repository.findById(id);
+		if (dto.getFollowUp() != null) {
+			existing.setFollowUp(dto.getFollowUp());
+		}
+		if (dto.getRecoverySupport() != null) {
+			existing.setRecoverySupport(dto.getRecoverySupport());
+		}
 
-	        if (optional.isEmpty()) {
+		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
+		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-	            log.warn(
-	                    "Template not found for id={}",
-	                    id);
+		existing.setUpdatedAt(now);
 
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("Template not found");
-	            response.setStatus(404);
+		PhysiotherapyRecordTemplate updated = repository.save(existing);
 
-	            return response;
-	        }
+		response.setSuccess(true);
+		response.setData(updated);
+		response.setMessage("Updated successfully");
+		response.setStatus(200);
 
-	        PhysiotherapyRecordTemplate existing =
-	                optional.get();
-
-	        log.debug(
-	                "Updating template fields for id={}",
-	                id);
-
-	        if (dto.getDiagnosis() != null) {
-
-	            log.debug("Updating diagnosis");
-
-	            existing.setDiagnosis(dto.getDiagnosis());
-	        }
-
-	        if (dto.getTreatmentPlan() != null) {
-
-	            log.debug("Updating treatment plan");
-
-	            existing.setTreatmentPlan(
-	                    dto.getTreatmentPlan());
-	        }
-
-	        if (dto.getTherapySessions() != null) {
-
-	            log.debug(
-	                    "Updating therapy sessions. Count={}",
-	                    dto.getTherapySessions().size());
-
-	            existing.setTherapySessions(
-	                    dto.getTherapySessions());
-	        }
-
-	        if (dto.getExercisePlan() != null) {
-
-	            log.debug("Updating exercise plan");
-
-	            existing.setExercisePlan(
-	                    dto.getExercisePlan());
-	        }
-
-	        if (dto.getFollowUp() != null) {
-
-	            log.debug("Updating follow-up details");
-
-	            existing.setFollowUp(
-	                    dto.getFollowUp());
-	        }
-
-	        if (dto.getRecoverySupport() != null) {
-
-	            log.debug("Updating recovery support");
-
-	            existing.setRecoverySupport(
-	                    dto.getRecoverySupport());
-	        }
-
-	        String now =
-	                LocalDateTime.now()
-	                        .format(
-	                                DateTimeFormatter.ofPattern(
-	                                        "yyyy-MM-dd"));
-
-	        existing.setUpdatedAt(now);
-
-	        log.debug(
-	                "Updated timestamp set to {}",
-	                now);
-
-	        PhysiotherapyRecordTemplate updated =
-	                repository.save(existing);
-
-	        log.info(
-	                "Physiotherapy record template updated successfully. id={}",
-	                id);
-
-	        response.setSuccess(true);
-	        response.setData(updated);
-	        response.setMessage("Updated successfully");
-	        response.setStatus(200);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error while updating physiotherapy record template. id={}, error={}",
-	                id,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
 
 	// ✅ DELETE
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
-	@Secured("ROLE_DOCTOR")
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
+@Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
 
-	    log.info("Delete physiotherapy record template request received. id={}", id);
+		Response response = new Response();
 
-	    Response response = new Response();
+		if (id == null || id.isEmpty()) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("ID is required");
+			response.setStatus(400);
+			return response;
+		}
 
-	    try {
+		if (!repository.existsById(id)) {
+			response.setSuccess(false);
+			response.setData(null);
+			response.setMessage("Template not found");
+			response.setStatus(404);
+			return response;
+		}
 
-	        if (id == null || id.isEmpty()) {
+		repository.deleteById(id);
 
-	            log.warn("Template id is null or empty");
+		response.setSuccess(true);
+		response.setData(null);
+		response.setMessage("Deleted successfully");
+		response.setStatus(200);
 
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("ID is required");
-	            response.setStatus(400);
-
-	            return response;
-	        }
-
-	        boolean exists = repository.existsById(id);
-
-	        if (!exists) {
-
-	            log.warn(
-	                    "Template not found for deletion. id={}",
-	                    id);
-
-	            response.setSuccess(false);
-	            response.setData(null);
-	            response.setMessage("Template not found");
-	            response.setStatus(404);
-
-	            return response;
-	        }
-
-	        log.debug(
-	                "Deleting physiotherapy record template. id={}",
-	                id);
-
-	        repository.deleteById(id);
-
-	        log.info(
-	                "Physiotherapy record template deleted successfully. id={}",
-	                id);
-
-	        response.setSuccess(true);
-	        response.setData(null);
-	        response.setMessage("Deleted successfully");
-	        response.setStatus(200);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error while deleting physiotherapy record template. id={}, error={}",
-	                id,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setData(null);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
 
 	// ---------------- MAPPER ----------------
@@ -1055,186 +557,70 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByMultipleFieldsFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getByMultipleFields(
-	        String clinicId,
-	        String branchId,
-	        String bookingId,
-	        String templateRecordId) {
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByMultipleFieldsFallback")
+@Secured("ROLE_DOCTOR")
+	public Response getByMultipleFields(String clinicId, String branchId, String bookingId, String templateRecordId) {
 
-	    log.info(
-	            "Fetching template by multiple fields. clinicId={}, branchId={}, bookingId={}, templateRecordId={}",
-	            clinicId,
-	            branchId,
-	            bookingId,
-	            templateRecordId);
+		Response response = new Response();
 
-	    Response response = new Response();
+		if (clinicId == null || branchId == null || bookingId == null || templateRecordId == null) {
 
-	    try {
+			response.setSuccess(false);
+			response.setMessage("All fields are required");
+			response.setStatus(400);
+			return response;
+		}
 
-	        if (clinicId == null
-	                || branchId == null
-	                || bookingId == null
-	                || templateRecordId == null) {
+		Optional<PhysiotherapyRecordTemplate> record = repository
+				.findByClinicIdAndBranchIdAndBookingIdAndTemplateRecordId(clinicId, branchId, bookingId,
+						templateRecordId);
 
-	            log.warn(
-	                    "Required fields are missing. clinicId={}, branchId={}, bookingId={}, templateRecordId={}",
-	                    clinicId,
-	                    branchId,
-	                    bookingId,
-	                    templateRecordId);
+		if (record.isEmpty()) {
+			response.setSuccess(false);
+			response.setMessage("Template not found");
+			response.setStatus(404);
+			return response;
+		}
 
-	            response.setSuccess(false);
-	            response.setMessage("All fields are required");
-	            response.setStatus(400);
+		response.setSuccess(true);
+		response.setData(record.get());
+		response.setMessage("Template fetched successfully");
+		response.setStatus(200);
 
-	            return response;
-	        }
-
-	        Optional<PhysiotherapyRecordTemplate> record =
-	                repository.findByClinicIdAndBranchIdAndBookingIdAndTemplateRecordId(
-	                        clinicId,
-	                        branchId,
-	                        bookingId,
-	                        templateRecordId);
-
-	        if (record.isEmpty()) {
-
-	            log.warn(
-	                    "Template not found. clinicId={}, branchId={}, bookingId={}, templateRecordId={}",
-	                    clinicId,
-	                    branchId,
-	                    bookingId,
-	                    templateRecordId);
-
-	            response.setSuccess(false);
-	            response.setMessage("Template not found");
-	            response.setStatus(404);
-
-	            return response;
-	        }
-
-	        log.info(
-	                "Template fetched successfully. templateRecordId={}",
-	                templateRecordId);
-
-	        response.setSuccess(true);
-	        response.setData(record.get());
-	        response.setMessage("Template fetched successfully");
-	        response.setStatus(200);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error while fetching template. clinicId={}, branchId={}, bookingId={}, templateRecordId={}, error={}",
-	                clinicId,
-	                branchId,
-	                bookingId,
-	                templateRecordId,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
-
 
 	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getByWithoutTherapistRecordId(
-	        String clinicId,
-	        String branchId,
-	        String bookingId) {
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByWithoutTherapistRecordIdFallback")
+@Secured("ROLE_DOCTOR")
+	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String bookingId) {
 
-	    log.info(
-	            "Fetching templates by clinicId={}, branchId={}, bookingId={}",
-	            clinicId,
-	            branchId,
-	            bookingId);
+		Response response = new Response();
 
-	    Response response = new Response();
+		if (clinicId == null || branchId == null || bookingId == null) {
+			response.setSuccess(false);
+			response.setMessage("All fields are required");
+			response.setStatus(400);
+			return response;
+		}
 
-	    try {
+		List<PhysiotherapyRecordTemplate> records = repository.findByClinicIdAndBranchIdAndBookingId(clinicId, branchId,
+				bookingId);
+///System.out.println(records);
+		if (records == null || records.isEmpty()) {
+			response.setSuccess(false);
+			response.setMessage("No template record found");
+			response.setStatus(404);
+			return response;
+		}
+		response.setSuccess(true);
+		response.setData(records);
+		response.setMessage("Template record fetched successfully");
+		response.setStatus(200);
 
-	        if (clinicId == null
-	                || branchId == null
-	                || bookingId == null) {
-
-	            log.warn(
-	                    "Required fields are missing. clinicId={}, branchId={}, bookingId={}",
-	                    clinicId,
-	                    branchId,
-	                    bookingId);
-
-	            response.setSuccess(false);
-	            response.setMessage("All fields are required");
-	            response.setStatus(400);
-
-	            return response;
-	        }
-
-	        List<PhysiotherapyRecordTemplate> records =
-	                repository.findByClinicIdAndBranchIdAndBookingId(
-	                        clinicId,
-	                        branchId,
-	                        bookingId);
-
-	        log.debug(
-	                "Templates found count={}",
-	                records != null ? records.size() : 0);
-
-	        if (records == null || records.isEmpty()) {
-
-	            log.warn(
-	                    "No template records found. clinicId={}, branchId={}, bookingId={}",
-	                    clinicId,
-	                    branchId,
-	                    bookingId);
-
-	            response.setSuccess(false);
-	            response.setMessage("No template record found");
-	            response.setStatus(404);
-
-	            return response;
-	        }
-
-	        log.info(
-	                "Successfully fetched {} template records",
-	                records.size());
-
-	        response.setSuccess(true);
-	        response.setData(records);
-	        response.setMessage("Template record fetched successfully");
-	        response.setStatus(200);
-
-	        return response;
-
-	    } catch (Exception e) {
-
-	        log.error(
-	                "Error while fetching template records. clinicId={}, branchId={}, bookingId={}, error={}",
-	                clinicId,
-	                branchId,
-	                bookingId,
-	                e.getMessage(),
-	                e);
-
-	        response.setSuccess(false);
-	        response.setMessage(e.getMessage());
-	        response.setStatus(500);
-
-	        return response;
-	    }
+		return response;
 	}
+
 	private LocalDate parseDate(String date, DateTimeFormatter formatter) {
 		try {
 			if (date == null || date.isEmpty())
@@ -1431,376 +817,265 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 		return response;
 	}
 
-	 @Override
-	    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getCalculationsFallback")
-	    @Secured("ROLE_DOCTOR")
-	    public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String bookingId) {
+	@Override
+	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getCalculationsFallback")
+@Secured("ROLE_DOCTOR")
+	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String bookingId) {
+		try {
+			Response fetchedResponse = getByWithoutTherapistRecordId(clinicId, branchId, bookingId);
 
-	        log.info("Fetching calculations for clinicId={}, branchId={}, bookingId={}",
-	                clinicId, branchId, bookingId);
+			if (fetchedResponse == null || fetchedResponse.getData() == null) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND)
+						.body(new Response(false, null, "Template not found", 404));
+			}
 
-	        try {
+			List<PhysiotherapyRecordTemplate> records = extractRecords(fetchedResponse.getData());
 
-	            Response fetchedResponse = getByWithoutTherapistRecordId(clinicId, branchId, bookingId);
+			if (records == null || records.isEmpty()) {
+				return ResponseEntity.status(HttpStatus.NO_CONTENT)
+						.body(new Response(false, null, "No records found", 204));
+			}
 
-	            if (fetchedResponse == null || fetchedResponse.getData() == null) {
-	                log.warn("No template found for bookingId={}, clinicId={}, branchId={}",
-	                        bookingId, clinicId, branchId);
+			List<Object> result = new ArrayList<>();
 
-	                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-	                        .body(new Response(false, null, "Template not found", 404));
-	            }
+			for (PhysiotherapyRecordTemplate record : records) {
 
-	            List<PhysiotherapyRecordTemplate> records = extractRecords(fetchedResponse.getData());
+				if (record.getTherapySessions() == null || record.getTherapySessions().isEmpty()) {
+					continue;
+				}
 
-	            if (records == null || records.isEmpty()) {
-	                log.warn("No records found for bookingId={}", bookingId);
+				for (TherapySession session : record.getTherapySessions()) {
 
-	                return ResponseEntity.status(HttpStatus.NO_CONTENT)
-	                        .body(new Response(false, null, "No records found", 204));
-	            }
+					String serviceType = session.getServiceType();
 
-	            log.info("Found {} physiotherapy records for bookingId={}",
-	                    records.size(), bookingId);
+					if (serviceType == null || serviceType.isBlank()) {
+						continue;
+					}
 
-	            List<Object> result = new ArrayList<>();
+					switch (serviceType.toLowerCase()) {
 
-	            for (PhysiotherapyRecordTemplate record : records) {
+					case "package":
+						result.add(handlePackage(record, session));
+						break;
 
-	                log.debug("Processing templateRecordId={}, bookingId={}",
-	                        record.getTemplateRecordId(), record.getBookingId());
+					case "program":
+						result.add(handleProgram(record, session));
+						break;
 
-	                if (record.getTherapySessions() == null || record.getTherapySessions().isEmpty()) {
+					case "therapy":
+						result.add(handleTherapy(record, session));
+						break;
 
-	                    log.warn("No therapy sessions found for templateRecordId={}",
-	                            record.getTemplateRecordId());
+					case "exercise":
+						result.add(handleExercise(record, session));
+						break;
 
-	                    continue;
-	                }
+					default:
+						throw new RuntimeException("Invalid service type: " + serviceType);
+					}
+				}
+			}
 
-	                log.info("Found {} therapy sessions for templateRecordId={}",
-	                        record.getTherapySessions().size(),
-	                        record.getTemplateRecordId());
+			if (result.isEmpty()) {
+				return ResponseEntity.status(HttpStatus.NO_CONTENT)
+						.body(new Response(false, null, "No calculations available", 204));
+			}
 
-	                for (TherapySession session : record.getTherapySessions()) {
+			return ResponseEntity.ok(new Response(true, result, "Calculations fetched successfully", 200));
 
-	                    String serviceType = session.getServiceType();
+		} catch (IllegalArgumentException ex) {
 
-	                    if (serviceType == null || serviceType.isBlank()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new Response(false, null, ex.getMessage(), 400));
 
-	                        log.warn("Skipping session due to empty serviceType. templateRecordId={}",
-	                                record.getTemplateRecordId());
+		} catch (RuntimeException ex) {
 
-	                        continue;
-	                    }
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new Response(false, null, ex.getMessage(), 400));
 
-	                    log.info("Processing serviceType={} for templateRecordId={}",
-	                            serviceType, record.getTemplateRecordId());
+		} catch (Exception ex) {
 
-	                    switch (serviceType.toLowerCase()) {
-
-	                    case "package":
-	                        result.add(handlePackage(record, session));
-	                        log.debug("Package calculation completed for templateRecordId={}",
-	                                record.getTemplateRecordId());
-	                        break;
-
-	                    case "program":
-	                        result.add(handleProgram(record, session));
-	                        log.debug("Program calculation completed for templateRecordId={}",
-	                                record.getTemplateRecordId());
-	                        break;
-
-	                    case "therapy":
-	                        result.add(handleTherapy(record, session));
-	                        log.debug("Therapy calculation completed for templateRecordId={}",
-	                                record.getTemplateRecordId());
-	                        break;
-
-	                    case "exercise":
-	                        result.add(handleExercise(record, session));
-	                        log.debug("Exercise calculation completed for templateRecordId={}",
-	                                record.getTemplateRecordId());
-	                        break;
-
-	                    default:
-	                        log.error("Invalid service type '{}' found for templateRecordId={}",
-	                                serviceType, record.getTemplateRecordId());
-
-	                        throw new RuntimeException("Invalid service type: " + serviceType);
-	                    }
-	                }
-	            }
-
-	            if (result.isEmpty()) {
-
-	                log.warn("No calculations generated for bookingId={}", bookingId);
-
-	                return ResponseEntity.status(HttpStatus.NO_CONTENT)
-	                        .body(new Response(false, null, "No calculations available", 204));
-	            }
-
-	            log.info("Successfully generated {} calculations for bookingId={}",
-	                    result.size(), bookingId);
-
-	            return ResponseEntity.ok(
-	                    new Response(true, result, "Calculations fetched successfully", 200));
-
-	        } catch (IllegalArgumentException ex) {
-
-	            log.error("Validation error while fetching calculations for bookingId={}. Error={}",
-	                    bookingId, ex.getMessage(), ex);
-
-	            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                    .body(new Response(false, null, ex.getMessage(), 400));
-
-	        } catch (RuntimeException ex) {
-
-	            log.error("Runtime exception while fetching calculations for bookingId={}. Error={}",
-	                    bookingId, ex.getMessage(), ex);
-
-	            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                    .body(new Response(false, null, ex.getMessage(), 400));
-
-	        } catch (Exception ex) {
-
-	            log.error("Unexpected exception while fetching calculations for bookingId={}",
-	                    bookingId, ex);
-
-	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                    .body(new Response(false, null, "Something went wrong", 500));
-	        }
-	    }
-	
-
-	 private PackageCalculationForTemplate handlePackage(PhysiotherapyRecordTemplate record, TherapySession session) {
-
-		    log.info("Started package calculation. bookingId={}, packageId={}, packageName={}",
-		            record.getBookingId(), session.getPackageId(), session.getPackageName());
-
-		    PackageCalculationForTemplate dto = new PackageCalculationForTemplate();
-
-		    dto.setServiceType("package");
-		    dto.setBookingId(record.getBookingId());
-		    dto.setTemplateRecordId(record.getTemplateRecordId());
-		    dto.setClinicId(record.getClinicId());
-		    dto.setBranchId(record.getBranchId());
-
-		    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-		    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
-		    dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-		    dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
-
-		    int totalPackageCost = 0;
-		    List<ProgramDataForPackage> programList = new ArrayList<>();
-
-		    dto.setPackageName(session.getPackageName());
-		    dto.setPackageId(session.getPackageId());
-
-		    for (Program program : session.getPrograms()) {
-
-		        log.debug("Processing program. programId={}, programName={}",
-		                program.getProgramId(), program.getProgramName());
-
-		        ProgramDataForPackage programDTO = new ProgramDataForPackage();
-		        programDTO.setProgramId(program.getProgramId());
-		        programDTO.setProgramName(program.getProgramName());
-
-		        double programTotal = 0;
-		        List<TherapyinfoForPackage> therapyList = new ArrayList<>();
-
-		        for (TherapyData therapy : program.getTherapyData()) {
-
-		            double therapyTotal = 0;
-		            List<Exercise> exercises = mapExercises(therapy.getExercises());
-
-		            for (Exercise ex : exercises) {
-		                double total = calculateExerciseCost(ex);
-		                ex.setTotalSessionCost(total);
-		                therapyTotal += total;
-		            }
-
-		            TherapyinfoForPackage therapyDTO = new TherapyinfoForPackage();
-		            therapyDTO.setTherapyId(therapy.getTherapyId());
-		            therapyDTO.setTherapyName(therapy.getTherapyName());
-		            therapyDTO.setExercises(exercises);
-		            therapyDTO.setTotalPrice(therapyTotal);
-
-		            programTotal += therapyTotal;
-		            therapyList.add(therapyDTO);
-		        }
-
-		        programDTO.setTherapyData(therapyList);
-		        programDTO.setTotalPrice(programTotal);
-
-		        log.debug("Program total calculated. programId={}, total={}",
-		                program.getProgramId(), programTotal);
-
-		        programList.add(programDTO);
-		    }
-
-		    dto.setTherapySessions(programList);
-
-		    for (ProgramDataForPackage t : programList) {
-		        totalPackageCost += t.getTotalPrice();
-		    }
-
-		    dto.setTotal(totalPackageCost);
-
-		    log.info("Package calculation completed. bookingId={}, packageId={}, totalPackageCost={}",
-		            record.getBookingId(), session.getPackageId(), totalPackageCost);
-
-		    return dto;
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(new Response(false, null, "Something went wrong", 500));
 		}
-	 
-	 
-	 
+	}
 
-	 private ProgramCalculationsForTemplate handleProgram(PhysiotherapyRecordTemplate record, TherapySession session) {
+	private PackageCalculationForTemplate handlePackage(PhysiotherapyRecordTemplate record, TherapySession session) {
 
-		    log.info("Started program calculation. bookingId={}, programId={}, programName={}",
-		            record.getBookingId(), session.getProgramId(), session.getProgramName());
+		PackageCalculationForTemplate dto = new PackageCalculationForTemplate();
 
-		    ProgramCalculationsForTemplate dto = new ProgramCalculationsForTemplate();
+		dto.setServiceType("package");
+		dto.setBookingId(record.getBookingId());
+		dto.setTemplateRecordId(record.getTemplateRecordId());
+		dto.setClinicId(record.getClinicId());
+		dto.setBranchId(record.getBranchId());
 
-		    dto.setServiceType("program");
-		    dto.setBookingId(record.getBookingId());
-		    dto.setTemplateRecordId(record.getTemplateRecordId());
-		    dto.setClinicId(record.getClinicId());
-		    dto.setBranchId(record.getBranchId());
-		    dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-		    dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
-		    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-		    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+		dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+		dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+		dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+		dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+		int totalPackageCost = 0;
+		List<ProgramDataForPackage> programList = new ArrayList<>();
+		dto.setPackageName(session.getPackageName());
+		dto.setPackageId(session.getPackageId());
+		for (Program program : session.getPrograms()) {
+			ProgramDataForPackage programDTO = new ProgramDataForPackage();
+			programDTO.setProgramId(program.getProgramId());
+			programDTO.setProgramName(program.getProgramName());
 
-		    dto.setProgramId(session.getProgramId());
-		    dto.setProgramName(session.getProgramName());
+			double programTotal = 0;
+			List<TherapyinfoForPackage> therapyList = new ArrayList<>();
 
-		    double programTotal = 0;
-		    List<TheraphyInfo> therapyList = new ArrayList<>();
+			for (TherapyData therapy : program.getTherapyData()) {
 
-		    for (TherapyData therapy : session.getTherapyData()) {
+				TherapyinfoForPackage therapyDTO = new TherapyinfoForPackage();
+				therapyDTO.setTherapyId(therapy.getTherapyId());
+				therapyDTO.setTherapyName(therapy.getTherapyName());
 
-		        log.debug("Processing therapy. therapyId={}, therapyName={}",
-		                therapy.getTherapyId(), therapy.getTherapyName());
+				double therapyTotal = 0;
+				List<Exercise> exercises = mapExercises(therapy.getExercises());
 
-		        TheraphyInfo therapyDTO = new TheraphyInfo();
+				for (Exercise ex : exercises) {
+					double total = calculateExerciseCost(ex);
+					ex.setTotalSessionCost(total);
+					therapyTotal += total;
+				}
 
-		        therapyDTO.setTherapyId(therapy.getTherapyId());
-		        therapyDTO.setTherapyName(therapy.getTherapyName());
+				therapyDTO.setExercises(exercises);
+				therapyDTO.setTotalPrice(therapyTotal);
 
-		        double therapyTotal = 0;
-		        List<Exercise> exercises = mapExercises(therapy.getExercises());
+				programTotal += therapyTotal;
+				therapyList.add(therapyDTO);
+			}
 
-		        for (Exercise ex : exercises) {
-		            double total = calculateExerciseCost(ex);
-		            ex.setTotalSessionCost(total);
-		            therapyTotal += total;
-		        }
+			programDTO.setTherapyData(therapyList);
+			programDTO.setTotalPrice(programTotal);
 
-		        therapyDTO.setExercises(exercises);
-		        therapyDTO.setTotalPrice(therapyTotal);
-
-		        log.debug("Therapy total calculated. therapyId={}, total={}",
-		                therapy.getTherapyId(), therapyTotal);
-
-		        programTotal += therapyTotal;
-		        therapyList.add(therapyDTO);
-		    }
-
-		    dto.setTherapyData(therapyList);
-		    dto.setTotalPrice((int) programTotal);
-
-		    log.info("Program calculation completed. bookingId={}, programId={}, totalPrice={}",
-		            record.getBookingId(), session.getProgramId(), programTotal);
-
-		    return dto;
+			programList.add(programDTO);
 		}
-	 
-	 private TherapyCalculationsForTemplate handleTherapy(PhysiotherapyRecordTemplate record, TherapySession session) {
 
-		    log.info("Started therapy calculation. bookingId={}, therapyId={}, therapyName={}",
-		            record.getBookingId(), session.getTherapyId(), session.getTherapyName());
+		dto.setTherapySessions(programList);
 
-		    TherapyCalculationsForTemplate dto = new TherapyCalculationsForTemplate();
-
-		    dto.setServiceType("therapy");
-		    dto.setBookingId(record.getBookingId());
-		    dto.setTemplateRecordId(record.getTemplateRecordId());
-		    dto.setClinicId(record.getClinicId());
-		    dto.setBranchId(record.getBranchId());
-
-		    dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-		    dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
-		    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-		    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
-
-		    dto.setTherapyId(session.getTherapyId());
-		    dto.setTherapyName(session.getTherapyName());
-
-		    List<Exercise> exercises = mapExercises(session.getExercises());
-
-		    double total = 0;
-
-		    for (Exercise ex : exercises) {
-		        double cost = calculateExerciseCost(ex);
-		        ex.setTotalSessionCost(cost);
-		        total += cost;
-
-		        log.debug("Exercise calculated. exerciseId={}, cost={}",
-		                ex.getExerciseId(), cost);
-		    }
-
-		    dto.setExercises(exercises);
-		    dto.setTotalPrice((int) total);
-
-		    log.info("Therapy calculation completed. bookingId={}, therapyId={}, totalPrice={}",
-		            record.getBookingId(), session.getTherapyId(), total);
-
-		    return dto;
+		for (ProgramDataForPackage t : programList) {
+			totalPackageCost += t.getTotalPrice();
 		}
-	 
-	 private ExerciseCalculationsForTemplate handleExercise(PhysiotherapyRecordTemplate record, TherapySession session) {
+		dto.setTotal(totalPackageCost);
 
-		    log.info("Started exercise calculation. bookingId={}",
-		            record.getBookingId());
+		return dto;
+	}
 
-		    ExerciseCalculationsForTemplate dto = new ExerciseCalculationsForTemplate();
+	private ProgramCalculationsForTemplate handleProgram(PhysiotherapyRecordTemplate record, TherapySession session) {
 
-		    dto.setServiceType("exercise");
-		    dto.setBookingId(record.getBookingId());
-		    dto.setTemplateRecordId(record.getTemplateRecordId());
-		    dto.setClinicId(record.getClinicId());
-		    dto.setBranchId(record.getBranchId());
+		ProgramCalculationsForTemplate dto = new ProgramCalculationsForTemplate();
 
-		    dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
-		    dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
-		    dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
-		    dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+		dto.setServiceType("program");
+		dto.setBookingId(record.getBookingId());
+		dto.setTemplateRecordId(record.getTemplateRecordId());
+		dto.setClinicId(record.getClinicId());
+		dto.setBranchId(record.getBranchId());
+		dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+		dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+		dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+		dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
 
-		    List<Exercise> exercises = mapExercises(session.getExercises());
+		dto.setProgramId(session.getProgramId());
+		dto.setProgramName(session.getProgramName());
 
-		    double total = 0;
+		double programTotal = 0;
 
-		    for (Exercise ex : exercises) {
-		        double cost = calculateExerciseCost(ex);
-		        ex.setTotalSessionCost(cost);
-		        total += cost;
+		List<TheraphyInfo> therapyList = new ArrayList<>();
 
-		        log.debug("Exercise calculated. exerciseId={}, cost={}",
-		                ex.getExerciseId(), cost);
-		    }
+		for (TherapyData therapy : session.getTherapyData()) {
 
-		    dto.setExercises(exercises);
-		    dto.setTotalPrice((int) total);
+			TheraphyInfo therapyDTO = new TheraphyInfo();
 
-		    log.info("Exercise calculation completed. bookingId={}, totalPrice={}, exerciseCount={}",
-		            record.getBookingId(), total, exercises.size());
+			therapyDTO.setTherapyId(therapy.getTherapyId());
+			therapyDTO.setTherapyName(therapy.getTherapyName());
 
-		    return dto;
+			double therapyTotal = 0;
+			List<Exercise> exercises = mapExercises(therapy.getExercises());
+
+			for (Exercise ex : exercises) {
+				double total = calculateExerciseCost(ex);
+				ex.setTotalSessionCost(total);
+				therapyTotal += total;
+			}
+
+			therapyDTO.setExercises(exercises);
+			therapyDTO.setTotalPrice(therapyTotal);
+
+			programTotal += therapyTotal;
+			therapyList.add(therapyDTO);
 		}
-	 
-	 
+
+		dto.setTherapyData(therapyList);
+		dto.setTotalPrice((int) programTotal);
+
+		return dto;
+	}
+
+	private TherapyCalculationsForTemplate handleTherapy(PhysiotherapyRecordTemplate record, TherapySession session) {
+
+		TherapyCalculationsForTemplate dto = new TherapyCalculationsForTemplate();
+
+		dto.setServiceType("therapy");
+		dto.setBookingId(record.getBookingId());
+		dto.setTemplateRecordId(record.getTemplateRecordId());
+		dto.setClinicId(record.getClinicId());
+		dto.setBranchId(record.getBranchId());
+
+		dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+		dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+		dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+		dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+
+		dto.setTherapyId(session.getTherapyId());
+		dto.setTherapyName(session.getTherapyName());
+
+		List<Exercise> exercises = mapExercises(session.getExercises());
+
+		double total = 0;
+
+		for (Exercise ex : exercises) {
+			double cost = calculateExerciseCost(ex);
+			ex.setTotalSessionCost(cost);
+			total += cost;
+		}
+
+		dto.setExercises(exercises);
+		dto.setTotalPrice((int) total);
+
+		return dto;
+	}
+
+	private ExerciseCalculationsForTemplate handleExercise(PhysiotherapyRecordTemplate record, TherapySession session) {
+
+		ExerciseCalculationsForTemplate dto = new ExerciseCalculationsForTemplate();
+
+		dto.setServiceType("exercise");
+		dto.setBookingId(record.getBookingId());
+		dto.setTemplateRecordId(record.getTemplateRecordId());
+		dto.setClinicId(record.getClinicId());
+		dto.setBranchId(record.getBranchId());
+		dto.setTherapistId(record.getTreatmentPlan().getTherapistId());
+		dto.setTherapistName(record.getTreatmentPlan().getTherapistName());
+		dto.setDoctorId(record.getTreatmentPlan().getDoctorId());
+		dto.setDoctorName(record.getTreatmentPlan().getDoctorName());
+
+		List<Exercise> exercises = mapExercises(session.getExercises());
+
+		double total = 0;
+
+		for (Exercise ex : exercises) {
+			double cost = calculateExerciseCost(ex);
+			ex.setTotalSessionCost(cost);
+			total += cost;
+		}
+
+		dto.setExercises(exercises);
+		dto.setTotalPrice((int) total);
+
+		return dto;
+	}
+
 	private List<PhysiotherapyRecordTemplate> extractRecords(Object data) {
 
 		ObjectMapper objectMapper = new ObjectMapper();
@@ -1815,175 +1090,126 @@ public class PhysiotherapyRecordTemplateServiceImpl implements PhysiotherapyReco
 	}
 
 	@RateLimiter(
-		    name = "physiotherapydoctorService",
-		    fallbackMethod = "getByClinicBranchAndBookingFallback"
-		)
-		@Override
-		public Response getByClinicBranchAndBooking(
-		        String clinicId,
-		        String branchId,
-		        String bookingId) {
+    name = "physiotherapydoctorService",
+    fallbackMethod = "getByClinicBranchAndBookingFallback"
+)
+@Override
+public Response getByClinicBranchAndBooking(
+        String clinicId,
+        String branchId,
+        String bookingId) {
 
-		    log.info("Fetching templates. clinicId={}, branchId={}, bookingId={}",
-		            clinicId, branchId, bookingId);
+    Response response = new Response();
 
-		    Response response = new Response();
+    if (clinicId == null || clinicId.isEmpty()
+            || branchId == null || branchId.isEmpty()
+            || bookingId == null || bookingId.isEmpty()) {
 
-		    if (clinicId == null || clinicId.isEmpty()
-		            || branchId == null || branchId.isEmpty()
-		            || bookingId == null || bookingId.isEmpty()) {
+        response.setSuccess(false);
+        response.setData(null);
+        response.setMessage("clinicId, branchId and bookingId are required");
+        response.setStatus(400);
+        return response;
+    }
 
-		        log.warn("Invalid request. clinicId={}, branchId={}, bookingId={}",
-		                clinicId, branchId, bookingId);
+    List<PhysiotherapyRecordTemplate> record =
+            repository.findByClinicIdAndBranchIdAndBookingId(
+                    clinicId, branchId, bookingId);
 
-		        response.setSuccess(false);
-		        response.setData(null);
-		        response.setMessage("clinicId, branchId and bookingId are required");
-		        response.setStatus(400);
-		        return response;
-		    }
+    if (record == null || record.isEmpty()) {
+        response.setSuccess(false);
+        response.setData(null);
+        response.setMessage("No Template found");
+        response.setStatus(404);
+        return response;
+    }
 
-		    List<PhysiotherapyRecordTemplate> record =
-		            repository.findByClinicIdAndBranchIdAndBookingId(
-		                    clinicId, branchId, bookingId);
+    response.setSuccess(true);
+    response.setData(record);
+    response.setMessage("Records fetched successfully");
+    response.setStatus(200);
 
-		    if (record == null || record.isEmpty()) {
+    return response;
+}
 
-		        log.warn("No template found. clinicId={}, branchId={}, bookingId={}",
-		                clinicId, branchId, bookingId);
+@RateLimiter(
+    name = "physiotherapydoctorService",
+    fallbackMethod = "getSessionsByBookingIdAndDateFallback"
+)
+@Secured("ROLE_DOCTOR")
+public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(
+        String bookingId,
+        String date) {
 
-		        response.setSuccess(false);
-		        response.setData(null);
-		        response.setMessage("No Template found");
-		        response.setStatus(404);
-		        return response;
-		    }
+    try {
+        Optional<PaymentRecord> optional =
+                paymentRepository.findByBookingId(bookingId);
 
-		    log.info("Successfully fetched {} template records for bookingId={}",
-		            record.size(), bookingId);
+        if (optional.isEmpty()) {
+            return ResponseEntity.ok(null);
+        }
 
-		    response.setSuccess(true);
-		    response.setData(record);
-		    response.setMessage("Records fetched successfully");
-		    response.setStatus(200);
+        PaymentRecord record = optional.get();
+        List<Session> matchedSessions = new ArrayList<>();
 
-		    return response;
-		}
-	
-	@RateLimiter(
-		    name = "physiotherapydoctorService",
-		    fallbackMethod = "getSessionsByBookingIdAndDateFallback"
-		)
-		@Secured("ROLE_DOCTOR")
-		public ResponseEntity<List<Session>> getSessionsByBookingIdAndDate(
-		        String bookingId,
-		        String date) {
+        if (record.getTherapyWithSessions() == null) {
+            return ResponseEntity.ok(null);
+        }
 
-		    log.info("Fetching sessions. bookingId={}, date={}", bookingId, date);
+        for (TherapyWithSessions therapy : record.getTherapyWithSessions()) {
+            handlePrograms(therapy.getPrograms(), date, matchedSessions);
+        }
 
-		    try {
+        return matchedSessions.isEmpty()
+                ? ResponseEntity.ok(null)
+                : ResponseEntity.ok(matchedSessions);
 
-		        Optional<PaymentRecord> optional =
-		                paymentRepository.findByBookingId(bookingId);
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(null);
+    }
+}
 
-		        if (optional.isEmpty()) {
 
-		            log.warn("No payment record found for bookingId={}", bookingId);
 
-		            return ResponseEntity.ok(null);
-		        }
+private void handlePrograms(List<Program> programs, String date, List<Session> result) {
 
-		        PaymentRecord record = optional.get();
-		        List<Session> matchedSessions = new ArrayList<>();
+	if (programs == null)
+		return;
 
-		        if (record.getTherapyWithSessions() == null) {
-
-		            log.warn("No therapy sessions found in payment record. bookingId={}",
-		                    bookingId);
-
-		            return ResponseEntity.ok(null);
-		        }
-
-		        for (TherapyWithSessions therapy : record.getTherapyWithSessions()) {
-		            handlePrograms(therapy.getPrograms(), date, matchedSessions);
-		        }
-
-		        log.info("Found {} matching sessions for bookingId={} and date={}",
-		                matchedSessions.size(), bookingId, date);
-
-		        return matchedSessions.isEmpty()
-		                ? ResponseEntity.ok(null)
-		                : ResponseEntity.ok(matchedSessions);
-
-		    } catch (Exception e) {
-
-		        log.error("Error while fetching sessions. bookingId={}, date={}, error={}",
-		                bookingId, date, e.getMessage(), e);
-
-		        return ResponseEntity.status(500).body(null);
-		    }
-		}
-	
-	
-
-	private void handlePrograms(List<Program> programs, String date, List<Session> result) {
-
-	    if (programs == null) {
-	        log.debug("Programs list is null for date={}", date);
-	        return;
-	    }
-
-	    log.debug("Processing {} programs for date={}", programs.size(), date);
-
-	    for (Program program : programs) {
-	        handleTherapyData(program.getTherapyData(), date, result);
-	    }
+	for (Program program : programs) {
+		handleTherapyData(program.getTherapyData(), date, result);
 	}
-	
-	private void handleTherapyData(List<TherapyData> therapyDataList,
-            String date,
-            List<Session> result) {
-
-if (therapyDataList == null) {
-log.debug("Therapy data list is null for date={}", date);
-return;
 }
 
-log.debug("Processing {} therapies for date={}",
-therapyDataList.size(), date);
+private void handleTherapyData(List<TherapyData> therapyDataList, String date, List<Session> result) {
 
-for (TherapyData td : therapyDataList) {
-handleExercises(td.getExercises(), date, result);
-}
-}
-	
-	private void handleExercises(List<TherapyExercise> exercises,
-            String date,
-            List<Session> result) {
+	if (therapyDataList == null)
+		return;
 
-if (exercises == null) {
-log.debug("Exercises list is null for date={}", date);
-return;
+	for (TherapyData td : therapyDataList) {
+		handleExercises(td.getExercises(), date, result);
+	}
 }
 
-for (TherapyExercise ex : exercises) {
+private void handleExercises(List<TherapyExercise> exercises, String date, List<Session> result) {
 
-if (ex.getSessions() == null) {
-continue;
+	if (exercises == null)
+		return;
+
+	for (TherapyExercise ex : exercises) {
+
+		if (ex.getSessions() == null)
+			continue;
+
+		for (Session session : ex.getSessions()) {
+
+			if (date.equals(session.getDate())) {
+				result.add(session);
+			}
+		}
+	}
 }
 
-for (Session session : ex.getSessions()) {
-
-if (date.equals(session.getDate())) {
-
-log.debug("Matching session found. sessionId={}, date={}",
-       session.getSessionId(), session.getDate());
-
-result.add(session);
-}
-}
-}
-}
 	public static PhysiotherapyDoctorData mapToPhysiotherapyDoctorData(PhysiotherapyRecord entity,
 			S3Service s3Service) {
 
@@ -2083,16 +1309,12 @@ result.add(session);
 
 	private double calculateExerciseCost(Exercise ex) {
 
-	    int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
-	    int price = ex.getTotalPrice() != 0.0 ? (int) ex.getTotalPrice() : 0;
+		int sessions = ex.getNoOfSessions() != null ? ex.getNoOfSessions() : 0;
+		int price = ex.getTotalPrice() != 0.0 ? (int) ex.getTotalPrice() : 0;
 
-	    double totalCost = sessions * price;
-
-	    log.debug("Exercise cost calculated. exerciseId={}, sessions={}, price={}, totalCost={}",
-	            ex.getExerciseId(), sessions, price, totalCost);
-
-	    return totalCost;
+		return sessions * price;
 	}
+
 
 
     private Response buildRateLimitResponse(Exception ex) {

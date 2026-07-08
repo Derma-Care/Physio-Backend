@@ -9,11 +9,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.feign.ClinicAdminFeign;
-import physiotherapydoctor.util.FeignImpl;
+import physiotherapydoctor.util.ClinicAdminFeignImpl;
 import physiotherapydoctor.util.RolesStore;
 
 
@@ -21,7 +22,7 @@ import physiotherapydoctor.util.RolesStore;
 public class CustomDoctorLoginDetailsService implements UserDetailsService {
 	
 	@Autowired
-	private FeignImpl clinicAdminFeign;
+	private ClinicAdminFeignImpl clinicAdminFeign;
 	
 	@Autowired
 	@Lazy
