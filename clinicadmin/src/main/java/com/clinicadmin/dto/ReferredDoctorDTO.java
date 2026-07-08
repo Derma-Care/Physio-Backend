@@ -16,6 +16,8 @@ public class ReferredDoctorDTO {
 	private String id;
     private String clinicId;
 	@NotBlank(message = "Full name is required", groups = RequiredChecks.class)
+	
+private String branchId;
 
     private String fullName;
 	@NotBlank(message = "Gender is required", groups = RequiredChecks.class)

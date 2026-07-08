@@ -10,6 +10,7 @@ public class ReferredDoctorMapper {
         doctor.setId(dto.getId());
         doctor.setFullName(dto.getFullName());
         doctor.setClinicId(dto.getClinicId());
+        doctor.setBranchId(dto.getBranchId());
         doctor.setReferralId(dto.getReferralId());
         doctor.setGender(dto.getGender());
         doctor.setDateOfBirth(dto.getDateOfBirth());
@@ -35,6 +36,7 @@ public class ReferredDoctorMapper {
         ReferredDoctorDTO dto = new ReferredDoctorDTO();
         dto.setId(doctor.getId());
         dto.setClinicId(doctor.getClinicId());
+        dto.setBranchId(doctor.getBranchId());
         dto.setReferralId(doctor.getReferralId());
         dto.setFullName(doctor.getFullName());
         dto.setGender(doctor.getGender());
