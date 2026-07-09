@@ -1,8 +1,8 @@
 package com.clinicadmin.dto.physioresponse;
 
 import java.util.List;
+
 import lombok.Data;
-import physiotherapydoctor.dto.PaymentHistory;
 
 @Data
 public class PaymentRecordResponse {
