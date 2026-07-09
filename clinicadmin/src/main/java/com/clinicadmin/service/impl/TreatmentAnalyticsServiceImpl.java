@@ -1,6 +1,7 @@
 package com.clinicadmin.service.impl;
 
 import java.time.LocalDate;
+import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,11 +41,18 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		String patientId;
 		int sessions;
 		int completed;
-		double revenue;
+		double revenue; // revenue from COMPLETED sessions only
+	}
+
+	// per-exercise session tally within the selected date window
+	private static class SessionStats {
+		int total;
+		int completed;
+		double completedRevenue;
 	}
 
 	// ========================================================
-	// PUBLIC: PERIOD BASED (Today / Month / Quarter / Year)
+	// PUBLIC: PERIOD BASED (1=Today, 2=Week, 3=Month, 4=Year)
 	// ========================================================
 	@Override
 	public Response getTreatmentAnalytics(String clinicId, String branchId, String type, String period) {
@@ -87,7 +95,7 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 			Predicate<LocalDate> dateFilter) {
 
 		List<PaymentRecordResponse> records = fetchPaymentRecords(clinicId, branchId);
-		List<Entry> entries = new ArrayList<>();
+		List<Entry> allEntries = new ArrayList<>();
 
 		for (PaymentRecordResponse record : records) {
 			if (record.getServiceType() == null)
@@ -96,16 +104,28 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 			String serviceType = record.getServiceType().toLowerCase();
 			String category = toCategory(serviceType);
 
-			// "type" filter: exercise=Activity, therapy=Therapy, program=Program,
-			// package=Package
-			if (type != null && !type.equalsIgnoreCase("All Types") && !category.equalsIgnoreCase(type)) {
-				continue;
-			}
-
-			entries.addAll(extractEntries(record, serviceType, category, dateFilter));
+			allEntries.addAll(extractEntries(record, serviceType, category, dateFilter));
 		}
 
+		String normalizedType = normalize(type);
+		boolean allTypes = normalizedType.isEmpty() || normalizedType.equals("alltypes")
+				|| normalizedType.equals("all");
+
+		// filter on each entry's own resolved type (works for the normal
+		// exercise/therapy/program/package path AND for the best-effort
+		// fallback path, where the real type is only known per-entry).
+		List<Entry> entries = allTypes ? allEntries
+				: allEntries.stream().filter(e -> normalize(e.type).equals(normalizedType)).toList();
+
 		return buildResponse(entries);
+	}
+
+	// strip whitespace/dashes/underscores, lowercase — makes comparisons
+	// resilient to how the client formats path-variable values
+	private String normalize(String value) {
+		if (value == null)
+			return "";
+		return value.trim().toLowerCase().replaceAll("[\\s_-]+", "");
 	}
 
 	// ========================================================
@@ -134,7 +154,8 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		case "exercise" -> "Activity";
 		case "therapy" -> "Therapy";
 		case "program" -> "Program";
-		default -> "Package";
+		case "package" -> "Package";
+		default -> "All";
 		};
 	}
 
@@ -171,14 +192,65 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 				list.add(fromProgram(p, category, record.getPatientId(), dateFilter));
 			}
 		}
-		default -> { // package
+		case "package" -> {
 			for (Map<String, Object> m : rawList) {
 				PackageResponse pkg = mapper.convertValue(m, PackageResponse.class);
 				list.add(fromPackage(pkg, category, record.getPatientId(), dateFilter));
 			}
 		}
+		default -> {
+			// unknown/missing serviceType -> don't guess a single shape and risk
+			// dropping the record; try every known shape per node and keep
+			// whichever ones parse successfully, so we still surface all the data.
+			for (Map<String, Object> m : rawList) {
+				list.addAll(tryAllShapes(m, record.getPatientId(), dateFilter));
+			}
+		}
 		}
 		return list;
+	}
+
+	// best-effort: attempt package -> program -> therapy -> exercise parsing on a
+	// single node and return an Entry for whichever shape actually matches
+	private List<Entry> tryAllShapes(Map<String, Object> m, String patientId, Predicate<LocalDate> dateFilter) {
+		List<Entry> results = new ArrayList<>();
+
+		try {
+			PackageResponse pkg = mapper.convertValue(m, PackageResponse.class);
+			if (pkg.getPackageName() != null) {
+				results.add(fromPackage(pkg, "Package", patientId, dateFilter));
+				return results;
+			}
+		} catch (Exception ignored) {
+		}
+
+		try {
+			ProgramResponse p = mapper.convertValue(m, ProgramResponse.class);
+			if (p.getProgramName() != null) {
+				results.add(fromProgram(p, "Program", patientId, dateFilter));
+				return results;
+			}
+		} catch (Exception ignored) {
+		}
+
+		try {
+			TherapyResponse t = mapper.convertValue(m, TherapyResponse.class);
+			if (t.getTherapyName() != null) {
+				results.add(fromTherapy(t, "Therapy", patientId, dateFilter));
+				return results;
+			}
+		} catch (Exception ignored) {
+		}
+
+		try {
+			ExerciseResponse ex = mapper.convertValue(m, ExerciseResponse.class);
+			if (ex.getExerciseName() != null) {
+				results.add(fromExercise(ex, "Activity", patientId, dateFilter));
+			}
+		} catch (Exception ignored) {
+		}
+
+		return results;
 	}
 
 	private Entry fromExercise(ExerciseResponse ex, String category, String patientId,
@@ -187,10 +259,11 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		e.name = ex.getExerciseName();
 		e.type = category;
 		e.patientId = patientId;
-		int[] c = countSessions(ex.getSessions(), dateFilter);
-		e.sessions = c[0];
-		e.completed = c[1];
-		e.revenue = ex.getTotalExercisePrice() != null ? ex.getTotalExercisePrice() : ex.getTotalPrice();
+		double pricePerSession = resolvePricePerSession(ex);
+		SessionStats stats = countSessions(ex.getSessions(), dateFilter, pricePerSession);
+		e.sessions = stats.total;
+		e.completed = stats.completed;
+		e.revenue = stats.completedRevenue;
 		return e;
 	}
 
@@ -200,16 +273,19 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		e.type = category;
 		e.patientId = patientId;
 		int sessions = 0, completed = 0;
+		double revenue = 0;
 		if (t.getExercises() != null) {
 			for (ExerciseResponse ex : t.getExercises()) {
-				int[] c = countSessions(ex.getSessions(), dateFilter);
-				sessions += c[0];
-				completed += c[1];
+				double pricePerSession = resolvePricePerSession(ex);
+				SessionStats stats = countSessions(ex.getSessions(), dateFilter, pricePerSession);
+				sessions += stats.total;
+				completed += stats.completed;
+				revenue += stats.completedRevenue;
 			}
 		}
 		e.sessions = sessions;
 		e.completed = completed;
-		e.revenue = t.getTotalTherapyPrice() != null ? t.getTotalTherapyPrice() : 0;
+		e.revenue = revenue;
 		return e;
 	}
 
@@ -219,20 +295,23 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		e.type = category;
 		e.patientId = patientId;
 		int sessions = 0, completed = 0;
+		double revenue = 0;
 		if (p.getTherapyData() != null) {
 			for (TherapyResponse t : p.getTherapyData()) {
 				if (t.getExercises() == null)
 					continue;
 				for (ExerciseResponse ex : t.getExercises()) {
-					int[] c = countSessions(ex.getSessions(), dateFilter);
-					sessions += c[0];
-					completed += c[1];
+					double pricePerSession = resolvePricePerSession(ex);
+					SessionStats stats = countSessions(ex.getSessions(), dateFilter, pricePerSession);
+					sessions += stats.total;
+					completed += stats.completed;
+					revenue += stats.completedRevenue;
 				}
 			}
 		}
 		e.sessions = sessions;
 		e.completed = completed;
-		e.revenue = p.getTotalProgramPrice() != null ? p.getTotalProgramPrice() : 0;
+		e.revenue = revenue;
 		return e;
 	}
 
@@ -242,6 +321,7 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		e.type = category;
 		e.patientId = patientId;
 		int sessions = 0, completed = 0;
+		double revenue = 0;
 		if (pkg.getPrograms() != null) {
 			for (ProgramResponse p : pkg.getPrograms()) {
 				if (p.getTherapyData() == null)
@@ -250,26 +330,29 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 					if (t.getExercises() == null)
 						continue;
 					for (ExerciseResponse ex : t.getExercises()) {
-						int[] c = countSessions(ex.getSessions(), dateFilter);
-						sessions += c[0];
-						completed += c[1];
+						double pricePerSession = resolvePricePerSession(ex);
+						SessionStats stats = countSessions(ex.getSessions(), dateFilter, pricePerSession);
+						sessions += stats.total;
+						completed += stats.completed;
+						revenue += stats.completedRevenue;
 					}
 				}
 			}
 		}
 		e.sessions = sessions;
 		e.completed = completed;
-		e.revenue = pkg.getTotalPackagePrice() != null ? pkg.getTotalPackagePrice() : 0;
+		e.revenue = revenue;
 		return e;
 	}
 
 	// ========================================================
-	// SESSION COUNTING WITH DATE FILTER -> {total, completed}
+	// SESSION COUNTING WITH DATE FILTER -> total / completed / completed-revenue
 	// ========================================================
-	private int[] countSessions(List<Session> sessions, Predicate<LocalDate> dateFilter) {
-		int total = 0, completed = 0;
+	private SessionStats countSessions(List<Session> sessions, Predicate<LocalDate> dateFilter,
+			double pricePerSession) {
+		SessionStats stats = new SessionStats();
 		if (sessions == null)
-			return new int[] { 0, 0 };
+			return stats;
 
 		for (Session s : sessions) {
 			if (s.getDate() == null)
@@ -283,29 +366,45 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 			if (!dateFilter.test(d))
 				continue;
 
-			total++;
-			if ("Completed".equalsIgnoreCase(s.getStatus()))
-				completed++;
+			stats.total++;
+			if ("Completed".equalsIgnoreCase(s.getStatus())) {
+				stats.completed++;
+				stats.completedRevenue += pricePerSession;
+			}
 		}
-		return new int[] { total, completed };
+		return stats;
+	}
+
+	// resolves a per-session price for an exercise, falling back to
+	// total price / number of sessions when pricePerSession isn't set
+	private double resolvePricePerSession(ExerciseResponse ex) {
+		if (ex.getPricePerSession() != null && ex.getPricePerSession() > 0) {
+			return ex.getPricePerSession();
+		}
+		Double total = ex.getTotalExercisePrice() != null ? ex.getTotalExercisePrice() : ex.getTotalPrice();
+		Integer count = ex.getNoOfSessions();
+		if (total != null && count != null && count > 0) {
+			return total / count;
+		}
+		return 0;
 	}
 
 	// ========================================================
 	// PERIOD -> PREDICATE
+	// 1 = Today, 2 = Week, 3 = Month, 4 = Year, anything else / missing = All
 	// ========================================================
 	private Predicate<LocalDate> buildPeriodFilter(String period) {
 		LocalDate today = LocalDate.now();
 
-		if (period == null)
-			return d -> true;
+		String normalizedPeriod = normalize(period);
 
-		return switch (period.toLowerCase()) {
-		case "today" -> d -> d.isEqual(today);
-		case "month" -> d -> d.getMonth() == today.getMonth() && d.getYear() == today.getYear();
-		case "quarter" ->
-			d -> ((d.getMonthValue() - 1) / 3) == ((today.getMonthValue() - 1) / 3) && d.getYear() == today.getYear();
-		case "year" -> d -> d.getYear() == today.getYear();
-		default -> d -> true;
+		return switch (normalizedPeriod) {
+		case "1" -> d -> d.isEqual(today);
+		case "2" -> d -> d.get(IsoFields.WEEK_BASED_YEAR) == today.get(IsoFields.WEEK_BASED_YEAR)
+				&& d.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) == today.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+		case "3" -> d -> d.getMonth() == today.getMonth() && d.getYear() == today.getYear();
+		case "4" -> d -> d.getYear() == today.getYear();
+		default -> d -> true; // no/unknown period -> all data
 		};
 	}
 
@@ -319,9 +418,11 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		Map<String, List<Double>> revenueByTreatment = new LinkedHashMap<>();
 
 		for (Entry e : entries) {
-			// no sessions/revenue in the selected window -> exclude, so the filter
-			// actually narrows the table instead of just zeroing counts
-			if (e.sessions == 0 && e.completed == 0 && e.revenue == 0)
+			// no sessions at all in the selected window -> exclude, so the filter
+			// actually narrows the table instead of just zeroing counts. Entries
+			// with sessions but zero completions still count toward "sessions",
+			// they just won't contribute to revenue/patients (completed-only).
+			if (e.sessions == 0)
 				continue;
 
 			String key = e.name + "|" + e.type;
@@ -334,40 +435,60 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 			row.setSessions(row.getSessions() + e.sessions);
 			row.setCompleted(row.getCompleted() + e.completed);
 
-			patientsByTreatment.computeIfAbsent(key, k -> new HashSet<>()).add(e.patientId);
-			revenueByTreatment.computeIfAbsent(key, k -> new ArrayList<>()).add(e.revenue);
+			// only count this patient if they actually completed a session for
+			// this treatment in the selected window
+			if (e.completed > 0) {
+				patientsByTreatment.computeIfAbsent(key, k -> new HashSet<>()).add(e.patientId);
+				revenueByTreatment.computeIfAbsent(key, k -> new ArrayList<>()).add(e.revenue);
+			}
 		}
 
 		for (Map.Entry<String, TreatmentRow> en : grouped.entrySet()) {
+
 			String key = en.getKey();
 			TreatmentRow row = en.getValue();
-			row.setPatients(patientsByTreatment.getOrDefault(key, Set.of()).size());
-			row.setSuccessRate(row.getSessions() > 0 ? round2(row.getCompleted() * 100.0 / row.getSessions()) : 0);
-			List<Double> revs = revenueByTreatment.getOrDefault(key, List.of());
-			double avgRev = revs.isEmpty() ? 0 : revs.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-			row.setAvgRevenue(round2(avgRev));
-		}
 
+			row.setPatients(patientsByTreatment.getOrDefault(key, Set.of()).size());
+
+			row.setSuccessRate(row.getSessions() == 0 ? 0 : round2(row.getCompleted() * 100.0 / row.getSessions()));
+
+			double revenue = revenueByTreatment.getOrDefault(key, List.of()).stream().mapToDouble(Double::doubleValue)
+					.sum();
+
+			row.setAvgRevenue(round2(revenue));
+		}
 		List<TreatmentRow> rows = new ArrayList<>(grouped.values());
 
 		TreatmentAnalyticsResponse res = new TreatmentAnalyticsResponse();
 		res.setTreatments(rows);
+
 		res.setTotalTreatmentTypes(rows.size());
 		res.setTotalTreatments(rows.size());
+
+		// Total sessions (all sessions in selected period)
 		res.setTotalSessions(rows.stream().mapToInt(TreatmentRow::getSessions).sum());
 
+		// Total completed sessions
+		int totalCompleted = rows.stream().mapToInt(TreatmentRow::getCompleted).sum();
+
+		// Total patients (only patients with completed sessions)
 		Set<String> allPatients = new HashSet<>();
-		for (Set<String> s : patientsByTreatment.values())
-			allPatients.addAll(s);
+		patientsByTreatment.values().forEach(allPatients::addAll);
 		res.setTotalPatients(allPatients.size());
 
-		res.setAvgSuccessRate(rows.isEmpty() ? 0
-				: round2(rows.stream().mapToDouble(TreatmentRow::getSuccessRate).average().orElse(0)));
+		// Overall success rate
+		res.setAvgSuccessRate(
+				res.getTotalSessions() == 0 ? 0 : round2((totalCompleted * 100.0) / res.getTotalSessions()));
 
+		// Highly rated treatments
 		res.setHighlyRatedCount((int) rows.stream().filter(r -> r.getSuccessRate() >= 90).count());
 
-		res.setAvgRevenuePerTreatment(rows.isEmpty() ? 0
-				: round2(rows.stream().mapToDouble(TreatmentRow::getAvgRevenue).average().orElse(0)));
+		// Total revenue (completed sessions only)
+		double totalRevenue = revenueByTreatment.values().stream().flatMap(List::stream)
+				.mapToDouble(Double::doubleValue).sum();
+
+		// Average revenue per treatment
+		res.setAvgRevenuePerTreatment(rows.isEmpty() ? 0 : round2(totalRevenue / rows.size()));
 
 		return res;
 	}
