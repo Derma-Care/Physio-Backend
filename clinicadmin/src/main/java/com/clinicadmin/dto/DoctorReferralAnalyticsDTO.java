@@ -6,7 +6,7 @@ import lombok.Data;
 public class DoctorReferralAnalyticsDTO {
 
     private String referralId;
-    private String doctorId;
+//    private String doctorId;
     private String doctorName;
     private String clinicHospitalName;
     private String specialization;
