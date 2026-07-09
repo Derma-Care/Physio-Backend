@@ -1565,14 +1565,33 @@ public class PaymentServiceImpl implements PaymentService {
 
 			List<RevenueManagementDTO> responseData =
 					prepareRevenueResponse(payments);
-			Double total = responseData.stream()
+			Double totalFinalAmount = responseData.stream()
 			        .map(RevenueManagementDTO::getFinalAmount)
 			        .filter(Objects::nonNull)
 			        .mapToDouble(Double::doubleValue)
 			        .sum();
+			Double totalConsultationFee = responseData.stream()
+			        .map(RevenueManagementDTO::getConsultationFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalTherapyFee = responseData.stream()
+			        .map(RevenueManagementDTO::getTherapyFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalDueAmount = responseData.stream()
+			        .map(RevenueManagementDTO::getDueAmount)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			
+			Double total = totalFinalAmount + totalConsultationFee + totalTherapyFee + totalDueAmount;
+			
 			RevenueResponse response =
 					RevenueResponse.builder()
-					.grandTotal(total)
+					.grandTotal(total).consultationTotal(totalConsultationFee)
+					.totalFinalAmount(totalFinalAmount).therapyFeeTotal(totalTherapyFee).dueAmountTotal(totalDueAmount)
 							.success(true)
 							.data(responseData)
 							.message("Revenue records fetched successfully")
@@ -1629,20 +1648,39 @@ public class PaymentServiceImpl implements PaymentService {
 
 			List<RevenueManagementDTO> responseData =
 					prepareRevenueResponse(payments);
-			Double total = responseData.stream()
+			Double totalFinalAmount = responseData.stream()
 			        .map(RevenueManagementDTO::getFinalAmount)
 			        .filter(Objects::nonNull)
 			        .mapToDouble(Double::doubleValue)
 			        .sum();
-
+			Double totalConsultationFee = responseData.stream()
+			        .map(RevenueManagementDTO::getConsultationFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalTherapyFee = responseData.stream()
+			        .map(RevenueManagementDTO::getTherapyFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalDueAmount = responseData.stream()
+			        .map(RevenueManagementDTO::getDueAmount)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			
+			Double total = totalFinalAmount + totalConsultationFee + totalTherapyFee + totalDueAmount;
+			
 			RevenueResponse response =
 					RevenueResponse.builder()
-					.grandTotal(total)
+					.grandTotal(total).consultationTotal(totalConsultationFee)
+					.totalFinalAmount(totalFinalAmount).therapyFeeTotal(totalTherapyFee).dueAmountTotal(totalDueAmount)
 							.success(true)
 							.data(responseData)
 							.message("Revenue records fetched successfully")
 							.status(HttpStatus.OK.value())
 							.build();
+
 
 			return ResponseEntity.ok(response);
 

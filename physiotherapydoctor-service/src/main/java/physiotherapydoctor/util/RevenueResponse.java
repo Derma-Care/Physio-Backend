@@ -15,9 +15,13 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RevenueResponse {
 
-	private Double grandTotal;
 	private boolean success;
 	private Object data;
+	private Double consultationTotal;
+	private Double therapyFeeTotal;
+	private Double totalFinalAmount;
+	private Double dueAmountTotal;
+	private Double grandTotal;
 	private String message;
 	private int status;
 }

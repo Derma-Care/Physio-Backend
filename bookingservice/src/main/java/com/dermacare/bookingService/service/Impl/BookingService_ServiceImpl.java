@@ -1908,6 +1908,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				entity.setFollowupDate(dto.getFollowupDate());
 
 			if (dto.getFollowupStatus() != null)
+				if(dto.getFollowupStatus().equalsIgnoreCase("Completed")) {
+					entity.setStatus("Completed");
+				}
 				entity.setFollowupStatus(dto.getFollowupStatus());
 
 			// -------- PROBLEM --------
