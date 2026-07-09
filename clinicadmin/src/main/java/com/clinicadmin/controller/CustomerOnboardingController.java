@@ -150,7 +150,13 @@ public class CustomerOnboardingController {
     public String getCustomername(
  			 @PathVariable String id ){
  	   return customerOnboardingService.getCustomername(id);
-  } 
+  }
+
+    @GetMapping("/patinetname/{id}")
+    public String getPatientname(
+            @PathVariable String id ){
+        return customerOnboardingService.retrievePatientName(id);
+    }
 
 
     @GetMapping("/bookings/byInput/{input}/{clinicId}")	

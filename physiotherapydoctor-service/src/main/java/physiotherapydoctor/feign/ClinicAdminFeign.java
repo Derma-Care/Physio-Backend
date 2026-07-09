@@ -103,8 +103,8 @@ public interface ClinicAdminFeign {
 	public ResponseEntity<Response> getDoctorsBySubServiceId(@PathVariable String hospitalId,
 			@PathVariable String subServiceId);
 
-	@GetMapping("/clinic-admin/getAllDoctorsBySubServiceId/{subServiceId}")
-	public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId);
+//	@GetMapping("/clinic-admin/getAllDoctorsBySubServiceId/{subServiceId}")
+//	public ResponseEntity<Response> getAllDoctorsBySubServiceId(@PathVariable String subServiceId);
 
 	@GetMapping("/clinic-admin/clinic/{clinicId}")
 	ResponseEntity<Response> getClinicById(@PathVariable String clinicId);
@@ -148,4 +148,8 @@ public interface ClinicAdminFeign {
 	    public ResponseEntity<Response> getAssignedTherapistDetails(
 	            @PathVariable String therapistRecordId);
 
-}
+	@GetMapping("/clinic-admin/patinetname/{id}")
+	public String getPatientname(
+			@PathVariable String id );
+
+	}

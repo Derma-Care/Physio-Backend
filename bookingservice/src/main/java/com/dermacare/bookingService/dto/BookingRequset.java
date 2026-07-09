@@ -78,6 +78,7 @@ public class BookingRequset {
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
 	private List<ReportsDtoList> reports;
+	private String referedDoctorId;
 	
 	
 	public void setIsFollowupStatus(boolean followupStatus) {

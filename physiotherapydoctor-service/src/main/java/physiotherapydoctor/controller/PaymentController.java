@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
+import physiotherapydoctor.dto.RevenueManagementDTO;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.service.PaymentService;
+import physiotherapydoctor.util.RevenueResponse;
 
 @RestController
 @RequestMapping("/physiotherapy-doctor")
@@ -224,17 +226,40 @@ public class PaymentController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
-	@GetMapping("/today-session-count/{clinicId}/{branchId}/{therapistId}")
-	public int getTodaySessionCount(
-	        @PathVariable String clinicId,
-	        @PathVariable String branchId,
-	        @PathVariable String therapistId) {
 
-	    int response = service.getTodaySessionCount(
-	            clinicId,
-	            branchId,
-	            therapistId);
+	@GetMapping("/revenue-management/{clinicId}/{branchId}/{number}")
+	public ResponseEntity<RevenueResponse> getRevenueManagement(
+			@PathVariable String clinicId,
+			@PathVariable String branchId,
+			@PathVariable String number) {
 
-	    return response ;
+		return service.getRevenueManagement(
+				clinicId,
+				branchId,
+				number);
+	}
+
+	@GetMapping("/revenue-management/date-range/{clinicId}/{branchId}/{startDate}/{endDate}")
+	public ResponseEntity<RevenueResponse> getRevenueManagementByDateRange(
+			@PathVariable String clinicId,
+			@PathVariable String branchId,
+			@PathVariable String startDate,
+			@PathVariable String endDate) {
+
+		return service.getRevenueManagementByDateRange(
+				clinicId,
+				branchId,
+				startDate,
+				endDate);
+	}
+
+	@GetMapping("/revenue-summary/{clinicId}/{branchId}")
+	public ResponseEntity<Response> getRevenueSummary(
+			@PathVariable String clinicId,
+			@PathVariable String branchId) {
+
+		return service.getRevenueSummary(
+				clinicId,
+				branchId);
 	}
 }

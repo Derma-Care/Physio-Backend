@@ -672,4 +672,15 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	    }
 	    return lst;
 	}
+
+
+	public String retrievePatientName(String patientId){
+		String name = null;
+		try{
+			 name = onboardingRepository.findByPatientId(patientId).getFullName();
+		}catch(Exception e){
+			return null;
+		}
+		return name;
+	}
 }

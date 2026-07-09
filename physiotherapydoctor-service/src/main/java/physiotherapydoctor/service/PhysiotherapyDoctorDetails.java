@@ -25,7 +25,7 @@ public interface PhysiotherapyDoctorDetails {
 				String doctorId);
 		public ResponseEntity<?> getDoctorsByHospitalById(String clinicId);
 		public ResponseEntity<?> getDoctorsBySubServiceId(String hsptlId,String subServiceId);
-		public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId);
+		//public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId);
 		public ResponseEntity<?> getDoctorFutureAppointments(String doctorId);
 		public ResponseEntity<Response> getDiseasesFromClinicAdmin(String hospitalId);
 		public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId);

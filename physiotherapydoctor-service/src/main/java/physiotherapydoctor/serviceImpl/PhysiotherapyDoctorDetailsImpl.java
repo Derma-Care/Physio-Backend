@@ -189,13 +189,13 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 		}
 	}
 
-	public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId) {
-		try {
-			return clinicAdminServiceClient.getAllDoctorsBySubServiceId(subServiceId);
-		} catch (Exception e) {
-			return ResponseEntity.status(500).body(e.getMessage());
-		}
-	}
+//	public ResponseEntity<?> getAllDoctorsBySubServiceId(String subServiceId) {
+//		try {
+//			return clinicAdminServiceClient.getAllDoctorsBySubServiceId(subServiceId);
+//		} catch (Exception e) {
+//			return ResponseEntity.status(500).body(e.getMessage());
+//		}
+//	}
 
 	public ResponseEntity<?> getDoctorFutureAppointments(String doctorId) {
 		try {
