@@ -1595,6 +1595,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        map.put("branchName", n.getBranchname());
 	        map.put("problem", n.getProblem());
 	        map.put("session", n.getSession());
+	        map.put("referredDoctorId", n.getReferredDoctorId());
+	        map.put("referredByType", n.getReferredByType());
+	        map.put("referredByName", n.getReferredByName());
+	       
+	        map.put("totalFee", n.getTotalFee());
+	      
 	        list.add(map);
 	    });
 
