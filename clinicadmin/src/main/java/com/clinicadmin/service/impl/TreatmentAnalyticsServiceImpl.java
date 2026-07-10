@@ -434,13 +434,19 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 			});
 			row.setSessions(row.getSessions() + e.sessions);
 			row.setCompleted(row.getCompleted() + e.completed);
+			// Count every patient who has sessions in the selected period
+			patientsByTreatment.computeIfAbsent(key, k -> new HashSet<>()).add(e.patientId);
 
-			// only count this patient if they actually completed a session for
-			// this treatment in the selected window
+			// Revenue only for completed sessions
 			if (e.completed > 0) {
-				patientsByTreatment.computeIfAbsent(key, k -> new HashSet<>()).add(e.patientId);
 				revenueByTreatment.computeIfAbsent(key, k -> new ArrayList<>()).add(e.revenue);
 			}
+			// only count this patient if they actually completed a session for
+			// this treatment in the selected window
+//			if (e.completed > 0) {
+//				patientsByTreatment.computeIfAbsent(key, k -> new HashSet<>()).add(e.patientId);
+//				revenueByTreatment.computeIfAbsent(key, k -> new ArrayList<>()).add(e.revenue);
+//			}
 		}
 
 		for (Map.Entry<String, TreatmentRow> en : grouped.entrySet()) {
