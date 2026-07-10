@@ -12,19 +12,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Expense;
-import com.clinicadmin.service.ExpenseService;
+import com.clinicadmin.service.ClinicExpenseService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/clinic-admin")
 @RequiredArgsConstructor
-public class ExpenseController {
+public class ClinicExpenseController {
 
-    private final ExpenseService expenseService;
+    private final ClinicExpenseService expenseService;
 
     // Create Expense
-    @PostMapping("/expenses/create")
+    @PostMapping("/clinic/expenses/create")
     public ResponseEntity<Response> createExpense(
             @RequestBody Expense expense) {
 
@@ -32,7 +32,7 @@ public class ExpenseController {
     }
 
     // Update Expense By Id
-    @PutMapping("/expenses/update/{id}")
+    @PutMapping("/expenses/update/id/{id}")
     public ResponseEntity<Response> updateExpense(
             @PathVariable String id,
             @RequestBody Expense expense) {
@@ -41,7 +41,7 @@ public class ExpenseController {
     }
 
     // Get Expense By Id
-    @GetMapping("/expenses/{id}")
+    @GetMapping("/expenses/id/{id}")
     public ResponseEntity<Response> getExpenseById(
             @PathVariable String id) {
 
@@ -60,7 +60,7 @@ public class ExpenseController {
     }
 
     // Delete Expense
-    @DeleteMapping("/expenses/delete/{id}")
+    @DeleteMapping("/expenses/delete/id/{id}")
     public ResponseEntity<Response> deleteExpense(
             @PathVariable String id) {
 

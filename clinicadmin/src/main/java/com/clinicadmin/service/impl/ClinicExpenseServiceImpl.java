@@ -9,13 +9,13 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Expense;
 import com.clinicadmin.repository.ExpenseRepository;
-import com.clinicadmin.service.ExpenseService;
+import com.clinicadmin.service.ClinicExpenseService;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class ExpenseServiceImpl implements ExpenseService {
+public class ClinicExpenseServiceImpl implements ClinicExpenseService {
 
     private final ExpenseRepository expenseRepository;
 

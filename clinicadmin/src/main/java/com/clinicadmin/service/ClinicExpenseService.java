@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Expense;
 
-public interface ExpenseService {
+public interface ClinicExpenseService {
 
     ResponseEntity<Response> saveExpense(Expense expense);
 
