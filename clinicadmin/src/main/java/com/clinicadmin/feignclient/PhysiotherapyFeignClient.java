@@ -1,11 +1,14 @@
 package com.clinicadmin.feignclient;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 
 import com.clinicadmin.dto.Response;
+import com.clinicadmin.utils.RevenueResponse;
+
 
 @FeignClient(name = "physiotherapydoctor-service")
 public interface PhysiotherapyFeignClient {
@@ -44,5 +47,28 @@ public interface PhysiotherapyFeignClient {
     @GetMapping("/api/physiotherapy-doctor/assigned-therapist/{therapistRecordId}")
     Response getAssignedTherapistDetails(
             @PathVariable String therapistRecordId);
+    
+    @GetMapping("/api/physiotherapy-doctor/revenue-management/{clinicId}/{branchId}/{number}")
+	public ResponseEntity<RevenueResponse> getRevenueManagement(
+			@PathVariable String clinicId,
+			@PathVariable String branchId,
+			@PathVariable String number);
+    
+    @GetMapping("/api/physiotherapy-doctor/revenue-management/date-range/{clinicId}/{branchId}/{startDate}/{endDate}")
+	public ResponseEntity<RevenueResponse> getRevenueManagementByDateRange(
+			@PathVariable String clinicId,
+			@PathVariable String branchId,
+			@PathVariable String startDate,
+			@PathVariable String endDate);
+    
+    @GetMapping("/api/physiotherapy-doctor/revenue-summary/{clinicId}/{branchId}")
+	public ResponseEntity<Response> getRevenueSummary(
+			@PathVariable String clinicId,
+			@PathVariable String branchId);
+
+
+    
+    
+
 
 }
