@@ -1598,6 +1598,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        map.put("referredDoctorId", n.getReferredDoctorId());
 	        map.put("referredByType", n.getReferredByType());
 	        map.put("referredByName", n.getReferredByName());
+	        map.put("status", n.getStatus());
+	        map.put("followupStatus", n.getFollowupStatus());
 	       
 	        map.put("totalFee", n.getTotalFee());
 	      
