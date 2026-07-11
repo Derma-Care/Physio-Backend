@@ -1,6 +1,9 @@
 package com.clinicadmin.service.impl;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,7 +75,7 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
     }
 
     @Override
-    public ResponseEntity<Response> getExpensesByClinicAndBranch(
+    public ResponseEntity<?> getExpensesByClinicAndBranch(
             String clinicId, String branchId) {
 
         Response response = new Response();
@@ -81,12 +84,13 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
 
             List<Expense> expenses =
                     expenseRepository.findByClinicIdAndBranchId(clinicId, branchId);
-
-            response.setSuccess(true);
-            response.setData(expenses);
-            response.setMessage("Expenses retrieved successfully");
-            response.setStatus(HttpStatus.OK.value());
-
+            Map<String,Object> map = new LinkedHashMap<>();
+            map.put("total", expenses.stream().map(n->n.getAmount()).filter(Objects::nonNull)
+            		.mapToDouble(n->n.doubleValue()).sum());
+            map.put("success", true);
+            map.put("data", expenses);
+            map.put("message", "Expenses retrieved successfully");
+            map.put("status", HttpStatus.OK.value());            
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

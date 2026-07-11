@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.dermacare.notification_service.dto.BookingResponse;
+import com.dermacare.notification_service.dto.ExerciseInfo;
 import com.dermacare.notification_service.dto.NotificationDTO;
 import com.dermacare.notification_service.dto.NotificationResponse;
 import com.dermacare.notification_service.dto.NotificationToCustomer;
@@ -142,6 +143,15 @@ public class NotificationController {
 	public void sendSessionWithdrawNotificationToTherapist(@RequestBody Map<String, String> data) {
 		notificationService.sendSessionWithdrawNotificationToTherapist(data);
 	     
+	}
+	
+	@PostMapping("/exercise-reminders")
+	public ResponseEntity<String> sendBulkExerciseReminders(
+	        @RequestBody List<ExerciseInfo> reminders) {
+
+	    notificationService.sendBulkExerciseReminders(reminders);
+
+	    return ResponseEntity.ok("Exercise reminders sent successfully");
 	}
 	
 	

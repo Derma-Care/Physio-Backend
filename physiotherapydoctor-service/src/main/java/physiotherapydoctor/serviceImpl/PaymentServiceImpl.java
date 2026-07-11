@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
+
+import javassist.bytecode.stackmap.BasicBlock.Catch;
 import physiotherapydoctor.dto.*;
 import physiotherapydoctor.dto.response.ExerciseResponse;
 import physiotherapydoctor.dto.response.PackageResponse;
@@ -20,10 +22,12 @@ import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.dto.response.ProgramResponse;
 import physiotherapydoctor.dto.response.TherapyResponse;
 import physiotherapydoctor.entity.PaymentRecord;
+import physiotherapydoctor.entity.PhysiotherapyRecord;
 import physiotherapydoctor.feign.BookingFeignClient;
 import physiotherapydoctor.feign.ClinicAdminFeign;
 import physiotherapydoctor.feign.NotificationFeign;
 import physiotherapydoctor.repository.PaymentRepository;
+import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PaymentService;
 import physiotherapydoctor.util.RevenueResponse;
 
@@ -42,6 +46,10 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Autowired
 	private BookingFeignClient bookingFeignClient;
+	
+	@Autowired
+	private PhysiotherapydoctorRespository physiotherapydoctorRespository;
+		
 	// =====================================================
 	// ✅ WHATSAPP SERVICE INJECTED
 	// =====================================================
@@ -1486,6 +1494,9 @@ public class PaymentServiceImpl implements PaymentService {
 					repo.findByClinicIdAndBranchId(
 							clinicId,
 							branchId);
+			
+			List<PhysiotherapyRecord> records = physiotherapydoctorRespository.
+					findByClinicIdAndBranchId(clinicId, branchId);
 
 			LocalDate today = LocalDate.now();
 
@@ -1500,6 +1511,8 @@ public class PaymentServiceImpl implements PaymentService {
 												p.getSessionStartDate())
 										.isEqual(today))
 								.toList();
+						
+						 records = records.stream().filter(n->LocalDate.parse(n.getCreatedAt()).isEqual(today)).toList();
 
 						break;
 
@@ -1518,6 +1531,9 @@ public class PaymentServiceImpl implements PaymentService {
 											&& !date.isAfter(today);
 								})
 								.toList();
+						
+						 records = records.stream().filter(n->{LocalDate date = LocalDate.parse(n.getCreatedAt());
+								return !date.isBefore(weekStart)&& !date.isAfter(today); }).toList();					
 
 						break;
 
@@ -1536,6 +1552,8 @@ public class PaymentServiceImpl implements PaymentService {
 											&& !date.isAfter(today);
 								})
 								.toList();
+						 records = records.stream().filter(n->{LocalDate date = LocalDate.parse(n.getCreatedAt());
+							return !date.isBefore(monthStart)&& !date.isAfter(today); }).toList();					
 
 						break;
 
@@ -1555,6 +1573,8 @@ public class PaymentServiceImpl implements PaymentService {
 									
 								})
 								.toList();
+						records = records.stream().filter(n->{LocalDate date = LocalDate.parse(n.getCreatedAt());
+						return !date.isBefore(yearStart)&& !date.isAfter(today); }).toList();					
 
 						break;
 
@@ -1564,7 +1584,7 @@ public class PaymentServiceImpl implements PaymentService {
 			}
 
 			List<RevenueManagementDTO> responseData =
-					prepareRevenueResponse(payments);
+					prepareRevenueResponse(payments,records);
 			Double totalFinalAmount = responseData.stream()
 			        .map(RevenueManagementDTO::getFinalAmount)
 			        .filter(Objects::nonNull)
@@ -1628,6 +1648,9 @@ public class PaymentServiceImpl implements PaymentService {
 					repo.findByClinicIdAndBranchId(
 							clinicId,
 							branchId);
+			
+			List<PhysiotherapyRecord> records = physiotherapydoctorRespository.
+					findByClinicIdAndBranchId(clinicId, branchId);
 
 			LocalDate start =
 					LocalDate.parse(startDate);
@@ -1645,9 +1668,20 @@ public class PaymentServiceImpl implements PaymentService {
 								&& !serviceDate.isAfter(end);
 					})
 					.toList();
+			
+			 records = records.stream()
+						.filter(p -> {
+							LocalDate serviceDate =
+									LocalDate.parse(
+											p.getCreatedAt());
+
+							return !serviceDate.isBefore(start)
+									&& !serviceDate.isAfter(end);
+						})
+						.toList();
 
 			List<RevenueManagementDTO> responseData =
-					prepareRevenueResponse(payments);
+					prepareRevenueResponse(payments,records);
 			Double totalFinalAmount = responseData.stream()
 			        .map(RevenueManagementDTO::getFinalAmount)
 			        .filter(Objects::nonNull)
@@ -1700,8 +1734,9 @@ public class PaymentServiceImpl implements PaymentService {
 	}
 
 	private List<RevenueManagementDTO> prepareRevenueResponse(
-			List<PaymentRecord> payments) {
+			List<PaymentRecord> payments,List<PhysiotherapyRecord> records) {
 
+		try {
 		List<RevenueManagementDTO> response =
 				new ArrayList<>();
 
@@ -1744,19 +1779,6 @@ public class PaymentServiceImpl implements PaymentService {
 						booking.getConsultationFee());
 			}
 
-			double therapyFee = 0.0;
-
-			if (payment.getTherapyWithSessions() != null) {
-
-				therapyFee =
-						payment.getTherapyWithSessions()
-								.stream()
-								.map(TherapyWithSessions::getTotalPrice)
-								.filter(Objects::nonNull)
-								.mapToDouble(Double::doubleValue)
-								.sum();
-			}
-
 			dto.setTherapyFee(payment.getTotalAmount());
 
 			dto.setFinalAmount(
@@ -1767,9 +1789,59 @@ public class PaymentServiceImpl implements PaymentService {
 
 			response.add(dto);
 		}
+		
+		for (PhysiotherapyRecord payment : records) {
 
+			RevenueManagementDTO dto =
+					new RevenueManagementDTO();
+
+			dto.setBookingId(payment.getBookingId());
+			dto.setDoctorName(payment.getTreatmentPlan().getDoctorName());
+			dto.setTherapistId(	payment.getTreatmentPlan().getTherapistId());
+			dto.setTherapistName(payment.getTreatmentPlan().getTherapistName());
+			dto.setTherapistRecordId(
+					payment.getTherapistRecordId());
+
+			String customer =
+					clinicAdminFeign.getPatientname(
+							payment.getPatientInfo().getPatientId());
+
+			if (customer != null) {
+				dto.setPatientName(payment.getPatientInfo().getPatientName());
+			}
+
+			BookingResponse booking =
+					bookingFeignClient
+							.getBookedService(
+									payment.getBookingId())
+							.getBody()
+							.getData();
+
+			if (booking != null) {
+
+				dto.setServiceDate(
+						booking.getServiceDate());
+
+				dto.setServiceTime(
+						booking.getServicetime());
+
+				dto.setConsultationFee(
+						booking.getConsultationFee());
+			}			
+			dto.setTherapyFee(null);
+
+			dto.setFinalAmount(
+                   null);
+
+			dto.setDueAmount(
+                   null);
+
+			response.add(dto);
+		}			
 		return response;
-	}
+	}catch(Exception e) {
+		return Collections.emptyList();
+	}}
 
 
 	@Override

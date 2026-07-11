@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import com.dermacare.notification_service.dto.BookingResponse;
 import com.dermacare.notification_service.dto.CustomerInfo;
 import com.dermacare.notification_service.dto.CustomerOnbordingDTO;
 import com.dermacare.notification_service.dto.DoctorSaveDetails;
+import com.dermacare.notification_service.dto.ExerciseInfo;
 import com.dermacare.notification_service.dto.Medicines;
 import com.dermacare.notification_service.dto.NotificationDTO;
 import com.dermacare.notification_service.dto.NotificationResponse;
@@ -80,6 +82,8 @@ public class ServiceImpl implements ServiceInterface{
 	 private String imag = null;
 	 private String customerDeviceId = null;
 	 private String Id = null;
+	 private String deviceId = null; 
+	 private String patient_Id = null;
 			 
 		@Override
 		public ResponseEntity<Response> createNotification(BookingResponse bookingDTO) {
@@ -1258,5 +1262,60 @@ public class ServiceImpl implements ServiceInterface{
 //			             }}}}}}catch (Exception e) {e.printStackTrace();}}
 //	
 	 
+	 public void sendBulkExerciseReminders(
+		        List<ExerciseInfo> reminders) {
 
+		    if (reminders == null || reminders.isEmpty()) {
+		        return;
+		    }
+
+		    Map<String, List<ExerciseInfo>> patientWiseReminders =
+		            reminders.stream()
+		                    .collect(Collectors.groupingBy(
+		                            ExerciseInfo::getPatientId));
+
+		    patientWiseReminders.forEach(
+		            (patientId, exerciseInfos) -> {
+
+		                sendPatientExerciseReminder(
+		                        patientId,
+		                        exerciseInfos);
+		            });
+		}
+	 
+	 private void sendPatientExerciseReminder(
+		        String patientId,
+		        List<ExerciseInfo> exercises) {
+		 String exerciseNames = null;
+		 patient_Id = patientId;
+		 if(deviceId == null) {
+		    deviceId = cllinicFeign.customerDeviceId(patientId);
+		 }
+		 if(!patient_Id.equalsIgnoreCase(patientId)) {
+			  deviceId = cllinicFeign.customerDeviceId(patientId); 
+		 }
+		 if(exercises.size()>1) {
+		    exerciseNames =
+		            exercises.stream()
+		                    .map(ExerciseInfo::getExerciseName)
+		                    .distinct()
+		                    .collect(Collectors.joining(", "));}
+		 else {
+			 exerciseNames =
+			            exercises.stream()
+			                    .map(ExerciseInfo::getExerciseName)
+			                    .distinct().findFirst().get();} 
+
+		    String title = "Home Exercise Reminder";
+
+		    String body =
+		            "Please complete your prescribed home exercises today: "
+		                    + exerciseNames;
+		    
+		    if(deviceId != null) {
+				appNotification.sendPushNotification(deviceId,title,body, "BOOKING",
+					    "BookingScreen","default","reminder");}
+
+		 }
+	 
 }

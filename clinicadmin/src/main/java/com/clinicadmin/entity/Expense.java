@@ -13,13 +13,12 @@ public class Expense {
 
     @Id
     private String id;
-
     private String title;
     private String category;
     private LocalDate date;
     private Double amount;
     private String mode;
-
+    private String note;
     private String clinicId;
     private String branchId;
 }

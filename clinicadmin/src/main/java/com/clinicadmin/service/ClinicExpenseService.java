@@ -13,7 +13,7 @@ public interface ClinicExpenseService {
 
     ResponseEntity<Response> getExpenseById(String id);
 
-    ResponseEntity<Response> getExpensesByClinicAndBranch(
+    ResponseEntity<?> getExpensesByClinicAndBranch(
             String clinicId,
             String branchId);
 

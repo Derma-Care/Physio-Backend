@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 
 import com.dermacare.notification_service.dto.BookingResponse;
+import com.dermacare.notification_service.dto.ExerciseInfo;
 import com.dermacare.notification_service.dto.NotificationDTO;
 import com.dermacare.notification_service.dto.NotificationResponse;
 import com.dermacare.notification_service.dto.NotificationToCustomer;
@@ -58,7 +59,9 @@ public interface ServiceInterface {
     public void sendSessionReassignNotificationToTherapist(Map<String, String> data);
     
     public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data);	  
-    	
+    
+    public void sendBulkExerciseReminders(
+	        List<ExerciseInfo> reminders);
 
     	
 }

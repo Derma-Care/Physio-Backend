@@ -50,7 +50,7 @@ public class ClinicExpenseController {
 
     // Get Expenses By ClinicId And BranchId
     @GetMapping("/expenses/clinic/{clinicId}/branch/{branchId}")
-    public ResponseEntity<Response> getExpensesByClinicAndBranch(
+    public ResponseEntity<?> getExpensesByClinicAndBranch(
             @PathVariable String clinicId,
             @PathVariable String branchId) {
 

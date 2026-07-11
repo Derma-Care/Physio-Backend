@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import physiotherapydoctor.dto.ExerciseInfo;
 import physiotherapydoctor.dto.NotificationDTO;
 import physiotherapydoctor.dto.ResBody;
 
@@ -31,5 +32,9 @@ public interface NotificationFeign {
 	@PostMapping("/api/notificationservice/notificationToTherapist")
 	public void notificationToTherapist(@RequestBody Map<String, String> data);
 	
+	@PostMapping("/api/notificationservice/exercise-reminders")
+	public ResponseEntity<String> sendBulkExerciseReminders(
+	        @RequestBody List<ExerciseInfo> reminders);
+
 		
 }
