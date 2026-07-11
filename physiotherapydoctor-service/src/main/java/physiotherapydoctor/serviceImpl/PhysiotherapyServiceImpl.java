@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import physiotherapydoctor.dto.AssignTherapistPatientListDTO;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
@@ -71,6 +73,7 @@ import physiotherapydoctor.util.ExtractFeignMessage;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	@Autowired
@@ -82,7 +85,6 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@Autowired
 	private ClinicAdminFeignImpl clinicAdminFeign;
 	
-
 	@Autowired
 	private PaymentRepository paymentRepository;
 
@@ -94,19 +96,32 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
-@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "createFallback")
+	@Secured("ROLE_DOCTOR")
 	public Response create(PhysiotherapyRecordDTO dto) {
+		log.info("Entering create: dto={}", dto);
+
+
+	    log.info("Creating physiotherapy record. bookingId={}, patientId={}",
+	            dto != null ? dto.getBookingId() : null,
+	            dto != null && dto.getPatientInfo() != null
+	                    ? dto.getPatientInfo().getPatientId()
+	                    : null);
 
 	    Response response = new Response();
 
 	    if (dto == null) {
+
+	        log.warn("Create request received with null payload");
+
 	        response.setSuccess(false);
 	        response.setData(null);
 	        response.setMessage("Request body is null");
 	        response.setStatus(400);
 	        return response;
 	    }
+
+	    log.debug("Calculating therapy prices for bookingId={}", dto.getBookingId());
 
 	    calculateTherapyPrices(dto.getTherapySessions());
 
@@ -127,6 +142,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	        try {
 
+	            log.debug("Fetching booking status for bookingId={}",
+	                    dto.getBookingId());
+
 	            ResponseEntity<ResponseStructure<BookingResponse>> bookingRes =
 	                    bookingFeign.getBookedService(dto.getBookingId());
 
@@ -134,18 +152,29 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	                    && bookingRes.getBody() != null
 	                    && bookingRes.getBody().getData() != null) {
 
-	                String bookingStatus = bookingRes.getBody().getData().getStatus();
+	                String bookingStatus =
+	                        bookingRes.getBody().getData().getStatus();
 
 	                if ("Due for Investigation".equalsIgnoreCase(bookingStatus)
 	                        || "Investigation Done".equalsIgnoreCase(bookingStatus)) {
 
 	                    entity.setUptoInvestigation(true);
 	                    allowBookingUpdate = false;
+
+	                    log.info(
+	                            "Booking update skipped due to status={}. bookingId={}",
+	                            bookingStatus,
+	                            dto.getBookingId());
 	                }
 	            }
 
 	        } catch (Exception e) {
-	            System.out.println("Error while fetching booking status : " + e.getMessage());
+			log.error("Exception occurred", e);
+
+	            log.error(
+	                    "Error while fetching booking status for bookingId={}",
+	                    dto.getBookingId(),
+	                    e);
 	        }
 	    }
 
@@ -159,43 +188,58 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        try {
 
 	            ResponseEntity<ResponseStructure<BookingResponse>> bookingResponse =
-
 	                    bookingFeign.getBookedService(dto.getBookingId());
 
+	            if (bookingResponse != null
+	                    && bookingResponse.getBody() != null
+	                    && bookingResponse.getBody().getData() != null) {
 
-	            if (bookingResponse != null && bookingResponse.getBody().getData() != null) {
+	                Integer freeLeft =
+	                        bookingResponse.getBody().getData()
+	                                .getFreeFollowUpsLeft();
 
-	                Integer freeLeft = bookingResponse.getBody().getData().getFreeFollowUpsLeft();
+	                long visitCount =
+	                        repository.countByBookingIdAndPatientInfoPatientId(
+	                                dto.getBookingId(),
+	                                dto.getPatientInfo().getPatientId());
 
-	                // Count BEFORE save
-	                long visitCount = repository.countByBookingIdAndPatientInfoPatientId(
-	                        dto.getBookingId(),
-	                        dto.getPatientInfo().getPatientId());
-
-	                System.out.println("Current Visit Count : " + visitCount);
-	                System.out.println("Current Free FollowUps : " + freeLeft);
-
-	                // First visit -> don't decrease
 	                if (visitCount == 0) {
+
 	                    updatedFreeLeft = freeLeft;
-	                }
-	                // Follow-up visits -> decrease
-	                else if (freeLeft != null && freeLeft > 0) {
+
+	                } else if (freeLeft != null && freeLeft > 0) {
+
 	                    updatedFreeLeft = freeLeft - 1;
+
 	                } else {
+
 	                    updatedFreeLeft = freeLeft;
 	                }
 
-	                System.out.println("Updated Free FollowUps : " + updatedFreeLeft);
+	                log.info(
+	                        "Follow-up calculation completed. bookingId={}, visitCount={}, currentFreeFollowUps={}, updatedFreeFollowUps={}",
+	                        dto.getBookingId(),
+	                        visitCount,
+	                        freeLeft,
+	                        updatedFreeLeft);
 	            }
 
 	        } catch (Exception e) {
-	            System.out.println("Booking fetch failed: " + e.getMessage());
+			log.error("Exception occurred", e);
+
+	            log.error(
+	                    "Failed to fetch booking details for bookingId={}",
+	                    dto.getBookingId(),
+	                    e);
 	        }
 	    }
 
-	    // Save record AFTER calculating visit count
 	    PhysiotherapyRecord saved = repository.save(entity);
+
+	    log.info(
+	            "Physiotherapy record created successfully. recordId={}, bookingId={}",
+	            saved.getTherapistRecordId(),
+	            saved.getBookingId());
 
 	    // Update Clinic Admin Booking
 	    if (dto.getBookingId() != null
@@ -209,14 +253,24 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            updateRequest.setStatus("in-progress");
 	            updateRequest.setFreeFollowUpsLeft(updatedFreeLeft);
 
-	            System.out.println(
-	                    "Updating Clinic Admin Booking. Free FollowUps Left : "
-	                            + updatedFreeLeft);
+	            log.info(
+	                    "Updating Clinic Admin booking. bookingId={}, freeFollowUpsLeft={}",
+	                    dto.getBookingId(),
+	                    updatedFreeLeft);
 
 	            clinicAdminFeign.updateAppointment(updateRequest);
 
+	            log.info(
+	                    "Clinic Admin booking updated successfully. bookingId={}",
+	                    dto.getBookingId());
+
 	        } catch (Exception e) {
-	            System.out.println("Clinic Admin Booking update failed : " + e.getMessage());
+			log.error("Exception occurred", e);
+
+	            log.error(
+	                    "Clinic Admin booking update failed for bookingId={}",
+	                    dto.getBookingId(),
+	                    e);
 	        }
 	    }
 
@@ -232,14 +286,24 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            updateRequest.setStatus("Active");
 	            updateRequest.setFreeFollowUpsLeft(updatedFreeLeft);
 
-	            System.out.println(
-	                    "Updating Booking Service. Free FollowUps Left : "
-	                            + updatedFreeLeft);
+	            log.info(
+	                    "Updating Booking Service. bookingId={}, freeFollowUpsLeft={}",
+	                    dto.getBookingId(),
+	                    updatedFreeLeft);
 
 	            bookingFeign.updateAppointmentBasedOnBookingId(updateRequest);
 
+	            log.info(
+	                    "Booking Service updated successfully. bookingId={}",
+	                    dto.getBookingId());
+
 	        } catch (Exception e) {
-	            System.out.println("Booking Service update failed : " + e.getMessage());
+			log.error("Exception occurred", e);
+
+	            log.error(
+	                    "Booking Service update failed for bookingId={}",
+	                    dto.getBookingId(),
+	                    e);
 	        }
 	    }
 
@@ -252,14 +316,23 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	            && !saved.getPrescriptionPdf().isEmpty()) {
 
 	        try {
+
 	            String presignedUrl =
 	                    s3Service.generateSignedUrl(saved.getPrescriptionPdf());
 
 	            saved.setPrescriptionPdf(presignedUrl);
 
+	            log.debug(
+	                    "Generated presigned URL for prescription. recordId={}",
+	                    saved.getTherapistRecordId());
+
 	        } catch (Exception e) {
-	            System.out.println(
-	                    "Presigned URL generation failed : " + e.getMessage());
+			log.error("Exception occurred", e);
+
+	            log.error(
+	                    "Failed to generate prescription URL for recordId={}",
+	                    saved.getTherapistRecordId(),
+	                    e);
 	        }
 	    }
 
@@ -267,6 +340,11 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	    response.setData(saved);
 	    response.setMessage("Record created successfully");
 	    response.setStatus(201);
+
+	    log.info(
+	            "Create physiotherapy record completed successfully. bookingId={}, recordId={}",
+	            saved.getBookingId(),
+	            saved.getTherapistRecordId());
 
 	    return response;
 	}
@@ -322,333 +400,485 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	private void calculateTherapyPrices(List<TherapySession> sessions) {
 
-		if (sessions == null)
-			return;
+	    if (sessions == null) {
+	        log.debug("Therapy sessions list is null");
+	        return;
+	    }
 
-		for (TherapySession session : sessions) {
+	    log.info("Calculating therapy prices for {} sessions", sessions.size());
 
-			// ================= PACKAGE =================
-			if (session.getPrograms() != null) {
+	    for (TherapySession session : sessions) {
 
-				double packageTotal = 0;
+	        // ================= PACKAGE =================
+	        if (session.getPrograms() != null) {
 
-				for (Program p : session.getPrograms()) {
+	            double packageTotal = 0;
 
-					double programTotal = 0;
+	            for (Program p : session.getPrograms()) {
 
-					if (p.getTherapyData() != null) {
+	                double programTotal = 0;
 
-						for (TherapyData t : p.getTherapyData()) {
+	                if (p.getTherapyData() != null) {
 
-							double therapyTotal = 0;
+	                    for (TherapyData t : p.getTherapyData()) {
 
-							if (t.getExercises() != null) {
-								for (TherapyExercise ex : t.getExercises()) {
-									double exTotal = 0;
-									if (ex.getTotalExercisePrice() != null) {
-										exTotal = ex.getTotalExercisePrice();
-									} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
-										exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
-									}
-									ex.setTotalExercisePrice(exTotal);
-									therapyTotal += exTotal;
-								}
-							}
+	                        double therapyTotal = 0;
 
-							t.setTotalTherapyPrice(therapyTotal);
-							programTotal += therapyTotal;
-						}
-					}
+	                        if (t.getExercises() != null) {
 
-					p.setTotalProgramPrice(programTotal);
-					packageTotal += programTotal;
-				}
+	                            for (TherapyExercise ex : t.getExercises()) {
 
-				// ✅ Set package total
-				session.setTotalPackageCost(packageTotal);
-				session.setTotalPrice(packageTotal);
-			}
+	                                double exTotal = 0;
 
-			// ================= PROGRAM =================
-			if (session.getTherapyData() != null) {
+	                                if (ex.getTotalExercisePrice() != null) {
+	                                    exTotal = ex.getTotalExercisePrice();
+	                                } else if (ex.getPricePerSession() != null
+	                                        && ex.getNoOfSessions() != null) {
+	                                    exTotal = ex.getPricePerSession()
+	                                            * ex.getNoOfSessions();
+	                                }
 
-				double programTotal = 0;
+	                                ex.setTotalExercisePrice(exTotal);
+	                                therapyTotal += exTotal;
+	                            }
+	                        }
 
-				for (TherapyData t : session.getTherapyData()) {
+	                        t.setTotalTherapyPrice(therapyTotal);
+	                        programTotal += therapyTotal;
 
-					double therapyTotal = 0;
+	                        log.debug("Therapy calculated. therapyId={}, totalPrice={}",
+	                                t.getTherapyId(), therapyTotal);
+	                    }
+	                }
 
-					if (t.getExercises() != null) {
-						for (TherapyExercise ex : t.getExercises()) {
-							double exTotal = 0;
-							if (ex.getTotalExercisePrice() != null) {
-								exTotal = ex.getTotalExercisePrice();
-							} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
-								exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
-							}
-							ex.setTotalExercisePrice(exTotal);
-							therapyTotal += exTotal;
-						}
-					}
+	                p.setTotalProgramPrice(programTotal);
+	                packageTotal += programTotal;
 
-					t.setTotalTherapyPrice(therapyTotal);
-					programTotal += therapyTotal;
-				}
+	                log.debug("Program calculated. programId={}, totalPrice={}",
+	                        p.getProgramId(), programTotal);
+	            }
 
-				// ✅ Set program total
-				session.setTotalProgramCost(programTotal);
-				session.setTotalPrice(programTotal);
-			}
+	            session.setTotalPackageCost(packageTotal);
+	            session.setTotalPrice(packageTotal);
 
-			// ================= THERAPY =================
-			if (session.getExercises() != null && session.getPrograms() == null && session.getTherapyData() == null) {
+	            log.info("Package calculated. packageId={}, totalPrice={}",
+	                    session.getPackageId(), packageTotal);
+	        }
 
-				double therapyTotal = 0;
+	        // ================= PROGRAM =================
+	        if (session.getTherapyData() != null) {
 
-				for (TherapyExercise ex : session.getExercises()) {
-					double exTotal = 0;
-					if (ex.getTotalExercisePrice() != null) {
-						exTotal = ex.getTotalExercisePrice();
-					} else if (ex.getPricePerSession() != null && ex.getNoOfSessions() != null) {
-						exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
-					}
-					ex.setTotalExercisePrice(exTotal);
-					therapyTotal += exTotal;
-				}
+	            double programTotal = 0;
 
-				// ✅ Set therapy total
-				session.setTotalTherapyCost(therapyTotal);
-				session.setTotalPrice(therapyTotal);
-			}
-		}
+	            for (TherapyData t : session.getTherapyData()) {
+
+	                double therapyTotal = 0;
+
+	                if (t.getExercises() != null) {
+
+	                    for (TherapyExercise ex : t.getExercises()) {
+
+	                        double exTotal = 0;
+
+	                        if (ex.getTotalExercisePrice() != null) {
+	                            exTotal = ex.getTotalExercisePrice();
+	                        } else if (ex.getPricePerSession() != null
+	                                && ex.getNoOfSessions() != null) {
+	                            exTotal = ex.getPricePerSession()
+	                                    * ex.getNoOfSessions();
+	                        }
+
+	                        ex.setTotalExercisePrice(exTotal);
+	                        therapyTotal += exTotal;
+	                    }
+	                }
+
+	                t.setTotalTherapyPrice(therapyTotal);
+	                programTotal += therapyTotal;
+
+	                log.debug("Therapy calculated. therapyId={}, totalPrice={}",
+	                        t.getTherapyId(), therapyTotal);
+	            }
+
+	            session.setTotalProgramCost(programTotal);
+	            session.setTotalPrice(programTotal);
+
+	            log.info("Program calculated. programId={}, totalPrice={}",
+	                    session.getProgramId(), programTotal);
+	        }
+
+	        // ================= THERAPY =================
+	        if (session.getExercises() != null
+	                && session.getPrograms() == null
+	                && session.getTherapyData() == null) {
+
+	            double therapyTotal = 0;
+
+	            for (TherapyExercise ex : session.getExercises()) {
+
+	                double exTotal = 0;
+
+	                if (ex.getTotalExercisePrice() != null) {
+	                    exTotal = ex.getTotalExercisePrice();
+	                } else if (ex.getPricePerSession() != null
+	                        && ex.getNoOfSessions() != null) {
+	                    exTotal = ex.getPricePerSession()
+	                            * ex.getNoOfSessions();
+	                }
+
+	                ex.setTotalExercisePrice(exTotal);
+	                therapyTotal += exTotal;
+	            }
+
+	            session.setTotalTherapyCost(therapyTotal);
+	            session.setTotalPrice(therapyTotal);
+
+	            log.info("Therapy calculated. therapyId={}, totalPrice={}",
+	                    session.getTherapyId(), therapyTotal);
+	        }
+	    }
+
+	    log.info("Therapy price calculation completed");
 	}
-
+	
 	// ✅ GET BY ID
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
-@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByIdFallback")
+	@Secured("ROLE_DOCTOR")
 	public Response getById(String id) {
+		log.info("Entering getById: id={}", id);
 
-		Response response = new Response();
 
-		if (id == null || id.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("ID is required");
-			response.setStatus(400);
-			return response;
-		}
+	    log.info("Fetching physiotherapy record by id={}", id);
 
-		Optional<PhysiotherapyRecord> optional = repository.findById(id);
+	    Response response = new Response();
 
-		if (optional.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Record not found");
-			response.setStatus(404);
-			return response;
-		}
+	    if (id == null || id.isEmpty()) {
 
-		PhysiotherapyRecord record = optional.get();
-		if (record.getPrescriptionPdf() != null && !record.getPrescriptionPdf().isBlank()) {
-			record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
-		}
+	        log.warn("Record fetch failed. ID is null or empty");
 
-		response.setSuccess(true);
-		response.setData(record);
-		response.setMessage("Success");
-		response.setStatus(200);
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("ID is required");
+	        response.setStatus(400);
+	        return response;
+	    }
 
-		return response;
+	    Optional<PhysiotherapyRecord> optional = repository.findById(id);
+
+	    if (optional.isEmpty()) {
+
+	        log.warn("No physiotherapy record found for id={}", id);
+
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Record not found");
+	        response.setStatus(404);
+	        return response;
+	    }
+
+	    PhysiotherapyRecord record = optional.get();
+
+	    if (record.getPrescriptionPdf() != null
+	            && !record.getPrescriptionPdf().isBlank()) {
+
+	        try {
+
+	            record.setPrescriptionPdf(
+	                    s3Service.generateSignedUrl(record.getPrescriptionPdf()));
+
+	            log.debug("Generated presigned URL for recordId={}", id);
+
+	        } catch (Exception e) {
+			log.error("Exception occurred", e);
+
+	            log.error("Failed to generate presigned URL for recordId={}",
+	                    id, e);
+	        }
+	    }
+
+	    response.setSuccess(true);
+	    response.setData(record);
+	    response.setMessage("Success");
+	    response.setStatus(200);
+
+	    log.info("Successfully fetched physiotherapy record id={}", id);
+
+	    return response;
 	}
-
+	
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByBookingIdFallback")
-@Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
+	@Cacheable(value = "physiodoctor",key = "#id")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByBookingIdFallback")
+	@Secured({"ROLE_DOCTOR", "ROLE_BOOKINGSERVICE"})
 	public String getByBookingId(String id) {
+		log.info("Entering getByBookingId: id={}", id);
 
-		try {
-			// Response response = new Response();
 
-			Optional<PhysiotherapyRecord> optional = repository.findByBookingId(id);
+	    log.info("Fetching prescription PDF by bookingId={}", id);
 
-			if (optional.isEmpty()) {
+	    try {
 
-				return null;
-			}
-			return optional.get().getPrescriptionPdf();
-		} catch (Exception e) {
-			/// System.out.println(e.getMessage());
-			return null;
-		}
+	        Optional<PhysiotherapyRecord> optional =
+	                repository.findByBookingId(id);
+
+	        if (optional.isEmpty()) {
+
+	            log.warn("No physiotherapy record found for bookingId={}", id);
+
+	            return null;
+	        }
+
+	        String prescriptionPdf =
+	                optional.get().getPrescriptionPdf();
+
+	        log.info("Prescription PDF found for bookingId={}", id);
+
+	        return prescriptionPdf;
+
+	    } catch (Exception e) {
+			log.error("Exception occurred", e);
+
+	        log.error("Error while fetching prescription PDF for bookingId={}",
+	                id, e);
+
+	        return null;
+	    }
 	}
-
+	
 	// ✅ GET ALL
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllFallback")
-@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllFallback")
+	@Secured("ROLE_DOCTOR")
 	public Response getAll() {
+		log.info("Entering getAll");
 
-		Response response = new Response();
 
-		List<PhysiotherapyRecord> list = repository.findAll();
+	    log.info("Fetching all physiotherapy records");
 
-		if (list.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(list);
-			response.setMessage("No records found");
-			response.setStatus(204);
-			return response;
-		}
+	    Response response = new Response();
 
-		response.setSuccess(true);
-		response.setData(list);
-		response.setMessage("Success");
-		response.setStatus(200);
+	    List<PhysiotherapyRecord> list = repository.findAll();
 
-		return response;
+	    if (list.isEmpty()) {
+
+	        log.warn("No physiotherapy records found");
+
+	        response.setSuccess(false);
+	        response.setData(list);
+	        response.setMessage("No records found");
+	        response.setStatus(204);
+	        return response;
+	    }
+
+	    log.info("Successfully fetched {} physiotherapy records", list.size());
+
+	    response.setSuccess(true);
+	    response.setData(list);
+	    response.setMessage("Success");
+	    response.setStatus(200);
+
+	    return response;
 	}
-
+	
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
-@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateFallback")
+	@Secured("ROLE_DOCTOR")
 	public Response update(String id, PhysiotherapyRecordDTO dto) {
+		log.info("Entering update: id={}, dto={}", id, dto);
 
-		Response response = new Response();
 
-		if (id == null || id.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("ID is required");
-			response.setStatus(400);
-			return response;
-		}
+	    log.info("Updating physiotherapy record. recordId={}", id);
 
-		if (dto == null) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Request body is null");
-			response.setStatus(400);
-			return response;
-		}
+	    Response response = new Response();
 
-		Optional<PhysiotherapyRecord> optional = repository.findById(id);
+	    if (id == null || id.isEmpty()) {
 
-		if (optional.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Record not found");
-			response.setStatus(404);
-			return response;
-		}
+	        log.warn("Update failed. Record ID is null or empty");
 
-		PhysiotherapyRecord existing = optional.get();
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("ID is required");
+	        response.setStatus(400);
+	        return response;
+	    }
 
-		// 🔥 NULL SAFE UPDATE
-		if (dto.getAssessment() != null) {
-			existing.setAssessment(dto.getAssessment());
-		}
+	    if (dto == null) {
 
-		if (dto.getDiagnosis() != null) {
-			existing.setDiagnosis(dto.getDiagnosis());
-		}
+	        log.warn("Update failed. Request body is null for recordId={}", id);
 
-		if (dto.getTreatmentPlan() != null) {
-			existing.setTreatmentPlan(dto.getTreatmentPlan());
-		}
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Request body is null");
+	        response.setStatus(400);
+	        return response;
+	    }
 
-		// ✅ IMPORTANT: handle sessions properly
-		if (dto.getTherapySessions() != null) {
+	    Optional<PhysiotherapyRecord> optional = repository.findById(id);
 
-			// // generate sessionId for new sessions
-			// generateSessionIds(dto.getTherapySessions());
+	    if (optional.isEmpty()) {
 
-			existing.setTherapySessions(dto.getTherapySessions());
-		}
+	        log.warn("No physiotherapy record found for recordId={}", id);
 
-		// ✅ HOME EXERCISE UPDATE
-		if (dto.getExercisePlan() != null) {
-			existing.setExercisePlan(dto.getExercisePlan());
-		}
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Record not found");
+	        response.setStatus(404);
+	        return response;
+	    }
 
-		if (dto.getPrescriptionPdf() != null) {
-			existing.setPrescriptionPdf(dto.getPrescriptionPdf());
-		}
+	    PhysiotherapyRecord existing = optional.get();
 
-		if (dto.getFollowUp() != null) {
-			existing.setFollowUp(dto.getFollowUp());
-		}
-		if (dto.getRecoverySupport() != null) {
-			existing.setRecoverySupport(dto.getRecoverySupport());
-		}
-		// ✅ DATE FIX (STRING FORMAT - AUTO UPDATE)
-		String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+	    log.debug("Applying updates to recordId={}", id);
 
-		existing.setUpdatedAt(now);
-		// ✅ Call booking update API here
-		if (existing.getBookingId() != null && !existing.getBookingId().isEmpty()) {
+	    if (dto.getAssessment() != null) {
+	        existing.setAssessment(dto.getAssessment());
+	    }
 
-			try {
+	    if (dto.getDiagnosis() != null) {
+	        existing.setDiagnosis(dto.getDiagnosis());
+	    }
 
-				BookingResponse updateRequest = new BookingResponse();
-				updateRequest.setBookingId(existing.getBookingId());
-				updateRequest.setStatus("in-progress");
+	    if (dto.getTreatmentPlan() != null) {
+	        existing.setTreatmentPlan(dto.getTreatmentPlan());
+	    }
 
-				bookingFeign.updateAppointmentBasedOnBookingId(updateRequest);
-				existing.setUptoInvestigation(false);
+	    if (dto.getTherapySessions() != null) {
 
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+	        log.debug("Updating therapy sessions for recordId={}", id);
 
-		PhysiotherapyRecord updated = repository.save(existing);
+	        existing.setTherapySessions(dto.getTherapySessions());
+	    }
 
-		if (updated.getPrescriptionPdf() != null && !updated.getPrescriptionPdf().isEmpty()) {
+	    if (dto.getExercisePlan() != null) {
+	        existing.setExercisePlan(dto.getExercisePlan());
+	    }
 
-			updated.setPrescriptionPdf(s3Service.generateSignedUrl(updated.getPrescriptionPdf()));
-		}
+	    if (dto.getPrescriptionPdf() != null) {
+	        existing.setPrescriptionPdf(dto.getPrescriptionPdf());
+	    }
 
-		response.setSuccess(true);
-		response.setData(updated);
-		response.setMessage("Updated successfully");
-		response.setStatus(200);
+	    if (dto.getFollowUp() != null) {
+	        existing.setFollowUp(dto.getFollowUp());
+	    }
 
-		return response;
+	    if (dto.getRecoverySupport() != null) {
+	        existing.setRecoverySupport(dto.getRecoverySupport());
+	    }
+
+	    String now = LocalDateTime.now()
+	            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+	    existing.setUpdatedAt(now);
+
+	    if (existing.getBookingId() != null
+	            && !existing.getBookingId().isEmpty()) {
+
+	        try {
+
+	            log.info("Updating booking status to in-progress. bookingId={}",
+	                    existing.getBookingId());
+
+	            BookingResponse updateRequest = new BookingResponse();
+	            updateRequest.setBookingId(existing.getBookingId());
+	            updateRequest.setStatus("in-progress");
+
+	            bookingFeign.updateAppointmentBasedOnBookingId(updateRequest);
+
+	            existing.setUptoInvestigation(false);
+
+	            log.info("Booking updated successfully. bookingId={}",
+	                    existing.getBookingId());
+
+	        } catch (Exception e) {
+			log.error("Exception occurred", e);
+
+	            log.error("Booking update failed. bookingId={}",
+	                    existing.getBookingId(), e);
+	        }
+	    }
+
+	    PhysiotherapyRecord updated = repository.save(existing);
+
+	    log.info("Physiotherapy record updated successfully. recordId={}",
+	            updated.getTherapistRecordId());
+
+	    if (updated.getPrescriptionPdf() != null
+	            && !updated.getPrescriptionPdf().isEmpty()) {
+
+	        try {
+
+	            updated.setPrescriptionPdf(
+	                    s3Service.generateSignedUrl(
+	                            updated.getPrescriptionPdf()));
+
+	            log.debug("Generated presigned URL for recordId={}",
+	                    updated.getTherapistRecordId());
+
+	        } catch (Exception e) {
+			log.error("Exception occurred", e);
+
+	            log.error("Failed to generate presigned URL for recordId={}",
+	                    updated.getTherapistRecordId(), e);
+	        }
+	    }
+
+	    response.setSuccess(true);
+	    response.setData(updated);
+	    response.setMessage("Updated successfully");
+	    response.setStatus(200);
+
+	    log.info("Update completed successfully. recordId={}",
+	            updated.getTherapistRecordId());
+
+	    return response;
 	}
-
+	
 	// ✅ DELETE
+
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
-@Secured("ROLE_DOCTOR")
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteFallback")
+	@Secured("ROLE_DOCTOR")
 	public Response delete(String id) {
+		log.info("Entering delete: id={}", id);
 
-		Response response = new Response();
 
-		if (id == null || id.isEmpty()) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("ID is required");
-			response.setStatus(400);
-			return response;
-		}
+	    log.info("Deleting physiotherapy record. recordId={}", id);
 
-		if (!repository.existsById(id)) {
-			response.setSuccess(false);
-			response.setData(null);
-			response.setMessage("Record not found");
-			response.setStatus(404);
-			return response;
-		}
+	    Response response = new Response();
 
-		repository.deleteById(id);
+	    if (id == null || id.isEmpty()) {
 
-		response.setSuccess(true);
-		response.setData(null);
-		response.setMessage("Deleted successfully");
-		response.setStatus(200);
+	        log.warn("Delete failed. Record ID is null or empty");
 
-		return response;
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("ID is required");
+	        response.setStatus(400);
+	        return response;
+	    }
+
+	    if (!repository.existsById(id)) {
+
+	        log.warn("Delete failed. Record not found. recordId={}", id);
+
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Record not found");
+	        response.setStatus(404);
+	        return response;
+	    }
+
+	    repository.deleteById(id);
+
+	    log.info("Physiotherapy record deleted successfully. recordId={}", id);
+
+	    response.setSuccess(true);
+	    response.setData(null);
+	    response.setMessage("Deleted successfully");
+	    response.setStatus(200);
+
+	    return response;
 	}
 
 	// ---------------- MAPPER ----------------
@@ -745,26 +975,64 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByMultipleFieldsFallback")
-@Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
-	public Response getByMultipleFields(String clinicId, String branchId, String patientId, String bookingId,
-	        String therapistRecordId) {
+	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByMultipleFieldsFallback")
+	@Secured({"ROLE_DOCTOR","ROLE_CLINICADMIN"})
+	public Response getByMultipleFields(String clinicId,
+	                                    String branchId,
+	                                    String patientId,
+	                                    String bookingId,
+	                                    String therapistRecordId) {
+		log.info("Entering getByMultipleFields: clinicId={}, branchId={}, patientId={}, bookingId={}, therapistRecordId={}", clinicId, branchId, patientId, bookingId, therapistRecordId);
+
+
+	    log.info(
+	            "Fetching physiotherapy record. clinicId={}, branchId={}, patientId={}, bookingId={}, therapistRecordId={}",
+	            clinicId,
+	            branchId,
+	            patientId,
+	            bookingId,
+	            therapistRecordId);
 
 	    Response response = new Response();
 
-	    if (clinicId == null || branchId == null || patientId == null || bookingId == null
+	    if (clinicId == null
+	            || branchId == null
+	            || patientId == null
+	            || bookingId == null
 	            || therapistRecordId == null) {
+
+	        log.warn(
+	                "Record fetch failed. Required fields missing. clinicId={}, branchId={}, patientId={}, bookingId={}, therapistRecordId={}",
+	                clinicId,
+	                branchId,
+	                patientId,
+	                bookingId,
+	                therapistRecordId);
+
 	        response.setSuccess(false);
 	        response.setMessage("All fields are required");
 	        response.setStatus(400);
 	        return response;
 	    }
 
-	    Optional<PhysiotherapyRecord> record = repository
-	            .findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingIdAndTherapistRecordId(clinicId, branchId,
-	                    patientId, bookingId, therapistRecordId);
+	    Optional<PhysiotherapyRecord> record =
+	            repository.findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingIdAndTherapistRecordId(
+	                    clinicId,
+	                    branchId,
+	                    patientId,
+	                    bookingId,
+	                    therapistRecordId);
 
 	    if (record.isEmpty()) {
+
+	        log.warn(
+	                "No physiotherapy record found. clinicId={}, branchId={}, patientId={}, bookingId={}, therapistRecordId={}",
+	                clinicId,
+	                branchId,
+	                patientId,
+	                bookingId,
+	                therapistRecordId);
+
 	        response.setSuccess(false);
 	        response.setMessage("Record not found");
 	        response.setStatus(404);
@@ -773,18 +1041,48 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	    PhysiotherapyRecord rec = record.get();
 
-	    // ✅ Refresh prescriptionPdf
-	    if (rec.getPrescriptionPdf() != null && !rec.getPrescriptionPdf().isBlank()) {
-	        rec.setPrescriptionPdf(s3Service.generateSignedUrl(rec.getPrescriptionPdf()));
+	    if (rec.getPrescriptionPdf() != null
+	            && !rec.getPrescriptionPdf().isBlank()) {
+
+	        try {
+
+	            rec.setPrescriptionPdf(
+	                    s3Service.generateSignedUrl(
+	                            rec.getPrescriptionPdf()));
+
+	            log.debug("Generated prescription PDF URL for recordId={}",
+	                    rec.getTherapistRecordId());
+
+	        } catch (Exception e) {
+			log.error("Exception occurred", e);
+
+	            log.error("Failed to generate prescription PDF URL for recordId={}",
+	                    rec.getTherapistRecordId(), e);
+	        }
 	    }
 
-	    // ✅ Refresh painAssessmentImage — extractS3Key handles both old full URLs and plain keys in DB
 	    if (rec.getComplaints() != null) {
-	        String painImage = rec.getComplaints().getPainAssessmentImage();
+
+	        String painImage =
+	                rec.getComplaints().getPainAssessmentImage();
+
 	        if (painImage != null && !painImage.isBlank()) {
-	            rec.getComplaints().setPainAssessmentImage(
-	                s3Service.generateSignedUrl(extractS3Key(painImage))
-	            );
+
+	            try {
+
+	                rec.getComplaints().setPainAssessmentImage(
+	                        s3Service.generateSignedUrl(
+	                                extractS3Key(painImage)));
+
+	                log.debug("Generated pain assessment image URL for recordId={}",
+	                        rec.getTherapistRecordId());
+
+	            } catch (Exception e) {
+			log.error("Exception occurred", e);
+
+	                log.error("Failed to generate pain assessment image URL for recordId={}",
+	                        rec.getTherapistRecordId(), e);
+	            }
 	        }
 	    }
 
@@ -792,6 +1090,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	    response.setData(rec);
 	    response.setMessage("Record fetched successfully");
 	    response.setStatus(200);
+
+	    log.info("Physiotherapy record fetched successfully. recordId={}",
+	            rec.getTherapistRecordId());
 
 	    return response;
 	}
@@ -803,6 +1104,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	        String path = new java.net.URI(input).getPath(); // "/part-images/abc.png"
 	        return path.startsWith("/") ? path.substring(1) : path; // "part-images/abc.png"
 	    } catch (Exception e) {
+			log.error("Exception occurred", e);
 	        return input;
 	    }
 	}
@@ -812,6 +1114,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 @Secured("ROLE_DOCTOR")
 	public Response getByWithoutTherapistRecordId(String clinicId, String branchId, String patientId,
 			String bookingId) {
+		log.info("Entering getByWithoutTherapistRecordId: clinicId={}, branchId={}, patientId={}, bookingId={}", clinicId, branchId, patientId, bookingId);
+
 
 		Response response = new Response();
 
@@ -850,6 +1154,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAssignedPatientsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus) {
+		log.info("Entering getAssignedPatients: clinicId={}, branchId={}, therapistId={}, overallStatus={}", clinicId, branchId, therapistId, overallStatus);
+
 
 		Response response = new Response();
 
@@ -1040,6 +1346,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 				    }
 
 				} catch (FeignException.NotFound e) {
+			log.error("Exception occurred", e);
 
 				    if (!therapistId.equals(
 				            record.getTreatmentPlan()
@@ -1079,6 +1386,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return LocalDate.parse(cleanDate, formatter);
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 			return null; // 🔥 SAFE
 		}
 	}
@@ -1101,6 +1409,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return value; // minutes
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 			return 0;
 		}
 	}
@@ -1110,6 +1419,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getProgramAndTherapyInfoFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getProgramAndTherapyInfo(String clinicId, String branchId, String patientId, String bookingId) {
+		log.info("Entering getProgramAndTherapyInfo: clinicId={}, branchId={}, patientId={}, bookingId={}", clinicId, branchId, patientId, bookingId);
+
 		Response response = new Response();
 
 // Step 1: Fetch PhysiotherapyRecord using existing method
@@ -1196,6 +1507,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 									try {
 										frequencyVal = exercise.getFrequency();
 									} catch (NumberFormatException e) {
+			log.error("Exception occurred", e);
 										frequencyVal = null;
 									}
 								}
@@ -1207,6 +1519,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 									try {
 										noOfSessions = exercise.getNoOfSessions();
 									} catch (NumberFormatException e) {
+			log.error("Exception occurred", e);
 										noOfSessions = 0;
 									}
 								}
@@ -1274,6 +1587,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId,
 			String bookingId) {
+		log.info("Entering getCalculations: clinicId={}, branchId={}, patientId={}, bookingId={}", clinicId, branchId, patientId, bookingId);
+
 		try {
 			Response fetchedResponse = getByWithoutTherapistRecordId(clinicId, branchId, patientId, bookingId);
 
@@ -1337,14 +1652,17 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return ResponseEntity.ok(new Response(true, result, "Calculations fetched successfully", 200));
 
 		} catch (IllegalArgumentException ex) {
+			log.error("Exception occurred", ex);
 
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new Response(false, null, ex.getMessage(), 400));
 
 		} catch (RuntimeException ex) {
+			log.error("Exception occurred", ex);
 
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new Response(false, null, ex.getMessage(), 400));
 
 		} catch (Exception ex) {
+			log.error("Exception occurred", ex);
 
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(new Response(false, null, "Something went wrong", 500));
@@ -1535,6 +1853,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 //    try {
 //        return value != null ? Integer.parseInt(value) : 0;
 //    } catch (Exception e) {
+			//log.error("Exception occurred", e);
 //        return 0;
 //    }
 //}
@@ -1548,6 +1867,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return objectMapper.convertValue(data, new TypeReference<List<PhysiotherapyRecord>>() {
 			});
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 			throw new RuntimeException("Unable to convert data to List<PhysiotherapyRecord>", e);
 		}
 	}
@@ -1556,6 +1876,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getByClinicBranchAndBookingFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getByClinicBranchAndBooking(String clinicId, String branchId, String bookingId) {
+		log.info("Entering getByClinicBranchAndBooking: clinicId={}, branchId={}, bookingId={}", clinicId, branchId, bookingId);
+
 
 		Response response = new Response();
 
@@ -1601,6 +1923,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getPatientHistoryFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getPatientHistory(String patientId) {
+		log.info("Entering getPatientHistory: patientId={}", patientId);
+
 
 		Response response = new Response();
 
@@ -1687,6 +2011,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			response.setData(result);
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 
 			response.setSuccess(false);
 			response.setStatus(500);
@@ -1700,6 +2025,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getSessionsByBookingIdAndDateFallback")
 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})	
 	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String date) {
+		log.info("Entering getSessionsByBookingIdAndDate: bookingId={}, date={}", bookingId, date);
+
 
 		try {
 			Optional<PaymentRecord> optional = paymentRepository.findByBookingId(bookingId);
@@ -1723,6 +2050,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return matchedSessions.isEmpty() ? ResponseEntity.ok(null) : ResponseEntity.ok(matchedSessions);
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 			// System.out.println(e.getMessage());
 			return ResponseEntity.status(500).body(null);
 		}
@@ -1784,10 +2112,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getInProgressBookingsByIdsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getInProgressBookingsByIds(String patientId, String bookingId) {
+		log.info("Entering getInProgressBookingsByIds: patientId={}, bookingId={}", patientId, bookingId);
+
 		Response response = new Response();
 		try {
 			return bookingFeign.getInProgressAppointmentByPatientIdAndBookingId(patientId, bookingId);
 		} catch (FeignException e) {
+			log.error("Exception occurred", e);
 			response.setStatus(e.status());
 			response.setMessage(e.getMessage());
 			response.setSuccess(false);
@@ -1799,6 +2130,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getVisitHistory(String patientId, String bookingId) {
+		log.info("Entering getVisitHistory: patientId={}, bookingId={}", patientId, bookingId);
+
 
 		Response response = new Response();
 
@@ -1830,6 +2163,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					try {
 						record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
 					} catch (Exception e) {
+			log.error("Exception occurred", e);
 						System.out.println("prescriptionPdf sign error: " + e.getMessage());
 					}
 				}
@@ -1853,6 +2187,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return response;
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 
 			response.setSuccess(false);
 			response.setData(null);
@@ -1866,6 +2201,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getFirstVisitHistory(String doctorId, String patientId, String bookingId, String clinicId,
 			String branchId) {
+		log.info("Entering getFirstVisitHistory: doctorId={}, patientId={}, bookingId={}, clinicId={}, branchId={}", doctorId, patientId, bookingId, clinicId, branchId);
+
 
 		Response response = new Response();
 
@@ -1902,6 +2239,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					try {
 						record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
 					} catch (Exception e) {
+			log.error("Exception occurred", e);
 						System.out.println("prescriptionPdf sign error: " + e.getMessage());
 					}
 				}
@@ -1927,6 +2265,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			response.setMessage("Visit history fetched successfully");
 			response.setStatus(200);
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 			response.setSuccess(false);
 			response.setData(null);
 			response.setMessage("Something went wrong");
@@ -1938,6 +2277,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByDoctorFallback")
 @Secured({"ROLE_DOCTOR","ROLE_CUSTOMER"})
 	public Response getVisitHistoryByDoctor(String doctorId, String patientId, String bookingId) {
+		log.info("Entering getVisitHistoryByDoctor: doctorId={}, patientId={}, bookingId={}", doctorId, patientId, bookingId);
+
 
 		Response response = new Response();
 
@@ -1972,6 +2313,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 //					try {
 //						record.setPrescriptionPdf(s3Service.generateSignedUrl(record.getPrescriptionPdf()));
 //					} catch (Exception e) {
+			//log.error("Exception occurred", e);
 //						System.out.println("prescriptionPdf sign error: " + e.getMessage());
 //					}
 //				}
@@ -1993,6 +2335,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return response;
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 
 			response.setSuccess(false);
 			response.setData(null);
@@ -2005,6 +2348,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 	public static PhysiotherapyDoctorData mapToPhysiotherapyDoctorData(PhysiotherapyRecord entity,
 			S3Service s3Service) {
+		log.info("Entering mapToPhysiotherapyDoctorData: entity={}, s3Service={}", entity, s3Service);
+
 
 		if (entity == null) {
 			return null;
@@ -2044,10 +2389,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTodaysAppointmentsFallback")
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getTodaysAppointments(String clinicId, String doctorId,int page) {
+		log.info("Entering getTodaysAppointments: clinicId={}, doctorId={}, page={}", clinicId, doctorId, page);
+
 		Response res = new Response();
 		try {
 			return bookingFeign.getTodayDoctorAppointmentsByDoctorId(clinicId, doctorId,page,10);
 		} catch (FeignException ex) {
+			log.error("Exception occurred", ex);
 			res.setStatus(ex.status());
 			res.setMessage(ExtractFeignMessage.clearMessage(ex));
 			res.setSuccess(false);
@@ -2095,6 +2443,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	 @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getTodayFollowUpBookingIdsFallback")
 @Secured({"ROLE_DOCTOR","ROLE_BOOKINGSERVICE"})
 	public List<String> getTodayFollowUpBookingIds() {
+		log.info("Entering getTodayFollowUpBookingIds");
+
 
 		String todayDate = LocalDate.now().format(FORMATTER);
 
@@ -2111,6 +2461,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "changePasswordFallback")
 @Secured("ROLE_DOCTOR")
 	public Response changePassword(String username, ChangeDoctorPasswordDTO updateDTO) {
+		log.info("Entering changePassword: username={}, updateDTO={}", username, updateDTO);
+
 		Response validationResponse = validateChangePasswordRequest(username, updateDTO);
 		if (validationResponse != null) {
 			return validationResponse;
@@ -2121,6 +2473,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return clinicAdminFeign.changePassword(username, updateDTO);
 
 		} catch (Exception ex) {
+			log.error("Exception occurred", ex);
 
 			return Response.builder().success(false).status(500).message("Failed to change password ").build();
 		}
@@ -2131,6 +2484,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorAvailabilityFallback")
 @Secured("ROLE_DOCTOR")
 	public Response updateDoctorAvailability(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO) {
+		log.info("Entering updateDoctorAvailability: doctorId={}, availabilityDTO={}", doctorId, availabilityDTO);
+
 		if (doctorId == null || doctorId.isBlank()) {
 			return Response.builder().success(false).status(400).message("Doctor ID must not be empty").build();
 		} else {
@@ -2221,10 +2576,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 @Secured("ROLE_DOCTOR")
 	public ResponseEntity<?> getDoctorAppointmentsonStatus(String clinicId, String branchId, String doctorId,
 			String status,int page) {
+		log.info("Entering getDoctorAppointmentsonStatus: clinicId={}, branchId={}, doctorId={}, status={}, page={}", clinicId, branchId, doctorId, status, page);
+
 		Response res = new Response();
 		try {
 			return bookingFeign.getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatus(clinicId, branchId, doctorId, status,page,10);
 		} catch (FeignException ex) {
+			log.error("Exception occurred", ex);
 			res.setStatus(ex.status());
 			res.setMessage(ExtractFeignMessage.clearMessage(ex));
 			res.setSuccess(false);
@@ -2235,6 +2593,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getInvestigationsFallback")
 @Secured("ROLE_DOCTOR")
 	public Response getInvestigations(String bookingId, String patientId) {
+		log.info("Entering getInvestigations: bookingId={}, patientId={}", bookingId, patientId);
+
 
 		Response response = new Response();
 
@@ -2258,6 +2618,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			response.setData(investigations);
 
 		} catch (Exception e) {
+			log.error("Exception occurred", e);
 			response.setSuccess(false);
 			response.setStatus(500);
 			response.setMessage(e.getMessage());
@@ -2277,103 +2638,151 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
     public Response createFallback(PhysiotherapyRecordDTO dto, Exception ex) {
+		log.info("Entering createFallback: dto={}, ex={}", dto, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getByIdFallback(String id, Exception ex) {
+		log.info("Entering getByIdFallback: id={}, ex={}", id, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public String getByBookingIdFallback(String id, Exception ex) {
+		log.info("Entering getByBookingIdFallback: id={}, ex={}", id, ex);
+
         return null;
     }
 
     public Response getAllFallback(Exception ex) {
+		log.info("Entering getAllFallback: ex={}", ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response updateFallback(String id, PhysiotherapyRecordDTO dto, Exception ex) {
+		log.info("Entering updateFallback: id={}, dto={}, ex={}", id, dto, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response deleteFallback(String id, Exception ex) {
+		log.info("Entering deleteFallback: id={}, ex={}", id, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getByMultipleFieldsFallback(String clinicId, String branchId, String patientId, String bookingId,
 	        String therapistRecordId, Exception ex) {
+		log.info("Entering getByMultipleFieldsFallback: clinicId={}, branchId={}, patientId={}, bookingId={}, therapistRecordId={}, ex={}", clinicId, branchId, patientId, bookingId, therapistRecordId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getByWithoutTherapistRecordIdFallback(String clinicId, String branchId, String patientId,
 			String bookingId, Exception ex) {
+		log.info("Entering getByWithoutTherapistRecordIdFallback: clinicId={}, branchId={}, patientId={}, bookingId={}, ex={}", clinicId, branchId, patientId, bookingId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getAssignedPatientsFallback(String clinicId, String branchId, String therapistId, Integer overallStatus, Exception ex) {
+		log.info("Entering getAssignedPatientsFallback: clinicId={}, branchId={}, therapistId={}, overallStatus={}, ex={}", clinicId, branchId, therapistId, overallStatus, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getProgramAndTherapyInfoFallback(String clinicId, String branchId, String patientId, String bookingId, Exception ex) {
+		log.info("Entering getProgramAndTherapyInfoFallback: clinicId={}, branchId={}, patientId={}, bookingId={}, ex={}", clinicId, branchId, patientId, bookingId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public ResponseEntity<Response> getCalculationsFallback(String clinicId, String branchId, String patientId,
 			String bookingId, Exception ex) {
+		log.info("Entering getCalculationsFallback: clinicId={}, branchId={}, patientId={}, bookingId={}, ex={}", clinicId, branchId, patientId, bookingId, ex);
+
         return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
     }
 
     public Response getByClinicBranchAndBookingFallback(String clinicId, String branchId, String bookingId, Exception ex) {
+		log.info("Entering getByClinicBranchAndBookingFallback: clinicId={}, branchId={}, bookingId={}, ex={}", clinicId, branchId, bookingId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDateFallback(String bookingId, String date, Exception ex) {
+		log.info("Entering getSessionsByBookingIdAndDateFallback: bookingId={}, date={}, ex={}", bookingId, date, ex);
+
         return ResponseEntity.status(429).body(Collections.emptyList());
     }
 
     public ResponseEntity<?> getInProgressBookingsByIdsFallback(String patientId, String bookingId, Exception ex) {
+		log.info("Entering getInProgressBookingsByIdsFallback: patientId={}, bookingId={}, ex={}", patientId, bookingId, ex);
+
         return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
     }
 
     public Response getVisitHistoryFallback(String patientId, String bookingId, Exception ex) {
+		log.info("Entering getVisitHistoryFallback: patientId={}, bookingId={}, ex={}", patientId, bookingId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getFirstVisitHistoryFallback(String doctorId, String patientId, String bookingId, String clinicId,
 			String branchId, Exception ex) {
+		log.info("Entering getFirstVisitHistoryFallback: doctorId={}, patientId={}, bookingId={}, clinicId={}, branchId={}, ex={}", doctorId, patientId, bookingId, clinicId, branchId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response getVisitHistoryByDoctorFallback(String doctorId, String patientId, String bookingId, Exception ex) {
+		log.info("Entering getVisitHistoryByDoctorFallback: doctorId={}, patientId={}, bookingId={}, ex={}", doctorId, patientId, bookingId, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public ResponseEntity<?> getTodaysAppointmentsFallback(String clinicId, String doctorId,int page, Exception ex) {
+		log.info("Entering getTodaysAppointmentsFallback: clinicId={}, doctorId={}, page={}, ex={}", clinicId, doctorId, page, ex);
+
         return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
     }
 
     public List<String> getTodayFollowUpBookingIdsFallback(Exception ex) {
+		log.info("Entering getTodayFollowUpBookingIdsFallback: ex={}", ex);
+
         return null;
     }
 
     public Response changePasswordFallback(String username, ChangeDoctorPasswordDTO updateDTO, Exception ex) {
+		log.info("Entering changePasswordFallback: username={}, updateDTO={}, ex={}", username, updateDTO, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public Response updateDoctorAvailabilityFallback(String doctorId, DoctorAvailabilityStatusDTO availabilityDTO, Exception ex) {
+		log.info("Entering updateDoctorAvailabilityFallback: doctorId={}, availabilityDTO={}, ex={}", doctorId, availabilityDTO, ex);
+
         return buildRateLimitResponse(ex);
     }
 
     public ResponseEntity<?> getDoctorAppointmentsonStatusFallback(String clinicId, String branchId, String doctorId,
 			String status,int page, Exception ex) {
+		log.info("Entering getDoctorAppointmentsonStatusFallback: clinicId={}, branchId={}, doctorId={}, status={}, page={}, ex={}", clinicId, branchId, doctorId, status, page, ex);
+
         return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
     }
 
     public Response getInvestigationsFallback(String bookingId, String patientId, Exception ex) {
+		log.info("Entering getInvestigationsFallback: bookingId={}, patientId={}, ex={}", bookingId, patientId, ex);
+
         return buildRateLimitResponse(ex);
     }
     
     public Response getPatientHistoryFallback(String patientId, Exception ex) {
+		log.info("Entering getPatientHistoryFallback: patientId={}, ex={}", patientId, ex);
+
         return buildRateLimitResponse(ex);
     }
     ///getPatientHistory

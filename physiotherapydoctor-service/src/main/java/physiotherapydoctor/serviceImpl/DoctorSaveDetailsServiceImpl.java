@@ -1,16 +1,13 @@
 package physiotherapydoctor.serviceImpl;
 
+
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +23,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import feign.FeignException;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 import physiotherapydoctor.dto.BookingResponse;
 import physiotherapydoctor.dto.DatesDTO;
 import physiotherapydoctor.dto.DoctorSaveDetailsDTO;
@@ -53,10 +51,10 @@ import physiotherapydoctor.service.S3Service;
 import physiotherapydoctor.util.AdminFeignImpl;
 import physiotherapydoctor.util.BookingFeignImpl;
 import physiotherapydoctor.util.ClinicAdminFeignImpl;
-import physiotherapydoctor.util.KeyCloakTokenStore;
 import physiotherapydoctor.util.VisitTypeUtil;
 
 @Service
+@Slf4j
 public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 	@Autowired
@@ -67,371 +65,424 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 
 	@Autowired
 	private BookingFeignImpl bookingFeignClient;
-
-	@Autowired
+    
+    @Autowired
+    private S3Service s3Service;
+    
+    @Autowired
 	private AdminFeignImpl adminFeignClient;
 
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	@Autowired
-	private S3Service s3Service;
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "saveDoctorDetailsFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response saveDoctorDetails(DoctorSaveDetailsDTO dto) {
 
-	@Autowired
-	private KeyCloakTokenStore keyCloakTokenStore;
+        long startTime = System.currentTimeMillis();
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "saveDoctorDetailsFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response saveDoctorDetails(DoctorSaveDetailsDTO dto) {
-		try {
-			// ----------------------- Step 0: Validate Booking ID -----------------------
-			if (dto.getBookingId() == null || dto.getBookingId().isBlank()) {
-				return buildResponse(false, null, "Booking ID must not be null or empty",
-						HttpStatus.BAD_REQUEST.value());
-			}
+        log.info("Entered saveDoctorDetails() with bookingId : {}, doctorId : {}, patientId : {}",
+                dto.getBookingId(),
+                dto.getDoctorId(),
+                dto.getPatientId());
 
-			// ----------------------- Step 1: Fetch Booking -----------------------
-			ResponseEntity<ResponseStructure<BookingResponse>> bookingEntity = bookingFeignClient
-					.getBookedService(dto.getBookingId());
+        try {
 
-			if (bookingEntity == null || bookingEntity.getBody() == null) {
-				return buildResponse(false, null, "Unable to fetch booking details. Booking service returned null.",
-						HttpStatus.BAD_GATEWAY.value());
-			}
+            // ----------------------- Step 0: Validate Booking ID -----------------------
+            log.debug("Validating bookingId");
 
-			BookingResponse bookingData = bookingEntity.getBody().getData();
-			if (bookingData == null) {
-				return buildResponse(false, null, "Booking not found with ID: " + dto.getBookingId(),
-						HttpStatus.NOT_FOUND.value());
-			}
+            if (dto.getBookingId() == null || dto.getBookingId().isBlank()) {
 
-			// ----------------------- Step 2: Fetch Doctor -----------------------
-			Response doctorResponse = clinicAdminServiceClient.getDoctorById(dto.getDoctorId()).getBody();
-			if (doctorResponse == null || !doctorResponse.isSuccess() || doctorResponse.getData() == null) {
-				return buildResponse(false, null, "Doctor not found with ID: " + dto.getDoctorId(),
-						HttpStatus.NOT_FOUND.value());
-			}
-			Map<String, Object> doctorData = objectMapper.convertValue(doctorResponse.getData(), Map.class);
-			dto.setDoctorName((String) doctorData.get("doctorName"));
+                log.warn("Booking ID is null or empty");
 
-			// ----------------------- Step 3: Setup Clinic Info -----------------------
-			dto.setClinicId(Optional.ofNullable(dto.getClinicId()).orElse(""));
-			dto.setClinicName(Optional.ofNullable(dto.getClinicName()).orElse(""));
+                return buildResponse(
+                        false,
+                        null,
+                        "Booking ID must not be null or empty",
+                        HttpStatus.BAD_REQUEST.value());
+            }
 
-			// ----------------------- Step 4: Calculate Visit Count & Type
-			// -----------------------
-			List<DoctorSaveDetails> previousVisits = repository.findByDoctorIdAndPatientIdAndSubServiceId(
-					dto.getDoctorId(), dto.getPatientId(), dto.getSubServiceId());
-			int visitCount = (previousVisits != null && !previousVisits.isEmpty()) ? previousVisits.size() + 1 : 1;
-			dto.setVisitCount(visitCount);
-			dto.setVisitType(VisitTypeUtil.getVisitTypeFromCount(visitCount));
-			dto.setVisitDateTime(LocalDateTime.now());
+            // ----------------------- Step 1: Fetch Booking -----------------------
+            log.info("Fetching booking details for bookingId : {}", dto.getBookingId());
 
-			// ----------------------- Step 5: Save Visit -----------------------
-			DoctorSaveDetails entity = convertToEntity(dto);
-			entity.setVisitCount(visitCount);
-			DoctorSaveDetails savedVisit = repository.save(entity);
+            ResponseEntity<ResponseStructure<BookingResponse>> bookingEntity =
+                    bookingFeignClient.getBookedService(dto.getBookingId());
 
-			// ----------------------- Step 6: Fetch Clinic for Consultation Expiry
-			// -----------------------
-			Response clinicResponse = adminFeignClient.getClinicById(dto.getClinicId()).getBody();
-			int expirationDays = 0;
-			String consultationExpirationStr = "";
-			if (clinicResponse != null && clinicResponse.isSuccess() && clinicResponse.getData() != null) {
-				Map<String, Object> clinicData = objectMapper.convertValue(clinicResponse.getData(), Map.class);
-				if (clinicData.containsKey("consultationExpiration")
-						&& clinicData.get("consultationExpiration") != null) {
-					consultationExpirationStr = clinicData.get("consultationExpiration").toString();
-					expirationDays = parseExpirationDays(consultationExpirationStr);
-				}
-			}
-			// ----------------------- Step 7: Update Treatments & Calculate Sitting Summary
-			// -----------------------
-			LocalDateTime lastSittingDateTime = null;
-			boolean hasTreatments = false;
+            if (bookingEntity == null || bookingEntity.getBody() == null) {
 
-			// Prepare DTO to return in response
-			TreatmentResponseDTO treatmentResponseDTO = new TreatmentResponseDTO();
-			Map<String, TreatmentDetailsDTO> generatedDataDTO = new HashMap<>();
+                log.error("Booking service returned null response for bookingId : {}",
+                        dto.getBookingId());
 
-			// Overall counters for all treatments
-			int overallTotalSittings = 0;
-			int overallTakenSittings = 0;
-			int overallPendingSittings = 0;
-			int overallCurrentSitting = 0;
+                return buildResponse(
+                        false,
+                        null,
+                        "Unable to fetch booking details. Booking service returned null.",
+                        HttpStatus.BAD_GATEWAY.value());
+            }
 
-			// Check if treatments exist in saved visit
-			if (savedVisit.getTreatments() != null && savedVisit.getTreatments().getGeneratedData() != null) {
-				hasTreatments = true;
-				Map<String, TreatmentDetails> generatedData = savedVisit.getTreatments().getGeneratedData();
+            BookingResponse bookingData = bookingEntity.getBody().getData();
 
-				for (Map.Entry<String, TreatmentDetails> entry : generatedData.entrySet()) {
-					TreatmentDetails entityTreatment = entry.getValue();
+            if (bookingData == null) {
 
-					int total = Optional.ofNullable(entityTreatment.getTotalSittings()).orElse(0);
-					int completed = 0;
-					int currentSittingForThisTreatment = 0;
+                log.warn("Booking not found with bookingId : {}", dto.getBookingId());
 
-					// Convert entity Dates -> DatesDTO for DTO
-					List<DatesDTO> datesDTOList = new ArrayList<>();
-					if (entityTreatment.getDates() != null && !entityTreatment.getDates().isEmpty()) {
-						AtomicInteger counter = new AtomicInteger(1);
+                return buildResponse(
+                        false,
+                        null,
+                        "Booking not found with ID: " + dto.getBookingId(),
+                        HttpStatus.NOT_FOUND.value());
+            }
 
-						for (Dates d : entityTreatment.getDates()) {
-							try {
-								LocalDate sittingDate = LocalDate.parse(d.getDate());
-								LocalDateTime sittingDateTime = sittingDate.atStartOfDay();
+            log.info("Successfully fetched booking details for bookingId : {}",
+                    dto.getBookingId());
 
-								String sittingStatus = "Pending";
+            // ----------------------- Step 2: Fetch Doctor -----------------------
+            log.info("Fetching doctor details for doctorId : {}", dto.getDoctorId());
 
-								// Count completed sittings (past or today)
-								if (!sittingDate.isAfter(LocalDate.now())) {
-									completed++;
-									currentSittingForThisTreatment = counter.get();
-									overallCurrentSitting = Math.max(overallCurrentSitting,
-											currentSittingForThisTreatment);
-									sittingStatus = "Completed"; // ✅ mark status
-								}
+            Response doctorResponse =
+                    clinicAdminServiceClient.getDoctorById(dto.getDoctorId()).getBody();
 
-								// Track last sitting date
-								if (lastSittingDateTime == null || sittingDateTime.isAfter(lastSittingDateTime)) {
-									lastSittingDateTime = sittingDateTime;
-								}
+            if (doctorResponse == null
+                    || !doctorResponse.isSuccess()
+                    || doctorResponse.getData() == null) {
 
-								// Assign sitting number if missing
-								if (d.getSitting() == null || d.getSitting() == 0) {
-									d.setSitting(counter.getAndIncrement());
-								}
+                log.warn("Doctor not found with doctorId : {}", dto.getDoctorId());
 
-								// ✅ Update entity status
-								d.setStatus(sittingStatus);
+                return buildResponse(
+                        false,
+                        null,
+                        "Doctor not found with ID: " + dto.getDoctorId(),
+                        HttpStatus.NOT_FOUND.value());
+            }
 
-								// Convert to DTO
-								DatesDTO dtoDate = DatesDTO.builder().date(d.getDate()).sitting(d.getSitting())
-										.status(sittingStatus).build();
-								datesDTOList.add(dtoDate);
+            Map<String, Object> doctorData =
+                    objectMapper.convertValue(doctorResponse.getData(), Map.class);
 
-							} catch (Exception ignored) {
-							}
-						}
-					}
+            dto.setDoctorName((String) doctorData.get("doctorName"));
 
-					// Build TreatmentDetailsDTO for response
-					TreatmentDetailsDTO dtoTreatment = TreatmentDetailsDTO.builder().dates(datesDTOList)
-							.reason(entityTreatment.getReason()).frequency(entityTreatment.getFrequency())
-							.startDate(entityTreatment.getStartDate()).sittings(Math.max(total - completed, 0))
-							.totalSittings(total).takenSittings(completed)
-							.pendingSittings(Math.max(total - completed, 0))
-							.currentSitting(currentSittingForThisTreatment).build();
+            log.info("Doctor fetched successfully. Doctor Name : {}",
+                    dto.getDoctorName());
 
-					// Add to map for response DTO
-					generatedDataDTO.put(entry.getKey(), dtoTreatment);
+            // ----------------------- Step 3: Setup Clinic Info -----------------------
+            dto.setClinicId(Optional.ofNullable(dto.getClinicId()).orElse(""));
+            dto.setClinicName(Optional.ofNullable(dto.getClinicName()).orElse(""));
 
-					// Update overall counters
-					overallTotalSittings += total;
-					overallTakenSittings += completed;
-					overallPendingSittings += Math.max(total - completed, 0);
+            log.debug("Clinic information set. ClinicId : {}, ClinicName : {}",
+                    dto.getClinicId(),
+                    dto.getClinicName());
 
-					// ✅ Update entity itself for DB
-					entityTreatment.setSittings(Math.max(total - completed, 0));
-					entityTreatment.setTakenSittings(completed);
-					entityTreatment.setPendingSittings(Math.max(total - completed, 0));
-					entityTreatment.setCurrentSitting(currentSittingForThisTreatment);
-				}
-			}
+            // ----------------------- Step 4: Calculate Visit Count & Type -----------------------
+            log.info("Calculating visit count for doctorId : {}, patientId : {}, subServiceId : {}",
+                    dto.getDoctorId(),
+                    dto.getPatientId(),
+                    dto.getSubServiceId());
 
-			// Set the response DTO fields with overall summary
-			treatmentResponseDTO.setGeneratedData(generatedDataDTO);
-			treatmentResponseDTO.setTotalSittings(overallTotalSittings);
-			treatmentResponseDTO.setTakenSittings(overallTakenSittings);
-			treatmentResponseDTO.setPendingSittings(overallPendingSittings);
-			treatmentResponseDTO.setCurrentSitting(overallCurrentSitting);
+            List<DoctorSaveDetails> previousVisits =
+                    repository.findByDoctorIdAndPatientIdAndSubServiceId(
+                            dto.getDoctorId(),
+                            dto.getPatientId(),
+                            dto.getSubServiceId());
 
-			// ✅ Set followupStatus based on pending sittings
-			String followupStatus = (overallPendingSittings == 0) ? "no-followup" : "followup-required";
-			treatmentResponseDTO.setFollowupStatus(followupStatus);
+            int visitCount =
+                    (previousVisits != null && !previousVisits.isEmpty())
+                            ? previousVisits.size() + 1
+                            : 1;
 
-			// ✅ Save back to entity with status and followupStatus
-			TreatmentResponse treatmentEntity = TreatmentResponse.builder()
-					.generatedData(
-							generatedDataDTO.entrySet().stream()
-									.collect(Collectors.toMap(Map.Entry::getKey,
-											e -> TreatmentDetails.builder().dates(e.getValue().getDates().stream()
-													.map(d -> new Dates(d.getDate(), d.getSitting(), d.getStatus()))
-													.collect(Collectors.toList())).reason(e.getValue().getReason())
-													.frequency(e.getValue().getFrequency())
-													.startDate(e.getValue().getStartDate())
-													.sittings(e.getValue().getSittings())
-													.totalSittings(e.getValue().getTotalSittings())
-													.takenSittings(e.getValue().getTakenSittings())
-													.pendingSittings(e.getValue().getPendingSittings())
-													.currentSitting(e.getValue().getCurrentSitting()).build())))
-					.selectedTestTreatment(
-							savedVisit.getTreatments() != null ? savedVisit.getTreatments().getSelectedTestTreatment()
-									: null)
-					.totalSittings(overallTotalSittings).takenSittings(overallTakenSittings)
-					.pendingSittings(overallPendingSittings).currentSitting(overallCurrentSitting)
-					.followupStatus(followupStatus).build();
+            dto.setVisitCount(visitCount);
+            dto.setVisitType(VisitTypeUtil.getVisitTypeFromCount(visitCount));
+            dto.setVisitDateTime(LocalDateTime.now());
 
-			savedVisit.setTreatments(treatmentEntity);
-			repository.save(savedVisit);
+            log.info("Visit count calculated : {}, Visit type : {}",
+                    visitCount,
+                    dto.getVisitType());
 
-			// ----------------------- Step 8: Consultation Start & Expiry
-			// -----------------------
-			LocalDateTime consultationStartDate = hasTreatments && lastSittingDateTime != null
-					? lastSittingDateTime.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
-					: LocalDate.now().plusDays(1).atStartOfDay();
+            // ----------------------- Step 5: Save Visit -----------------------
+            log.info("Saving doctor visit details");
 
-			LocalDateTime consultationExpiryDate = consultationStartDate.plusDays(expirationDays);
+            DoctorSaveDetails entity = convertToEntity(dto);
+            entity.setVisitCount(visitCount);
 
-			savedVisit.setConsultationStartDate(consultationStartDate);
-			savedVisit.setConsultationExpiryDate(consultationExpiryDate);
-			repository.save(savedVisit);
+            DoctorSaveDetails savedVisit = repository.save(entity);
 
-			// ----------------------- Step 9: Follow-up Next Date -----------------------
-			if (savedVisit.getFollowUp() != null && savedVisit.getFollowUp().getDurationValue() > 0) {
-				int durationValue = savedVisit.getFollowUp().getDurationValue();
-				String durationUnit = savedVisit.getFollowUp().getDurationUnit();
+            log.info("Doctor visit details saved successfully with id : {}",
+                    savedVisit.getId());
 
-				LocalDateTime baseDate = consultationStartDate.isAfter(LocalDateTime.now()) ? consultationStartDate
-						: LocalDateTime.now();
+            // ----------------------- Step 6: Fetch Clinic -----------------------
+            log.info("Fetching clinic details for clinicId : {}",
+                    dto.getClinicId());
 
-				LocalDateTime nextFollowUpDate = switch (durationUnit.toLowerCase()) {
-				case "days" -> consultationStartDate.plusDays(durationValue);
-				case "weeks" -> consultationStartDate.plusWeeks(durationValue);
-				case "months" -> consultationStartDate.plusMonths(durationValue);
-				default -> consultationStartDate.plusDays(durationValue);
-				};
+            Response clinicResponse =
+                    adminFeignClient.getClinicById(dto.getClinicId()).getBody();
 
-				if (nextFollowUpDate.isBefore(consultationStartDate)) {
-					nextFollowUpDate = consultationStartDate;
-				}
+            int expirationDays = 0;
+            String consultationExpirationStr = "";
 
-				savedVisit.getFollowUp().setNextFollowUpDate(nextFollowUpDate.toString());
-			}
+            if (clinicResponse != null
+                    && clinicResponse.isSuccess()
+                    && clinicResponse.getData() != null) {
 
-			// ----------------------- Step 10: Free Follow-ups & Booking Status
-			// -----------------------
-			int freeFollowUpsLeft = Optional.ofNullable(bookingData.getFreeFollowUpsLeft()).orElse(0);
-			boolean consultationExpired = consultationExpiryDate != null
-					&& !LocalDateTime.now().isBefore(consultationExpiryDate);
+                Map<String, Object> clinicData =
+                        objectMapper.convertValue(clinicResponse.getData(), Map.class);
 
-			boolean allSittingsCompleted = hasTreatments && savedVisit.getTreatments().getGeneratedData().values()
-					.stream().allMatch(t -> t.getSittings() != null && t.getSittings() == 0);
+                if (clinicData.containsKey("consultationExpiration")
+                        && clinicData.get("consultationExpiration") != null) {
 
-			boolean consultationStarted = LocalDateTime.now().isAfter(consultationStartDate)
-					|| LocalDateTime.now().isEqual(consultationStartDate);
+                    consultationExpirationStr =
+                            clinicData.get("consultationExpiration").toString();
 
-			String status;
-			if (!consultationStarted) {
-				status = "In-Progress";
-			} else if (!consultationExpired) {
-				if (allSittingsCompleted && freeFollowUpsLeft > 0) {
-					freeFollowUpsLeft--;
-				}
-				status = (freeFollowUpsLeft <= 0) ? "Completed" : "In-Progress";
-			} else {
-				status = "Completed";
-			}
+                    expirationDays =
+                            parseExpirationDays(consultationExpirationStr);
 
-			// ----------------------- Step 11: Update Booking Service
-			// -----------------------
-			bookingData.setFreeFollowUpsLeft(Math.max(freeFollowUpsLeft, 0));
-			bookingData.setStatus(status);
+                    log.info("Consultation expiration configured as : {} days",
+                            expirationDays);
+                }
+            } else {
 
-			// ✅ Set sitting summary
-//            bookingData.setTotalSittings(overallTotalSittings);
-//            bookingData.setTakenSittings(overallTakenSittings);
-//            bookingData.setPendingSittings(overallPendingSittings);
-//            bookingData.setCurrentSitting(overallCurrentSitting);
-//
-//            // ✅ Include the full treatment details
-//            bookingData.setTreatments(treatmentResponseDTO);
+                log.warn("Unable to fetch clinic consultation expiration details for clinicId : {}",
+                        dto.getClinicId());
+            }
 
-			bookingData.setCurrentStatus(null);
-			bookingData.setListOfConsultationFee(null);
-			bookingFeignClient.updateAppointmentBasedOnBookingId(bookingData);
+            // ----------------------- Step 11: Update Booking Service -----------------------
+            log.info("Updating booking status for bookingId : {}",
+                    dto.getBookingId());
 
-			// ----------------------- Step 12: Build Response -----------------------
-			DoctorSaveDetailsDTO savedDto = convertToDto(savedVisit);
-			savedDto.setTreatments(treatmentResponseDTO);
+            if (bookingData.getFreeFollowUpsLeft() != 0) {
 
-			return buildResponse(true, savedDto, "Doctor details saved successfully", HttpStatus.CREATED.value());
+                bookingData.setFreeFollowUpsLeft(
+                        bookingData.getFreeFollowUpsLeft() - 1);
 
-		} catch (FeignException e) {
-			return buildResponse(false, null, "Error fetching doctor/booking/clinic details: " + e.getMessage(),
-					HttpStatus.BAD_GATEWAY.value());
-		} catch (Exception e) {
-			return buildResponse(false, null, "Unexpected error: " + e.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-	}
+                log.info("Free follow-ups remaining : {}",
+                        bookingData.getFreeFollowUpsLeft());
 
-	/** Utility to parse "7 days" -> 7 */
-	private int parseExpirationDays(String expirationStr) {
-		if (expirationStr == null || expirationStr.isBlank())
-			return 0;
-		expirationStr = expirationStr.toLowerCase().trim();
-		try {
-			if (expirationStr.contains("day")) {
-				return Integer.parseInt(expirationStr.replaceAll("[^0-9]", ""));
-			}
-		} catch (NumberFormatException e) {
-			return 0;
-		}
-		return 0;
-	}
+                if (bookingData.getFreeFollowUpsLeft() == 0) {
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByIdFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getDoctorDetailsById(String id) {
-		Optional<DoctorSaveDetails> optional = repository.findById(id);
+                    bookingData.setStatus("completed");
 
-		return optional
-				.map(data -> buildResponse(true, objectMapper.convertValue(data, DoctorSaveDetailsDTO.class),
-						"Doctor details found", HttpStatus.OK.value()))
-				.orElseGet(() -> buildResponse(false, null, "Doctor details not found", HttpStatus.NOT_FOUND.value()));
-	}
+                    log.info("No free follow-ups remaining. Status set to completed");
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorDetailsFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response updateDoctorDetails(String id, DoctorSaveDetailsDTO dto) {
-		Optional<DoctorSaveDetails> optional = repository.findById(id);
+                } else {
 
-		if (optional.isEmpty()) {
-			return buildResponse(false, null, "Doctor details not found", HttpStatus.NOT_FOUND.value());
-		}
+                    bookingData.setStatus("In-Progress");
 
-		DoctorSaveDetails existing = optional.get();
+                    log.info("Booking status set to In-Progress");
+                }
 
-		// 🔹 Map DTO -> Entity using Spring's ObjectMapper
-		DoctorSaveDetails updated = objectMapper.convertValue(dto, DoctorSaveDetails.class);
+            } else {
 
-		// 🔹 Preserve DB identity
-		updated.setId(existing.getId());
+                bookingData.setStatus("completed");
 
-		// 🔹 If prescription is null in DTO, keep existing prescription
-		if (updated.getPrescription() == null) {
-			updated.setPrescription(existing.getPrescription());
-		}
+                log.info("Booking status set to completed");
+            }
 
-		// 🔹 Ensure all nested Medicines have non-null IDs
-		fixMedicineIds(updated, existing);
+            bookingFeignClient.updateAppointmentBasedOnBookingId(bookingData);
 
-		DoctorSaveDetails saved = repository.save(updated);
-		DoctorSaveDetailsDTO savedDto = convertToDto(saved);
+            log.info("Booking service updated successfully for bookingId : {}",
+                    dto.getBookingId());
 
-		return buildResponse(true, savedDto, "Doctor details updated successfully", HttpStatus.OK.value());
-	}
+            // ----------------------- Step 12: Build Response -----------------------
+            DoctorSaveDetailsDTO savedDto = convertToDto(savedVisit);
 
-	/**
-	 * Copies old medicine IDs where possible and generates new IDs for any
-	 * medicines with null id.
-	 */
-	private void fixMedicineIds(DoctorSaveDetails updated, DoctorSaveDetails existing) {
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("saveDoctorDetails() completed successfully in {} ms",
+                    executionTime);
+
+            return buildResponse(
+                    true,
+                    savedDto,
+                    "Doctor details saved successfully",
+                    HttpStatus.CREATED.value());
+
+        } catch (FeignException e) {
+
+            log.error("Feign exception occurred while communicating with external services. Error : {}",
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Error fetching doctor/booking/clinic details: " + e.getMessage(),
+                    HttpStatus.BAD_GATEWAY.value());
+
+        } catch (Exception e) {
+
+            log.error("Unexpected exception occurred in saveDoctorDetails(). Error : {}",
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Unexpected error: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    /** Utility to parse "7 days" -> 7 */
+    private int parseExpirationDays(String expirationStr) {
+        if (expirationStr == null || expirationStr.isBlank()) return 0;
+        expirationStr = expirationStr.toLowerCase().trim();
+        try {
+            if (expirationStr.contains("day")) {
+                return Integer.parseInt(expirationStr.replaceAll("[^0-9]", ""));
+            }
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+        return 0;
+    }
+
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByIdFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response getDoctorDetailsById(String id) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getDoctorDetailsById() with id : {}", id);
+
+        try {
+
+            log.debug("Fetching doctor details from repository for id : {}", id);
+
+            Optional<DoctorSaveDetails> optional = repository.findById(id);
+
+            if (optional.isPresent()) {
+
+                log.info("Doctor details found for id : {}", id);
+
+                DoctorSaveDetailsDTO dto =
+                        objectMapper.convertValue(optional.get(), DoctorSaveDetailsDTO.class);
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("getDoctorDetailsById() completed successfully in {} ms",
+                        executionTime);
+
+                return buildResponse(
+                        true,
+                        dto,
+                        "Doctor details found",
+                        HttpStatus.OK.value());
+            }
+
+            log.warn("Doctor details not found for id : {}", id);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Doctor details not found",
+                    HttpStatus.NOT_FOUND.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching doctor details for id : {}. Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Failed to fetch doctor details : " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorDetailsFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response updateDoctorDetails(String id, DoctorSaveDetailsDTO dto) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered updateDoctorDetails() with id : {}", id);
+
+        try {
+
+            log.debug("Fetching existing doctor details for id : {}", id);
+
+            Optional<DoctorSaveDetails> optional = repository.findById(id);
+
+            if (optional.isEmpty()) {
+
+                log.warn("Doctor details not found for id : {}", id);
+
+                return buildResponse(
+                        false,
+                        null,
+                        "Doctor details not found",
+                        HttpStatus.NOT_FOUND.value());
+            }
+
+            DoctorSaveDetails existing = optional.get();
+
+            log.info("Doctor details found. Updating record for id : {}", id);
+
+            // Map DTO -> Entity
+            DoctorSaveDetails updated =
+                    objectMapper.convertValue(dto, DoctorSaveDetails.class);
+
+            // Preserve existing DB id
+            updated.setId(existing.getId());
+
+            log.debug("Preserved existing entity id : {}", existing.getId());
+
+            // Preserve prescription if not provided
+            if (updated.getPrescription() == null) {
+
+                log.debug("Prescription not provided in request. Preserving existing prescription.");
+
+                updated.setPrescription(existing.getPrescription());
+            }
+
+            // Ensure medicine IDs exist
+            log.debug("Fixing medicine IDs before save");
+
+            fixMedicineIds(updated, existing);
+
+            log.debug("Saving updated doctor details for id : {}", id);
+
+            DoctorSaveDetails saved = repository.save(updated);
+
+            log.info("Doctor details updated successfully for id : {}", saved.getId());
+
+            DoctorSaveDetailsDTO savedDto = convertToDto(saved);
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("updateDoctorDetails() completed successfully in {} ms",
+                    executionTime);
+
+            return buildResponse(
+                    true,
+                    savedDto,
+                    "Doctor details updated successfully",
+                    HttpStatus.OK.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while updating doctor details for id : {}. Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Failed to update doctor details : " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    
+    /**
+     * Copies old medicine IDs where possible and generates new IDs for any medicines with null id.
+     */
+    private void fixMedicineIds(DoctorSaveDetails updated, DoctorSaveDetails existing) {
 		if (updated.getPrescription() == null || updated.getPrescription().getMedicines() == null) {
 			return;
 		}
@@ -464,102 +515,309 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 		}
 	}
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorDetailsByBookingIdFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response updateDoctorDetailsByBookingId(String id, DoctorSaveDetailsDTO dto) {
-		DoctorSaveDetails optional = repository.findByBookingId(id);
-		if (optional != null) {
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.registerModule(new JavaTimeModule());
-			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-			DoctorSaveDetails updated = mapper.convertValue(dto, DoctorSaveDetails.class);
-			updated.setId(dto.getId());
-			DoctorSaveDetails saved = repository.save(updated);
-			DoctorSaveDetailsDTO savedDto = convertToDto(saved);
-			return buildResponse(true, savedDto, "Doctor details updated successfully", HttpStatus.OK.value());
-		} else {
-			return buildResponse(false, null, "Doctor details not found", HttpStatus.NOT_FOUND.value());
-		}
-	}
+	
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "updateDoctorDetailsByBookingIdFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response updateDoctorDetailsByBookingId(String id, DoctorSaveDetailsDTO dto) {
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteDoctorDetailsFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response deleteDoctorDetails(String id) {
-		Optional<DoctorSaveDetails> optional = repository.findById(id);
-		if (optional.isPresent()) {
-			repository.deleteById(id);
-			return buildResponse(true, null, "Doctor details deleted successfully", HttpStatus.OK.value());
-		} else {
-			return buildResponse(false, null, "Doctor details not found", HttpStatus.NOT_FOUND.value());
-		}
-	}
+        long startTime = System.currentTimeMillis();
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllDoctorDetailsFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getAllDoctorDetails() {
-		List<DoctorSaveDetails> list = repository.findAll();
-		return buildResponse(true, list, "All doctor details fetched", HttpStatus.OK.value());
-	}
+        log.info("Entered updateDoctorDetailsByBookingId() with bookingId : {}", id);
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientAndBookingFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getVisitHistoryByPatientAndBooking(String patientId, String bookingId) {
-		try {
-			List<DoctorSaveDetails> visits = repository.findByPatientIdAndBookingId(patientId, bookingId);
+        try {
 
-			if (visits.isEmpty()) {
-				return buildResponse(false, null, "No visit history found for the given patient and booking ID",
-						HttpStatus.NOT_FOUND.value());
-			}
+            log.debug("Fetching doctor details using bookingId : {}", id);
 
-			visits.sort((v1, v2) -> v1.getVisitDateTime().compareTo(v2.getVisitDateTime()));
+            DoctorSaveDetails existing = repository.findByBookingId(id);
 
-			return buildResponse(true, Map.of("patientId", patientId, "bookingId", bookingId, "visitCount",
-					visits.size(), "visits", visits), "Visit history fetched successfully", HttpStatus.OK.value());
+            if (existing != null) {
 
-		} catch (Exception e) {
-			return buildResponse(false, null, "Error fetching visit history: " + e.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-	}
+                log.info("Doctor details found for bookingId : {}", id);
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getVisitHistoryByPatient(String patientId) {
-		try {
-			List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new JavaTimeModule());
+                mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-			if (visits.isEmpty()) {
-				return buildResponse(false, null, "No visit history found for the patient ID",
-						HttpStatus.NOT_FOUND.value());
-			}
+                DoctorSaveDetails updated =
+                        mapper.convertValue(dto, DoctorSaveDetails.class);
 
-			visits.sort((v1, v2) -> {
-				LocalDateTime dt1 = v1.getVisitDateTime();
-				LocalDateTime dt2 = v2.getVisitDateTime();
+                updated.setId(existing.getId());
 
-				if (dt1 == null && dt2 == null)
-					return 0;
-				if (dt1 == null)
-					return 1;
-				if (dt2 == null)
-					return -1;
-				return dt1.compareTo(dt2);
-			});
+                log.debug("Saving updated doctor details for bookingId : {}", id);
 
-			return buildResponse(true,
-					Map.of("patientId", patientId, "totalVisits", visits.size(), "visitHistory", visits),
-					"All visit history fetched successfully", HttpStatus.OK.value());
+                DoctorSaveDetails saved = repository.save(updated);
 
-		} catch (Exception e) {
-			return buildResponse(true, null, "Error fetching visit history: " + e.getMessage(), HttpStatus.OK.value());
-		}
-	}
+                log.info("Doctor details updated successfully. Record Id : {}",
+                        saved.getId());
+
+                DoctorSaveDetailsDTO savedDto = convertToDto(saved);
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("updateDoctorDetailsByBookingId() completed successfully in {} ms",
+                        executionTime);
+
+                return buildResponse(
+                        true,
+                        savedDto,
+                        "Doctor details updated successfully",
+                        HttpStatus.OK.value());
+            }
+
+            log.warn("Doctor details not found for bookingId : {}", id);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Doctor details not found",
+                    HttpStatus.NOT_FOUND.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while updating doctor details using bookingId : {}. Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Failed to update doctor details : " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "deleteDoctorDetailsFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response deleteDoctorDetails(String id) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered deleteDoctorDetails() with id : {}", id);
+
+        try {
+
+            Optional<DoctorSaveDetails> optional = repository.findById(id);
+
+            if (optional.isPresent()) {
+
+                log.info("Doctor details found. Deleting record with id : {}", id);
+
+                repository.deleteById(id);
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("Doctor details deleted successfully. Execution time : {} ms",
+                        executionTime);
+
+                return buildResponse(
+                        true,
+                        null,
+                        "Doctor details deleted successfully",
+                        HttpStatus.OK.value());
+            }
+
+            log.warn("Doctor details not found for id : {}", id);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Doctor details not found",
+                    HttpStatus.NOT_FOUND.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while deleting doctor details for id : {}. Error : {}",
+                    id,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Failed to delete doctor details : " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getAllDoctorDetailsFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response getAllDoctorDetails() {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getAllDoctorDetails()");
+
+        try {
+
+            log.debug("Fetching all doctor details from repository");
+
+            List<DoctorSaveDetails> list = repository.findAll();
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("Fetched {} doctor records successfully in {} ms",
+                    list.size(),
+                    executionTime);
+
+            return buildResponse(
+                    true,
+                    list,
+                    "All doctor details fetched",
+                    HttpStatus.OK.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching all doctor details. Error : {}",
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Failed to fetch doctor details : " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientAndBookingFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response getVisitHistoryByPatientAndBooking(String patientId, String bookingId) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getVisitHistoryByPatientAndBooking() with patientId : {}, bookingId : {}",
+                patientId,
+                bookingId);
+
+        try {
+
+            List<DoctorSaveDetails> visits =
+                    repository.findByPatientIdAndBookingId(patientId, bookingId);
+
+            if (visits.isEmpty()) {
+
+                log.warn("No visit history found for patientId : {} and bookingId : {}",
+                        patientId,
+                        bookingId);
+
+                return buildResponse(
+                        false,
+                        null,
+                        "No visit history found for the given patient and booking ID",
+                        HttpStatus.NOT_FOUND.value());
+            }
+
+            visits.sort((v1, v2) ->
+                    v1.getVisitDateTime().compareTo(v2.getVisitDateTime()));
+
+            log.info("Found {} visits for patientId : {} and bookingId : {}",
+                    visits.size(),
+                    patientId,
+                    bookingId);
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("getVisitHistoryByPatientAndBooking() completed in {} ms",
+                    executionTime);
+
+            return buildResponse(
+                    true,
+                    Map.of(
+                            "patientId", patientId,
+                            "bookingId", bookingId,
+                            "visitCount", visits.size(),
+                            "visits", visits),
+                    "Visit history fetched successfully",
+                    HttpStatus.OK.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching visit history. patientId : {}, bookingId : {}, Error : {}",
+                    patientId,
+                    bookingId,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Error fetching visit history: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response getVisitHistoryByPatient(String patientId) {
+
+        log.info("Fetching visit history for patientId: {}", patientId);
+
+        try {
+            List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
+
+            log.info("Retrieved {} visit records for patientId: {}", visits.size(), patientId);
+
+            if (visits.isEmpty()) {
+                log.warn("No visit history found for patientId: {}", patientId);
+
+                return buildResponse(
+                        false,
+                        null,
+                        "No visit history found for the patient ID",
+                        HttpStatus.NOT_FOUND.value());
+            }
+
+            log.debug("Sorting visit history records for patientId: {}", patientId);
+
+            visits.sort((v1, v2) -> {
+                LocalDateTime dt1 = v1.getVisitDateTime();
+                LocalDateTime dt2 = v2.getVisitDateTime();
+
+                if (dt1 == null && dt2 == null)
+                    return 0;
+                if (dt1 == null)
+                    return 1;
+                if (dt2 == null)
+                    return -1;
+
+                return dt1.compareTo(dt2);
+            });
+
+            log.info(
+                    "Successfully fetched and sorted {} visit records for patientId: {}",
+                    visits.size(),
+                    patientId);
+
+            return buildResponse(
+                    true,
+                    Map.of(
+                            "patientId", patientId,
+                            "totalVisits", visits.size(),
+                            "visitHistory", visits),
+                    "All visit history fetched successfully",
+                    HttpStatus.OK.value());
+
+        } catch (Exception e) {
+
+            log.error(
+                    "Error occurred while fetching visit history for patientId: {}. Error: {}",
+                    patientId,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Error fetching visit history: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
 
 	private DoctorSaveDetails convertToEntity(DoctorSaveDetailsDTO dto) {
 		if (dto == null)
@@ -758,57 +1016,104 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 		return Response.builder().success(success).data(data).message(message).status(status).build();
 	}
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientAndDoctorFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getVisitHistoryByPatientAndDoctor(String patientId, String doctorId) {
-		try {
-			List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
+	
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getVisitHistoryByPatientAndDoctorFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response getVisitHistoryByPatientAndDoctor(String patientId, String doctorId) {
 
-			if (visits.isEmpty()) {
-				return buildResponse(true, null, "No visit history found for the patient ID", HttpStatus.OK.value());
-			}
+        long startTime = System.currentTimeMillis();
 
-			if (doctorId != null && !doctorId.isBlank()) {
-				visits = visits.stream().filter(v -> doctorId.equals(v.getDoctorId())).collect(Collectors.toList());
+        log.info("Entered getVisitHistoryByPatientAndDoctor() with patientId : {}, doctorId : {}",
+                patientId, doctorId);
 
-				if (visits.isEmpty()) {
-					return buildResponse(true, null,
-							"No visit history found for the patient with the specified doctor ID",
-							HttpStatus.OK.value());
-				}
-			}
+        try {
 
-			// Sort latest first
-			visits.sort((v1, v2) -> {
-				LocalDateTime dt1 = v1.getVisitDateTime();
-				LocalDateTime dt2 = v2.getVisitDateTime();
+            log.debug("Fetching visit history for patientId : {}", patientId);
 
-				if (dt1 == null && dt2 == null)
-					return 0;
-				if (dt1 == null)
-					return 1;
-				if (dt2 == null)
-					return -1;
-				return dt2.compareTo(dt1); // descending
-			});
+            List<DoctorSaveDetails> visits = repository.findByPatientId(patientId);
 
-			// 🔹 Convert to DTOs (which ignore nulls)
-			List<DoctorSaveDetailsDTO> visitDtos = visits.stream().map(this::convertToDto) // assuming you already have
-																							// this method
-					.collect(Collectors.toList());
+            if (visits.isEmpty()) {
 
-			return buildResponse(true, Map.of("patientId", patientId, "doctorId", doctorId, "totalVisits",
-					visitDtos.size(), "visitHistory", visitDtos), "Visit history fetched successfully",
-					HttpStatus.OK.value());
+                log.warn("No visit history found for patientId : {}", patientId);
 
-		} catch (Exception e) {
-			return buildResponse(false, null, "Error fetching visit history: " + e.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-	}
+                return buildResponse(
+                        true,
+                        null,
+                        "No visit history found for the patient ID",
+                        HttpStatus.OK.value());
+            }
 
-	@Override
+            if (doctorId != null && !doctorId.isBlank()) {
+
+                log.debug("Filtering visit history by doctorId : {}", doctorId);
+
+                visits = visits.stream()
+                        .filter(v -> doctorId.equals(v.getDoctorId()))
+                        .collect(Collectors.toList());
+
+                if (visits.isEmpty()) {
+
+                    log.warn("No visit history found for patientId : {} and doctorId : {}",
+                            patientId, doctorId);
+
+                    return buildResponse(
+                            true,
+                            null,
+                            "No visit history found for the patient with the specified doctor ID",
+                            HttpStatus.OK.value());
+                }
+            }
+
+            visits.sort((v1, v2) -> {
+                LocalDateTime dt1 = v1.getVisitDateTime();
+                LocalDateTime dt2 = v2.getVisitDateTime();
+
+                if (dt1 == null && dt2 == null) return 0;
+                if (dt1 == null) return 1;
+                if (dt2 == null) return -1;
+
+                return dt2.compareTo(dt1);
+            });
+
+            List<DoctorSaveDetailsDTO> visitDtos = visits.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("Fetched {} visit records successfully in {} ms",
+                    visitDtos.size(),
+                    executionTime);
+
+            return buildResponse(
+                    true,
+                    Map.of(
+                            "patientId", patientId,
+                            "doctorId", doctorId,
+                            "totalVisits", visitDtos.size(),
+                            "visitHistory", visitDtos),
+                    "Visit history fetched successfully",
+                    HttpStatus.OK.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching visit history for patientId : {}, doctorId : {}. Error : {}",
+                    patientId,
+                    doctorId,
+                    e.getMessage(),
+                    e);
+
+            return buildResponse(
+                    false,
+                    null,
+                    "Error fetching visit history: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    @Override
 	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getInProgressDetailsFallback")
 	@Secured("ROLE_DOCTOR")
 	public Response getInProgressDetails(String patientId, String bookingId) {
@@ -853,92 +1158,211 @@ public class DoctorSaveDetailsServiceImpl implements DoctorSaveDetailsService {
 		}
 	}
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByBookingIdFallback")
-	@Secured("ROLE_DOCTOR")
-	public Response getDoctorDetailsByBookingId(String bookingId) {
-		try {
-			DoctorSaveDetails optional = repository.findByBookingIdIgnoreCase(bookingId);
-			if (optional != null) {
-				ObjectMapper mapper = new ObjectMapper();
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-				return new Response(true, mapper.convertValue(optional, DoctorSaveDetailsDTO.class),
-						"prescription details found", HttpStatus.OK.value());
-			} else {
-				return new Response(false, null, "prescription details Not found", HttpStatus.NOT_FOUND.value());
-			}
-		} catch (Exception e) {
-			return new Response(false, null, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-	}
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByBookingIdFallback")
+    @Secured("ROLE_DOCTOR")
+    public Response getDoctorDetailsByBookingId(String bookingId) {
 
-	@Override
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByCustomerIdFallback")
-	@Secured({ "ROLE_DOCTOR", "ROLE_CUSTOMER" })
-	public Response getDoctorDetailsByCustomerId(String customerId) {
-		try {
-			List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);
-			if (optional != null && !optional.isEmpty()) {
-				ObjectMapper mapper = new ObjectMapper();
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-				return new Response(true,
-						mapper.convertValue(optional, new TypeReference<List<DoctorSaveDetailsDTO>>() {
-						}), "prescription details found", HttpStatus.OK.value());
-			} else {
-				return new Response(false, null, "prescription details Not found", HttpStatus.NOT_FOUND.value());
-			}
-		} catch (Exception e) {
-			return new Response(false, null, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-	}
+        long startTime = System.currentTimeMillis();
 
-	private String extractErrorMessage(FeignException e) {
-		try {
-			String body = e.contentUTF8();
-			if (body != null && !body.isEmpty()) {
-				// Parse Booking Service JSON: {"timestamp":"...","status":500,"error":"Internal
-				// Server Error","message":"Invalid Booking Id Please provide Valid Id"}
-				Map<String, Object> errorMap = objectMapper.readValue(body, Map.class);
-				Object msg = errorMap.get("message");
-				return msg != null ? msg.toString() : "Unknown booking service error";
-			}
-		} catch (Exception ex) {
-			// Ignore parsing errors
-		}
-		return "Booking Service unreachable or internal error";
-	}
+        log.info("Entered getDoctorDetailsByBookingId() with bookingId : {}", bookingId);
 
-	@Override
-	@Secured("ROLE_DOCTOR")
-	@RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorLatestDetailsByCustomerIdFallback")
-	public DoctorSaveDetailsDTO getDoctorLatestDetailsByCustomerId(String customerId) {
-		try {
-			List<DoctorSaveDetails> optional = repository.findByCustomerId(customerId);
-			if (optional != null && !optional.isEmpty()) {
-				ObjectMapper mapper = new ObjectMapper();
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-				DoctorSaveDetails doctorSaveDetails = optional.get(optional.size() - 1);
-				DoctorSaveDetailsDTO doctorSaveDetailsDTO = mapper.convertValue(doctorSaveDetails,
-						DoctorSaveDetailsDTO.class);
-				return doctorSaveDetailsDTO;
-			} else {
-				return null;
-			}
-		} catch (Exception e) {
-			return null;
-		}
-	}
+        try {
 
-	private Response buildRateLimitResponse(Exception ex) {
-		return new Response(false, null, "Rate limit exceeded. Please try again later.", 429);
-	}
+            DoctorSaveDetails doctorDetails =
+                    repository.findByBookingIdIgnoreCase(bookingId);
 
-	public Response saveDoctorDetailsFallback(DoctorSaveDetailsDTO dto, Exception ex) {
-		return buildRateLimitResponse(ex);
-	}
+            if (doctorDetails != null) {
+
+                log.info("Doctor details found for bookingId : {}", bookingId);
+
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new JavaTimeModule());
+                mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+                DoctorSaveDetailsDTO dto =
+                        mapper.convertValue(doctorDetails, DoctorSaveDetailsDTO.class);
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("getDoctorDetailsByBookingId() completed successfully in {} ms",
+                        executionTime);
+
+                return new Response(
+                        true,
+                        dto,
+                        "prescription details found",
+                        HttpStatus.OK.value());
+            }
+
+            log.warn("Doctor details not found for bookingId : {}", bookingId);
+
+            return new Response(
+                    false,
+                    null,
+                    "prescription details Not found",
+                    HttpStatus.NOT_FOUND.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching doctor details by bookingId : {}. Error : {}",
+                    bookingId,
+                    e.getMessage(),
+                    e);
+
+            return new Response(
+                    false,
+                    null,
+                    e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    
+    @Override
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorDetailsByCustomerIdFallback")
+    @Secured({"ROLE_DOCTOR", "ROLE_CUSTOMER"})
+    public Response getDoctorDetailsByCustomerId(String customerId) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getDoctorDetailsByCustomerId() with customerId : {}", customerId);
+
+        try {
+
+            List<DoctorSaveDetails> doctorDetails =
+                    repository.findByCustomerId(customerId);
+
+            if (doctorDetails != null && !doctorDetails.isEmpty()) {
+
+                log.info("Found {} doctor records for customerId : {}",
+                        doctorDetails.size(),
+                        customerId);
+
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new JavaTimeModule());
+                mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+                List<DoctorSaveDetailsDTO> dtos =
+                        mapper.convertValue(
+                                doctorDetails,
+                                new TypeReference<List<DoctorSaveDetailsDTO>>() {
+                                });
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("getDoctorDetailsByCustomerId() completed successfully in {} ms",
+                        executionTime);
+
+                return new Response(
+                        true,
+                        dtos,
+                        "prescription details found",
+                        HttpStatus.OK.value());
+            }
+
+            log.warn("No doctor details found for customerId : {}", customerId);
+
+            return new Response(
+                    false,
+                    null,
+                    "prescription details Not found",
+                    HttpStatus.NOT_FOUND.value());
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching doctor details for customerId : {}. Error : {}",
+                    customerId,
+                    e.getMessage(),
+                    e);
+
+            return new Response(
+                    false,
+                    null,
+                    e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+    private String extractErrorMessage(FeignException e) {
+        try {
+            String body = e.contentUTF8();
+            if (body != null && !body.isEmpty()) {
+                // Parse Booking Service JSON: {"timestamp":"...","status":500,"error":"Internal Server Error","message":"Invalid Booking Id Please provide Valid Id"}
+                Map<String, Object> errorMap = objectMapper.readValue(body, Map.class);
+                Object msg = errorMap.get("message");
+                return msg != null ? msg.toString() : "Unknown booking service error";
+            }
+        } catch (Exception ex) {
+            // Ignore parsing errors
+        }
+        return "Booking Service unreachable or internal error";
+    }
+    
+    
+    @Override
+    @Secured("ROLE_DOCTOR")
+    @RateLimiter(name = "physiotherapydoctorService", fallbackMethod = "getDoctorLatestDetailsByCustomerIdFallback")
+    public DoctorSaveDetailsDTO getDoctorLatestDetailsByCustomerId(String customerId) {
+
+        long startTime = System.currentTimeMillis();
+
+        log.info("Entered getDoctorLatestDetailsByCustomerId() with customerId : {}", customerId);
+
+        try {
+
+            log.debug("Fetching doctor details for customerId : {}", customerId);
+
+            List<DoctorSaveDetails> doctorDetailsList =
+                    repository.findByCustomerId(customerId);
+
+            if (doctorDetailsList != null && !doctorDetailsList.isEmpty()) {
+
+                log.info("Found {} doctor records for customerId : {}",
+                        doctorDetailsList.size(),
+                        customerId);
+
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new JavaTimeModule());
+                mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+                DoctorSaveDetails latestDoctorDetails =
+                        doctorDetailsList.get(doctorDetailsList.size() - 1);
+
+                log.debug("Latest doctor details record selected with id : {}",
+                        latestDoctorDetails.getId());
+
+                DoctorSaveDetailsDTO doctorSaveDetailsDTO =
+                        mapper.convertValue(
+                                latestDoctorDetails,
+                                DoctorSaveDetailsDTO.class);
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                log.info("getDoctorLatestDetailsByCustomerId() completed successfully in {} ms",
+                        executionTime);
+
+                return doctorSaveDetailsDTO;
+            }
+
+            log.warn("No doctor details found for customerId : {}", customerId);
+
+            return null;
+
+        } catch (Exception e) {
+
+            log.error("Exception occurred while fetching latest doctor details for customerId : {}. Error : {}",
+                    customerId,
+                    e.getMessage(),
+                    e);
+
+            return null;
+        }
+    }
+    
+    private Response buildRateLimitResponse(Exception ex) {
+        return new Response(false, null,
+                "Rate limit exceeded. Please try again later.",
+                429);
+    }
 
 	public Response getDoctorDetailsByIdFallback(String id, Exception ex) {
 		return buildRateLimitResponse(ex);
