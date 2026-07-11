@@ -2519,49 +2519,49 @@ public class PaymentServiceImpl implements PaymentService {
 	    return result;
 	}
 
-	private PaymentRecordResponse createPaymentFallback(PaymentRequest req, Exception ex) {
+	public PaymentRecordResponse createPaymentFallback(PaymentRequest req, Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
 	}
 
-	private PaymentRecordResponse updatePaymentFallback(PaymentRequest req, Exception ex) {
+	public PaymentRecordResponse updatePaymentFallback(PaymentRequest req, Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
 	}
 
-	private PaymentRecordResponse getByBookingIdFallback(String bookingId, Exception ex) {
+	public PaymentRecordResponse getByBookingIdFallback(String bookingId, Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
 	}
 
-	private void deleteByBookingIdFallback(String bookingId, Exception ex) {
+	public void deleteByBookingIdFallback(String bookingId, Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
 	}
 
-	private void updateSessionStatusFromTherapistFallback(String therapistRecordId, String sessionId, Exception ex) {
+	public void updateSessionStatusFromTherapistFallback(String therapistRecordId, String sessionId, Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
 	}
 
-	private Response getExerciseSessionsWithRecordsFallback(String clinicId, String branchId, String bookingId,
+	public Response getExerciseSessionsWithRecordsFallback(String clinicId, String branchId, String bookingId,
 			String patientId, String therapistId, String therapistRecordId, Exception ex) {
 
 		return buildRateLimitResponse(ex);
 	}
 
-	private int getTodaySessionCountFallback(String clinicId, String branchId, String therapistId, Exception ex) {
+	public int getTodaySessionCountFallback(String clinicId, String branchId, String therapistId, Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);
 	}
 
-	private Response getCompletedTherapyRecordFallback(String clinicId, String branchId, String therapistRecordId,
+	public Response getCompletedTherapyRecordFallback(String clinicId, String branchId, String therapistRecordId,
 			String sessionId, Exception ex) {
 
 		return buildRateLimitResponse(ex);
 	}
 
-	private List<PaymentRecordResponse> findByClinicIdAndBranchIdFallback(String clinicId, String branchId,
+	public List<PaymentRecordResponse> findByClinicIdAndBranchIdFallback(String clinicId, String branchId,
 			Exception ex) {
 
 		throw new RuntimeException("physiotherapydoctorService is temporarily unavailable", ex);

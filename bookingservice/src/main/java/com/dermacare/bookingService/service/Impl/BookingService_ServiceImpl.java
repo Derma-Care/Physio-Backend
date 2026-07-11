@@ -31,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.dermacare.bookingService.dto.BookingRequset;
 import com.dermacare.bookingService.dto.BookingResponse;
@@ -4873,262 +4874,260 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 		
 	 public Object CompletedbookingByCustomerIdFallback(Exception ex) {
         log.error("CompletedbookingByCustomerIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object autoCalculatePatientCompletedAppointmentsFallback(Exception ex) {
         log.error("autoCalculatePatientCompletedAppointmentsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object bookingByBranchIdFallback(Exception ex) {
         log.error("bookingByBranchIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object bookingByClinicIdFallback(Exception ex) {
         log.error("bookingByClinicIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object bookingByCustomerIdFallback(Exception ex) {
         log.error("bookingByCustomerIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object bookingByDoctorIdFallback(Exception ex) {
         log.error("bookingByDoctorIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object bookingByPatientIdAndBookingIdFallback(Exception ex) {
         log.error("bookingByPatientIdAndBookingIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object bookingByPatientIdFallback(Exception ex) {
         log.error("bookingByPatientIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object checkBookingByDateAndTimeFallback(Exception ex) {
         log.error("checkBookingByDateAndTimeFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object deleteBookedServiceReportsFallback(Exception ex) {
         log.error("deleteBookedServiceReportsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object deleteServiceFallback(Exception ex) {
         log.error("deleteServiceFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object filterDoctorAppointmentsByDoctorIdFallback(Exception ex) {
         log.error("filterDoctorAppointmentsByDoctorIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object followUpBookingFallback(Exception ex) {
         log.error("followUpBookingFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getAllBookedServicesFallback(Exception ex) {
         log.error("getAllBookedServicesFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");   }
 
     public Object getAppointsByInputFallback(Exception ex) {
         log.error("getAppointsByInputFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getAppointsByPatientIdFallback(Exception ex) {
         log.error("getAppointsByPatientIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");  }
 
     public Object getBookedServiceFallback(Exception ex) {
         log.error("getBookedServiceFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");  }
 
     public Object getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback(Exception ex) {
         log.error("getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getBookedServicesByClinicIdWithBranchIdFallback(Exception ex) {
         log.error("getBookedServicesByClinicIdWithBranchIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getBookedServicesFallback(Exception ex) {
         log.error("getBookedServicesFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");  }
 
     public Object getBookingByCustomRangeFallback(Exception ex) {
         log.error("getBookingByCustomRangeFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getBookingByDateFallback(Exception ex) {
         log.error("getBookingByDateFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getBookingByIdFallback(Exception ex) {
         log.error("getBookingByIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getCompletedApntsByDoctorIdFallback(Exception ex) {
         log.error("getCompletedApntsByDoctorIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getDoctorFutureAppointmentsFallback(Exception ex) {
         log.error("getDoctorFutureAppointmentsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getInProgressAppointmentsByCustomerIdFallback(Exception ex) {
         log.error("getInProgressAppointmentsByCustomerIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getInProgressAppointmentsByPatientIdFallback(Exception ex) {
         log.error("getInProgressAppointmentsByPatientIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");  }
 
     public Object getInProgressAppointmentsFallback(Exception ex) {
         log.error("getInProgressAppointmentsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getPatientAndPriceInfoFallback(Exception ex) {
         log.error("getPatientAndPriceInfoFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getPatientDetailsForConsetFormFallback(Exception ex) {
         log.error("getPatientDetailsForConsetFormFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getRelationsByCustomerIdFallback(Exception ex) {
         log.error("getRelationsByCustomerIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getReportsByPatientIdFallback(Exception ex) {
         log.error("getReportsByPatientIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getSizeOfConsultationTypesByDoctorIdFallback(Exception ex) {
         log.error("getSizeOfConsultationTypesByDoctorIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getTodayAllBookingsFallback(Exception ex) {
         log.error("getTodayAllBookingsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getTodayBookingsFallback(Exception ex) {
         log.error("getTodayBookingsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object getTodayDoctorAppointmentsByDoctorIdFallback(Exception ex) {
         log.error("getTodayDoctorAppointmentsByDoctorIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object getUpcomingBookingsFallback(Exception ex) {
         log.error("getUpcomingBookingsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public Object inprogressAppointmentsByConsultationExpirationFallback(Exception ex) {
         log.error("inprogressAppointmentsByConsultationExpirationFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object physioAppointmentFallback(Exception ex) {
         log.error("physioAppointmentFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object retrieveAppointmentsFallback(Exception ex) {
         log.error("retrieveAppointmentsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object retrieveOneWeekAppointmentsFallback(Exception ex) {
         log.error("retrieveOneWeekAppointmentsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object searchBookingsFallback(Exception ex) {
         log.error("searchBookingsFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
 
     public Object updateAppointmentBasedOnBookingIdFallback(Exception ex) {
         log.error("updateAppointmentBasedOnBookingIdFallback triggered", ex);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Service temporarily unavailable. Please try again later.");
-    }
-
-    
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");  }
 
 }

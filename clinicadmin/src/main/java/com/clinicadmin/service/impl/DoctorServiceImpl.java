@@ -35,6 +35,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.clinicadmin.dto.BankAccountDetails;
 import com.clinicadmin.dto.BookingResponse;
@@ -2990,7 +2991,9 @@ public boolean updateSlotFallback(
         String date,
         String time,
         Exception ex) {
-    return false;
+	throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");
 }
 
 public boolean makingFalseDoctorSlotFallback(
@@ -2999,7 +3002,9 @@ public boolean makingFalseDoctorSlotFallback(
         String date,
         String time,
         Exception ex) {
-    return false;
+	throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");
 }
 
 

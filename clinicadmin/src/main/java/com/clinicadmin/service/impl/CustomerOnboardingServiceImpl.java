@@ -16,10 +16,11 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.clinicadmin.dto.BookingInfoByInput;
 import com.clinicadmin.dto.CustomerLoginDTO;
@@ -681,7 +682,9 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
     public Response getCustomerByMobiileNumberFallback(String mobilenumber, Exception ex){log.error("Rate limit triggered in getCustomerByMobiileNumber", ex); return buildRateLimitResponse();}
 
-    public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicIdFallback(String mobilenumber,String clinicId, Exception ex){log.error("Rate limit triggered in getCustomerByMobileNumberAndClinicId", ex); return null;}
+    public CustomerOnbordingDTO getCustomerByMobileNumberAndClinicIdFallback(String mobilenumber,String clinicId, Exception ex){log.error("Rate limit triggered in getCustomerByMobileNumberAndClinicId", ex); throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");}
 
     public Response updateCustomerFallback(String customerId, CustomerOnbordingDTO dto, Exception ex){log.error("Rate limit triggered in updateCustomer", ex); return buildRateLimitResponse();}
 
@@ -697,8 +700,12 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 
     public String customerDeviceIdFallback(String customerId, Exception ex){log.error("Rate limit triggered in customerDeviceId", ex); return null;}
 
-    public CustomerOnbordingDTO getCustomerByTokenFallback(String token, Exception ex){log.error("Rate limit triggered in getCustomerByToken", ex); return null;}
+    public CustomerOnbordingDTO getCustomerByTokenFallback(String token, Exception ex){log.error("Rate limit triggered in getCustomerByToken", ex);throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");}
 
-    public List<BookingInfoByInput> bookingByInputFallback(String input,String clinicId, Exception ex){log.error("Rate limit triggered in bookingByInput", ex); return null;}
+    public List<BookingInfoByInput> bookingByInputFallback(String input,String clinicId, Exception ex){log.error("Rate limit triggered in bookingByInput", ex); throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");}
 
 }

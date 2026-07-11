@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -2635,7 +2636,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
         response.setMessage("Rate limit exceeded. Please try again later.");
         return response;
     }
-
+  
 
     public Response createFallback(PhysiotherapyRecordDTO dto, Exception ex) {
 		log.info("Entering createFallback: dto={}, ex={}", dto, ex);
@@ -2652,7 +2653,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
     public String getByBookingIdFallback(String id, Exception ex) {
 		log.info("Entering getByBookingIdFallback: id={}, ex={}", id, ex);
 
-        return null;
+       throw new ResponseStatusException(
+               HttpStatus.TOO_MANY_REQUESTS,
+               "Too many requests. Please try again after some time.");
     }
 
     public Response getAllFallback(Exception ex) {
@@ -2703,7 +2706,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			String bookingId, Exception ex) {
 		log.info("Entering getCalculationsFallback: clinicId={}, branchId={}, patientId={}, bookingId={}, ex={}", clinicId, branchId, patientId, bookingId, ex);
 
-        return ResponseEntity.status(429).body(buildRateLimitResponse(ex));
+		 throw new ResponseStatusException(
+	               HttpStatus.TOO_MANY_REQUESTS,
+	               "Too many requests. Please try again after some time.");
     }
 
     public Response getByClinicBranchAndBookingFallback(String clinicId, String branchId, String bookingId, Exception ex) {
@@ -2715,7 +2720,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
     public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDateFallback(String bookingId, String date, Exception ex) {
 		log.info("Entering getSessionsByBookingIdAndDateFallback: bookingId={}, date={}, ex={}", bookingId, date, ex);
 
-        return ResponseEntity.status(429).body(Collections.emptyList());
+		 throw new ResponseStatusException(
+	               HttpStatus.TOO_MANY_REQUESTS,
+	               "Too many requests. Please try again after some time.");
     }
 
     public ResponseEntity<?> getInProgressBookingsByIdsFallback(String patientId, String bookingId, Exception ex) {
@@ -2752,7 +2759,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
     public List<String> getTodayFollowUpBookingIdsFallback(Exception ex) {
 		log.info("Entering getTodayFollowUpBookingIdsFallback: ex={}", ex);
 
-        return null;
+		 throw new ResponseStatusException(
+	               HttpStatus.TOO_MANY_REQUESTS,
+	               "Too many requests. Please try again after some time.");
     }
 
     public Response changePasswordFallback(String username, ChangeDoctorPasswordDTO updateDTO, Exception ex) {
@@ -2785,5 +2794,5 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
         return buildRateLimitResponse(ex);
     }
-    ///getPatientHistory
+    
 }

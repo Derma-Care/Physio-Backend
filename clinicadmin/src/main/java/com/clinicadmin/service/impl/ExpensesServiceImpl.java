@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 import com.clinicadmin.dto.ExpensesDTO;
@@ -383,10 +385,18 @@ public ResponseEntity<Response> getAllFallback(Exception ex){ log.error("Rate li
 public ResponseEntity<Response> updateFallback(String id, ExpensesDTO dto, Exception ex){ log.error("Rate limit update id={}", id, ex); return buildRateLimitResponse(); }
 public ResponseEntity<Response> deleteFallback(String id, Exception ex){ log.error("Rate limit delete id={}", id, ex); return buildRateLimitResponse(); }
 public ResponseEntity<Response> getByClinicAndBranchFallback(String clinicId, String branchId, Exception ex){ return buildRateLimitResponse(); }
-public Double getTodayExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
-public Double getWeeklyExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
-public Double getMonthlyExpensesFallback(String clinicId, String branchId, Exception ex){ return 0.0; }
-public Double customeFilterFallback(String startDate, String endDate, Exception ex){ return 0.0; }
+public Double getTodayExpensesFallback(String clinicId, String branchId, Exception ex){ throw new ResponseStatusException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "Too many requests. Please try again after some time."); }
+public Double getWeeklyExpensesFallback(String clinicId, String branchId, Exception ex){ throw new ResponseStatusException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "Too many requests. Please try again after some time."); }
+public Double getMonthlyExpensesFallback(String clinicId, String branchId, Exception ex){throw new ResponseStatusException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "Too many requests. Please try again after some time."); }
+public Double customeFilterFallback(String startDate, String endDate, Exception ex){throw new ResponseStatusException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "Too many requests. Please try again after some time."); }
 
 public ResponseEntity<Response> buildRateLimitResponse() {
     Response response = Response.builder()

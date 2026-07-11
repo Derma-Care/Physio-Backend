@@ -18,10 +18,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.dermacare.notification_service.dto.BookingResponse;
 import com.dermacare.notification_service.dto.CustomerInfo;
 import com.dermacare.notification_service.dto.CustomerOnbordingDTO;
@@ -1810,13 +1813,17 @@ public class ServiceImpl implements ServiceInterface{
     public ResBody<List<NotificationDTO>> notificationtodoctorFallback(String hospitalId,String doctorId,Exception ex){return new ResBody<>("Too many requests",429,null);}
     public ResBody<List<NotificationDTO>> sendNotificationToClinicFallback(String clinicId,Exception ex){return new ResBody<>("Too many requests",429,null);}
     public ResBody<NotificationDTO> notificationResponseFallback(NotificationResponse notificationResponse,Exception ex){return new ResBody<>("Too many requests",429,null);}
-    public void sendAlertNotificationsFallback(Exception ex){}
+    public void sendAlertNotificationsFallback(Exception ex){throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");}
     public NotificationDTO getNotificationByBookingIdFallback(String bookingId,Exception ex){return null;}
     public NotificationDTO updateNotificationFallback(NotificationDTO notificationDTO,Exception ex){return null;}
     public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomerFallback(String customerMobileNumber,Exception ex){return ResponseEntity.status(429).body( new ResBody<>("Too many requests",429,null));}
     public ResponseEntity<?> sendImageNotificationsFallback(PriceDropAlertDto priceDropAlertDto,Exception ex){return buildRateLimitResponse();}
     public ResponseEntity<?> priceDropNotificationsFallback(String clinicId,String branchId,Exception ex){return buildRateLimitResponse();}
-    public void sendBirthdayWishesFallback(Exception ex){}
+    public void sendBirthdayWishesFallback(Exception ex){throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time.");}
     public ResponseEntity<?> updatePriceDropAlertFallback(String clinicId,String branchId,String id,PriceDropAlertDto dto,Exception ex){return buildRateLimitResponse();}
     public ResponseEntity<?> deletePriceDropAlertsFallback(String clinicId,String branchId,String id,Exception ex){return buildRateLimitResponse();}
 

@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.dermaCare.customerService.dto.BookingRequset;
 import com.dermaCare.customerService.dto.BookingResponse;
 import com.dermaCare.customerService.dto.CustomerDTO;
@@ -561,7 +563,9 @@ public Response getReportsAndDoctorSaveDetails(String customerId) {
     public Response bookServiceFallback(BookingRequset req, Exception ex){ return buildRateLimitResponse(); }
     public ResponseEntity<?> getBookingsByCustomerIdFallback(String customerId, Exception ex){ return buildRateLimitEntity(); }
     public ResponseEntity<?> getCompletedBookingsByCustomerIdFallback(String customerId, Exception ex){ return buildRateLimitEntity(); }
-    public CustomerDTO getCustomerByTokenFallback(String token, Exception ex){ return null; }
+    public CustomerDTO getCustomerByTokenFallback(String token, Exception ex){throw new ResponseStatusException(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many requests. Please try again after some time."); }
     public ResponseEntity<Response> getTherapistSessionDetailsFallback(TherapistRecordRequest request, Exception ex){ return buildRateLimitEntity(); }
     public ResponseEntity<Response> getVisitHistoryByDoctorFallback(VisitHistoryRequest request, Exception ex){ return buildRateLimitEntity(); }
     public ResponseEntity<Response> getFirstVisitHistoryFallback(FirstVisitHistoryRequest request, Exception ex){ return buildRateLimitEntity(); }
@@ -569,8 +573,9 @@ public Response getReportsAndDoctorSaveDetails(String customerId) {
 
     public ResponseEntity<ResBody<List<NotificationToCustomer>>> notificationToCustomerFallback(
             String customerMobileNumber, Exception ex){
-        return ResponseEntity.status(429).body(new ResBody<>("Too many requests. Please try again after some time.",429,null));
-    }
+    	throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 
     public ResponseEntity<Response> getStaffInfoFallback(String hospitalId,String branchId,Exception ex){ return buildRateLimitEntity(); }
     public Response createFeedbackFallback(PatientFeedbackDTO dto, Exception ex){ return buildRateLimitResponse(); }
