@@ -742,9 +742,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-			LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+			LocalDate currentDate = LocalDate.now();
 
-			if (existingBookings != null && !existingBookings.isEmpty()) {
+			if (!existingBookings.isEmpty()) {
 
 				for (Booking b : existingBookings) {
 
@@ -752,16 +752,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 						LocalDate bookingDate = LocalDate.parse(b.getServiceDate(), dateFormatter);
 
-						if (bookingDate.equals(currentDate) && b.getStatus().equalsIgnoreCase("Confirmed")
-								|| b.getStatus().equalsIgnoreCase("pending")) {
+						if (bookingDate.equals(currentDate)) {
+					    if(b.getStatus().equalsIgnoreCase("Confirmed") || b.getStatus().equalsIgnoreCase("pending")){
 
 							BookingResponse temp = toResponse(b);
 
 							responseList.add(temp);
-						}
-					}
-				}
-				responseList.stream().map(n -> {
+						}}}}
+				    responseList.stream().map(n -> {
 					Map<String, Object> map = new LinkedHashMap<>();
 					map.put("bookingId", n.getBookingId());
 					map.put("serviceDate", n.getServiceDate());
