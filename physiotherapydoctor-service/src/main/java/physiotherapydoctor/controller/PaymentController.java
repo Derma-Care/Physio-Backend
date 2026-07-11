@@ -158,11 +158,11 @@ public class PaymentController {
 	@GetMapping("/payment/getExerciseSessionsWithRecords/{clinicId}/{branchId}/{bookingId}/{patientId}/{therapistId}/{therapistRecordId}")
 	public ResponseEntity<Response> getExerciseSessionsWithRecords(@PathVariable String clinicId,
 			@PathVariable String branchId, @PathVariable String bookingId, @PathVariable String patientId,
-			@PathVariable String therapistId,@PathVariable String therapistRecordId) {
+			@PathVariable String therapistId, @PathVariable String therapistRecordId) {
 
 		try {
 			Response response = service.getExerciseSessionsWithRecords(clinicId, branchId, bookingId, patientId,
-					therapistId,therapistRecordId);
+					therapistId, therapistRecordId);
 
 			return ResponseEntity.status(response.getStatus()).body(response);
 
@@ -178,44 +178,40 @@ public class PaymentController {
 		}
 	}
 
-	
 	@GetMapping("/getPayments/{clinicId}/{branchId}")
-	public ResponseEntity<Response> getPayments(
-	        @PathVariable String clinicId,
-	        @PathVariable String branchId) {
+	public ResponseEntity<Response> getPayments(@PathVariable String clinicId, @PathVariable String branchId) {
 
-	    Response response = new Response();
+		Response response = new Response();
 
-	    try {
+		try {
 
-	        List<PaymentRecordResponse> records =
-	                service.findByClinicIdAndBranchId(clinicId, branchId);
+			List<PaymentRecordResponse> records = service.findByClinicIdAndBranchId(clinicId, branchId);
 
-	        if (records == null || records.isEmpty()) {
-	            response.setSuccess(true);
-	            response.setStatus(200);
-	            response.setMessage("No payments found");
-	            response.setData(Collections.emptyList());
+			if (records == null || records.isEmpty()) {
+				response.setSuccess(true);
+				response.setStatus(200);
+				response.setMessage("No payments found");
+				response.setData(Collections.emptyList());
 
-	            return ResponseEntity.status(HttpStatus.OK).body(response);
-	        }
+				return ResponseEntity.status(HttpStatus.OK).body(response);
+			}
 
-	        response.setSuccess(true);
-	        response.setStatus(200);
-	        response.setMessage("Payments fetched successfully");
-	        response.setData(records);
+			response.setSuccess(true);
+			response.setStatus(200);
+			response.setMessage("Payments fetched successfully");
+			response.setData(records);
 
-	        return ResponseEntity.ok(response);
+			return ResponseEntity.ok(response);
 
-	    } catch (Exception e) {
+		} catch (Exception e) {
 
-	        response.setSuccess(false);
-	        response.setStatus(500);
-	        response.setMessage("Internal server error: " + e.getMessage());
-	        response.setData(null);
+			response.setSuccess(false);
+			response.setStatus(500);
+			response.setMessage("Internal server error: " + e.getMessage());
+			response.setData(null);
 
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-	    }
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+		}
 	}
 
 	@GetMapping("/getCompletedTherapyRecord/{clinicId}/{branchId}/{therapistRecordId}/{sessionId}")
@@ -226,40 +222,32 @@ public class PaymentController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
-
 	@GetMapping("/revenue-management/{clinicId}/{branchId}/{number}")
-	public ResponseEntity<RevenueResponse> getRevenueManagement(
-			@PathVariable String clinicId,
-			@PathVariable String branchId,
-			@PathVariable String number) {
+	public ResponseEntity<RevenueResponse> getRevenueManagement(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String number) {
 
-		return service.getRevenueManagement(
-				clinicId,
-				branchId,
-				number);
+		return service.getRevenueManagement(clinicId, branchId, number);
 	}
 
 	@GetMapping("/revenue-management/date-range/{clinicId}/{branchId}/{startDate}/{endDate}")
-	public ResponseEntity<RevenueResponse> getRevenueManagementByDateRange(
-			@PathVariable String clinicId,
-			@PathVariable String branchId,
-			@PathVariable String startDate,
-			@PathVariable String endDate) {
+	public ResponseEntity<RevenueResponse> getRevenueManagementByDateRange(@PathVariable String clinicId,
+			@PathVariable String branchId, @PathVariable String startDate, @PathVariable String endDate) {
 
-		return service.getRevenueManagementByDateRange(
-				clinicId,
-				branchId,
-				startDate,
-				endDate);
+		return service.getRevenueManagementByDateRange(clinicId, branchId, startDate, endDate);
 	}
 
 	@GetMapping("/revenue-summary/{clinicId}/{branchId}")
-	public ResponseEntity<Response> getRevenueSummary(
-			@PathVariable String clinicId,
-			@PathVariable String branchId) {
+	public ResponseEntity<Response> getRevenueSummary(@PathVariable String clinicId, @PathVariable String branchId) {
 
-		return service.getRevenueSummary(
-				clinicId,
-				branchId);
+		return service.getRevenueSummary(clinicId, branchId);
+	}
+
+	@GetMapping("/today-session-count/{clinicId}/{branchId}/{therapistId}")
+	public int getTodaySessionCount(@PathVariable String clinicId, @PathVariable String branchId,
+			@PathVariable String therapistId) {
+
+		int response = service.getTodaySessionCount(clinicId, branchId, therapistId);
+
+		return response;
 	}
 }
