@@ -212,7 +212,7 @@ public class ServiceImpl implements ServiceInterface{
 						        data.get("therapistname"),
 						        data.get("therapistRecordId")
 						);
-				appNotification.sendPushNotification(deviceId,"Session Reassignment",content, "sessionFeedback",
+				appNotification.sendPushNotification(deviceId,"Session Reassignment",content, "Reassignment",
 					    "BookingScreen","default","therapist");}	
 	  }catch (Exception e) { System.out.println(e.getMessage());
 		
@@ -233,7 +233,7 @@ public class ServiceImpl implements ServiceInterface{
 						        data.get("reassignedTherapistname"),
 						        data.get("therapistRecordId")	
 						);
-				appNotification.sendPushNotification(deviceId,"Assignment Withdrawn",content, "sessionFeedback",
+				appNotification.sendPushNotification(deviceId,"Assignment Withdrawn",content, "Withdrawn",
 					    "BookingScreen","default","therapist");}	
 	  }catch (Exception e) { System.out.println(e.getMessage());
 		
@@ -1313,8 +1313,8 @@ public class ServiceImpl implements ServiceInterface{
 		                    + exerciseNames;
 		    
 		    if(deviceId != null) {
-				appNotification.sendPushNotification(deviceId,title,body, "BOOKING",
-					    "BookingScreen","default","reminder");}
+				appNotification.sendPushNotification(deviceId,title,body, "homeExcercise",
+					    "BookingScreen","default","Bookings");}
 
 		 }
 	 
