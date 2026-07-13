@@ -1,3 +1,89 @@
+spring:
+  application:
+    name: notification-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/DermaCareNotifications?connectTimeoutMS=30000&socketTimeoutMS=60000
+
+  mvc:
+    async:
+      request-timeout: 60000
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 30000
+            readTimeout: 60000
+
+server:
+  port: 9909
+
+  servlet:
+    context-path: /api
+
+  tomcat:
+    connection-timeout: 60s
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+
+    healthcheck:
+      enabled: true
+
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# ===============================
+# Actuator
+# ===============================
+management:
+  server:
+    base-path: /
+
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+# ===============================
+# App Info
+# ===============================
+info:
+  app:
+    name: notification-service
+    description: Service responsible for handling notifications related to bookings
+    version: 1.0.0
+
+# ===============================
+# Firebase
+# ===============================
+app:
+  firebase-configuration-file: firebase-key.json
+
+# ===============================
+# Logging
+# ===============================
+logging:
+  level:
+    org.springframework.web: INFO
+    com.dermacare.notification_service: DEBUG
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -17,7 +103,7 @@ resilience4j:
         ignore-exceptions:
           - java.lang.IllegalArgumentException
 
-      physioDoctorService:
+      bookingService:
         register-health-indicator: true
         sliding-window-type: COUNT_BASED
         automatic-transition-from-open-to-half-open-enabled: true
@@ -94,3 +180,8 @@ resilience4j:
         limit-for-period: 100
         limit-refresh-period: 1s
         timeout-duration: 2s
+
+      notificationService:
+       limit-for-period: 100
+       limit-refresh-period: 1s
+       timeout-duration: 2s			 

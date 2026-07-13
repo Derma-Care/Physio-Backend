@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class HomeExercise {
+	
     private String id;
     private String name;
     private String sets;

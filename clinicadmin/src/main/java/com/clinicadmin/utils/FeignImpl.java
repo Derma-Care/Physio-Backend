@@ -1091,6 +1091,33 @@ public class FeignImpl {
 	    /* ================= THERAPIST SESSION FEEDBACK ================= */
 
 	    @CircuitBreaker(
+	            name = "bookingService",
+	            fallbackMethod = "getFilteredBookingsByStatusFallback")
+	    @Retry(
+	            name = "bookingService",
+	            fallbackMethod = "getFilteredBookingsByStatusFallback")
+	    public ResponseEntity<Response> getFilteredBookingsByStatus(
+	            String token,
+	            String clinicId,
+	            String branchId) {
+
+	        return bookingFeign.getFilteredBookingsByStatus(
+	                token,
+	                clinicId,
+	                branchId);
+	    }
+
+	    public ResponseEntity<Response> getFilteredBookingsByStatusFallback(
+	            String token,
+	            String clinicId,
+	            String branchId,
+	            Exception ex) {
+
+	        throw getFallbackException(ex);
+	    }
+	    
+	    
+	    @CircuitBreaker(
 	            name = "notificationService",
 	            fallbackMethod = "therapistSessionFeedbackFallback")
 	    @Retry(
@@ -1102,7 +1129,36 @@ public class FeignImpl {
 
 	        notificationFeign.therapistSessionFeedback(token, data);
 	    }
+	    
+	    
+	    
+	    @CircuitBreaker(
+	            name = "bookingService",
+	            fallbackMethod = "getBookedServicesByClinicIdWithBranchIdFallback")
+	    @Retry(
+	            name = "bookingService",
+	            fallbackMethod = "getBookedServicesByClinicIdWithBranchIdFallback")
+	    public ResponseEntity<Response> getBookedServicesByClinicIdWithBranchId(
+	            String token,
+	            String clinicId,
+	            String branchId) {
 
+	        return bookingFeign.getBookedServicesByClinicIdWithBranchId(
+	                token,
+	                clinicId,
+	                branchId);
+	    }
+
+	    public ResponseEntity<Response> getBookedServicesByClinicIdWithBranchIdFallback(
+	            String token,
+	            String clinicId,
+	            String branchId,
+	            Exception ex) {
+
+	        throw getFallbackException(ex);
+	    }
+	    
+	    
 	    public void therapistSessionFeedbackFallback(
 	            String token,
 	            Map<String, String> data,
@@ -1110,6 +1166,7 @@ public class FeignImpl {
 
 	        throw getFallbackException(ex);
 	    }
+	    
 	}
 
 

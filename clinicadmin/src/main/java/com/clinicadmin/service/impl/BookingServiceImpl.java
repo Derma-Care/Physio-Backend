@@ -450,6 +450,19 @@ public ResponseEntity<?> getTodayBookingsByClinicIdAndBranchId(String clinicId,S
 @Override
 @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "physioAppointmentFallback")
+public ResponseEntity<?> getFilteredBookingsByStatus(String clinicId,String branchId){
+	Response response = new Response();
+    try {
+        return bookingFeign.getFilteredBookingsByStatus(keyCloakTokenStore.getAccess_token(),clinicId, branchId);
+    } catch (FeignException e) {
+    	response.setStatus(e.status());
+		response.setMessage( ExtractFeignMessage.clearMessage(e));
+		response.setSuccess(false);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+}
+
+@Override
 public ResponseEntity<?> physioAppointment(BookingRequset req) {
     log.info("Physio appointment request clinicId={} branchId={} patientId={}", req.getClinicId(), req.getBranchId(), req.getPatientId());
     ResponseEntity<Response> res = null;

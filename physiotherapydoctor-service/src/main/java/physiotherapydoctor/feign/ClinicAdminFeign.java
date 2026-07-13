@@ -142,12 +142,24 @@ public interface ClinicAdminFeign {
 	public ResponseEntity<Response> updateTreatmentById(@RequestHeader("Authorization") String token,@PathVariable String id, @PathVariable String hospitalId,
 			@RequestBody TreatmentDTO dto);
 
+
 	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
 
 	public Response getAllRecoverySupportsByClinicId(@RequestHeader("Authorization") String token,@PathVariable String clinicId);
 	
+	   @GetMapping("/clinic-admin/customername/{id}")
+	    public String getCustomername(@RequestHeader("Authorization") String token,
+	 			 @PathVariable String id ); 
+
 	 @GetMapping("/clinic-admin/getAssignedTherapistDetails/{therapistRecordId}")
 	    public ResponseEntity<Response> getAssignedTherapistDetails(@RequestHeader("Authorization") String token,
 	            @PathVariable String therapistRecordId);
 
-}
+
+
+	@GetMapping("/clinic-admin/patinetname/{id}")
+	public String getPatientname(@RequestHeader("Authorization") String token,
+			@PathVariable String id );
+
+	}
+

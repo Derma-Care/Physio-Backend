@@ -88,6 +88,7 @@ public class BookingResponse {
 	private boolean isFollowupStatus;
 	private List<SessionForBooking> session;
 	private String partImageKey;   
+	private String referredDoctorId;
 
 	//private List<FollowupBookingDto> follwupBookings;
 

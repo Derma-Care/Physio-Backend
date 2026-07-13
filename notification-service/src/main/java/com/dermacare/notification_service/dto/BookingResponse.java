@@ -21,8 +21,6 @@ public class BookingResponse {
 	private String patientMobileNumber;
 	private String patientId;
 	private String visitType; // 
-	private Integer freeFollowUpsLeft;
-	private Integer freeFollowUps;
 	private String patientAddress;
 	private String age;
 	private String doctorDeviceId;
@@ -46,14 +44,9 @@ public class BookingResponse {
 	private String serviceDate;
 	private String servicetime;
 	private String consultationType;
-
 	private Double consultationFee;
-	private Integer visitCount;
-	private String channelId;
 	private String reasonForCancel;
-
 	private String status;
 	private double totalFee;
-	
 	
 }

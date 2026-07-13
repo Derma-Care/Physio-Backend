@@ -1,7 +1,5 @@
 package physiotherapydoctor.util;
 
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Map;
 
@@ -10,10 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-import feign.FeignException;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -440,6 +435,49 @@ public class ClinicAdminFeignImpl {
 		log.error("Assigned Therapist Details Failed therapistRecordId={}", therapistRecordId, ex);
 
 		throw getFallbackException(ex);}
+	
+	
+	@CircuitBreaker(
+	        name = "clinicAdminService",
+	        fallbackMethod = "getCustomernameFallback")
+	@Retry(
+	        name = "clinicAdminService",
+	        fallbackMethod = "getCustomernameFallback")
+	public String getCustomername(String id) {
+
+	    return clinicAdminFeign.getCustomername(token(),id);
+	}
+
+	public String getCustomernameFallback(
+	        String id,
+	        Exception ex) {
+
+	    throw getFallbackException(ex);
+	}
+	
+	
+	
+	
+	
+	@CircuitBreaker(
+	        name = "clinicAdminService",
+	        fallbackMethod = "getPatientnameFallback")
+	@Retry(
+	        name = "clinicAdminService",
+	        fallbackMethod = "getPatientnameFallback")
+	public String getPatientname(String id) {
+
+	    return clinicAdminFeign.getPatientname( token(), id);
+	}
+
+	public String getPatientnameFallback(
+	        String token,
+	        String id,
+	        Exception ex) {
+
+	    throw getFallbackException(ex);
+	}
+	
 	
 	
 	 private RuntimeException getFallbackException(Throwable ex) {

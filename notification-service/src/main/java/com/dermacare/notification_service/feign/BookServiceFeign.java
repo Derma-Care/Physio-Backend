@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
 import com.dermacare.notification_service.dto.BookingResponse;
 import com.dermacare.notification_service.dto.ResponseStructure;
 
@@ -14,9 +16,9 @@ import com.dermacare.notification_service.dto.ResponseStructure;
 public interface BookServiceFeign {
 	
 	@GetMapping("/api/v1/getBookedServiceById/{id}")
-	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@PathVariable String id);
+	public ResponseEntity<ResponseStructure<BookingResponse>> getBookedService(@RequestHeader("Authorization") String token,@PathVariable String id);
 	
 	@PutMapping("/api/v1/updateAppointment")
-	public ResponseEntity<?> updateAppointment(@RequestBody BookingResponse bookingResponse );
+	public ResponseEntity<?> updateAppointment(@RequestHeader("Authorization") String token,@RequestBody BookingResponse bookingResponse );
 
 }

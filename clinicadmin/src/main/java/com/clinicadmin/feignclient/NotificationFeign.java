@@ -32,6 +32,7 @@ public interface NotificationFeign {
 			@PathVariable String id, @RequestBody PriceDropAlertDto dto);
 
 	@DeleteMapping("/api/notificationservice/delete/priceDropNotification/{clinicId}/{branchId}/{id}")
+
 	public ResponseEntity<?> deletePriceDropNotification(@RequestHeader("Authorization") String token,@PathVariable String clinicId, @PathVariable String branchId,
 			@PathVariable String id);
 
@@ -43,4 +44,20 @@ public interface NotificationFeign {
 	
 	@PostMapping("/api/notificationservice/therapistSessionFeedback") 
 	public void therapistSessionFeedback(@RequestHeader("Authorization") String token,@RequestBody Map<String, String> data);
+
+//	public ResponseEntity<?> deletePriceDropNotification(@PathVariable String clinicId, @PathVariable String branchId,
+//			@PathVariable String id);
+
+	@PostMapping("/api/notificationservice/doctor-rating/send")
+	public ResponseEntity<?> sendDoctorRatingNotification(@RequestBody DoctorRatingNotificationDTO dto);
+
+	
+	@PostMapping("/api/notificationservice/therapistSessionReassign")
+	public void sendSessionReassignNotificationToTherapist(@RequestBody Map<String, String> data);
+		
+	
+	@PostMapping("/api/notificationservice/therapistSessionWithdraw")
+	public void sendSessionWithdrawNotificationToTherapist(@RequestBody Map<String, String> data);
+		
+
 }

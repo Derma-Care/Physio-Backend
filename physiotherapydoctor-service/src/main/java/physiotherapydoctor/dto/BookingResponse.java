@@ -90,7 +90,7 @@ public class BookingResponse {
 	private boolean isFollowupStatus;
 	private List<Session> session;
 	//private List<FollowupBookingDto> follwupBookings;
-		
+	private String referedDoctorId;	
 	public void setIsFollowupStatus(boolean followupStatus) {
 	    isFollowupStatus = followupStatus;
 	}

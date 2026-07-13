@@ -22,6 +22,7 @@ public class ReferredDoctor {
     @Id
     private String id;
     private String clinicId;
+    private String branchId;
     private String fullName;
     private String gender;
     private Date dateOfBirth;

@@ -276,6 +276,14 @@ public class BookingServiceController {
 	            size
 	    );
 	}
+	
+	
+	@GetMapping("/clinicId/{clinicId}/branchId/{branchId}")
+	public ResponseEntity<Response> getBookedServicesByClinicIdWithBranchId(
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId) {
+	    return service.getBookedServicesByClinicIdWithBranchId(clinicId, branchId);
+	}
 
 	
 ///modified	
@@ -472,6 +480,15 @@ public class BookingServiceController {
 		            size
 		    );
 		}
+
+	    // ✅ API 1
+	    @GetMapping("/filter/status/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getFilteredBookingsByStatus(
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId) {
+
+	        return service.getFilteredBookingsByStatus(clinicId, branchId);
+	    }
 
 	    // ✅ API 2
 		///modified

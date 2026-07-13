@@ -40,7 +40,7 @@ public interface TherapistService {
 	Response getTherapistPerformanceSummary(String clinicId, String branchId, String therapistId, int year);
 
 	Response getTherapistData(String clinicId, String branchId);
-
+	
 	Response updateTherapistPresence(String therapistId, TherapistPresenceRequest request);
 
 	Response getTherapistFeedback(String clinicId, String branchId, String therapistId);

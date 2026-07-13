@@ -113,5 +113,7 @@ public interface DoctorService {
 //	Response verifyDoctor(String doctorId);
 //
 //	Response rejectDoctor(String doctorId, String reason);
+	
+	public String getByTherapistDeviceId(String therapistId);
 
 }

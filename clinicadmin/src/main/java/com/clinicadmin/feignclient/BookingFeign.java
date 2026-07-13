@@ -90,6 +90,13 @@ public interface BookingFeign {
 	        @PathVariable int page,
 	        @PathVariable int size) ;
 	
+	
+	@GetMapping("/api/v1/clinicId/{clinicId}/branchId/{branchId}")
+	public ResponseEntity<Response> getBookedServicesByClinicIdWithBranchId(@RequestHeader("Authorization") String token,
+	        @PathVariable String clinicId,
+	        @PathVariable String branchId);
+	
+	
 	@GetMapping("/api/v1/retrieve-one-week-appointments/{clinicId}/{branchId}/{page}/{size}")
 	public ResponseEntity<?> retrieveOneWeekAppointments(@RequestHeader("Authorization") String token,
 	        @PathVariable String clinicId,
@@ -177,6 +184,13 @@ public interface BookingFeign {
 	    public ResponseEntity<Response> getReportsByPatientId(@RequestHeader("Authorization") String token,@PathVariable String patientId);
 	 
 	  @GetMapping("/api/v1/deleteReport/{bookingId}/{index}")
+
       public void deleteReport(@RequestHeader("Authorization") String token,@PathVariable String bookingId,@PathVariable String index);
+
+	  
+	  @GetMapping("/api/v1/filter/status/{clinicId}/{branchId}")
+	    public ResponseEntity<Response> getFilteredBookingsByStatus(@RequestHeader("Authorization") String token,
+	            @PathVariable String clinicId,
+	            @PathVariable String branchId);
 
 }

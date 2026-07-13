@@ -1,5 +1,7 @@
 package com.clinicadmin.service.impl;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TherapistAssignmentDTO;
 import com.clinicadmin.entity.TherapistAssignment;
+import com.clinicadmin.feignclient.NotificationFeign;
 import com.clinicadmin.repository.TherapistAssignmentRepository;
 import com.clinicadmin.service.TherapistAssignmentService;
 
@@ -22,6 +25,9 @@ public class TherapistAssignmentServiceImpl implements TherapistAssignmentServic
 
     @Autowired
     private TherapistAssignmentRepository repository;
+    
+    @Autowired
+    private NotificationFeign notificationFeign;
 
     @Override
     @Secured("ROLE_CLINICADMIN")
@@ -50,7 +56,17 @@ public class TherapistAssignmentServiceImpl implements TherapistAssignmentServic
 
             log.debug("Saving therapist assignment");
 
-            TherapistAssignment savedAssignment = repository.save(assignment);
+            TherapistAssignment savedAssignment =
+                    repository.save(assignment);
+            
+            try {
+            	Map<String,String> map = new LinkedHashMap<>();            
+    			map.put("therapistname",dto.getAssignTherapistName());
+    			map.put("reassignedTherapistId",dto.getAssignedTherapistId());
+    			map.put("reassignedTherapistname",dto.getAssignedTherapistName()); 
+    			map.put("therapistRecordId",dto.getTherapistRecordId());
+            	notificationFeign.sendSessionReassignNotificationToTherapist(map);
+            }catch(Exception e) {}
 
             log.info("Therapist assigned successfully therapistRecordId={}",
                     savedAssignment.getTherapistRecordId());
@@ -157,6 +173,18 @@ public class TherapistAssignmentServiceImpl implements TherapistAssignmentServic
             response.setData(convertToDto(assignment));
             response.setMessage("Assigned status updated successfully");
             response.setStatus(HttpStatus.OK.value());
+            response.setMessage(
+                    "Assigned status updated successfully");
+            response.setStatus(200);
+            
+            try {
+            	if(dto.getAssignedStatus().equals("false")) {
+            	Map<String,String> map = new LinkedHashMap<>();               			
+    			map.put("therapistId",assignment.getAssignTherapistId());
+    			map.put("reassignedTherapistname",assignment.getAssignedTherapistName()); 
+    			map.put("therapistRecordId",assignment.getTherapistRecordId());
+            	notificationFeign.sendSessionWithdrawNotificationToTherapist(map);
+            	}}catch(Exception e) {System.out.println(e.getMessage());}
 
         } catch (Exception e) {
 

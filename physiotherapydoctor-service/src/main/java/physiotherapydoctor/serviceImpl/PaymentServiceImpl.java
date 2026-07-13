@@ -4,12 +4,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
@@ -17,26 +19,25 @@ import org.springframework.stereotype.Service;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import physiotherapydoctor.dto.BookingResponse;
-import physiotherapydoctor.dto.PaymentHistory;
-import physiotherapydoctor.dto.PaymentRequest;
-import physiotherapydoctor.dto.Program;
-import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.dto.ResponseStructure;
-import physiotherapydoctor.dto.Session;
-import physiotherapydoctor.dto.TherapistRecordDTO;
-import physiotherapydoctor.dto.TherapyData;
-import physiotherapydoctor.dto.TherapyExercise;
-import physiotherapydoctor.dto.TherapyWithSessions;
+import org.springframework.util.StringUtils;
+
+import javassist.bytecode.stackmap.BasicBlock.Catch;
+import physiotherapydoctor.dto.*;
 import physiotherapydoctor.dto.response.ExerciseResponse;
 import physiotherapydoctor.dto.response.PackageResponse;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.dto.response.ProgramResponse;
 import physiotherapydoctor.dto.response.TherapyResponse;
 import physiotherapydoctor.entity.PaymentRecord;
+import physiotherapydoctor.entity.PhysiotherapyRecord;
+import physiotherapydoctor.feign.NotificationFeign;
 import physiotherapydoctor.repository.PaymentRepository;
+import physiotherapydoctor.repository.PhysiotherapydoctorRespository;
 import physiotherapydoctor.service.PaymentService;
+import physiotherapydoctor.util.BookingFeignImpl;
 import physiotherapydoctor.util.ClinicAdminFeignImpl;
+
+import physiotherapydoctor.util.RevenueResponse;
 
 
 @Service
@@ -48,7 +49,16 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Autowired
 	private ClinicAdminFeignImpl clinicAdminFeign;
+	
+	@Autowired
+	private NotificationFeign notificationFeign;
 
+	@Autowired
+	private BookingFeignImpl bookingFeignClient;
+		
+	@Autowired
+	private PhysiotherapydoctorRespository physiotherapydoctorRespository;
+		
 	@Autowired
 	private PaymentWhatsAppService paymentWhatsAppService;
 
@@ -234,7 +244,16 @@ public class PaymentServiceImpl implements PaymentService {
 	        log.info("Payment record saved successfully with id : {}",
 	                savedRecord.getId());
 
-	        try {
+	        try {	        	
+	        	String name = clinicAdminFeign.getCustomername(req.getPatientId());
+	            //System.out.println(name);
+	  			Map<String,String> map = new LinkedHashMap<>();
+	  			map.put("therapistId",req.getTherapistId() );
+	  			map.put("therapistName",req.getTherapistName() );
+	  			map.put("sessionStartDate", req.getSessionStartDate());
+	  			map.put("patientname",name );
+	  			//System.out.println(map);
+	  			notificationFeign.notificationToTherapist(map);
 
 	            log.info("Triggering WhatsApp payment confirmation for bookingId : {}",
 	                    savedRecord.getBookingId());
@@ -272,6 +291,8 @@ public class PaymentServiceImpl implements PaymentService {
 	        throw e;
 	    }
 	}
+	
+	
 
 	// ========================================================
 	// UPDATE
@@ -1818,17 +1839,17 @@ public class PaymentServiceImpl implements PaymentService {
 							exTotal = ex.getTotalExercisePrice();
 						} else {
 							exTotal = ex.getPricePerSession() * ex.getNoOfSessions();
-							ex.setTotalExercisePrice(exTotal);
+							ex.setTotalExercisePrice(Double.valueOf(exTotal));
 						}
 						therapyTotal += exTotal;
 					}
-					therapy.setTotalTherapyPrice(therapyTotal);
+					therapy.setTotalTherapyPrice(Double.valueOf(therapyTotal));
 					progTotal += therapyTotal;
 				}
-				prog.setTotalProgramPrice(progTotal);
+				prog.setTotalProgramPrice(Double.valueOf(progTotal));
 				pkgTotal += progTotal;
 			}
-			pkg.setTotalPackagePrice(pkgTotal);
+			pkg.setTotalPackagePrice(Double.valueOf(pkgTotal));
 			total += pkgTotal;
 		}
 
@@ -1919,7 +1940,7 @@ public class PaymentServiceImpl implements PaymentService {
 	private Session buildSession(String exerciseId, int sessionNo, LocalDate date) {
 		String uniqueSessionId = exerciseId + "_" + sessionNo + "_"
 				+ UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-		return new Session(uniqueSessionId, sessionNo, date.toString(), "Pending", "Unpaid");
+		return new Session(uniqueSessionId, Integer.valueOf(sessionNo), date.toString(), "Pending", "Unpaid");
 	}
 
 	// ========================================================
@@ -2574,6 +2595,447 @@ public class PaymentServiceImpl implements PaymentService {
 		response.setMessage("Rate limit exceeded. Please try again later.");
 		response.setData(null);
 		return response;
+	}
+
+
+	@Override
+	public ResponseEntity<RevenueResponse> getRevenueManagement(
+			String clinicId,
+			String branchId,
+			String number) {
+
+		try {
+
+			List<PaymentRecord> payments =
+					repo.findByClinicIdAndBranchId(
+							clinicId,
+							branchId);
+			
+			List<PhysiotherapyRecord> records = physiotherapydoctorRespository.
+					findByClinicIdAndBranchId(clinicId, branchId);
+
+			LocalDate today = LocalDate.now();
+
+			if (StringUtils.hasText(number)) {
+
+				switch (number) {
+
+					case "1":
+
+						payments = payments.stream()
+								.filter(p -> LocalDate.parse(
+												p.getSessionStartDate())
+										.isEqual(today))
+								.toList();
+						
+						 records = records.stream().filter(n->LocalDate.parse(n.getCreatedAt()).isEqual(today)).toList();
+
+						break;
+
+					case "2":
+
+						LocalDate weekStart =
+								today.minusDays(7);
+
+						payments = payments.stream()
+								.filter(p -> {
+									LocalDate date =
+											LocalDate.parse(
+													p.getSessionStartDate());
+
+									return !date.isBefore(weekStart)
+											&& !date.isAfter(today);
+								})
+								.toList();
+						
+						 records = records.stream().filter(n->{LocalDate date = LocalDate.parse(n.getCreatedAt());
+								return !date.isBefore(weekStart)&& !date.isAfter(today); }).toList();					
+
+						break;
+
+					case "3":
+
+						LocalDate monthStart =
+								today.minusMonths(1);
+
+						payments = payments.stream()
+								.filter(p -> {
+									LocalDate date =
+											LocalDate.parse(
+													p.getSessionStartDate());
+
+									return !date.isBefore(monthStart)
+											&& !date.isAfter(today);
+								})
+								.toList();
+						 records = records.stream().filter(n->{LocalDate date = LocalDate.parse(n.getCreatedAt());
+							return !date.isBefore(monthStart)&& !date.isAfter(today); }).toList();					
+
+						break;
+
+					case "4":
+
+						LocalDate yearStart =
+								today.minusYears(1);
+
+						payments = payments.stream()
+								.filter(p -> {
+									LocalDate date =
+											LocalDate.parse(
+													p.getSessionStartDate());
+
+									return !date.isBefore(yearStart)
+											&& !date.isAfter(today);
+									
+								})
+								.toList();
+						records = records.stream().filter(n->{LocalDate date = LocalDate.parse(n.getCreatedAt());
+						return !date.isBefore(yearStart)&& !date.isAfter(today); }).toList();					
+
+						break;
+
+					default:
+						break;
+				}
+			}
+
+			List<RevenueManagementDTO> responseData =
+					prepareRevenueResponse(payments,records);
+			Double totalFinalAmount = responseData.stream()
+			        .map(RevenueManagementDTO::getFinalAmount)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalConsultationFee = responseData.stream()
+			        .map(RevenueManagementDTO::getConsultationFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalTherapyFee = responseData.stream()
+			        .map(RevenueManagementDTO::getTherapyFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalDueAmount = responseData.stream()
+			        .map(RevenueManagementDTO::getDueAmount)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			
+			Double total = totalFinalAmount + totalConsultationFee + totalTherapyFee + totalDueAmount;
+			
+			RevenueResponse response =
+					RevenueResponse.builder()
+					.grandTotal(total).consultationTotal(totalConsultationFee)
+					.totalFinalAmount(totalFinalAmount).therapyFeeTotal(totalTherapyFee).dueAmountTotal(totalDueAmount)
+							.success(true)
+							.data(responseData)
+							.message("Revenue records fetched successfully")
+							.status(HttpStatus.OK.value())
+							.build();
+
+			return ResponseEntity.ok(response);
+
+		} catch (Exception e) {
+
+			RevenueResponse response =
+					RevenueResponse.builder()
+							.success(false)
+							.message("Failed to fetch revenue records")
+							.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+							.build();
+
+			return ResponseEntity
+					.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(response);
+		}
+	}
+
+	@Override
+	public ResponseEntity<RevenueResponse> getRevenueManagementByDateRange(
+			String clinicId,
+			String branchId,
+			String startDate,
+			String endDate) {
+
+		try {
+
+			List<PaymentRecord> payments =
+					repo.findByClinicIdAndBranchId(
+							clinicId,
+							branchId);
+			
+			List<PhysiotherapyRecord> records = physiotherapydoctorRespository.
+					findByClinicIdAndBranchId(clinicId, branchId);
+
+			LocalDate start =
+					LocalDate.parse(startDate);
+
+			LocalDate end =
+					LocalDate.parse(endDate);
+
+			payments = payments.stream()
+					.filter(p -> {
+						LocalDate serviceDate =
+								LocalDate.parse(
+										p.getSessionStartDate());
+
+						return !serviceDate.isBefore(start)
+								&& !serviceDate.isAfter(end);
+					})
+					.toList();
+			
+			 records = records.stream()
+						.filter(p -> {
+							LocalDate serviceDate =
+									LocalDate.parse(
+											p.getCreatedAt());
+
+							return !serviceDate.isBefore(start)
+									&& !serviceDate.isAfter(end);
+						})
+						.toList();
+
+			List<RevenueManagementDTO> responseData =
+					prepareRevenueResponse(payments,records);
+			Double totalFinalAmount = responseData.stream()
+			        .map(RevenueManagementDTO::getFinalAmount)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalConsultationFee = responseData.stream()
+			        .map(RevenueManagementDTO::getConsultationFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalTherapyFee = responseData.stream()
+			        .map(RevenueManagementDTO::getTherapyFee)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			Double totalDueAmount = responseData.stream()
+			        .map(RevenueManagementDTO::getDueAmount)
+			        .filter(Objects::nonNull)
+			        .mapToDouble(Double::doubleValue)
+			        .sum();
+			
+			Double total = totalFinalAmount + totalConsultationFee + totalTherapyFee + totalDueAmount;
+			
+			RevenueResponse response =
+					RevenueResponse.builder()
+					.grandTotal(total).consultationTotal(totalConsultationFee)
+					.totalFinalAmount(totalFinalAmount).therapyFeeTotal(totalTherapyFee).dueAmountTotal(totalDueAmount)
+							.success(true)
+							.data(responseData)
+							.message("Revenue records fetched successfully")
+							.status(HttpStatus.OK.value())
+							.build();
+
+
+			return ResponseEntity.ok(response);
+
+		} catch (Exception e) {
+
+			RevenueResponse response =
+					RevenueResponse.builder()
+							.success(false)
+							.message("Failed to fetch revenue records")
+							.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+							.build();
+
+			return ResponseEntity
+					.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(response);
+		}
+	}
+
+	private List<RevenueManagementDTO> prepareRevenueResponse(
+			List<PaymentRecord> payments,List<PhysiotherapyRecord> records) {
+
+		try {
+		List<RevenueManagementDTO> response =
+				new ArrayList<>();
+
+		for (PaymentRecord payment : payments) {
+
+			RevenueManagementDTO dto =
+					new RevenueManagementDTO();
+
+			dto.setBookingId(payment.getBookingId());
+			dto.setDoctorName(payment.getDoctorName());
+			dto.setTherapistId(payment.getTherapistId());
+			dto.setTherapistName(payment.getTherapistName());
+			dto.setTherapistRecordId(
+					payment.getTherapistRecordId());
+
+			String customer =
+					clinicAdminFeign.getPatientname(
+							payment.getPatientId());
+
+			if (customer != null) {
+				dto.setPatientName(customer);
+			}
+
+			BookingResponse booking =
+					bookingFeignClient
+							.getBookedService(
+									payment.getBookingId())
+							.getBody()
+							.getData();
+
+			if (booking != null) {
+
+				dto.setServiceDate(
+						booking.getServiceDate());
+
+				dto.setServiceTime(
+						booking.getServicetime());
+
+				dto.setConsultationFee(
+						booking.getConsultationFee());
+			}
+
+			dto.setTherapyFee(payment.getTotalAmount());
+
+			dto.setFinalAmount(
+                    Double.valueOf(payment.getFinalAmount()));
+
+			dto.setDueAmount(
+                    Double.valueOf(payment.getBalanceAmount()));
+
+			response.add(dto);
+		}
+		
+		for (PhysiotherapyRecord payment : records) {
+
+			RevenueManagementDTO dto =
+					new RevenueManagementDTO();
+
+			dto.setBookingId(payment.getBookingId());
+			dto.setDoctorName(payment.getTreatmentPlan().getDoctorName());
+			dto.setTherapistId(	payment.getTreatmentPlan().getTherapistId());
+			dto.setTherapistName(payment.getTreatmentPlan().getTherapistName());
+			dto.setTherapistRecordId(
+					payment.getTherapistRecordId());
+
+			String customer =
+					clinicAdminFeign.getPatientname(
+							payment.getPatientInfo().getPatientId());
+
+			if (customer != null) {
+				dto.setPatientName(payment.getPatientInfo().getPatientName());
+			}
+
+			BookingResponse booking =
+					bookingFeignClient
+							.getBookedService(
+									payment.getBookingId())
+							.getBody()
+							.getData();
+
+			if (booking != null) {
+
+				dto.setServiceDate(
+						booking.getServiceDate());
+
+				dto.setServiceTime(
+						booking.getServicetime());
+
+				dto.setConsultationFee(
+						booking.getConsultationFee());
+			}			
+			dto.setTherapyFee(null);
+
+			dto.setFinalAmount(
+                   null);
+
+			dto.setDueAmount(
+                   null);
+
+			response.add(dto);
+		}			
+		return response;
+	}catch(Exception e) {
+		return Collections.emptyList();
+	}}
+
+
+	@Override
+	public ResponseEntity<Response> getRevenueSummary(
+			String clinicId,
+			String branchId) {
+
+		List<PaymentRecord> payments =
+				repo.findByClinicIdAndBranchId(
+						clinicId,
+						branchId);
+
+		LocalDate today = LocalDate.now();
+
+		LocalDate weekStart = today.minusDays(7);
+		LocalDate monthStart = today.minusMonths(1);
+		LocalDate yearStart = today.minusYears(1);
+
+		double todayRevenue = payments.stream()
+				.filter(p -> LocalDate.parse(
+								p.getSessionStartDate())
+						.isEqual(today))
+				.mapToDouble(PaymentRecord::getFinalAmount)
+				.sum();
+
+		double lastWeekRevenue = payments.stream()
+				.filter(p -> {
+					LocalDate date =
+							LocalDate.parse(
+									p.getSessionStartDate());
+
+					return !date.isBefore(weekStart)
+							&& !date.isAfter(today);
+				})
+				.mapToDouble(PaymentRecord::getFinalAmount)
+				.sum();
+
+		double lastMonthRevenue = payments.stream()
+				.filter(p -> {
+					LocalDate date =
+							LocalDate.parse(
+									p.getSessionStartDate());
+
+					return !date.isBefore(monthStart)
+							&& !date.isAfter(today);
+				})
+				.mapToDouble(PaymentRecord::getFinalAmount)
+				.sum();
+
+		double lastYearRevenue = payments.stream()
+				.filter(p -> {
+					LocalDate date =
+							LocalDate.parse(
+									p.getSessionStartDate());
+
+					return !date.isBefore(yearStart)
+							&& !date.isAfter(today);
+				})
+				.mapToDouble(PaymentRecord::getFinalAmount)
+				.sum();
+
+		RevenueSummaryDTO revenueSummary =
+				RevenueSummaryDTO.builder()
+						.todayRevenue(todayRevenue)
+						.lastWeekRevenue(lastWeekRevenue)
+						.lastMonthRevenue(lastMonthRevenue)
+						.lastYearRevenue(lastYearRevenue)
+						.build();
+
+		Response response =
+				Response.builder()
+						.success(true)
+						.data(revenueSummary)
+						.message("Revenue summary fetched successfully")
+						.status(HttpStatus.OK.value())
+						.build();
+
+		return ResponseEntity.ok(response);
 	}
 
 }

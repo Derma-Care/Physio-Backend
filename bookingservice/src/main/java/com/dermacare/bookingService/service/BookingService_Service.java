@@ -141,12 +141,17 @@ public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndSt
 
 public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId);
 List<Map<String, Object>> searchBookings(String clinicId, String input);
+public ResponseEntity<Response> getFilteredBookingsByStatus(
+        String clinicId,
+        String branchId);
 
 public List<Map<String, Object>> bookingByCustomerId(String customerId);
 
 public ResponseEntity<Response> getTodayBookings(String clinicId, String branchId) ;
 
-
+public ResponseEntity<Response> getBookedServicesByClinicIdWithBranchId(
+		String clinicId,
+		String branchId);
 
 	   	
 }

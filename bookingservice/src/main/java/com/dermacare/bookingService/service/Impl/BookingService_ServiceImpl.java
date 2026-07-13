@@ -66,7 +66,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Service
 @Slf4j
 public class BookingService_ServiceImpl implements BookingService_Service {
@@ -432,9 +431,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	            bres.setPrescriptionPdf(Collections.singletonList(dto));
 	        }
 	    }
-
-	    return res;
+    return res;
 	}
+
 
 	@Override
 	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN","ROLE_CUSTOMER"})
@@ -774,9 +773,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					size,
 					Sort.by(Sort.Direction.DESC, "createdAt")
 			);
-
-			LocalDate currentDate =
-					LocalDate.now(ZoneId.of("Asia/Kolkata"));
+			LocalDate currentDate = LocalDate.now();
 
 			String todayDate = currentDate.toString();
 
@@ -789,7 +786,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 							pageable
 					);
 
-			if (existingBookings != null && !existingBookings.isEmpty()) {
+			if (!existingBookings.isEmpty()) {
 
 				List<BookingResponse> responseList =
 						existingBookings.getContent()
@@ -2205,6 +2202,107 @@ public List<BookingResponse> inprogressAppointmentsByConsultationExpiration(Loca
 					.body(res);
 		}
 	}
+	
+	
+	
+	@Override
+	@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getBookedServicesByClinicIdWithBranchIdFallback")
+	public ResponseEntity<Response> getBookedServicesByClinicIdWithBranchId(
+			String clinicId,
+			String branchId) {
+
+		Response res = new Response();
+				new ResponseStructure<>();
+
+		List<Map<String, Object>> list =
+				new ArrayList<>();
+
+		try {
+
+			List<Booking> bookings =
+					repository.findByClinicIdAndBranchId(
+							clinicId,
+							branchId
+							
+					);
+
+			if (bookings == null || bookings.isEmpty()) {
+
+				res.setStatus(200);
+				res.setSuccess(false);
+				res.setMessage("Appointments Not Found");
+
+				return ResponseEntity
+						.status(200)
+						.body(res);
+			}
+
+			List<BookingResponse> response =
+					bookings
+							.stream()
+							.map(this::toResponse)
+							.toList();
+
+				response.stream().map(n -> {
+
+				Map<String, Object> map =
+						new LinkedHashMap<>();
+
+				map.put("bookingId", n.getBookingId());
+				map.put("serviceDate", n.getServiceDate());
+				map.put("servicetime", n.getServicetime());
+				map.put("name", n.getName());
+
+				map.put(
+						"mobileNumber",
+						n.getPatientMobileNumber() != null
+								&& !n.getPatientMobileNumber().isEmpty()
+								? n.getPatientMobileNumber()
+								: n.getMobileNumber()
+				);
+
+				map.put("doctorId", n.getDoctorId());
+				map.put("doctorName", n.getDoctorName());
+				map.put("paymentType", n.getPaymentType());
+				map.put("visitType", n.getVisitType());
+				map.put("status", n.getStatus());
+				map.put("followupStatus", n.getFollowupStatus());
+				map.put("patientId", n.getPatientId());
+				map.put("clinicId", n.getClinicId());
+				map.put("customerId", n.getCustomerId());
+				map.put("branchId", n.getBranchId());
+				map.put("age", n.getAge());
+				map.put("gender", n.getGender());
+				map.put("branchName", n.getBranchname());
+				map.put("problem", n.getProblem());
+				map.put("session", n.getSession());
+
+				list.add(map);
+
+				return n;
+
+			}).toList();
+
+			res.setStatus(200);			
+			res.setData(list);
+			res.setSuccess(true);
+			res.setMessage("Appointments Found");
+
+			return ResponseEntity
+					.status(200)
+					.body(res);
+
+		} catch (Exception e) {
+			log.error("{}",e.getMessage());
+			res.setStatus(500);	
+			res.setSuccess(false);
+			res.setMessage(e.getMessage());
+			return ResponseEntity
+					.status(500)
+					.body(res);
+		}
+	}
 
 
 	
@@ -2932,8 +3030,11 @@ public ResponseEntity<?> retrieveAppointments(String cinicId,String branchId,Str
 			if (dto.getFollowupDate() != null && !dto.getFollowupDate().isEmpty())
 				entity.setFollowupDate(dto.getFollowupDate());
 
-			if (dto.getFollowupStatus() != null)
-				entity.setFollowupStatus(dto.getFollowupStatus());
+			if (dto.getFollowupStatus() != null) {
+				if(dto.getFollowupStatus().equalsIgnoreCase("Completed")) {
+					entity.setStatus("Completed");
+				}
+				entity.setFollowupStatus(dto.getFollowupStatus());}
 
 			// -------- PROBLEM --------
 
@@ -4869,265 +4970,339 @@ public ResponseEntity<?> getRelationsByCustomerId(String customerId) {
 			}
 
 		}
+		
+		
+		@Override
+		@Secured({"ROLE_ADMIN","ROLE_CLINICADMIN"})
+	@RateLimiter(name = "bookingApi", fallbackMethod = "getFilteredBookingsByStatusFallback")
+		public ResponseEntity<Response> getFilteredBookingsByStatus(
+		        String clinicId,
+		        String branchId) {
+
+		    try {
+
+		        List<Booking> bookings =
+		                repository.findByClinicIdAndBranchId(
+		                        clinicId,
+		                        branchId);
+
+		        List<BookingResponse> bookingResponses =
+		                bookings != null && !bookings.isEmpty()
+		                        ? toResponses(bookings)
+		                        : Collections.emptyList();
+
+		        List<Map<String, Object>> filteredBookings =
+		                new ArrayList<>();
+
+		        long inProgressCount = 0;
+		        long completedCount = 0;
+		        long dueForInvestigationCount = 0;
+		        long investigationDoneCount = 0;
+
+		        for (BookingResponse booking : bookingResponses) {
+
+		            String followupStatus =
+		                    booking.getStatus();
+
+		            boolean includeBooking = false;
+
+		            if ("IN-PROGRESS".equalsIgnoreCase(followupStatus)) {
+
+		                inProgressCount++;
+		                includeBooking = true;
+
+		            } else if ("COMPLETED".equalsIgnoreCase(followupStatus)) {
+
+		                completedCount++;
+		                includeBooking = true;
+
+		            } else if ("DUE FOR INVESTIGATION".equalsIgnoreCase(followupStatus)) {
+
+		                dueForInvestigationCount++;
+		                includeBooking = true;
+
+		            } else if ("INVESTIGATION DONE".equalsIgnoreCase(followupStatus)) {
+
+		                investigationDoneCount++;
+		                includeBooking = true;
+		            }
+
+		            if (!includeBooking) {
+		                continue;
+		            }
+
+		            Map<String, Object> map = new LinkedHashMap<>();
+
+		            map.put("bookingId", booking.getBookingId());
+		            map.put("serviceDate", booking.getServiceDate());
+		            map.put("servicetime", booking.getServicetime());
+		            map.put("name", booking.getName());
+
+		            map.put("mobileNumber",
+		                    booking.getPatientMobileNumber() != null
+		                            && !booking.getPatientMobileNumber().isEmpty()
+		                                    ? booking.getPatientMobileNumber()
+		                                    : booking.getMobileNumber());
+
+		            map.put("doctorId", booking.getDoctorId());
+		            map.put("doctorName", booking.getDoctorName());
+		            map.put("paymentType", booking.getPaymentType());
+		            map.put("visitType", booking.getVisitType());
+		            map.put("status", booking.getStatus());
+		            map.put("followupStatus", booking.getFollowupStatus());
+		            map.put("patientId", booking.getPatientId());
+		            map.put("clinicId", booking.getClinicId());
+		            map.put("customerId", booking.getCustomerId());
+		            map.put("branchId", booking.getBranchId());
+		           // map.put("session", booking.getSession());
+		            map.put("problem", booking.getProblem());
+
+		            filteredBookings.add(map);
+		        }
+
+		        Map<String, Object> summary = new LinkedHashMap<>();
+
+		        summary.put("totalBookings", filteredBookings.size());
+		        summary.put("inProgressCount", inProgressCount);
+		        summary.put("completedCount", completedCount);
+		        summary.put("dueForInvestigationCount", dueForInvestigationCount);
+		        summary.put("investigationDoneCount", investigationDoneCount);
+
+		        if (filteredBookings.isEmpty()) {
+
+		            return ResponseEntity.ok(
+		                    new Response(
+		                            true,
+		                            Collections.emptyList(),
+		                            summary,
+		                            "No bookings found",
+		                            200,
+		                            null,
+		                            null));
+		        }
+
+		        return ResponseEntity.ok(
+		                new Response(
+		                        true,
+		                        filteredBookings,
+		                        summary,
+		                        "Bookings fetched successfully",
+		                        200,
+		                        null,
+		                        null));
+
+		    } catch (Exception e) {
+
+		        log.error(
+		                "Error while fetching filtered bookings. clinicId={}, branchId={}, error={}",
+		                clinicId,
+		                branchId,
+		                e.getMessage(),
+		                e);
+
+		        return ResponseEntity.status(
+		                HttpStatus.INTERNAL_SERVER_ERROR)
+		                .body(
+		                        new Response(
+		                                false,
+		                                null,
+		                                null,
+		                                "Error fetching bookings : " + e.getMessage(),
+		                                500,
+		                                null,
+		                                null));
+		    }
+		}
+
+		
+
 	
 //// FALLBACK METHODS ///////
+		public ResponseEntity<?> followUpBookingFallback(BookingResponse request, Exception ex) { throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> physioAppointmentFallback(BookingRequset request, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<?> getAppointsByPatientIdFallback(String patientId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<?> getAppointsByInputFallback(String input, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorIdFallback(String clinicId, String doctorId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> filterDoctorAppointmentsByDoctorIdFallback(String hospitalId, String doctorId, String number, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<?> getCompletedApntsByDoctorIdFallback(String hospitalId,String doctorId, Exception ex) {    throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getSizeOfConsultationTypesByDoctorIdFallback(String hospitalId,String doctorId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public BookingResponse getBookedServiceFallback(String bookingId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public void deleteBookedServiceReportsFallback(String bookingId,String index, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public BookingResponse deleteServiceFallback(String id, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public Page<BookingResponse> getBookedServicesFallback(String mobileNumber, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public Page<BookingResponse> getAllBookedServicesFallback(int page, int size, Exception ex) {    throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public Page<BookingResponse> bookingByDoctorIdFallback(String doctorId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public List<Map<String, Object>> bookingByCustomerIdFallback(String customerId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public Page<BookingResponse> bookingByPatientIdFallback(String clincId,String patientId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public Page<BookingResponse> bookingByPatientIdAndBookingIdFallback(String patientId, String bookingId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public List<ReportsDTO> getReportsByPatientIdFallback(String patientId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public List<Map<String, Object>> CompletedbookingByCustomerIdFallback(String customerId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> bookingByClinicIdFallback(String clinicId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public void autoCalculatePatientCompletedAppointmentsFallback(Exception ex) {    throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public Response getPatientDetailsForConsetFormFallback(String bookingId, String patientId, String mobileNumber, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getInProgressAppointmentsFallback(String number, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getInProgressAppointmentsByCustomerIdFallback(String customerId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getInProgressAppointmentsByPatientIdFallback(String patientId, String clinicId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public List<BookingResponse> inprogressAppointmentsByConsultationExpirationFallback(LocalDate exp,Booking booking, DoctorSaveDetailsDTO saveDetails, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getDoctorFutureAppointmentsFallback(String doctorId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public Page<BookingResponse> bookingByBranchIdFallback(String branchId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdFallback(String clinicId, String branchId, int page, int size, Exception ex) {    throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdFallback(String clinicId, String branchId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback(String clinicId, String branchId, String doctorId, String status, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> retrieveOneWeekAppointmentsFallback(String clinicId, String branchId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<?> retrieveAppointmentsFallback(String cinicId,String branchId,String date, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<ResponseStructure<BookingResponse>> updateAppointmentBasedOnBookingIdFallback(BookingResponse dto, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getRelationsByCustomerIdFallback(String customerId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public BookingResponse checkBookingByDateAndTimeFallback(String date,String time,String doctorId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<Response> getPatientAndPriceInfoFallback(String clinicId, String branchId, Integer number, String startDate, String endDate, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<?> getTodayBookingsFallback(String cId, String bId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<Response> getTodayAllBookingsFallback(String clinicId, String branchId, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");}
+
+		public ResponseEntity<Response> getUpcomingBookingsFallback(String clinicId, String branchId, int option, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<Response> getBookingByDateFallback(String clinicId, String branchId, String date, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<Response> getBookingByCustomRangeFallback(String clinicId, String branchId, String start, String end, int page, int size, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<Response> getBookingByIdFallback(String bookingId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public List<Map<String, Object>> searchBookingsFallback(String clinicId, String input, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
+
+		public ResponseEntity<Response> getTodayBookingsFallback(String clinicId, String branchId, Exception ex) {     throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time."); }
 		
-	 public Object CompletedbookingByCustomerIdFallback(Exception ex) {
-        log.error("CompletedbookingByCustomerIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object autoCalculatePatientCompletedAppointmentsFallback(Exception ex) {
-        log.error("autoCalculatePatientCompletedAppointmentsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object bookingByBranchIdFallback(Exception ex) {
-        log.error("bookingByBranchIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object bookingByClinicIdFallback(Exception ex) {
-        log.error("bookingByClinicIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object bookingByCustomerIdFallback(Exception ex) {
-        log.error("bookingByCustomerIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object bookingByDoctorIdFallback(Exception ex) {
-        log.error("bookingByDoctorIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object bookingByPatientIdAndBookingIdFallback(Exception ex) {
-        log.error("bookingByPatientIdAndBookingIdFallback triggered", ex);
-        throw new ResponseStatusException(
+		
+		public ResponseEntity<Response> getFilteredBookingsByStatusFallback(String clinicId, String branchId, Exception ex) {     throw new ResponseStatusException(
                 HttpStatus.TOO_MANY_REQUESTS,
                 "Too many requests. Please try again after some time."); }
-
-    public Object bookingByPatientIdFallback(Exception ex) {
-        log.error("bookingByPatientIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object checkBookingByDateAndTimeFallback(Exception ex) {
-        log.error("checkBookingByDateAndTimeFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object deleteBookedServiceReportsFallback(Exception ex) {
-        log.error("deleteBookedServiceReportsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object deleteServiceFallback(Exception ex) {
-        log.error("deleteServiceFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object filterDoctorAppointmentsByDoctorIdFallback(Exception ex) {
-        log.error("filterDoctorAppointmentsByDoctorIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object followUpBookingFallback(Exception ex) {
-        log.error("followUpBookingFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getAllBookedServicesFallback(Exception ex) {
-        log.error("getAllBookedServicesFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");   }
-
-    public Object getAppointsByInputFallback(Exception ex) {
-        log.error("getAppointsByInputFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getAppointsByPatientIdFallback(Exception ex) {
-        log.error("getAppointsByPatientIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");  }
-
-    public Object getBookedServiceFallback(Exception ex) {
-        log.error("getBookedServiceFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");  }
-
-    public Object getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback(Exception ex) {
-        log.error("getBookedServicesByClinicIdWithBranchIdAnddoctorIdAndStatusFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getBookedServicesByClinicIdWithBranchIdFallback(Exception ex) {
-        log.error("getBookedServicesByClinicIdWithBranchIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getBookedServicesFallback(Exception ex) {
-        log.error("getBookedServicesFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");  }
-
-    public Object getBookingByCustomRangeFallback(Exception ex) {
-        log.error("getBookingByCustomRangeFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getBookingByDateFallback(Exception ex) {
-        log.error("getBookingByDateFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getBookingByIdFallback(Exception ex) {
-        log.error("getBookingByIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getCompletedApntsByDoctorIdFallback(Exception ex) {
-        log.error("getCompletedApntsByDoctorIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getDoctorFutureAppointmentsFallback(Exception ex) {
-        log.error("getDoctorFutureAppointmentsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getInProgressAppointmentsByCustomerIdFallback(Exception ex) {
-        log.error("getInProgressAppointmentsByCustomerIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getInProgressAppointmentsByPatientIdFallback(Exception ex) {
-        log.error("getInProgressAppointmentsByPatientIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");  }
-
-    public Object getInProgressAppointmentsFallback(Exception ex) {
-        log.error("getInProgressAppointmentsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getPatientAndPriceInfoFallback(Exception ex) {
-        log.error("getPatientAndPriceInfoFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getPatientDetailsForConsetFormFallback(Exception ex) {
-        log.error("getPatientDetailsForConsetFormFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getRelationsByCustomerIdFallback(Exception ex) {
-        log.error("getRelationsByCustomerIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getReportsByPatientIdFallback(Exception ex) {
-        log.error("getReportsByPatientIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getSizeOfConsultationTypesByDoctorIdFallback(Exception ex) {
-        log.error("getSizeOfConsultationTypesByDoctorIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getTodayAllBookingsFallback(Exception ex) {
-        log.error("getTodayAllBookingsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getTodayBookingsFallback(Exception ex) {
-        log.error("getTodayBookingsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object getTodayDoctorAppointmentsByDoctorIdFallback(Exception ex) {
-        log.error("getTodayDoctorAppointmentsByDoctorIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object getUpcomingBookingsFallback(Exception ex) {
-        log.error("getUpcomingBookingsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time."); }
-
-    public Object inprogressAppointmentsByConsultationExpirationFallback(Exception ex) {
-        log.error("inprogressAppointmentsByConsultationExpirationFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object physioAppointmentFallback(Exception ex) {
-        log.error("physioAppointmentFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object retrieveAppointmentsFallback(Exception ex) {
-        log.error("retrieveAppointmentsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object retrieveOneWeekAppointmentsFallback(Exception ex) {
-        log.error("retrieveOneWeekAppointmentsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object searchBookingsFallback(Exception ex) {
-        log.error("searchBookingsFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");}
-
-    public Object updateAppointmentBasedOnBookingIdFallback(Exception ex) {
-        log.error("updateAppointmentBasedOnBookingIdFallback triggered", ex);
-        throw new ResponseStatusException(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests. Please try again after some time.");  }
+	
+		
 
 }

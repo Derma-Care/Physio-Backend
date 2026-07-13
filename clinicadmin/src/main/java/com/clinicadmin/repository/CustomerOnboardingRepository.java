@@ -37,5 +37,7 @@ public interface CustomerOnboardingRepository extends MongoRepository<CustomerOn
 	            String patientId,
 	            String hospitalId,
 	            String branchId);
+	 
+	CustomerOnbording findByPatientId(String patientId);
 	
 }

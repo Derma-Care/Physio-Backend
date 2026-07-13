@@ -47,8 +47,6 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 	 private KeyCloakTokenStore keyCloakTokenStore;
 	
 
-    // ================= CREATE =================
-
     @Override
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
@@ -84,11 +82,13 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
 				map.put("patientName",dto.getPatientName() );
 				map.put("feedbackText", dto.getTherapistFeedback().getFeedbackText());
 				map.put("rating",dto.getTherapistFeedback().getRating() );
+
 	        	log.debug("Sending therapist feedback notification");
 	        	notificationFeign.therapistOverallFeedback(keyCloakTokenStore.getAccess_token(),map);}}
 	        }catch (Exception e) {
 	        log.error("Failed to send therapist feedback notification", e);
 	    }
+
 
 		Response response = new Response();
 

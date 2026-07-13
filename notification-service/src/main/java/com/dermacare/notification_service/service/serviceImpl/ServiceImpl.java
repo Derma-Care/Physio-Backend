@@ -1,26 +1,20 @@
 package com.dermacare.notification_service.service.serviceImpl;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.MonthDay;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.dermacare.notification_service.dto.BookingResponse;
 import com.dermacare.notification_service.dto.CustomerInfo;
 import com.dermacare.notification_service.dto.CustomerOnbordingDTO;
+import com.dermacare.notification_service.dto.ExerciseInfo;
 import com.dermacare.notification_service.dto.NotificationDTO;
 import com.dermacare.notification_service.dto.NotificationResponse;
 import com.dermacare.notification_service.dto.NotificationToCustomer;
@@ -38,14 +33,12 @@ import com.dermacare.notification_service.dto.ResponseStructure;
 import com.dermacare.notification_service.entity.Booking;
 import com.dermacare.notification_service.entity.NotificationEntity;
 import com.dermacare.notification_service.entity.PriceDropAlertEntity;
-import com.dermacare.notification_service.feign.BookServiceFeign;
-import com.dermacare.notification_service.feign.CllinicFeign;
-//import com.dermacare.notification_service.feign.DoctorFeign;
 import com.dermacare.notification_service.notificationFactory.SendAppNotification;
 import com.dermacare.notification_service.repository.NotificationRepository;
 import com.dermacare.notification_service.repository.PriceDropAlertNotifications;
 import com.dermacare.notification_service.service.ServiceInterface;
 import com.dermacare.notification_service.util.FeignImpl;
+import com.dermacare.notification_service.util.KeyCloakTokenStore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -67,24 +60,26 @@ public class ServiceImpl implements ServiceInterface{
 	private SendAppNotification appNotification;
 	
 	@Autowired
-	private  BookServiceFeign  bookServiceFeign;	
+	private  FeignImpl  bookServiceFeign;	
 	
 	@Autowired
-	private CllinicFeign cllinicFeign;
-		  
-    @Autowired
-    private FeignImpl feignImpl;
+	private FeignImpl cllinicFeign;
     
     @Autowired
     private PriceDropAlertNotifications priceDropAlertNotifications;
+    
+	@Autowired
+    private KeyCloakTokenStore KeyCloakTokenStore;
 
-	Set<String> bookings = new LinkedHashSet<>();
-	
-	 BookingResponse bookingResponse;	 
-	// private boolean isCalledAlready;	 
-	 String imag = null;
-	 String customerDeviceId = null;
-	 String Id = null;
+	//private Set<String> bookings = new LinkedHashSet<>();
+//	 private BookingResponse bookingResponse;	 
+//	 private boolean isCalledAlready;	 
+	 private String imag = null;
+	 private String customerDeviceId = null;
+	 private String Id = null;
+	 private String deviceId = null; 
+	 private String patient_Id = null;
+			 
 			
 	 @Override
 	 @Secured("ROLE_BOOKINGSERVICE")
@@ -116,7 +111,7 @@ public class ServiceImpl implements ServiceInterface{
 	                 bookingDTO.getCustomerId());
 
 	         customerDeviceId =
-	        		 feignImpl.customerDeviceId(bookingDTO.getCustomerId());
+	        		 cllinicFeign.customerDeviceId(bookingDTO.getCustomerId());
 
 	         log.info("Customer device id fetched successfully. DevicePresent={}",
 	                 customerDeviceId != null);
@@ -125,7 +120,7 @@ public class ServiceImpl implements ServiceInterface{
 	                 bookingDTO.getClinicId(),
 	                 bookingDTO.getBranchId());
 
-	         Id = feignImpl.getDeviceId(
+	         Id = cllinicFeign.getDeviceId(
 	                 bookingDTO.getClinicId(),
 	                 bookingDTO.getBranchId());
 
@@ -216,6 +211,146 @@ public class ServiceImpl implements ServiceInterface{
 	     return ResponseEntity.status(res.getStatus()).body(res);
 	 }
 	 
+	 
+		
+	 @Override
+	 @Secured("ROLE_BOOKINGSERVICE")
+	 @RateLimiter(name = "notificationService", fallbackMethod = "sendNotificationToTherapistFallback")
+	
+	  public void sendNotificationToTherapist(Map<String, String> data) {	  
+		  try {
+			  //System.out.println(data);
+			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("therapistId"));
+			 // System.out.println(deviceId);
+			  if(deviceId != null) {
+					String content = 
+							String.format(
+							        "Hello %s, a new therapy session has been assigned to you for patient %s. The session is scheduled to start on %s. Please review the session details and prepare accordingly.",
+							        data.get("therapistName"),
+							        data.get("patientname"),
+							        data.get("sessionStartDate"));
+							
+					appNotification.sendPushNotification(deviceId,"New Therapy Session Assigned",content, "Assign",
+						    "BookingScreen","default","therapist");}	
+		  }catch (Exception e) {
+			//System.out.println(e.getMessage());
+		}
+		  
+	  }
+	  
+	  
+		
+	 @Override
+	 @Secured("ROLE_BOOKINGSERVICE")
+	 @RateLimiter(name = "notificationService", fallbackMethod = "sendOverallFeedbackNotificationToTherapistFallback")
+	
+	  public void sendOverallFeedbackNotificationToTherapist(Map<String, String> data) {	  
+		  try {
+			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("therapistId"));
+				
+			  if(deviceId != null) {
+				  
+					String content = 
+							 String.format(
+								        "Hello Thrapist, patient %s has submitted feedback for your therapy session.%n" +
+								        "Rating: %s/5%n" +
+								        "Feedback: \"%s\"",							       
+								        data.get("patientName"),
+								        data.get("rating"),
+								        data.get("feedbackText")
+								);
+							
+					appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "Feedback",
+						    "BookingScreen","default","therapist-feedback");}	
+		  }catch (Exception e) {
+			
+		}
+		  
+	  }
+	
+		
+	 @Override
+	 @Secured("ROLE_BOOKINGSERVICE")
+	 @RateLimiter(name = "notificationService", fallbackMethod = "sendSessionFeedbackNotificationToTherapistFallback")
+	
+	  public void sendSessionFeedbackNotificationToTherapist(Map<String, String> data) {	  
+		  try {
+			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("therapistId"));
+				
+			  if(deviceId != null) {		  
+					String content = 
+							String.format(
+							        "Hello Therapist, you have received new feedback for your therapy session with patient %s.\n\n" +
+							        "⭐ Rating: %s/5\n" +
+							        "✅ What Went Well: %s\n" +
+							        "📝 Improvements Suggested: %s",				       
+							        data.get("patientName"),
+							        data.get("rating"),
+							        data.get("whatWentWell"),
+							        data.get("improvements")
+							);
+					appNotification.sendPushNotification(deviceId,"New Patient session Feedback Received",content, "sessionFeedback",
+						    "BookingScreen","default","therapist-feedback");}	
+		  }catch (Exception e) {
+			
+		}
+		  
+	  }
+	  
+		
+	 @Override
+	 @Secured("ROLE_BOOKINGSERVICE")
+	 @RateLimiter(name = "notificationService", fallbackMethod = "sendSessionReassignNotificationToTherapistFallback")
+	
+	  public void sendSessionReassignNotificationToTherapist(Map<String, String> data) {	  
+		  try {
+			 // System.out.println(data);
+			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("reassignedTherapistId"));		
+			  //System.out.println(deviceId);
+			  if(deviceId != null) {		  
+					String content = 
+							String.format(
+							        "%s session has been reassigned to you by Therapist %s. Please review the appointment details.\n\n"
+									+ "therapistRecordId: %s",			       
+							        data.get("reassignedTherapistname"),
+							        data.get("therapistname"),
+							        data.get("therapistRecordId")
+							);
+					appNotification.sendPushNotification(deviceId,"Session Reassignment",content, "Reassignment",
+						    "BookingScreen","default","therapist");}	
+		  }catch (Exception e) { System.out.println(e.getMessage());
+			
+		}
+		  
+	  }
+	  
+	 
+		
+	 @Override
+	 @Secured("ROLE_BOOKINGSERVICE")
+	 @RateLimiter(name = "notificationService", fallbackMethod = "sendSessionWithdrawNotificationToTherapistFallback")
+	
+	  public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data) {	  
+		  try {
+			  //System.out.println(data);
+			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("reassignedTherapistId"));		
+			  //System.out.println(deviceId);
+			  if(deviceId != null) {		  
+					String content = 
+							String.format(
+							        "Therapist %s has withdrawn the reassignment request for the session.\n\n"				       
+							        + "therapistRecordId %s",
+							        data.get("reassignedTherapistname"),
+							        data.get("therapistRecordId")	
+							);
+					appNotification.sendPushNotification(deviceId,"Assignment Withdrawn",content, "Withdrawn",
+						    "BookingScreen","default","therapist");}	
+		  }catch (Exception e) { System.out.println(e.getMessage());
+			
+		}
+		  
+	  }
+	  
 					
 	private void convertToNotification(BookingResponse booking) {	
 			NotificationEntity notificationEntity = new NotificationEntity();
@@ -431,7 +566,7 @@ public class ServiceImpl implements ServiceInterface{
 	        log.debug("Fetching appointment details from booking service");
 
 	        ResponseEntity<ResponseStructure<BookingResponse>> response =
-	                bookServiceFeign.getBookedService(
+	                bookServiceFeign.getBookedService(KeyCloakTokenStore.getAccess_token(),
 	                        notificationResponse.getAppointmentId());
 
 	        BookingResponse booking =
@@ -527,7 +662,7 @@ public class ServiceImpl implements ServiceInterface{
 	                    booking.setReasonForCancel(
 	                            notificationResponse.getReasonForCancel());
 
-	                    cllinicFeign.makingFalseDoctorSlot(
+	                    cllinicFeign.makingFalseDoctorSlot(KeyCloakTokenStore.getAccess_token(),
 	                            booking.getDoctorId(),
 	                            booking.getBranchId(),
 	                            booking.getServiceDate(),
@@ -554,7 +689,7 @@ public class ServiceImpl implements ServiceInterface{
 	            log.info("Updating appointment in booking service");
 
 	            ResponseEntity<?> book =
-	                    bookServiceFeign.updateAppointment(booking);
+	                    bookServiceFeign.updateAppointment(KeyCloakTokenStore.getAccess_token(),booking);
 
 	            if (book != null) {
 
@@ -615,7 +750,7 @@ public class ServiceImpl implements ServiceInterface{
 
 	
 //	 @Scheduled(fixedRate = 1 * 60 * 1000)
-//	// @RateLimiter(name = "notificationService", fallbackMethod = "sendAlertNotificationsFallback")
+
 //	 public void sendAlertNotifications() {		 
 //		 try {
 //			 //System.out.println("sendAlertNotifications method invoked");
@@ -632,7 +767,7 @@ public class ServiceImpl implements ServiceInterface{
 //		            repository.save(notification);}}}
 //		 }catch(Exception e) {}
 // }
-//	
+
 	 
 //	 
 //	 private boolean calculateTimeDifferenceForAlertNotification(String serviceTime) {	
@@ -1400,7 +1535,7 @@ public class ServiceImpl implements ServiceInterface{
 	                        try {
 
 	                            CustomerOnbordingDTO customer =
-	                                    cllinicFeign.getCustomerByToken(token);
+	                                    cllinicFeign.getCustomerByToken(KeyCloakTokenStore.getAccess_token(),token);
 
 	                            if (customer != null) {
 
@@ -1481,6 +1616,7 @@ public class ServiceImpl implements ServiceInterface{
 	
 	
 	 	
+
 	 @RateLimiter(name = "notificationService", fallbackMethod = "sendImageNotificationsFallback")
 	 public ResponseEntity<?> sendImageNotifications(PriceDropAlertDto priceDropAlertDto) {
 
@@ -1513,7 +1649,7 @@ public class ServiceImpl implements ServiceInterface{
 
 	             List<CustomerOnbordingDTO> customers =
 	                     new ObjectMapper().convertValue(
-	                             cllinicFeign.getAllCustomers()
+	                             cllinicFeign.getAllCustomers(KeyCloakTokenStore.getAccess_token())
 	                                     .getBody()
 	                                     .getData(),
 	                             new TypeReference<List<CustomerOnbordingDTO>>() {
@@ -1827,4 +1963,126 @@ public class ServiceImpl implements ServiceInterface{
     public ResponseEntity<?> updatePriceDropAlertFallback(String clinicId,String branchId,String id,PriceDropAlertDto dto,Exception ex){return buildRateLimitResponse();}
     public ResponseEntity<?> deletePriceDropAlertsFallback(String clinicId,String branchId,String id,Exception ex){return buildRateLimitResponse();}
 
+    public void sendNotificationToTherapistFallback(
+            Map<String, String> data,
+            Exception ex) {
+
+        log.error("sendNotificationToTherapistFallback triggered", ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+
+    public void sendOverallFeedbackNotificationToTherapistFallback(
+            Map<String, String> data,
+            Exception ex) {
+
+        log.error("sendOverallFeedbackNotificationToTherapistFallback triggered", ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+
+    public void sendSessionFeedbackNotificationToTherapistFallback(
+            Map<String, String> data,
+            Exception ex) {
+
+        log.error("sendSessionFeedbackNotificationToTherapistFallback triggered", ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+
+    public void sendSessionReassignNotificationToTherapistFallback(
+            Map<String, String> data,
+            Exception ex) {
+
+        log.error("sendSessionReassignNotificationToTherapistFallback triggered", ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+
+    public void sendSessionWithdrawNotificationToTherapistFallback(
+            Map<String, String> data,
+            Exception ex) {
+
+        log.error("sendSessionWithdrawNotificationToTherapistFallback triggered", ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    
+    public void sendBulkExerciseRemindersFallback(
+    		  List<ExerciseInfo> reminders,
+            Exception ex) {
+
+        log.error("sendSessionWithdrawNotificationToTherapistFallback triggered", ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    
+    @RateLimiter(name = "notificationService",
+	        fallbackMethod = "sendBulkExerciseRemindersFallback")
+	 public void sendBulkExerciseReminders(
+		        List<ExerciseInfo> reminders) {
+
+		    if (reminders == null || reminders.isEmpty()) {
+		        return;
+		    }
+
+		    Map<String, List<ExerciseInfo>> patientWiseReminders =
+		            reminders.stream()
+		                    .collect(Collectors.groupingBy(
+		                            ExerciseInfo::getPatientId));
+
+		    patientWiseReminders.forEach(
+		            (patientId, exerciseInfos) -> {
+
+		                sendPatientExerciseReminder(
+		                        patientId,
+		                        exerciseInfos);
+		            });
+		}
+	 
+	 private void sendPatientExerciseReminder(
+		        String patientId,
+		        List<ExerciseInfo> exercises) {
+		 String exerciseNames = null;
+		 patient_Id = patientId;
+		 if(deviceId == null) {
+		    deviceId = cllinicFeign.customerDeviceId(patientId);
+		 }
+		 if(!patient_Id.equalsIgnoreCase(patientId)) {
+			  deviceId = cllinicFeign.customerDeviceId(patientId); 
+		 }
+		 if(exercises.size()>1) {
+		    exerciseNames =
+		            exercises.stream()
+		                    .map(ExerciseInfo::getExerciseName)
+		                    .distinct()
+		                    .collect(Collectors.joining(", "));}
+		 else {
+			 exerciseNames =
+			            exercises.stream()
+			                    .map(ExerciseInfo::getExerciseName)
+			                    .distinct().findFirst().get();} 
+
+		    String title = "Home Exercise Reminder";
+
+		    String body =
+		            "Please complete your prescribed home exercises today: "
+		                    + exerciseNames;
+		    
+		    if(deviceId != null) {
+				appNotification.sendPushNotification(deviceId,title,body, "BOOKING",
+					    "BookingScreen","default","reminder");}
+
+		 }
+	 
+	 
 }
+

@@ -145,6 +145,19 @@ public class CustomerOnboardingController {
  			 @PathVariable String customerId ){
  	   return customerOnboardingService.customerDeviceId(customerId);
   } 
+    
+    @GetMapping("/customername/{id}")
+    public String getCustomername(
+ 			 @PathVariable String id ){
+ 	   return customerOnboardingService.getCustomername(id);
+  }
+
+    @GetMapping("/patinetname/{id}")
+    public String getPatientname(
+            @PathVariable String id ){
+        return customerOnboardingService.retrievePatientName(id);
+    }
+
 
     @GetMapping("/bookings/byInput/{input}/{clinicId}")	
 			public ResponseEntity<?> retrieveAppointnmentsByInput(@PathVariable String input,@PathVariable String clinicId){

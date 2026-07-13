@@ -3,8 +3,8 @@ package com.clinicadmin.service.impl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -533,53 +534,82 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 //
 //		return response;
 //	}
+	
+	
+	private String getIndianDateTime() {
+	    DateTimeFormatter formatter =
+	            DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm:ss a");
+
+	    return LocalDateTime
+	            .now(ZoneId.of("Asia/Kolkata"))
+	            .format(formatter);
+	}
 
 	// ------------------ DTO ↔ Entity Conversion ------------------
 	private CustomerOnbording convertToEntity(CustomerOnbordingDTO dto) {
-		CustomerOnbording entity = new CustomerOnbording();
-		entity.setId(dto.getId());
-		entity.setMobileNumber(dto.getMobileNumber());
-		entity.setEmail(dto.getEmail());
-		entity.setFullName(dto.getFullName());
-		entity.setDateOfBirth(dto.getDateOfBirth());
-		entity.setGender(dto.getGender());
-		entity.setAge(dto.getAge());
-		entity.setAddress(dto.getAddress());
-		entity.setHospitalId(dto.getHospitalId());
-		entity.setHospitalName(dto.getHospitalName());
-		entity.setBranchId(dto.getBranchId());
-		entity.setCustomerId(dto.getCustomerId());
-		entity.setPatientId(dto.getPatientId());
-		entity.setDeviceId(dto.getDeviceId());
-//		entity.setReferralCode(dto.getReferralCode());
-		entity.setReferredBy(dto.getReferredBy());
-		entity.setCreatedBy(dto.getCreatedBy());
-		entity.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")).toString());
-		return entity;
+
+	    CustomerOnbording entity = new CustomerOnbording();
+
+	    entity.setId(dto.getId());
+	    entity.setMobileNumber(dto.getMobileNumber());
+	    entity.setEmail(dto.getEmail());
+	    entity.setFullName(dto.getFullName());
+	    entity.setGender(dto.getGender());
+	    entity.setDateOfBirth(dto.getDateOfBirth());
+	    entity.setAge(dto.getAge());
+	    entity.setAddress(dto.getAddress());
+
+	    entity.setHospitalId(dto.getHospitalId());
+	    entity.setHospitalName(dto.getHospitalName());
+	    entity.setBranchId(dto.getBranchId());
+
+	    entity.setCustomerId(dto.getCustomerId());
+	    entity.setPatientId(dto.getPatientId());
+
+	    entity.setDeviceId(dto.getDeviceId());
+
+	    entity.setReferralCode(dto.getReferralCode());
+	    entity.setReferredBy(dto.getReferredBy());
+
+	    entity.setCreatedBy(dto.getCreatedBy());
+
+	    // Store Indian Date & Time
+	    entity.setCreatedAt(getIndianDateTime());
+
+	    return entity;
 	}
+	
 
 	private CustomerOnbordingDTO convertToDTO(CustomerOnbording entity) {
-		CustomerOnbordingDTO dto = new CustomerOnbordingDTO();
-		dto.setId(entity.getId());
-		dto.setMobileNumber(entity.getMobileNumber());
-		dto.setEmail(entity.getEmail());
-		dto.setFullName(entity.getFullName());
-		dto.setGender(entity.getGender());
-		dto.setDateOfBirth(entity.getDateOfBirth());
-		dto.setAge(entity.getAge());
-		dto.setAddress(entity.getAddress());
-		dto.setHospitalId(entity.getHospitalId());
-		dto.setHospitalName(entity.getHospitalName());
-		dto.setBranchId(entity.getBranchId());
-		dto.setCustomerId(entity.getCustomerId());
-		dto.setPatientId(entity.getPatientId());
-		dto.setDeviceId(entity.getDeviceId());
-		dto.setReferralCode(entity.getReferralCode());
-		dto.setReferredBy(entity.getReferredBy());
-		dto.setCreatedAt(entity.getCreatedAt());
-        dto.setCreatedBy(entity.getCreatedBy());
-        dto.setUpdatedDate(entity.getUpdatedDate());
-		return dto;
+
+	    CustomerOnbordingDTO dto = new CustomerOnbordingDTO();
+
+	    dto.setId(entity.getId());
+	    dto.setMobileNumber(entity.getMobileNumber());
+	    dto.setEmail(entity.getEmail());
+	    dto.setFullName(entity.getFullName());
+	    dto.setGender(entity.getGender());
+	    dto.setDateOfBirth(entity.getDateOfBirth());
+	    dto.setAge(entity.getAge());
+	    dto.setAddress(entity.getAddress());
+
+	    dto.setHospitalId(entity.getHospitalId());
+	    dto.setHospitalName(entity.getHospitalName());
+	    dto.setBranchId(entity.getBranchId());
+
+	    dto.setCustomerId(entity.getCustomerId());
+	    dto.setPatientId(entity.getPatientId());
+
+	    dto.setDeviceId(entity.getDeviceId());
+
+	    dto.setReferralCode(entity.getReferralCode());
+	    dto.setReferredBy(entity.getReferredBy());
+
+	    dto.setCreatedBy(entity.getCreatedBy());
+	    dto.setCreatedAt(entity.getCreatedAt());
+	    dto.setUpdatedDate(entity.getUpdatedDate());
+
+	    return dto;
 	}
 	
 	 @Secured({"ROLE_CLINICADMIN","ROLE_NOTIFICATIONSERVICE"})
@@ -596,6 +626,18 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			}
 		}catch (FeignException e) {
 			log.error("Exception in method", e);	
+			return null;	
+		}}
+	
+	public String getCustomername(String patientId){
+		try {	
+			CustomerOnbording cstmr = onboardingRepository.findByPatientId(patientId);
+			if(cstmr != null) {
+		   	return cstmr.getFullName() ;}
+			else {
+				return null;
+			}
+		}catch(FeignException e) {	
 			return null;	
 		}}
 	
@@ -707,5 +749,15 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
     public List<BookingInfoByInput> bookingByInputFallback(String input,String clinicId, Exception ex){log.error("Rate limit triggered in bookingByInput", ex); throw new ResponseStatusException(
             HttpStatus.TOO_MANY_REQUESTS,
             "Too many requests. Please try again after some time.");}
+
+	public String retrievePatientName(String patientId){
+		String name = null;
+		try{
+			 name = onboardingRepository.findByPatientId(patientId).getFullName();
+		}catch(Exception e){
+			return null;
+		}
+		return name;
+	}
 
 }

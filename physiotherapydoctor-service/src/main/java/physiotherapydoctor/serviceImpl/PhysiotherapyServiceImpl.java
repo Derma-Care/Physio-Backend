@@ -1167,9 +1167,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		                branchId);
 
 		if (records == null || records.isEmpty()) {
-			response.setSuccess(false);
+			response.setSuccess(true);
 			response.setMessage("No assigned patients found");
-			response.setStatus(404);
+			response.setStatus(200);
 			return response;
 		}
 
@@ -2605,7 +2605,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 			if (records == null || records.isEmpty()) {
 				response.setSuccess(false);
-				response.setStatus(404);
+				response.setStatus(200);
 				response.setMessage("No records found");
 				return response;
 			}

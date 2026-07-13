@@ -1,11 +1,11 @@
 package physiotherapydoctor.service;
 
 import java.util.List;
-
+import org.springframework.http.ResponseEntity;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
-import physiotherapydoctor.entity.PaymentRecord;
+import physiotherapydoctor.util.RevenueResponse;
 
 public interface PaymentService {
 
@@ -41,7 +41,20 @@ public interface PaymentService {
             String branchId,
             String therapistId);
 
+	ResponseEntity<RevenueResponse> getRevenueManagement(
+			String clinicId,
+			String branchId,
+			String number);
 
+	ResponseEntity<RevenueResponse> getRevenueManagementByDateRange(
+			String clinicId,
+			String branchId,
+			String startDate,
+			String endDate);
+
+	ResponseEntity<Response> getRevenueSummary(
+			String clinicId,
+			String branchId);
 }
 
 

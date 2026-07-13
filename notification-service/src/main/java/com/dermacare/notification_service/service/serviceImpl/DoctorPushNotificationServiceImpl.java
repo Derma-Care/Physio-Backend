@@ -15,6 +15,8 @@ import com.dermacare.notification_service.feign.CllinicFeign;
 import com.dermacare.notification_service.notificationFactory.SendAppNotification;
 import com.dermacare.notification_service.repository.DoctorPushNotificationRepository;
 import com.dermacare.notification_service.service.DoctorPushNotificationService;
+import com.dermacare.notification_service.util.KeyCloakTokenStore;
+
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 	private final DoctorPushNotificationRepository repository;
 	private final CllinicFeign clinicFeign;
 	private final SendAppNotification appNotification;
+	  private final KeyCloakTokenStore KeyCloakTokenStore;
 
 	@Override
 	@RateLimiter(name = "notification-service", fallbackMethod = "sendNotificationFallback")
@@ -76,7 +79,7 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 	        log.info("Fetching doctor device token. DoctorId={}",
 	                dto.getDoctorId());
 
-	        String token = clinicFeign.getDoctorDeviceId(dto.getDoctorId());
+	        String token = clinicFeign.getDoctorDeviceId(KeyCloakTokenStore.getAccess_token(),dto.getDoctorId());
 
 	        if (token == null || token.isBlank()) {
 
@@ -261,7 +264,7 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
                     dto.getDoctorId());
 
             String token =
-                    clinicFeign.getDoctorDeviceId(dto.getDoctorId());
+                    clinicFeign.getDoctorDeviceId(KeyCloakTokenStore.getAccess_token(),dto.getDoctorId());
 
             if (token == null || token.isBlank()) {
 

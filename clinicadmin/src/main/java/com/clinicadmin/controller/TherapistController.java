@@ -17,6 +17,7 @@ import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.TherapistDTO;
 import com.clinicadmin.dto.TherapistPresenceRequest;
+import com.clinicadmin.service.DoctorService;
 import com.clinicadmin.service.TherapistService;
 
 @RestController
@@ -25,6 +26,10 @@ public class TherapistController {
 
 	@Autowired
 	private TherapistService service;
+	
+	@Autowired
+	private DoctorService doctorService;
+	
 
 	// ================= CREATE =================
 	@PostMapping("/addTherapist")
@@ -33,6 +38,12 @@ public class TherapistController {
 		Response response = service.therapistOnboarding(dto);
 
 		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+	
+	@GetMapping("/therapist/deviceId/{deviceId}")
+	public String retrivetherapistDeviceId(@PathVariable String deviceId) {
+
+		return doctorService.getByTherapistDeviceId(deviceId);
 	}
 
 //    // ================= LOGIN =================

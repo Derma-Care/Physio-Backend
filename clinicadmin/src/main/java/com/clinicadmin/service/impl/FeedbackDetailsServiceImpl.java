@@ -50,7 +50,8 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
     
     @Autowired
     private FeignImpl adminServiceClient;
-    
+      
+     
     @Override
     @Secured("ROLE_CLINICADMIN")
     @RateLimiter(name = "clinicAdminService", fallbackMethod = "createFeedbackFallback")
@@ -92,8 +93,6 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
             FeedbackDetails saved =
                     repository.save(entity);
             
-//         // ================= PUSH NOTIFICATION ON CREATE =================
-//            triggerSessionNotificationIfNeeded(saved);
             Map<String,String> map = new LinkedHashMap<>();  
             if(feedbackDetailsDTO.getTherapistId() != null) {
 			map.put("therapistId",feedbackDetailsDTO.getTherapistId());
@@ -101,6 +100,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 			map.put("whatWentWell",feedbackDetailsDTO.getWhatWentWell());
 			map.put("rating",feedbackDetailsDTO.getRating() );
 			map.put("improvements",feedbackDetailsDTO.getImprovements());      	
+
 			notificationFeign.therapistSessionFeedback(keyCloakTokenStore.getAccess_token(),map);}
             // ================= RESPONSE =================
 
@@ -483,7 +483,7 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
                 data.setServiceType(serviceType);
 
-                // ================= COUNTS =================
+             // ================= COUNTS =================
 
                 int totalSessions = 0;
                 int completedSessions = 0;
@@ -498,11 +498,11 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
                 if (therapyWithSessions != null
                         && !therapyWithSessions.isEmpty()) {
 
-                    for (Map<String, Object> pkg : therapyWithSessions) {
+                    // ================= PACKAGE =================
 
-                        // ================= PACKAGE =================
+                    if ("PACKAGE".equalsIgnoreCase(serviceType)) {
 
-                        if ("PACKAGE".equalsIgnoreCase(serviceType)) {
+                        for (Map<String, Object> pkg : therapyWithSessions) {
 
                             String packageId =
                                     String.valueOf(
@@ -524,49 +524,102 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
                                 service.add(info);
                             }
-                        }
 
-                        // ================= PROGRAMS =================
+                            List<Map<String, Object>> programs =
+                                    (List<Map<String, Object>>)
+                                            pkg.get("programs");
 
-                        List<Map<String, Object>> programs =
-                                (List<Map<String, Object>>)
-                                        pkg.get("programs");
+                            if (programs == null
+                                    || programs.isEmpty()) {
 
-                        if (programs == null
-                                || programs.isEmpty()) {
-
-                            continue;
-                        }
-
-                        for (Map<String, Object> program : programs) {
-
-                            // ================= PROGRAM =================
-
-                            if ("PROGRAM".equalsIgnoreCase(serviceType)) {
-
-                                String programId =
-                                        String.valueOf(
-                                                program.get("programId"));
-
-                                String programName =
-                                        String.valueOf(
-                                                program.get("programName"));
-
-                                if (programName != null
-                                        && !"null".equalsIgnoreCase(programName)) {
-
-                                    ServiceInfo info =
-                                            new ServiceInfo();
-
-                                    info.setServiceId(programId);
-
-                                    info.setServiceName(programName);
-
-                                    service.add(info);
-                                }
+                                continue;
                             }
 
-                            // ================= THERAPIES =================
+                            for (Map<String, Object> program : programs) {
+
+                                List<Map<String, Object>> therapyData =
+                                        (List<Map<String, Object>>)
+                                                program.get("therapyData");
+
+                                if (therapyData == null
+                                        || therapyData.isEmpty()) {
+
+                                    continue;
+                                }
+
+                                for (Map<String, Object> therapy : therapyData) {
+
+                                    List<Map<String, Object>> exercises =
+                                            (List<Map<String, Object>>)
+                                                    therapy.get("exercises");
+
+                                    if (exercises == null
+                                            || exercises.isEmpty()) {
+
+                                        continue;
+                                    }
+
+                                    for (Map<String, Object> exercise : exercises) {
+
+                                        List<Map<String, Object>> sessions =
+                                                (List<Map<String, Object>>)
+                                                        exercise.get("sessions");
+
+                                        if (sessions == null
+                                                || sessions.isEmpty()) {
+
+                                            continue;
+                                        }
+
+                                        totalSessions += sessions.size();
+
+                                        for (Map<String, Object> session : sessions) {
+
+                                            String status =
+                                                    String.valueOf(
+                                                            session.get("status"));
+
+                                            if ("Completed"
+                                                    .equalsIgnoreCase(status)) {
+
+                                                completedSessions++;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= PROGRAM =================
+                    // Note: for PROGRAM type, each element of
+                    // therapyWithSessions IS a program directly
+                    // (no "programs" wrapper key at this level)
+
+                    else if ("PROGRAM".equalsIgnoreCase(serviceType)) {
+
+                        for (Map<String, Object> program : therapyWithSessions) {
+
+                            String programId =
+                                    String.valueOf(
+                                            program.get("programId"));
+
+                            String programName =
+                                    String.valueOf(
+                                            program.get("programName"));
+
+                            if (programName != null
+                                    && !"null".equalsIgnoreCase(programName)) {
+
+                                ServiceInfo info =
+                                        new ServiceInfo();
+
+                                info.setServiceId(programId);
+
+                                info.setServiceName(programName);
+
+                                service.add(info);
+                            }
 
                             List<Map<String, Object>> therapyData =
                                     (List<Map<String, Object>>)
@@ -580,34 +633,6 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
 
                             for (Map<String, Object> therapy : therapyData) {
 
-                                // ================= THERAPY =================
-
-                                if ("THERAPY".equalsIgnoreCase(serviceType)) {
-
-                                    String therapyId =
-                                            String.valueOf(
-                                                    therapy.get("therapyId"));
-
-                                    String therapyName =
-                                            String.valueOf(
-                                                    therapy.get("therapyName"));
-
-                                    if (therapyName != null
-                                            && !"null".equalsIgnoreCase(therapyName)) {
-
-                                        ServiceInfo info =
-                                                new ServiceInfo();
-
-                                        info.setServiceId(therapyId);
-
-                                        info.setServiceName(therapyName);
-
-                                        service.add(info);
-                                    }
-                                }
-
-                                // ================= EXERCISES =================
-
                                 List<Map<String, Object>> exercises =
                                         (List<Map<String, Object>>)
                                                 therapy.get("exercises");
@@ -619,34 +644,6 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
                                 }
 
                                 for (Map<String, Object> exercise : exercises) {
-
-                                    // ================= EXERCISE =================
-
-                                    if ("EXERCISE".equalsIgnoreCase(serviceType)) {
-
-                                        String exerciseId =
-                                                String.valueOf(
-                                                        exercise.get("exerciseId"));
-
-                                        String exerciseName =
-                                                String.valueOf(
-                                                        exercise.get("exerciseName"));
-
-                                        if (exerciseName != null
-                                                && !"null".equalsIgnoreCase(exerciseName)) {
-
-                                            ServiceInfo info =
-                                                    new ServiceInfo();
-
-                                            info.setServiceId(exerciseId);
-
-                                            info.setServiceName(exerciseName);
-
-                                            service.add(info);
-                                        }
-                                    }
-
-                                    // ================= SESSIONS =================
 
                                     List<Map<String, Object>> sessions =
                                             (List<Map<String, Object>>)
@@ -672,6 +669,133 @@ public class FeedbackDetailsServiceImpl implements FeedbackDetailsServcie {
                                             completedSessions++;
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= THERAPY =================
+                    // Note: for THERAPY type, each element of
+                    // therapyWithSessions IS a therapy directly
+                    // (no "programs"/"therapyData" wrapper at this level)
+
+                    else if ("THERAPY".equalsIgnoreCase(serviceType)) {
+
+                        for (Map<String, Object> therapy : therapyWithSessions) {
+
+                            String therapyId =
+                                    String.valueOf(
+                                            therapy.get("therapyId"));
+
+                            String therapyName =
+                                    String.valueOf(
+                                            therapy.get("therapyName"));
+
+                            if (therapyName != null
+                                    && !"null".equalsIgnoreCase(therapyName)) {
+
+                                ServiceInfo info =
+                                        new ServiceInfo();
+
+                                info.setServiceId(therapyId);
+
+                                info.setServiceName(therapyName);
+
+                                service.add(info);
+                            }
+
+                            List<Map<String, Object>> exercises =
+                                    (List<Map<String, Object>>)
+                                            therapy.get("exercises");
+
+                            if (exercises == null
+                                    || exercises.isEmpty()) {
+
+                                continue;
+                            }
+
+                            for (Map<String, Object> exercise : exercises) {
+
+                                List<Map<String, Object>> sessions =
+                                        (List<Map<String, Object>>)
+                                                exercise.get("sessions");
+
+                                if (sessions == null
+                                        || sessions.isEmpty()) {
+
+                                    continue;
+                                }
+
+                                totalSessions += sessions.size();
+
+                                for (Map<String, Object> session : sessions) {
+
+                                    String status =
+                                            String.valueOf(
+                                                    session.get("status"));
+
+                                    if ("Completed"
+                                            .equalsIgnoreCase(status)) {
+
+                                        completedSessions++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= EXERCISE =================
+                    // Note: for EXERCISE type, each element of
+                    // therapyWithSessions IS an exercise directly
+                    // (fully flat, sessions right underneath)
+
+                    else if ("EXERCISE".equalsIgnoreCase(serviceType)) {
+
+                        for (Map<String, Object> exercise : therapyWithSessions) {
+
+                            String exerciseId =
+                                    String.valueOf(
+                                            exercise.get("exerciseId"));
+
+                            String exerciseName =
+                                    String.valueOf(
+                                            exercise.get("exerciseName"));
+
+                            if (exerciseName != null
+                                    && !"null".equalsIgnoreCase(exerciseName)) {
+
+                                ServiceInfo info =
+                                        new ServiceInfo();
+
+                                info.setServiceId(exerciseId);
+
+                                info.setServiceName(exerciseName);
+
+                                service.add(info);
+                            }
+
+                            List<Map<String, Object>> sessions =
+                                    (List<Map<String, Object>>)
+                                            exercise.get("sessions");
+
+                            if (sessions == null
+                                    || sessions.isEmpty()) {
+
+                                continue;
+                            }
+
+                            totalSessions += sessions.size();
+
+                            for (Map<String, Object> session : sessions) {
+
+                                String status =
+                                        String.valueOf(
+                                                session.get("status"));
+
+                                if ("Completed"
+                                        .equalsIgnoreCase(status)) {
+
+                                    completedSessions++;
                                 }
                             }
                         }
