@@ -221,9 +221,9 @@ aws:
 # ===============================
 # Firebase
 # ===============================
-
 # app:
 #   firebase-configuration-file: firebase-key.json
+
 
 # ===============================
 # Logging
