@@ -80,12 +80,12 @@ public class AppointmentAnalyticsServiceImpl
                             .getData();
 
             LocalTime openingTime =
-                    LocalTime.parse(
+                    parseClinicTime(
                             String.valueOf(
                                     clinic.get("openingTime")));
 
             LocalTime closingTime =
-                    LocalTime.parse(
+                    parseClinicTime(
                             String.valueOf(
                                     clinic.get("closingTime")));
 
@@ -709,5 +709,43 @@ public class AppointmentAnalyticsServiceImpl
 
         return response;
     }
-    
+    private LocalTime parseClinicTime(String timeStr) {
+
+        if (timeStr == null || timeStr.isBlank()) {
+            return null;
+        }
+
+        timeStr = timeStr.trim();
+
+        try {
+
+            return LocalTime.parse(timeStr);
+
+        } catch (Exception e) {
+
+            try {
+
+                return LocalTime.parse(
+                        timeStr,
+                        DateTimeFormatter.ofPattern(
+                                "hh:mm a"));
+
+            } catch (Exception ex) {
+
+                try {
+
+                    return LocalTime.parse(
+                            timeStr.toUpperCase(),
+                            DateTimeFormatter.ofPattern(
+                                    "h:mm a"));
+
+                } catch (Exception exception) {
+
+                    throw new RuntimeException(
+                            "Invalid time format : "
+                                    + timeStr);
+                }
+            }
+        }
+    }
 }
