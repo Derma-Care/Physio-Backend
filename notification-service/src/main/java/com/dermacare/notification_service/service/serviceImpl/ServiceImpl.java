@@ -216,69 +216,104 @@ public class ServiceImpl implements ServiceInterface{
 	 @Override
 	 @Secured("ROLE_BOOKINGSERVICE")
 	 @RateLimiter(name = "notificationService", fallbackMethod = "sendNotificationToTherapistFallback")
-	
-	  public void sendNotificationToTherapist(Map<String, String> data) {	  
-		  try {
-			  //System.out.println(data);
-			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("therapistId"));
-			 // System.out.println(deviceId);
-			  if(deviceId != null) {
-					String content = 
-							String.format(
-							        "Hello %s, a new therapy session has been assigned to you for patient %s. The session is scheduled to start on %s. Please review the session details and prepare accordingly.",
-							        data.get("therapistName"),
-							        data.get("patientname"),
-							        data.get("sessionStartDate"));
-							
-					appNotification.sendPushNotification(deviceId,"New Therapy Session Assigned",content, "Assign",
-						    "BookingScreen","default","therapist");}	
-		  }catch (Exception e) {
-			//System.out.println(e.getMessage());
-		}
-		  
-	  }
-	  
-	  
-		
+	 public void sendNotificationToTherapist(Map<String, String> data) {
+
+	     log.info("Sending therapist assignment notification. TherapistId: {}, TherapistName: {}",
+	             data.get("therapistId"),
+	             data.get("therapistName"));
+
+	     try {
+
+	         String deviceId = cllinicFeign.retrivetherapistDeviceId(
+	                 KeyCloakTokenStore.getAccess_token(),
+	                 data.get("therapistId"));
+
+	         if (deviceId != null) {
+
+	             log.info("Device ID found for therapist. TherapistId: {}", data.get("therapistId"));
+
+	             String content = String.format(
+	                     "Hello %s, a new therapy session has been assigned to you for patient %s. The session is scheduled to start on %s. Please review the session details and prepare accordingly.",
+	                     data.get("therapistName"),
+	                     data.get("patientname"),
+	                     data.get("sessionStartDate"));
+	             appNotification.sendPushNotification(deviceId,"New Therapy Session Assigned",content, "Assign",
+						    "BookingScreen","default","therapist");
+	             log.info("Therapist assignment notification sent successfully. TherapistId: {}",
+	                     data.get("therapistId"));
+	         }
+
+	     } catch (Exception e) {
+
+	         log.error("Failed to send therapist assignment notification. TherapistId: {}",
+	                 data.get("therapistId"),
+	                 e);
+	     }
+	 }
+	 
+	 
+	 
 	 @Override
 	 @Secured("ROLE_BOOKINGSERVICE")
 	 @RateLimiter(name = "notificationService", fallbackMethod = "sendOverallFeedbackNotificationToTherapistFallback")
-	
-	  public void sendOverallFeedbackNotificationToTherapist(Map<String, String> data) {	  
-		  try {
-			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("therapistId"));
-				
-			  if(deviceId != null) {
-				  
-					String content = 
-							 String.format(
-								        "Hello Thrapist, patient %s has submitted feedback for your therapy session.%n" +
-								        "Rating: %s/5%n" +
-								        "Feedback: \"%s\"",							       
-								        data.get("patientName"),
-								        data.get("rating"),
-								        data.get("feedbackText")
-								);
-							
-					appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "Feedback",
-						    "BookingScreen","default","therapist-feedback");}	
-		  }catch (Exception e) {
-			
-		}
-		  
-	  }
-	
-		
+	 public void sendOverallFeedbackNotificationToTherapist(Map<String, String> data) {
+
+	     log.info("Sending overall feedback notification. TherapistId: {}, PatientName: {}",
+	             data.get("therapistId"),
+	             data.get("patientName"));
+
+	     try {
+
+	         String deviceId = cllinicFeign.retrivetherapistDeviceId(
+	                 KeyCloakTokenStore.getAccess_token(),
+	                 data.get("therapistId"));
+
+	         if (deviceId != null) {
+	        	 
+	        	 String content = 
+						 String.format(
+							        "Hello Thrapist, patient %s has submitted feedback for your therapy session.%n" +
+							        "Rating: %s/5%n" +
+							        "Feedback: \"%s\"",							       
+							        data.get("patientName"),
+							        data.get("rating"),
+							        data.get("feedbackText")
+							);
+
+	        	 appNotification.sendPushNotification(deviceId,"New Patient Feedback Received",content, "Feedback",
+						    "BookingScreen","default","therapist-feedback");
+
+	             log.info("Overall feedback notification sent successfully. TherapistId: {}",
+	                     data.get("therapistId"));
+	         }
+
+	     } catch (Exception e) {
+
+	         log.error("Failed to send overall feedback notification. TherapistId: {}",
+	                 data.get("therapistId"),
+	                 e);
+	     }
+	 }
+	 
+	 
 	 @Override
 	 @Secured("ROLE_BOOKINGSERVICE")
 	 @RateLimiter(name = "notificationService", fallbackMethod = "sendSessionFeedbackNotificationToTherapistFallback")
-	
-	  public void sendSessionFeedbackNotificationToTherapist(Map<String, String> data) {	  
-		  try {
-			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("therapistId"));
-				
-			  if(deviceId != null) {		  
-					String content = 
+	 public void sendSessionFeedbackNotificationToTherapist(Map<String, String> data) {
+
+	     log.info("Sending session feedback notification. TherapistId: {}, PatientName: {}",
+	             data.get("therapistId"),
+	             data.get("patientName"));
+
+	     try {
+
+	         String deviceId = cllinicFeign.retrivetherapistDeviceId(
+	                 KeyCloakTokenStore.getAccess_token(),
+	                 data.get("therapistId"));
+
+	         if (deviceId != null) {
+
+	        	 String content = 
 							String.format(
 							        "Hello Therapist, you have received new feedback for your therapy session with patient %s.\n\n" +
 							        "⭐ Rating: %s/5\n" +
@@ -290,25 +325,38 @@ public class ServiceImpl implements ServiceInterface{
 							        data.get("improvements")
 							);
 					appNotification.sendPushNotification(deviceId,"New Patient session Feedback Received",content, "sessionFeedback",
-						    "BookingScreen","default","therapist-feedback");}	
-		  }catch (Exception e) {
-			
-		}
-		  
-	  }
-	  
-		
+						    "BookingScreen","default","therapist-feedback");
+
+	             log.info("Session feedback notification sent successfully. TherapistId: {}",
+	                     data.get("therapistId"));
+	         }
+
+	     } catch (Exception e) {
+
+	         log.error("Failed to send session feedback notification. TherapistId: {}",
+	                 data.get("therapistId"),
+	                 e);
+	     }
+	 }
+	 
 	 @Override
 	 @Secured("ROLE_BOOKINGSERVICE")
 	 @RateLimiter(name = "notificationService", fallbackMethod = "sendSessionReassignNotificationToTherapistFallback")
-	
-	  public void sendSessionReassignNotificationToTherapist(Map<String, String> data) {	  
-		  try {
-			 // System.out.println(data);
-			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("reassignedTherapistId"));		
-			  //System.out.println(deviceId);
-			  if(deviceId != null) {		  
-					String content = 
+	 public void sendSessionReassignNotificationToTherapist(Map<String, String> data) {
+
+	     log.info("Sending session reassignment notification. ReassignedTherapistId: {}, TherapistRecordId: {}",
+	             data.get("reassignedTherapistId"),
+	             data.get("therapistRecordId"));
+
+	     try {
+
+	         String deviceId = cllinicFeign.retrivetherapistDeviceId(
+	                 KeyCloakTokenStore.getAccess_token(),
+	                 data.get("reassignedTherapistId"));
+
+	         if (deviceId != null) {
+
+	        	 String content = 
 							String.format(
 							        "%s session has been reassigned to you by Therapist %s. Please review the appointment details.\n\n"
 									+ "therapistRecordId: %s",			       
@@ -317,26 +365,38 @@ public class ServiceImpl implements ServiceInterface{
 							        data.get("therapistRecordId")
 							);
 					appNotification.sendPushNotification(deviceId,"Session Reassignment",content, "Reassignment",
-						    "BookingScreen","default","therapist");}	
-		  }catch (Exception e) { System.out.println(e.getMessage());
-			
-		}
-		  
-	  }
-	  
+						    "BookingScreen","default","therapist");
+
+	             log.info("Session reassignment notification sent successfully. TherapistRecordId: {}",
+	                     data.get("therapistRecordId"));
+	         }
+
+	     } catch (Exception e) {
+
+	         log.error("Failed to send session reassignment notification. TherapistRecordId: {}",
+	                 data.get("therapistRecordId"),
+	                 e);
+	     }
+	 }
 	 
-		
+	 
 	 @Override
 	 @Secured("ROLE_BOOKINGSERVICE")
 	 @RateLimiter(name = "notificationService", fallbackMethod = "sendSessionWithdrawNotificationToTherapistFallback")
-	
-	  public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data) {	  
-		  try {
-			  //System.out.println(data);
-			  String deviceId = cllinicFeign.retrivetherapistDeviceId(KeyCloakTokenStore.getAccess_token(),data.get("reassignedTherapistId"));		
-			  //System.out.println(deviceId);
-			  if(deviceId != null) {		  
-					String content = 
+	 public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data) {
+
+	     log.info("Sending session withdrawal notification. TherapistRecordId: {}",
+	             data.get("therapistRecordId"));
+
+	     try {
+
+	         String deviceId = cllinicFeign.retrivetherapistDeviceId(
+	                 KeyCloakTokenStore.getAccess_token(),
+	                 data.get("reassignedTherapistId"));
+
+	         if (deviceId != null) {
+
+	        	 String content = 
 							String.format(
 							        "Therapist %s has withdrawn the reassignment request for the session.\n\n"				       
 							        + "therapistRecordId %s",
@@ -344,13 +404,19 @@ public class ServiceImpl implements ServiceInterface{
 							        data.get("therapistRecordId")	
 							);
 					appNotification.sendPushNotification(deviceId,"Assignment Withdrawn",content, "Withdrawn",
-						    "BookingScreen","default","therapist");}	
-		  }catch (Exception e) { System.out.println(e.getMessage());
-			
-		}
-		  
-	  }
-	  
+						    "BookingScreen","default","therapist");
+	             log.info("Session withdrawal notification sent successfully. TherapistRecordId: {}",
+	                     data.get("therapistRecordId"));
+	         }
+
+	     } catch (Exception e) {
+
+	         log.error("Failed to send session withdrawal notification. TherapistRecordId: {}",
+	                 data.get("therapistRecordId"),
+	                 e);
+	     }
+	 }
+	 
 					
 	private void convertToNotification(BookingResponse booking) {	
 			NotificationEntity notificationEntity = new NotificationEntity();
@@ -2078,8 +2144,8 @@ public class ServiceImpl implements ServiceInterface{
 		                    + exerciseNames;
 		    
 		    if(deviceId != null) {
-				appNotification.sendPushNotification(deviceId,title,body, "BOOKING",
-					    "BookingScreen","default","reminder");}
+				appNotification.sendPushNotification(deviceId,title,body, "homeExcercise",
+					    "BookingScreen","default","Bookings");}
 
 		 }
 	 
