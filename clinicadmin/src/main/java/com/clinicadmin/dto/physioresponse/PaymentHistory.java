@@ -17,5 +17,6 @@ public class PaymentHistory {
     private Double discountAmount;
     private String discountIssuedBy;
     private String receiptNumber;
+    private String transactionId;
 }
 
