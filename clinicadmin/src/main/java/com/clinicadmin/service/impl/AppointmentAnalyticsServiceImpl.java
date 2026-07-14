@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import com.clinicadmin.dto.AppointmentSummaryDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
+import com.clinicadmin.entity.Doctors;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
@@ -131,28 +132,40 @@ public class AppointmentAnalyticsServiceImpl
 
                 case 3:
 
-                    chartData.put("Week 1", 0L);
-                    chartData.put("Week 2", 0L);
-                    chartData.put("Week 3", 0L);
-                    chartData.put("Week 4", 0L);
-                    chartData.put("Week 5", 0L);
+                    LocalDate firstDayOfMonth =
+                            LocalDate.now()
+                                    .withDayOfMonth(1);
+
+                    LocalDate lastDayOfMonth =
+                            firstDayOfMonth.withDayOfMonth(
+                                    firstDayOfMonth.lengthOfMonth());
+
+                    int totalWeeks =
+                            ((lastDayOfMonth.getDayOfMonth() - 1) / 7) + 1;
+
+                    for (int i = 1; i <= totalWeeks; i++) {
+
+                        chartData.put(
+                                "Week " + i,
+                                0L);
+                    }
 
                     break;
 
                 case 4:
 
-                    chartData.put("January", 0L);
-                    chartData.put("February", 0L);
-                    chartData.put("March", 0L);
-                    chartData.put("April", 0L);
+                    chartData.put("Jan", 0L);
+                    chartData.put("Feb", 0L);
+                    chartData.put("Mar", 0L);
+                    chartData.put("Apr", 0L);
                     chartData.put("May", 0L);
-                    chartData.put("June", 0L);
-                    chartData.put("July", 0L);
-                    chartData.put("August", 0L);
-                    chartData.put("September", 0L);
-                    chartData.put("October", 0L);
-                    chartData.put("November", 0L);
-                    chartData.put("December", 0L);
+                    chartData.put("Jun", 0L);
+                    chartData.put("Jul", 0L);
+                    chartData.put("Aug", 0L);
+                    chartData.put("Sep", 0L);
+                    chartData.put("Oct", 0L);
+                    chartData.put("Nov", 0L);
+                    chartData.put("Dec", 0L);
 
                     break;
 
@@ -185,8 +198,10 @@ public class AppointmentAnalyticsServiceImpl
             long cancelledCount = 0;
             long missedCount = 0;
 
-            LocalDate today =
-                    LocalDate.now();
+            Map<String, Map<String, Object>> practitionerMap =
+                    new LinkedHashMap<>();
+
+            LocalDate today = LocalDate.now();
 
             for (Map<String, Object> booking : bookings) {
 
@@ -210,32 +225,27 @@ public class AppointmentAnalyticsServiceImpl
                 switch (type) {
 
                     case 1:
-
                         include =
-                                serviceDate.equals(
-                                        today);
+                                serviceDate.equals(today);
                         break;
 
                     case 2:
-
                         include =
                                 !serviceDate.isBefore(
                                         today.minusDays(6))
-                                        && !serviceDate.isAfter(
+                                && !serviceDate.isAfter(
                                         today);
                         break;
 
                     case 3:
-
                         include =
                                 serviceDate.getMonthValue()
                                         == today.getMonthValue()
-                                        && serviceDate.getYear()
+                                && serviceDate.getYear()
                                         == today.getYear();
                         break;
 
                     case 4:
-
                         include =
                                 serviceDate.getYear()
                                         == today.getYear();
@@ -244,14 +254,16 @@ public class AppointmentAnalyticsServiceImpl
                     case 5:
 
                         LocalDate start =
-                                LocalDate.parse(startDate);
+                                LocalDate.parse(
+                                        startDate);
 
                         LocalDate end =
-                                LocalDate.parse(endDate);
+                                LocalDate.parse(
+                                        endDate);
 
                         include =
                                 !serviceDate.isBefore(start)
-                                        && !serviceDate.isAfter(end);
+                                && !serviceDate.isAfter(end);
 
                         break;
                 }
@@ -262,6 +274,70 @@ public class AppointmentAnalyticsServiceImpl
 
                 totalAppointments++;
 
+                String doctorId =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "doctorId",
+                                        ""));
+
+                String doctorName =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "doctorName",
+                                        "N/A"));
+
+                String finalSpecialization =
+                        doctorsRepository
+                                .findByDoctorId(
+                                        doctorId)
+                                .map(
+                                        Doctors::getSpecialization)
+                                .filter(
+                                        specialization -> specialization != null
+                                                && !specialization.isBlank())
+                                .orElse(
+                                        "N/A");
+
+                Map<String, Object> practitioner =
+                        practitionerMap.computeIfAbsent(
+                                doctorId,
+                                key -> {
+
+                                    Map<String, Object> map =
+                                            new HashMap<>();
+
+                                    map.put(
+                                            "id",
+                                            doctorId);
+
+                                    map.put(
+                                            "doctor",
+                                            doctorName);
+
+                                    map.put(
+                                            "specialty",
+                                            finalSpecialization);
+
+                                    map.put(
+                                            "total",
+                                            0L);
+
+                                    map.put(
+                                            "completed",
+                                            0L);
+
+                                    map.put(
+                                            "cancelled",
+                                            0L);
+
+                                    return map;
+                                });
+
+                practitioner.put(
+                        "total",
+                        ((Long) practitioner.get(
+                                "total")) + 1);
+               
                 String label = "";
 
                 switch (type) {
@@ -395,11 +471,23 @@ public class AppointmentAnalyticsServiceImpl
                                 followupStatus);
 
                 if (completed) {
+
                     completedCount++;
+
+                    practitioner.put(
+                            "completed",
+                            ((Long) practitioner.get(
+                                    "completed")) + 1);
                 }
 
                 if (cancelled) {
+
                     cancelledCount++;
+
+                    practitioner.put(
+                            "cancelled",
+                            ((Long) practitioner.get(
+                                    "cancelled")) + 1);
                 }
 
                 boolean paymentCompleted =
@@ -485,6 +573,10 @@ public class AppointmentAnalyticsServiceImpl
                     new ArrayList<>(
                             chartData.values()));
 
+            List<Map<String, Object>> practitioners =
+                    new ArrayList<>(
+                            practitionerMap.values());
+
             Map<String, Object> dashboard =
                     new HashMap<>();
 
@@ -493,9 +585,12 @@ public class AppointmentAnalyticsServiceImpl
                     summary);
 
             dashboard.put(
+                    "practitioners",
+                    practitioners);
+
+            dashboard.put(
                     "trendData",
                     trendData);
-
             response.setSuccess(true);
             response.setMessage(
                     "Appointment analytics fetched successfully");
