@@ -51,7 +51,7 @@ whatsapp:
 
 aws:
   accessKeyId: 
-  secretAccessKey:
+  secretAccessKey: 
   region: ap-south-1
   s3:
     bucket: physiocare-prod-storage

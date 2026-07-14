@@ -464,9 +464,43 @@ public class AppointmentAnalyticsServiceImpl
                                 || "cancelled".equalsIgnoreCase(
                                 followupStatus);
 
-                boolean paymentCompleted =
-                        false;
+//                boolean paymentCompleted =
+//                        false;
+//
+//                try {
+//
+//                    Response paymentResponse =
+//                            physiotherapyFeignClient
+//                                    .getPayment(
+//                                            bookingId);
+//
+//                    if (paymentResponse != null
+//                            && paymentResponse.getData() != null) {
+//
+//                        Map<String, Object> payment =
+//                                (Map<String, Object>) paymentResponse
+//                                        .getData();
+//
+//                        String overallStatus =
+//                                String.valueOf(
+//                                        payment.getOrDefault(
+//                                                "overallStatus",
+//                                                ""));
+//
+//                        paymentCompleted =
+//                                "completed".equalsIgnoreCase(
+//                                        overallStatus);
+//                    }
+//
+//                } catch (Exception e) {
+//
+//                    System.out.println(
+//                            "Payment not found for bookingId : "
+//                                    + bookingId);
+//                }
 
+                boolean paymentFound = false;
+                boolean paymentCompleted = false;
                 try {
 
                     Response paymentResponse =
@@ -476,6 +510,8 @@ public class AppointmentAnalyticsServiceImpl
 
                     if (paymentResponse != null
                             && paymentResponse.getData() != null) {
+
+                        paymentFound = true;
 
                         Map<String, Object> payment =
                                 (Map<String, Object>) paymentResponse
@@ -500,22 +536,10 @@ public class AppointmentAnalyticsServiceImpl
                 }
 
                 boolean bookingCompleted =
-                        "completed".equalsIgnoreCase(
-                                status)
-                        || "completed".equalsIgnoreCase(
-                                followupStatus);
+                        "completed".equalsIgnoreCase(status)
+                        || "completed".equalsIgnoreCase(followupStatus);
 
-                /*
-                 * Completed only when:
-                 * Booking Status = Completed
-                 * AND
-                 * Payment Overall Status = Completed
-                 */
-                boolean completed =
-                        bookingCompleted
-                        && paymentCompleted;
-
-                if (completed) {
+                if (bookingCompleted && paymentCompleted) {
 
                     completedCount++;
 
@@ -524,7 +548,7 @@ public class AppointmentAnalyticsServiceImpl
                             ((Long) practitioner.get(
                                     "completed")) + 1);
                 }
-                else if (!cancelled) {
+                else if (bookingCompleted && !paymentCompleted) {
 
                     missedCount++;
                 }
@@ -537,6 +561,7 @@ public class AppointmentAnalyticsServiceImpl
                             "cancelled",
                             ((Long) practitioner.get(
                                     "cancelled")) + 1);
+                
                 }
             }
             long bookedCount =
@@ -751,6 +776,7 @@ public class AppointmentAnalyticsServiceImpl
                     cancelledCount++;
                 }
 
+                boolean paymentFound = false;
                 boolean paymentCompleted = false;
 
                 try {
