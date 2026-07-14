@@ -40,6 +40,7 @@ public class PaymentRequest {
 											// session are paid if therpyId=that therpy session paid if exercise session
 											// paid ,session just paid
 
+	private String transactionId;
 	private String paymentDate;
 
 	// FIRST TIME ONLY
