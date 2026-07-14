@@ -178,7 +178,7 @@ public class AppointmentAnalyticsServiceImpl
                             LocalDate.parse(endDate);
 
                     DateTimeFormatter customFormatter =
-                            DateTimeFormatter.ofPattern("MMMM d");
+                            DateTimeFormatter.ofPattern("MMM d");
 
                     while (!customDate.isAfter(customEnd)) {
 
@@ -422,7 +422,7 @@ public class AppointmentAnalyticsServiceImpl
                     case 5:
 
                         DateTimeFormatter customFormatter =
-                                DateTimeFormatter.ofPattern("MMMM d");
+                                DateTimeFormatter.ofPattern("MMM d");
 
                         label =
                                 serviceDate.format(customFormatter);
