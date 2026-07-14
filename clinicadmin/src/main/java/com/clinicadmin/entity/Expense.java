@@ -18,7 +18,8 @@ public class Expense {
     private LocalDate date;
     private Double amount;
     private String mode;
-    private String note;
+    private String notes;
+    private String transactionId;
     private String clinicId;
     private String branchId;
 }

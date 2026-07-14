@@ -79,7 +79,7 @@ public class BookingRequset {
 	private boolean isFollowupStatus;
 	private List<ReportsDtoList> reports;
 	private String referredDoctorId;
-	
+	private String transactionId;
 	public void setIsFollowupStatus(boolean followupStatus) {
 	    isFollowupStatus = followupStatus;
 	}

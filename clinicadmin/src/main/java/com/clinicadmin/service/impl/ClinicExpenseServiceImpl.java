@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.clinicadmin.dto.ExpenseDTO;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -54,15 +57,17 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
 
         try {
 
-            Expense expense = expenseRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Expense not found"));
+        	Expense expense = expenseRepository.findById(id)
+        	        .orElseThrow(() -> new RuntimeException("Expense not found"));
 
-            response.setSuccess(true);
-            response.setData(expense);
-            response.setMessage("Expense retrieved successfully");
-            response.setStatus(HttpStatus.OK.value());
+        	ObjectMapper mapper = new ObjectMapper();
+        	ExpenseDTO expenseDTO = mapper.convertValue(expense, ExpenseDTO.class);
 
-            return ResponseEntity.ok(response);
+        	response.setSuccess(true);
+        	response.setData(expenseDTO);
+        	response.setMessage("Expense retrieved successfully");
+        	response.setStatus(HttpStatus.OK.value());
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (Exception e) {
 
@@ -83,15 +88,22 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
         try {
 
             List<Expense> expenses =
-                    expenseRepository.findByClinicIdAndBranchId(clinicId, branchId);
-            Map<String,Object> map = new LinkedHashMap<>();
+                    expenseRepository.findByClinicIdAndBranchId(
+                            clinicId,
+                            branchId);
+
+            List<ExpenseDTO> expenseDTOs =
+                    new ObjectMapper().convertValue(
+                            expenses,
+                            new TypeReference<List<ExpenseDTO>>() {});  Map<String,Object> map = new LinkedHashMap<>();
+
             map.put("total", expenses.stream().map(n->n.getAmount()).filter(Objects::nonNull)
             		.mapToDouble(n->n.doubleValue()).sum());
             map.put("success", true);
-            map.put("data", expenses);
+            map.put("data", expenseDTOs);
             map.put("message", "Expenses retrieved successfully");
             map.put("status", HttpStatus.OK.value());            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(200).body(map);
 
         } catch (Exception e) {
 

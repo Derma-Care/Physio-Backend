@@ -222,9 +222,9 @@ public class ServiceImpl implements ServiceInterface{
   
   public void sendSessionWithdrawNotificationToTherapist(Map<String, String> data) {	  
 	  try {
-		  //System.out.println(data);
+		  System.out.println(data);
 		  String deviceId = cllinicFeign.retrivetherapistDeviceId(data.get("reassignedTherapistId"));		
-		  //System.out.println(deviceId);
+		  System.out.println(deviceId);
 		  if(deviceId != null) {		  
 				String content = 
 						String.format(

@@ -26,7 +26,8 @@ public class ExpenseDTO {
 
     private String mode;
     
-    private String note;
+    private String notes;
+    private String transactionId;
 
     private String clinicId;
 

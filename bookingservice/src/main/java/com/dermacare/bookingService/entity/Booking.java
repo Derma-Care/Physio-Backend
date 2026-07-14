@@ -97,7 +97,7 @@ public class Booking  {
 	private String reasonforVisit;
 	private boolean isFollowupStatus;
 	private List<FollowupBooking> follwupBookings;
-
+    private String transactionId;
 	private String referredDoctorId;
 
 	public void setIsFollowupStatus(boolean followupStatus) {

@@ -92,7 +92,7 @@ public class BookingResponse {
 	private List<Session> session;
 	private String partImageKey;   
 	private String referredDoctorId;
-
+	private String transactionId;
 	//private List<FollowupBookingDto> follwupBookings;
 		
 	public void setIsFollowupStatus(boolean followupStatus) {
