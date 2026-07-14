@@ -458,37 +458,11 @@ public class AppointmentAnalyticsServiceImpl
                                         "followupStatus",
                                         ""));
 
-                boolean completed =
-                        "completed".equalsIgnoreCase(
-                                status)
-                                || "completed".equalsIgnoreCase(
-                                followupStatus);
-
                 boolean cancelled =
                         "cancelled".equalsIgnoreCase(
                                 status)
                                 || "cancelled".equalsIgnoreCase(
                                 followupStatus);
-
-                if (completed) {
-
-                    completedCount++;
-
-                    practitioner.put(
-                            "completed",
-                            ((Long) practitioner.get(
-                                    "completed")) + 1);
-                }
-
-                if (cancelled) {
-
-                    cancelledCount++;
-
-                    practitioner.put(
-                            "cancelled",
-                            ((Long) practitioner.get(
-                                    "cancelled")) + 1);
-                }
 
                 boolean paymentCompleted =
                         false;
@@ -525,14 +499,46 @@ public class AppointmentAnalyticsServiceImpl
                                     + bookingId);
                 }
 
-                if (!completed
-                        && !paymentCompleted
-                        && !cancelled) {
+                boolean bookingCompleted =
+                        "completed".equalsIgnoreCase(
+                                status)
+                        || "completed".equalsIgnoreCase(
+                                followupStatus);
+
+                /*
+                 * Completed only when:
+                 * Booking Status = Completed
+                 * AND
+                 * Payment Overall Status = Completed
+                 */
+                boolean completed =
+                        bookingCompleted
+                        && paymentCompleted;
+
+                if (completed) {
+
+                    completedCount++;
+
+                    practitioner.put(
+                            "completed",
+                            ((Long) practitioner.get(
+                                    "completed")) + 1);
+                }
+                else if (!cancelled) {
 
                     missedCount++;
                 }
-            }
 
+                if (cancelled) {
+
+                    cancelledCount++;
+
+                    practitioner.put(
+                            "cancelled",
+                            ((Long) practitioner.get(
+                                    "cancelled")) + 1);
+                }
+            }
             long bookedCount =
                     totalAppointments
                             - cancelledCount;
