@@ -8,9 +8,13 @@ import java.util.Objects;
 import com.clinicadmin.dto.ExpenseDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Expense;
@@ -26,13 +30,16 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
     private final ExpenseRepository expenseRepository;
 
     @Override
-    public ResponseEntity<Response> saveExpense(Expense expense) {
+    public ResponseEntity<Response> saveExpense(ExpenseDTO expense) {
 
         Response response = new Response();
 
         try {
-            Expense savedExpense = expenseRepository.save(expense);
-
+        	ObjectMapper mapper = new ObjectMapper();
+    		mapper.registerModule(new JavaTimeModule());
+    		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);    		
+        	Expense expenseEntity = mapper.convertValue(expense, Expense.class);      	
+            Expense savedExpense = expenseRepository.save(expenseEntity);
             response.setSuccess(true);
             response.setData(savedExpense);
             response.setMessage("Expense saved successfully");
@@ -41,7 +48,7 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (Exception e) {
-
+           System.out.println(e.getMessage());
             response.setSuccess(false);
             response.setMessage("Failed to save expense");
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -61,6 +68,9 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
         	        .orElseThrow(() -> new RuntimeException("Expense not found"));
 
         	ObjectMapper mapper = new ObjectMapper();
+    		mapper.registerModule(new JavaTimeModule());
+    		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);    		
+        	
         	ExpenseDTO expenseDTO = mapper.convertValue(expense, ExpenseDTO.class);
 
         	response.setSuccess(true);
@@ -91,11 +101,15 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
                     expenseRepository.findByClinicIdAndBranchId(
                             clinicId,
                             branchId);
-
+            ObjectMapper mapper = new ObjectMapper();
+    		mapper.registerModule(new JavaTimeModule());
+    		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);    		
+        	
             List<ExpenseDTO> expenseDTOs =
-                    new ObjectMapper().convertValue(
+            		mapper.convertValue(
                             expenses,
-                            new TypeReference<List<ExpenseDTO>>() {});  Map<String,Object> map = new LinkedHashMap<>();
+                            new TypeReference<List<ExpenseDTO>>() {}); 
+            Map<String,Object> map = new LinkedHashMap<>();
 
             map.put("total", expenses.stream().map(n->n.getAmount()).filter(Objects::nonNull)
             		.mapToDouble(n->n.doubleValue()).sum());
@@ -117,31 +131,59 @@ public class ClinicExpenseServiceImpl implements ClinicExpenseService {
     }
 
     @Override
-    public ResponseEntity<Response> updateExpense(String id, Expense expense) {
+    public ResponseEntity<Response> updateExpense(String id, ExpenseDTO expense) {
 
         Response response = new Response();
-
         try {
+        Expense existing = expenseRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Expense not found with id: " + id));
 
-            Expense existing = expenseRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Expense not found"));
-
+        if (expense.getTitle() != null) {
             existing.setTitle(expense.getTitle());
+        }
+
+        if (expense.getCategory() != null) {
             existing.setCategory(expense.getCategory());
+        }
+
+        if (expense.getDate() != null) {
             existing.setDate(expense.getDate());
+        }
+
+        if (expense.getAmount() != null) {
             existing.setAmount(expense.getAmount());
+        }
+
+        if (expense.getMode() != null) {
             existing.setMode(expense.getMode());
+        }
+
+        if (expense.getNotes() != null) {
+            existing.setNotes(expense.getNotes());
+        }
+
+        if (expense.getTransactionId() != null) {
+            existing.setTransactionId(expense.getTransactionId());
+        }
+
+        if (expense.getClinicId() != null) {
             existing.setClinicId(expense.getClinicId());
+        }
+
+        if (expense.getBranchId() != null) {
             existing.setBranchId(expense.getBranchId());
+        }
 
-            Expense updatedExpense = expenseRepository.save(existing);
+        Expense updatedExpense = expenseRepository.save(existing);
 
-            response.setSuccess(true);
-            response.setData(updatedExpense);
-            response.setMessage("Expense updated successfully");
-            response.setStatus(HttpStatus.OK.value());
+        response.setSuccess(true);
+        response.setMessage("Expense updated successfully");
+        response.setStatus(HttpStatus.OK.value());
+        response.setData(updatedExpense);
 
-            return ResponseEntity.ok(response);
+        return ResponseEntity.ok(response);
 
         } catch (Exception e) {
 

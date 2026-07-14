@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.clinicadmin.dto.ExpenseDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Expense;
 import com.clinicadmin.service.ClinicExpenseService;
@@ -26,7 +27,7 @@ public class ClinicExpenseController {
     // Create Expense
     @PostMapping("/clinic/expenses/create")
     public ResponseEntity<Response> createExpense(
-            @RequestBody Expense expense) {
+            @RequestBody ExpenseDTO expense) {
 
         return expenseService.saveExpense(expense);
     }
@@ -35,7 +36,7 @@ public class ClinicExpenseController {
     @PutMapping("/expenses/update/id/{id}")
     public ResponseEntity<Response> updateExpense(
             @PathVariable String id,
-            @RequestBody Expense expense) {
+            @RequestBody ExpenseDTO expense) {
 
         return expenseService.updateExpense(id, expense);
     }
