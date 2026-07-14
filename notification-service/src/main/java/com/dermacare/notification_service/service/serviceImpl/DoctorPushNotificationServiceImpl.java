@@ -172,7 +172,7 @@ public class DoctorPushNotificationServiceImpl implements DoctorPushNotification
 			String title = "New Patient Rating";
 
 			String body = "You received a new rating.\n\n" + "Patient: " + dto.getPatientName() + "\nRating: "
-					+ dto.getRating() + "\nReview: " + dto.getFeedback();
+					+ dto.getRating() + "\nFeedback: " + dto.getFeedback();
 
 			appNotification.sendPushNotification(token, title, body, "DOCTOR_RATING", "Doctor Rating", "default",
 					"feedback");

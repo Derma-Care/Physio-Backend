@@ -1,9 +1,14 @@
 package com.clinicadmin.service.impl;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.AppointmentSummaryDTO;
-import com.clinicadmin.dto.DoctorAnalyticsDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.entity.Doctors;
+import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.DoctorsRepository;
@@ -30,10 +35,11 @@ public class AppointmentAnalyticsServiceImpl
     
     @Autowired
     private DoctorsRepository doctorsRepository;
+    @Autowired
+    private AdminServiceClient adminServiceClient;
 
     @Autowired
     private PhysiotherapyFeignClient physiotherapyFeignClient;
-
     @Override
     public Response getAppointmentAnalytics(
             String clinicId,
@@ -65,8 +71,135 @@ public class AppointmentAnalyticsServiceImpl
             List<Map<String, Object>> bookings =
                     bookingResponse.getBody().getData();
 
-            Map<String, DoctorAnalyticsDTO> doctorAnalyticsMap =
-                    new HashMap<>();
+            ResponseEntity<Response> clinicResponse =
+                    adminServiceClient.getClinicById(
+                            clinicId);
+
+            Map<String, Object> clinic =
+                    (Map<String, Object>) clinicResponse
+                            .getBody()
+                            .getData();
+
+            LocalTime openingTime =
+                    parseClinicTime(
+                            String.valueOf(
+                                    clinic.get("openingTime")));
+
+            LocalTime closingTime =
+                    parseClinicTime(
+                            String.valueOf(
+                                    clinic.get("closingTime")));
+
+            DateTimeFormatter timeFormatter =
+                    DateTimeFormatter.ofPattern(
+                            "hh:mm a");
+
+            Map<String, Long> chartData =
+                    new LinkedHashMap<>();
+
+            switch (type) {
+
+                case 1:
+
+                    LocalTime slot =
+                            openingTime;
+
+                    while (slot.isBefore(
+                            closingTime)) {
+
+                        chartData.put(
+                                slot.format(
+                                        timeFormatter),
+                                0L);
+
+                        slot =
+                                slot.plusHours(2);
+                    }
+
+                    break;
+
+                case 2:
+
+                    chartData.put("Monday", 0L);
+                    chartData.put("Tuesday", 0L);
+                    chartData.put("Wednesday", 0L);
+                    chartData.put("Thursday", 0L);
+                    chartData.put("Friday", 0L);
+                    chartData.put("Saturday", 0L);
+                    chartData.put("Sunday", 0L);
+
+                    break;
+
+                case 3:
+
+                    LocalDate firstDayOfMonth =
+                            LocalDate.now()
+                                    .withDayOfMonth(1);
+
+                    LocalDate lastDayOfMonth =
+                            firstDayOfMonth.withDayOfMonth(
+                                    firstDayOfMonth.lengthOfMonth());
+
+                    int totalWeeks =
+                            ((lastDayOfMonth.getDayOfMonth() - 1) / 7) + 1;
+
+                    for (int i = 1; i <= totalWeeks; i++) {
+
+                        chartData.put(
+                                "Week " + i,
+                                0L);
+                    }
+
+                    break;
+
+                case 4:
+
+                    chartData.put("Jan", 0L);
+                    chartData.put("Feb", 0L);
+                    chartData.put("Mar", 0L);
+                    chartData.put("Apr", 0L);
+                    chartData.put("May", 0L);
+                    chartData.put("Jun", 0L);
+                    chartData.put("Jul", 0L);
+                    chartData.put("Aug", 0L);
+                    chartData.put("Sep", 0L);
+                    chartData.put("Oct", 0L);
+                    chartData.put("Nov", 0L);
+                    chartData.put("Dec", 0L);
+
+                    break;
+
+                case 5:
+
+                    LocalDate customDate =
+                            LocalDate.parse(startDate);
+
+                    LocalDate customEnd =
+                            LocalDate.parse(endDate);
+
+                    DateTimeFormatter customFormatter =
+                            DateTimeFormatter.ofPattern("MMMM d");
+
+                    while (!customDate.isAfter(customEnd)) {
+
+                        chartData.put(
+                                customDate.format(customFormatter),
+                                0L);
+
+                        customDate =
+                                customDate.plusDays(1);
+                    }
+
+                    break;
+            }
+
+            long totalAppointments = 0;
+            long completedCount = 0;
+            long cancelledCount = 0;
+            long missedCount = 0;
+
+            Map<String, Map<String, Object>> practitionerMap =
+                    new LinkedHashMap<>();
 
             LocalDate today = LocalDate.now();
 
@@ -91,15 +224,12 @@ public class AppointmentAnalyticsServiceImpl
 
                 switch (type) {
 
-                    case 1: // Today
-
+                    case 1:
                         include =
-                                serviceDate.equals(
-                                        today);
+                                serviceDate.equals(today);
                         break;
 
-                    case 2: // Weekly
-
+                    case 2:
                         include =
                                 !serviceDate.isBefore(
                                         today.minusDays(6))
@@ -107,8 +237,7 @@ public class AppointmentAnalyticsServiceImpl
                                         today);
                         break;
 
-                    case 3: // Monthly
-
+                    case 3:
                         include =
                                 serviceDate.getMonthValue()
                                         == today.getMonthValue()
@@ -116,14 +245,13 @@ public class AppointmentAnalyticsServiceImpl
                                         == today.getYear();
                         break;
 
-                    case 4: // Yearly
-
+                    case 4:
                         include =
                                 serviceDate.getYear()
                                         == today.getYear();
                         break;
 
-                    case 5: // Custom
+                    case 5:
 
                         LocalDate start =
                                 LocalDate.parse(
@@ -134,20 +262,17 @@ public class AppointmentAnalyticsServiceImpl
                                         endDate);
 
                         include =
-                                !serviceDate.isBefore(
-                                        start)
-                                && !serviceDate.isAfter(
-                                        end);
+                                !serviceDate.isBefore(start)
+                                && !serviceDate.isAfter(end);
+
                         break;
-
-                    default:
-
-                        include = false;
                 }
 
                 if (!include) {
                     continue;
                 }
+
+                totalAppointments++;
 
                 String doctorId =
                         String.valueOf(
@@ -159,40 +284,161 @@ public class AppointmentAnalyticsServiceImpl
                         String.valueOf(
                                 booking.getOrDefault(
                                         "doctorName",
-                                        ""));
+                                        "N/A"));
 
-                String speciality =
+                String finalSpecialization =
                         doctorsRepository
                                 .findByDoctorId(
                                         doctorId)
                                 .map(
                                         Doctors::getSpecialization)
+                                .filter(
+                                        specialization -> specialization != null
+                                                && !specialization.isBlank())
                                 .orElse(
                                         "N/A");
 
-                DoctorAnalyticsDTO dto =
-                        doctorAnalyticsMap.computeIfAbsent(
+                Map<String, Object> practitioner =
+                        practitionerMap.computeIfAbsent(
                                 doctorId,
-                                id -> {
+                                key -> {
 
-                                    DoctorAnalyticsDTO analytics =
-                                            new DoctorAnalyticsDTO();
+                                    Map<String, Object> map =
+                                            new HashMap<>();
 
-                                    analytics.setDoctorId(
+                                    map.put(
+                                            "id",
                                             doctorId);
 
-                                    analytics.setDoctorName(
+                                    map.put(
+                                            "doctor",
                                             doctorName);
 
-                                    analytics.setSpeciality(
-                                            speciality);
+                                    map.put(
+                                            "specialty",
+                                            finalSpecialization);
 
-                                    return analytics;
+                                    map.put(
+                                            "total",
+                                            0L);
+
+                                    map.put(
+                                            "completed",
+                                            0L);
+
+                                    map.put(
+                                            "cancelled",
+                                            0L);
+
+                                    return map;
                                 });
 
-                dto.setTotalScheduled(
-                        dto.getTotalScheduled()
-                                + 1);
+                practitioner.put(
+                        "total",
+                        ((Long) practitioner.get(
+                                "total")) + 1);
+               
+                String label = "";
+
+                switch (type) {
+
+                    case 1:
+
+                        String serviceTimeStr =
+                                String.valueOf(
+                                        booking.getOrDefault(
+                                                "servicetime",
+                                                ""));
+
+                        if (!serviceTimeStr.isBlank()) {
+
+                            LocalTime serviceTime =
+                                    LocalTime.parse(
+                                            serviceTimeStr,
+                                            timeFormatter);
+
+                            LocalTime currentSlot =
+                                    openingTime;
+
+                            while (currentSlot.isBefore(
+                                    closingTime)) {
+
+                                LocalTime nextSlot =
+                                        currentSlot.plusHours(
+                                                2);
+
+                                if ((serviceTime.equals(
+                                        currentSlot)
+                                        || serviceTime.isAfter(
+                                        currentSlot))
+                                        && serviceTime.isBefore(
+                                        nextSlot)) {
+
+                                    label =
+                                            currentSlot.format(
+                                                    timeFormatter);
+
+                                    break;
+                                }
+
+                                currentSlot =
+                                        nextSlot;
+                            }
+                        }
+
+                        break;
+
+                    case 2:
+
+                        label =
+                                serviceDate.getDayOfWeek()
+                                        .getDisplayName(
+                                                TextStyle.FULL,
+                                                Locale.ENGLISH);
+
+                        break;
+
+                    case 3:
+
+                        int week =
+                                ((serviceDate.getDayOfMonth() - 1) / 7)
+                                        + 1;
+
+                        label =
+                                "Week " + week;
+
+                        break;
+
+                    case 4:
+
+                        label =
+                                serviceDate.getMonth()
+                                        .getDisplayName(
+                                                TextStyle.FULL,
+                                                Locale.ENGLISH);
+
+                        break;
+
+                    case 5:
+
+                        DateTimeFormatter customFormatter =
+                                DateTimeFormatter.ofPattern("MMMM d");
+
+                        label =
+                                serviceDate.format(customFormatter);
+
+                        break;   
+                        
+                }
+
+                if (chartData.containsKey(
+                        label)) {
+
+                    chartData.put(
+                            label,
+                            chartData.get(
+                                    label) + 1);
+                }
 
                 String bookingId =
                         String.valueOf(
@@ -213,33 +459,35 @@ public class AppointmentAnalyticsServiceImpl
                                         ""));
 
                 boolean completed =
-                        "completed"
-                                .equalsIgnoreCase(
-                                        status)
-                        || "completed"
-                                .equalsIgnoreCase(
-                                        followupStatus);
+                        "completed".equalsIgnoreCase(
+                                status)
+                                || "completed".equalsIgnoreCase(
+                                followupStatus);
 
                 boolean cancelled =
-                        "cancelled"
-                                .equalsIgnoreCase(
-                                        status)
-                        || "cancelled"
-                                .equalsIgnoreCase(
-                                        followupStatus);
+                        "cancelled".equalsIgnoreCase(
+                                status)
+                                || "cancelled".equalsIgnoreCase(
+                                followupStatus);
 
                 if (completed) {
 
-                    dto.setCompleted(
-                            dto.getCompleted()
-                                    + 1);
+                    completedCount++;
+
+                    practitioner.put(
+                            "completed",
+                            ((Long) practitioner.get(
+                                    "completed")) + 1);
                 }
 
                 if (cancelled) {
 
-                    dto.setCancelled(
-                            dto.getCancelled()
-                                    + 1);
+                    cancelledCount++;
+
+                    practitioner.put(
+                            "cancelled",
+                            ((Long) practitioner.get(
+                                    "cancelled")) + 1);
                 }
 
                 boolean paymentCompleted =
@@ -253,8 +501,7 @@ public class AppointmentAnalyticsServiceImpl
                                             bookingId);
 
                     if (paymentResponse != null
-                            && paymentResponse
-                                    .getData() != null) {
+                            && paymentResponse.getData() != null) {
 
                         Map<String, Object> payment =
                                 (Map<String, Object>) paymentResponse
@@ -267,9 +514,8 @@ public class AppointmentAnalyticsServiceImpl
                                                 ""));
 
                         paymentCompleted =
-                                "completed"
-                                        .equalsIgnoreCase(
-                                                overallStatus);
+                                "completed".equalsIgnoreCase(
+                                        overallStatus);
                     }
 
                 } catch (Exception e) {
@@ -283,39 +529,73 @@ public class AppointmentAnalyticsServiceImpl
                         && !paymentCompleted
                         && !cancelled) {
 
-                    dto.setMissed(
-                            dto.getMissed()
-                                    + 1);
+                    missedCount++;
                 }
             }
 
-            List<DoctorAnalyticsDTO> analyticsList =
+            long bookedCount =
+                    totalAppointments
+                            - cancelledCount;
+
+            Map<String, Object> summary =
+                    new HashMap<>();
+
+            summary.put(
+                    "totalAppointments",
+                    totalAppointments);
+
+            summary.put(
+                    "completed",
+                    completedCount);
+
+            summary.put(
+                    "cancelled",
+                    cancelledCount);
+
+            summary.put(
+                    "missed",
+                    missedCount);
+
+            summary.put(
+                    "booked",
+                    bookedCount);
+
+            Map<String, Object> trendData =
+                    new HashMap<>();
+
+            trendData.put(
+                    "seriesLabels",
                     new ArrayList<>(
-                            doctorAnalyticsMap
-                                    .values());
+                            chartData.keySet()));
 
-            analyticsList.forEach(dto -> {
+            trendData.put(
+                    "appointmentVolumes",
+                    new ArrayList<>(
+                            chartData.values()));
 
-                if (dto.getTotalScheduled() > 0) {
+            List<Map<String, Object>> practitioners =
+                    new ArrayList<>(
+                            practitionerMap.values());
 
-                    double completionRate =
-                            ((double) dto.getCompleted()
-                                    / dto.getTotalScheduled())
-                                    * 100;
+            Map<String, Object> dashboard =
+                    new HashMap<>();
 
-                    dto.setCompletionRate(
-                            Math.round(
-                                    completionRate
-                                            * 100.0)
-                                    / 100.0);
-                }
-            });
+            dashboard.put(
+                    "summary",
+                    summary);
 
+            dashboard.put(
+                    "practitioners",
+                    practitioners);
+
+            dashboard.put(
+                    "trendData",
+                    trendData);
             response.setSuccess(true);
             response.setMessage(
-                    "Doctor analytics fetched successfully");
+                    "Appointment analytics fetched successfully");
             response.setData(
-                    analyticsList);
+                    dashboard);
             response.setStatus(
                     HttpStatus.OK.value());
 
@@ -327,13 +607,11 @@ public class AppointmentAnalyticsServiceImpl
             response.setMessage(
                     e.getMessage());
             response.setStatus(
-                    HttpStatus.INTERNAL_SERVER_ERROR
-                            .value());
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
 
         return response;
     }
-    
     @Override
     public Response getAppointmentSummary(
             String clinicId,
@@ -526,5 +804,43 @@ public class AppointmentAnalyticsServiceImpl
 
         return response;
     }
-    
+    private LocalTime parseClinicTime(String timeStr) {
+
+        if (timeStr == null || timeStr.isBlank()) {
+            return null;
+        }
+
+        timeStr = timeStr.trim();
+
+        try {
+
+            return LocalTime.parse(timeStr);
+
+        } catch (Exception e) {
+
+            try {
+
+                return LocalTime.parse(
+                        timeStr,
+                        DateTimeFormatter.ofPattern(
+                                "hh:mm a"));
+
+            } catch (Exception ex) {
+
+                try {
+
+                    return LocalTime.parse(
+                            timeStr.toUpperCase(),
+                            DateTimeFormatter.ofPattern(
+                                    "h:mm a"));
+
+                } catch (Exception exception) {
+
+                    throw new RuntimeException(
+                            "Invalid time format : "
+                                    + timeStr);
+                }
+            }
+        }
+    }
 }
