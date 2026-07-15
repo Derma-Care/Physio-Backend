@@ -2,8 +2,8 @@ spring:
   application:
     name: bookingservice
 
-  config:
-    import: optional:application-secrets.yml
+#  config:
+#    import: optional:application-secrets.yml
 
   data:
     mongodb:
