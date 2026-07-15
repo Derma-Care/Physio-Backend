@@ -13,10 +13,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DoctorLoginCredentials {
+public class DoctorAndStaffLoginCredentials {
 
 	@Id
 	private String id;
+	private String mobilenumber;
 	private String staffId;
 	private String staffName;
 	private String clinicId;

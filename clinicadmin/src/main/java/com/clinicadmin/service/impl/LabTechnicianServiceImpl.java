@@ -17,7 +17,7 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.LabTechnicianRequestDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.LabTechnicianEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
@@ -70,7 +70,7 @@ public class LabTechnicianServiceImpl implements LabTechnicianService {
 		String username = dto.getContactNumber();
 		String rawPassword = generateStructuredPassword();
 		String encodedPassword = passwordEncoder.encode(rawPassword);
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getId())
+		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();

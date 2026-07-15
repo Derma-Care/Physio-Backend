@@ -84,9 +84,16 @@ public interface PhysiotherapyService {
 	 public Response getInvestigations(String bookingId, String patientId);
 
 
-		   
-			
+	public List<String> getPhysioRecordsByFollowUpDateRange(
+			String clinicId,
+			String branchId,
+			String startDate,
+			String endDate);
 
+	public List<String> getPhysioRecordsByTodayDate(
+			String clinicId,
+			String branchId,
+			String date);
 
 
 //	Response getTherapistDashboard(String clinicId, String branchId, String therapistId);

@@ -2275,4 +2275,88 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 		return response;
 	}
+
+
+	@Override
+	public List<String> getPhysioRecordsByFollowUpDateRange(
+			String clinicId,
+			String branchId,
+			String startDate,
+			String endDate) {
+
+		Response response = new Response();
+
+		try {
+
+			LocalDate start = LocalDate.parse(startDate);
+			LocalDate end = LocalDate.parse(endDate);
+
+			List<PhysiotherapyRecord> records =
+					repository.findByClinicIdAndBranchId(
+							clinicId,
+							branchId);
+
+			List<PhysiotherapyRecord> filteredRecords = records.stream()
+					.filter(record -> record.getFollowUp() != null
+							&& record.getFollowUp().getNextVisitDate() != null
+							&& !record.getFollowUp().getNextVisitDate().isBlank())
+					.filter(record -> {
+						LocalDate nextVisitDate =
+								LocalDate.parse(record.getFollowUp().getNextVisitDate());
+
+						return !nextVisitDate.isBefore(start)
+								&& !nextVisitDate.isAfter(end);
+					})
+					.toList();
+
+			List<String> bookingIds = new ArrayList<>();
+			filteredRecords.forEach(n->bookingIds.add(n.getBookingId()));
+            return bookingIds;
+		} catch (Exception e) {
+
+			return null;
+		}
+
+	}
+
+
+	@Override
+	public List<String> getPhysioRecordsByTodayDate(
+			String clinicId,
+			String branchId,
+			String date) {
+
+		Response response = new Response();
+
+		try {
+
+			LocalDate start = LocalDate.parse(date);
+
+			List<PhysiotherapyRecord> records =
+					repository.findByClinicIdAndBranchId(
+							clinicId,
+							branchId);
+
+			List<PhysiotherapyRecord> filteredRecords = records.stream()
+					.filter(record -> record.getFollowUp() != null
+							&& record.getFollowUp().getNextVisitDate() != null
+							&& !record.getFollowUp().getNextVisitDate().isBlank())
+					.filter(record -> {
+						LocalDate nextVisitDate =
+								LocalDate.parse(record.getFollowUp().getNextVisitDate());
+
+						return !nextVisitDate.isBefore(start)
+								&& !nextVisitDate.isAfter(start);
+					})
+					.toList();
+
+			List<String> bookingIds = new ArrayList<>();
+			filteredRecords.forEach(n->bookingIds.add(n.getBookingId()));
+			return bookingIds;
+		} catch (Exception e) {
+
+			return null;
+		}
+
+	}
 }

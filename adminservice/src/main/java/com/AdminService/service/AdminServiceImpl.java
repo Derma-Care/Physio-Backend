@@ -80,10 +80,7 @@ public class AdminServiceImpl implements AdminService {
 	@Autowired
 	private  ClinicAdminFeign clinicAdminFeign;
 
-	@Autowired
 
-	private BookingFeign bookingFeign;
-	
 	@Autowired
 	private BranchRepository branchRepository;
 	
@@ -532,6 +529,7 @@ public class AdminServiceImpl implements AdminService {
 	        credentials.setHospitalName(clinic.getName());
 	        credentials.setUserName(clinic.getHospitalId());
 	        credentials.setPassword(tempPassword);
+	        credentials.setEmail(clinic.getEmailAddress());
 	        credentials.setRole("ADMIN");
 
 	        // 🔧 FIX: permissions type mismatch
@@ -2048,15 +2046,20 @@ public class AdminServiceImpl implements AdminService {
     }
 
 
+    
+//    public String findEmailByMobileNumber(String mobileNumber) {
+//    	String email = null;
+//    	try {
+//    		ClinicCredentials obj =	clinicCredentialsRepository.findByMobilenumber(mobileNumber);
+//    		if(obj != null) {
+//    			email = obj.getEmail();
+//    		}else {
+//    			email = branchCredentialsRepository.findByMobilenumber(mobileNumber).getEmail();}
+//    		}catch(Exception e) {return null;}
+//    }
 
-	
-
-	
 
 	// CUSTOMER MANAGEMENT
-
-    
-
     @Override
 
 	public Response saveCustomerBasicDetails(CustomerDTO customerDTO ) {

@@ -21,5 +21,17 @@ public interface PhysioDoctorFeign {
 	 @GetMapping("/api/physiotherapy-doctor/prescription/{BookingId}")
 		public String getByBookingId(@PathVariable String BookingId);
 
+	@GetMapping("/api/physiotherapy-doctor/followUpDateRange/clinicId/{clinicId}/branchId/{branchId}/startDate/{startDate}/endDate/{endDate}")
+	public List<String> getPhysioRecordsByFollowUpDateRange(
+			@PathVariable	String clinicId,
+			@PathVariable	String branchId,
+			@PathVariable	String startDate,
+			@PathVariable String endDate);
+
+	@GetMapping("/api/physiotherapy-doctor/today/clinicId/{clinicId}/branchId/{branchId}/date/{date}")
+	public List<String> getPhysioRecordsByTodayDate(
+			@PathVariable	String clinicId,
+			@PathVariable	String branchId,
+			@PathVariable	String date);
 
 }

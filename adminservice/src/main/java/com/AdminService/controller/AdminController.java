@@ -72,6 +72,14 @@ public class AdminController {
 
     }    
 
+	
+//	  @GetMapping("/password/{mobileNumber}")
+//	  public String findEmailByMobileNumber(String mobileNumber) {
+//		  
+//		  return serviceImpl.findEmailByMobileNumber(mobileNumber);
+//	  }
+	  
+	  
 	@PostMapping("/CreateClinic")
 	public ResponseEntity<?> clinicRegistration(
 	        @RequestBody @Valid ClinicDTO clinic) {

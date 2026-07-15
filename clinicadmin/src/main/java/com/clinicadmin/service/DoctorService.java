@@ -4,11 +4,10 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
+import com.clinicadmin.dto.DoctorAndStaffLoginDto;
 import com.clinicadmin.dto.DoctorAvailabilityStatusDTO;
-import com.clinicadmin.dto.DoctorLoginDTO;
 import com.clinicadmin.dto.DoctorSlotDTO;
 import com.clinicadmin.dto.DoctorsDTO;
-import com.clinicadmin.dto.LoginBasedOnRoleDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TempBlockingSlot;
 
@@ -21,7 +20,7 @@ public interface DoctorService {
 
 	public Response upDateDoctorById(String doctorId, DoctorsDTO dto);
 
-	public Response login(DoctorLoginDTO loginDTO);
+	public Response login(DoctorAndStaffLoginDto loginDTO);
 
 	public Response changePassword(ChangeDoctorPasswordDTO updateDTO);
 
@@ -66,7 +65,7 @@ public interface DoctorService {
 
 	public Response getAllDoctorsWithRespectiveClinic();
 
-	public Response loginUsingRoles(DoctorLoginDTO dto);
+	public Response loginUsingRoles(DoctorAndStaffLoginDto dto);
 
 //	Response getDoctorsByHospitalIdAndBranchIdSubserviceId(String hospitalId, String branchId, String subServiceId);
 

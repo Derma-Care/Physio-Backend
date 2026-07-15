@@ -20,8 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
+import com.clinicadmin.dto.DoctorAndStaffLoginDto;
 import com.clinicadmin.dto.DoctorAvailabilityStatusDTO;
-import com.clinicadmin.dto.DoctorLoginDTO;
 import com.clinicadmin.dto.DoctorSlotDTO;
 import com.clinicadmin.dto.DoctorsDTO;
 import com.clinicadmin.dto.Response;
@@ -189,7 +189,7 @@ public class DoctorController {
 	// ----------------------------Doctor
 	// Login----------------------------------------------------------
 	@PostMapping("/doctorLogin")
-	public ResponseEntity<Response> doctorLogin(@Valid @RequestBody DoctorLoginDTO loginDTO) {
+	public ResponseEntity<Response> doctorLogin(@Valid @RequestBody DoctorAndStaffLoginDto loginDTO) {
 		Response response = doctorService.login(loginDTO);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
@@ -444,7 +444,7 @@ public class DoctorController {
 
 // --------------------Login By Using roles-------------------
 	@PostMapping("/loginUsingRoles")
-	public ResponseEntity<Response> loginUsingRoles(@RequestBody DoctorLoginDTO dto) {
+	public ResponseEntity<Response> loginUsingRoles(@RequestBody DoctorAndStaffLoginDto dto) {
 		Response response = doctorService.loginUsingRoles(dto);
 		return ResponseEntity.status(response.getStatus()).body(response);
 

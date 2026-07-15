@@ -28,7 +28,7 @@ Response getClinicById(String clinicId);
 public Response getAllClinics();
 Response updateClinic(String clinicId, ClinicDTO clinic);
 Response deleteClinic(String clinicId);
-
+///public String findEmailByMobileNumber(String mobileNumber);
 ////================= CLINIC VERIFICATION FLOW =================
 //
 ////Start verification (Admin action)

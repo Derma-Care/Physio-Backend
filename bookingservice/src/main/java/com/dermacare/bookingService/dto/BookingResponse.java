@@ -93,6 +93,7 @@ public class BookingResponse {
 	private String partImageKey;   
 	private String referredDoctorId;
 	private String transactionId;
+	private boolean nextVisit;
 	//private List<FollowupBookingDto> follwupBookings;
 		
 	public void setIsFollowupStatus(boolean followupStatus) {

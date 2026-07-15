@@ -19,7 +19,7 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.SecurityStaffDTO;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.SecurityStaff;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
@@ -86,7 +86,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 		String rawPassword = generateStructuredPassword();
 		String encodedPassword = passwordEncoder.encode(rawPassword);
 
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getSecurityStaffId())
+		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getSecurityStaffId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -225,7 +225,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 		log.info("SecurityStaff deleted | securityStaffId={}", staffId);
 
 	    // ✅ Delete corresponding credentials if exist
-	    Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(staffId);
+	    Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(staffId);
 	    if (credentials.isPresent()) {
 	        credentialsRepository.deleteById(credentials.get().getId());
 			log.info("Login credentials deleted | securityStaffId={}", staffId);

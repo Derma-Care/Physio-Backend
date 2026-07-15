@@ -24,7 +24,7 @@ import com.clinicadmin.dto.DashboardRequest;
 import com.clinicadmin.dto.ReceptionistRequestDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.ReceptionistEntity;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.BookingFeign;
@@ -89,7 +89,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 		String rawPassword = generateStructuredPassword();
 		String encodedPassword = passwordEncoder.encode(rawPassword);
 
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getId())
+		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -204,11 +204,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 		log.info("Receptionist updated successfully | receptionistId={}", updated.getId());
 
 	    // 🔹 Sync with DoctorLoginCredentials using receptionist.id
-	    Optional<DoctorLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getId());
+	    Optional<DoctorAndStaffLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getId());
 	    if (credsOpt.isPresent()) {
 			log.info("Syncing login credentials | receptionistId={}", updated.getId());
 
-	        DoctorLoginCredentials creds = credsOpt.get();
+	        DoctorAndStaffLoginCredentials creds = credsOpt.get();
 
 	        creds.setStaffName(updated.getFullName());
 	        creds.setBranchId(updated.getBranchId());
@@ -265,7 +265,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 			log.info("Receptionist deleted | receptionistId={}", id);
 
 	        // ✅ Delete corresponding login credentials (if any)
-	        Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+	        Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
 	        if (credentials.isPresent()) {
 	            credentialsRepository.deleteById(credentials.get().getId());
 				log.info("Login credentials deleted | receptionistId={}", id);

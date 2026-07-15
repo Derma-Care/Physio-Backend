@@ -21,7 +21,7 @@ import com.clinicadmin.dto.MedicineDTO;
 import com.clinicadmin.dto.MedicineTypeDTO;
 import com.clinicadmin.dto.PharmacistDTO;
 import com.clinicadmin.dto.Response;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.Pharmacist;
 import com.clinicadmin.feignclient.AdminServiceClient;
 //import com.clinicadmin.feignclient.DoctorServiceFeign;
@@ -89,7 +89,7 @@ public class PharmacistServiceImpl implements PharmacistService {
 
 		Pharmacist saved = pharmacistRepository.save(pharmacist);
 
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getPharmacistId())
+		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getPharmacistId())
 				.staffName(saved.getFullName()).hospitalId(saved.getHospitalId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -194,9 +194,9 @@ public class PharmacistServiceImpl implements PharmacistService {
 	        Pharmacist updated = pharmacistRepository.save(existing);
 
 	        // 🔹 Sync permissions to DoctorLoginCredentials
-	        Optional<DoctorLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getPharmacistId());
+	        Optional<DoctorAndStaffLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getPharmacistId());
 	        if (credsOpt.isPresent()) {
-	            DoctorLoginCredentials creds = credsOpt.get();
+	            DoctorAndStaffLoginCredentials creds = credsOpt.get();
 
 	            creds.setStaffName(updated.getFullName());
 	            creds.setBranchId(updated.getBranchId());
@@ -241,7 +241,7 @@ public class PharmacistServiceImpl implements PharmacistService {
 	        pharmacistRepository.deleteByPharmacistId(pharmacistId);
 
 	        // ✅ Step 3: Delete corresponding login credentials (if any)
-	        Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(pharmacistId);
+	        Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(pharmacistId);
 	        if (credentials.isPresent()) {
 	            credentialsRepository.deleteById(credentials.get().getId());
 	        }

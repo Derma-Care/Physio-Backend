@@ -32,7 +32,7 @@ import com.clinicadmin.dto.TherapistFeedbackSummaryDTO;
 import com.clinicadmin.dto.TherapistPresenceRequest;
 import com.clinicadmin.dto.TherapistResponseDTO;
 import com.clinicadmin.dto.TherapistServiceResponseDTO;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.Documents;
 import com.clinicadmin.entity.FeedbackDetails;
 import com.clinicadmin.entity.PatientFeedback;
@@ -154,8 +154,9 @@ public class TherapistServiceImpl implements TherapistService {
             String rawPassword = generatePassword();
             String encodedPassword = passwordEncoder.encode(rawPassword);
 
-            DoctorLoginCredentials credentials = DoctorLoginCredentials.builder()
+            DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder()
                     .staffId(savedTherapist.getTherapistId())
+                    .mobilenumber(savedTherapist.getContactNumber())
                     .staffName(savedTherapist.getFullName())
                     .hospitalId(savedTherapist.getClinicId())
                     .hospitalName(savedTherapist.getClinicName())

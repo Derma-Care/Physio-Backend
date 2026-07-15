@@ -135,6 +135,7 @@ public class BranchServiceImpl implements BranchService {
             credentials.setPassword(tempPassword);
             credentials.setBranchName(savedBranch.getBranchName());
             credentials.setRole(savedBranch.getRole());
+            credentials.setEmail(savedBranch.getEmail());
             credentials.setPermissions(savedBranch.getPermissions());
 
             branchCredentialsRepository.save(credentials);

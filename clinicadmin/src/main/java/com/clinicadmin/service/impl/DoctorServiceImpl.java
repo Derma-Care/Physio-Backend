@@ -42,16 +42,16 @@ import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
 import com.clinicadmin.dto.ClinicDTO;
 import com.clinicadmin.dto.ClinicWithDoctorsDTO;
 import com.clinicadmin.dto.ConsultationTypeDTO;
+import com.clinicadmin.dto.DoctorAndStaffLoginDto;
 import com.clinicadmin.dto.DoctorAvailabilityStatusDTO;
 import com.clinicadmin.dto.DoctorAvailableSlotDTO;
-import com.clinicadmin.dto.DoctorLoginDTO;
 import com.clinicadmin.dto.DoctorSlotDTO;
 import com.clinicadmin.dto.DoctorsDTO;
 import com.clinicadmin.dto.ResBody;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TempBlockingSlot;
 import com.clinicadmin.entity.DoctorCounter;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.DoctorSlot;
 import com.clinicadmin.entity.Doctors;
 import com.clinicadmin.feignclient.AdminServiceClient;
@@ -248,8 +248,8 @@ public class DoctorServiceImpl implements DoctorService {
 			String rawPassword = generateStructuredPassword();
 			String encodedPassword = passwordEncoder.encode(rawPassword);
 
-			DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(savedDoctor.getDoctorId())
-					.staffName(savedDoctor.getDoctorName()).hospitalId(savedDoctor.getHospitalId())
+			DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(savedDoctor.getDoctorId())
+					.staffName(savedDoctor.getDoctorName()).hospitalId(savedDoctor.getHospitalId()).mobilenumber(savedDoctor.getDoctorMobileNumber())
 					.hospitalName(savedDoctor.getHospitalName()).branchId(savedDoctor.getBranchId()).username(username)
 					.password(encodedPassword).role(dto.getRole()).emailId(savedDoctor.getDoctorEmail()).permissions(savedDoctor.getPermissions()).build();
 
@@ -848,7 +848,7 @@ public class DoctorServiceImpl implements DoctorService {
 				doctorsRepository.deleteById(optionalDoctor.get().getId());
 
 				log.debug("Checking login credentials for doctorId={}", doctorId);
-				Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
+				Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
 
 				optionalCredentials.ifPresent(credentials -> {
 					log.info("Deleting login credentials for doctorId={}", doctorId);
@@ -920,7 +920,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 			doctorsRepository.deleteById(doctor.getId());
 
-			Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
+			Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
 
 			optionalCredentials.ifPresent(credentials -> {
 				log.info("Deleting credentials for doctorId={}", doctorId);
@@ -959,7 +959,7 @@ public class DoctorServiceImpl implements DoctorService {
 				for (Doctors doctor : doctors) {
 
 					log.debug("Deleting credentials for doctorId={}", doctor.getDoctorId());
-					Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository
+					Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository
 							.findByStaffId(doctor.getDoctorId());
 					optionalCredentials.ifPresent(credentialsRepository::delete);
 
@@ -994,7 +994,7 @@ public class DoctorServiceImpl implements DoctorService {
 	// -------------------------------DOCTOR
 	// LOGIN-------------------------------------------------------------
 	@Override
-	public Response login(DoctorLoginDTO loginDTO) {
+	public Response login(DoctorAndStaffLoginDto loginDTO) {
 
 		log.info("Doctor login request received for username={}", loginDTO.getUserName());
 
@@ -1003,7 +1003,7 @@ public class DoctorServiceImpl implements DoctorService {
 		try {
 			// Fetch credentials by username
 			log.debug("Fetching login credentials for username={}", loginDTO.getUserName());
-			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository
+			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository
 					.findByUsername(loginDTO.getUserName());
 
 			if (credentialsOpt.isEmpty()) {
@@ -1014,7 +1014,7 @@ public class DoctorServiceImpl implements DoctorService {
 				return response;
 			}
 
-			DoctorLoginCredentials credentials = credentialsOpt.get();
+			DoctorAndStaffLoginCredentials credentials = credentialsOpt.get();
 
 			// Validate password
 			log.debug("Validating password for username={}", loginDTO.getUserName());
@@ -1039,7 +1039,7 @@ public class DoctorServiceImpl implements DoctorService {
 			});
 
 			// Prepare response DTO
-			DoctorLoginDTO dto = new DoctorLoginDTO();
+			DoctorAndStaffLoginDto dto = new DoctorAndStaffLoginDto();
 			dto.setUserName(credentials.getUsername());
 			dto.setDeviceId(loginDTO.getDeviceId());
 			dto.setStaffId(credentials.getStaffId());
@@ -1189,12 +1189,12 @@ public class DoctorServiceImpl implements DoctorService {
 
 		/* ---------- FETCH CREDENTIALS ---------- */
 		log.debug("Fetching credentials for username={}", updateDTO.getUserName());
-		Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository
+		Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository
 				.findByUsername(updateDTO.getUserName());
 
 		if (optionalCredentials.isPresent()) {
 
-			DoctorLoginCredentials credentials = optionalCredentials.get();
+			DoctorAndStaffLoginCredentials credentials = optionalCredentials.get();
 			log.debug("Credentials found for username={}, staffId={}", credentials.getUsername(),
 					credentials.getStaffId());
 
@@ -3330,12 +3330,12 @@ public class DoctorServiceImpl implements DoctorService {
 //		return response;
 //	}
 	@Override
-	public Response loginUsingRoles(DoctorLoginDTO dto) {
+	public Response loginUsingRoles(DoctorAndStaffLoginDto dto) {
 		Response response = new Response();
 
 		try {
 			// Find credentials by username
-			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(dto.getUserName());
+			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(dto.getUserName());
 
 			if (credentialsOpt.isEmpty()) {
 				response.setSuccess(false);
@@ -3344,7 +3344,7 @@ public class DoctorServiceImpl implements DoctorService {
 				return response;
 			}
 
-			DoctorLoginCredentials credentials = credentialsOpt.get();
+			DoctorAndStaffLoginCredentials credentials = credentialsOpt.get();
 			credentials.setDeviceId(dto.getDeviceId());
 			credentialsRepository.save(credentials);
 			// Check password and role together
@@ -3360,7 +3360,7 @@ public class DoctorServiceImpl implements DoctorService {
 			}
 
 			// Prepare response DTO
-			DoctorLoginDTO resDto = new DoctorLoginDTO();
+			DoctorAndStaffLoginDto resDto = new DoctorAndStaffLoginDto();
 			resDto.setUserName(credentials.getUsername());
 			resDto.setRole(credentials.getRole());
 			resDto.setDeviceId(dto.getDeviceId());
@@ -3391,7 +3391,7 @@ public class DoctorServiceImpl implements DoctorService {
 	@Override
 	public String getByTherapistDeviceId(String therapistId) {
 		try {
-			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(therapistId);
+			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(therapistId);
 
 			if (credentialsOpt.isEmpty()) {				
 				return null;

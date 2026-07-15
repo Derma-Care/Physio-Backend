@@ -266,4 +266,24 @@ public class PhysiotherapyController {
 	        Response response = service.getInvestigations(bookingId, patientId);
 
 	        return ResponseEntity.status(response.getStatus()).body(response);
-	    }}
+	    }
+
+	@GetMapping("/followUpDateRange/clinicId/{clinicId}/branchId/{branchId}/startDate/{startDate}/endDate/{endDate}")
+	public List<String> getPhysioRecordsByFollowUpDateRange(
+			@PathVariable String clinicId,
+			@PathVariable String branchId,
+			@PathVariable String startDate,
+			@PathVariable String endDate){
+		return service.getPhysioRecordsByFollowUpDateRange(clinicId,branchId,startDate,endDate);
+	}
+
+	@GetMapping("/today/clinicId/{clinicId}/branchId/{branchId}/date/{date}")
+	public List<String> getPhysioRecordsByTodayDate(
+			@PathVariable	String clinicId,
+			@PathVariable String branchId,
+			@PathVariable String date){
+		return service.getPhysioRecordsByTodayDate(clinicId,branchId,date);
+
+	}
+
+}

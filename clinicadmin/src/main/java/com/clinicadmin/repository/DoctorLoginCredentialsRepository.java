@@ -5,13 +5,14 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 
-public interface DoctorLoginCredentialsRepository extends MongoRepository<DoctorLoginCredentials, String> {
-    Optional<DoctorLoginCredentials> findByUsername(String username);
+public interface DoctorLoginCredentialsRepository extends MongoRepository<DoctorAndStaffLoginCredentials, String> {
+   
+	Optional<DoctorAndStaffLoginCredentials> findByUsername(String username);
     boolean existsByUsername(String username);  // fixed
-    Optional<DoctorLoginCredentials> findByStaffId(String staffId);
-    List<DoctorLoginCredentials> findByHospitalIdAndBranchId(
+    Optional<DoctorAndStaffLoginCredentials> findByStaffId(String staffId);
+    List<DoctorAndStaffLoginCredentials> findByHospitalIdAndBranchId(
             String hospitalId,
             String branchId
     );

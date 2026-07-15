@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class DoctorLoginDTO {
+public class DoctorAndStaffLoginDto {
+	
 	private String userName;
 	private String password;
 	private String role;

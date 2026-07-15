@@ -15,7 +15,7 @@ import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.WardBoyDTO;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.WardBoy;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
@@ -86,7 +86,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 		log.debug("Credentials generated | username={}", username);
 		
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getWardBoyId())
+		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getWardBoyId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -291,7 +291,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	        wardBoyRepository.deleteById(id);
 	        log.info("WardBoy deleted successfully | id={}", id);
 	        // ✅ Step 3: Delete corresponding login credentials (if exist)
-	        Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+	        Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
 	        if (credentials.isPresent()) {
 	        	log.debug("Deleting WardBoy login credentials | id={}", id);
 	            credentialsRepository.deleteById(credentials.get().getId());

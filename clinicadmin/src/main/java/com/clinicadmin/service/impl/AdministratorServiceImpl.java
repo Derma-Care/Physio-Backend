@@ -20,7 +20,7 @@ import com.clinicadmin.dto.AdministratorDTO;
 import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.entity.Administrator;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.AdministratorRepository;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
@@ -95,7 +95,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         Administrator savedAdmin = administratorRepository.save(admin);
 
         //  Create login credentials
-        DoctorLoginCredentials credentials = DoctorLoginCredentials.builder()
+        DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder()
                 .staffId(savedAdmin.getId())
                 .staffName(savedAdmin.getFullName())
                 .hospitalId(savedAdmin.getClinicId())

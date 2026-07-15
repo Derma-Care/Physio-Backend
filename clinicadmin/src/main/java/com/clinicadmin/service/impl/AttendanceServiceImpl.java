@@ -26,7 +26,7 @@ import com.clinicadmin.dto.Session;
 import com.clinicadmin.dto.TimeLocationDTO;
 import com.clinicadmin.entity.Activity;
 import com.clinicadmin.entity.Attendance;
-import com.clinicadmin.entity.DoctorLoginCredentials;
+import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.TherapistAttendance;
 import com.clinicadmin.entity.TimeLocation;
 import com.clinicadmin.feignclient.AdminServiceClient;
@@ -1127,7 +1127,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             // This ensures every user is returned even if they have not
             // logged in today.
             // =========================================================
-            List<DoctorLoginCredentials> users =
+            List<DoctorAndStaffLoginCredentials> users =
                     credentialsRepository.findByHospitalIdAndBranchId(
                             clinicId,
                             branchId
@@ -1466,7 +1466,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             // =========================================================
             // LOOP THROUGH ALL USERS
             // =========================================================
-            for (DoctorLoginCredentials user : users) {
+            for (DoctorAndStaffLoginCredentials user : users) {
 
                 DailyAllUsersResponseDTO dto =
                         new DailyAllUsersResponseDTO();
