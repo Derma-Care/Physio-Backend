@@ -458,41 +458,49 @@ public class AppointmentAnalyticsServiceImpl
                                         "followupStatus",
                                         ""));
 
-                boolean completed =
-                        "completed".equalsIgnoreCase(
-                                status)
-                                || "completed".equalsIgnoreCase(
-                                followupStatus);
-
                 boolean cancelled =
                         "cancelled".equalsIgnoreCase(
                                 status)
                                 || "cancelled".equalsIgnoreCase(
                                 followupStatus);
 
-                if (completed) {
+//                boolean paymentCompleted =
+//                        false;
+//
+//                try {
+//
+//                    Response paymentResponse =
+//                            physiotherapyFeignClient
+//                                    .getPayment(
+//                                            bookingId);
+//
+//                    if (paymentResponse != null
+//                            && paymentResponse.getData() != null) {
+//
+//                        Map<String, Object> payment =
+//                                (Map<String, Object>) paymentResponse
+//                                        .getData();
+//
+//                        String overallStatus =
+//                                String.valueOf(
+//                                        payment.getOrDefault(
+//                                                "overallStatus",
+//                                                ""));
+//
+//                        paymentCompleted =
+//                                "completed".equalsIgnoreCase(
+//                                        overallStatus);
+//                    }
+//
+//                } catch (Exception e) {
+//
+//                    System.out.println(
+//                            "Payment not found for bookingId : "
+//                                    + bookingId);
+//                }
 
-                    completedCount++;
-
-                    practitioner.put(
-                            "completed",
-                            ((Long) practitioner.get(
-                                    "completed")) + 1);
-                }
-
-                if (cancelled) {
-
-                    cancelledCount++;
-
-                    practitioner.put(
-                            "cancelled",
-                            ((Long) practitioner.get(
-                                    "cancelled")) + 1);
-                }
-
-                boolean paymentCompleted =
-                        false;
-
+                boolean paymentFound = false;
+                boolean paymentCompleted = false;
                 try {
 
                     Response paymentResponse =
@@ -502,6 +510,8 @@ public class AppointmentAnalyticsServiceImpl
 
                     if (paymentResponse != null
                             && paymentResponse.getData() != null) {
+
+                        paymentFound = true;
 
                         Map<String, Object> payment =
                                 (Map<String, Object>) paymentResponse
@@ -525,14 +535,35 @@ public class AppointmentAnalyticsServiceImpl
                                     + bookingId);
                 }
 
-                if (!completed
-                        && !paymentCompleted
-                        && !cancelled) {
+                boolean bookingCompleted =
+                        "completed".equalsIgnoreCase(status)
+                        || "completed".equalsIgnoreCase(followupStatus);
+
+                if (bookingCompleted && paymentCompleted) {
+
+                    completedCount++;
+
+                    practitioner.put(
+                            "completed",
+                            ((Long) practitioner.get(
+                                    "completed")) + 1);
+                }
+                else if (bookingCompleted && !paymentCompleted) {
 
                     missedCount++;
                 }
-            }
 
+                if (cancelled) {
+
+                    cancelledCount++;
+
+                    practitioner.put(
+                            "cancelled",
+                            ((Long) practitioner.get(
+                                    "cancelled")) + 1);
+                
+                }
+            }
             long bookedCount =
                     totalAppointments
                             - cancelledCount;
@@ -745,6 +776,7 @@ public class AppointmentAnalyticsServiceImpl
                     cancelledCount++;
                 }
 
+                boolean paymentFound = false;
                 boolean paymentCompleted = false;
 
                 try {

@@ -1,4 +1,5 @@
 package com.clinicadmin.service.impl;
+
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,10 +15,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import com.clinicadmin.dto.AgeGroupAnalytics;
 import com.clinicadmin.dto.PatientAnalyticsRequest;
 import com.clinicadmin.dto.PatientAnalyticsResponse;
@@ -28,41 +31,63 @@ import com.clinicadmin.entity.CustomerOnbording;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.service.PatientAnalyticsService;
+
 @Service
 public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
+
     private static final Logger log = LoggerFactory.getLogger(PatientAnalyticsServiceImpl.class);
+
     private static final int TODAY = 1, WEEK = 2, MONTH = 3, YEAR = 4, CUSTOM = 5;
+
+    // Current createdAt format, written by CustomerOnboardingServiceImpl.getIndianDateTime()
+    // e.g. "14/07/2026 02:42:51 PM"
     private static final DateTimeFormatter CREATED_AT_FORMAT =
             new DateTimeFormatterBuilder()
                     .parseCaseInsensitive()
                     .appendPattern("dd/MM/yyyy hh:mm:ss a")
                     .toFormatter(Locale.ENGLISH);
+
+    // Legacy createdAt format used before the storage format was switched over
+    // to CREATED_AT_FORMAT above, e.g. "2026-06-01T06:16:04.297517422".
+    // Older documents in Mongo still carry this ISO format, so we must be able
+    // to parse both — otherwise those records parse to null and silently drop
+    // out of newPatients / newPatientsTrend / ageGroupAnalytics while still
+    // being counted in totalPatients (which is size()-based, not date-based).
+    private static final DateTimeFormatter LEGACY_ISO_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
     // Matches clinic hours format like "07:00 AM" / "10:00 PM"
     private static final DateTimeFormatter CLINIC_TIME_FORMAT =
             new DateTimeFormatterBuilder()
                     .parseCaseInsensitive()
                     .appendPattern("hh:mm a")
                     .toFormatter(Locale.ENGLISH);
+
     private static final ZoneId ZONE = ZoneId.of("Asia/Kolkata");
- // Label format for CUSTOM range trend buckets, e.g. "Jul 07", "Aug 02"
- // 3-letter month abbreviation + zero-padded day, so multi-month custom
- // ranges (e.g. Jun 28 -> Aug 03) read cleanly without repeating the year.
- private static final DateTimeFormatter CUSTOM_LABEL_FORMAT =
-         DateTimeFormatter.ofPattern("MMM dd", Locale.ENGLISH);
+
+    // Label format for CUSTOM range trend buckets, e.g. "Jul 07", "Aug 02"
+    // 3-letter month abbreviation + zero-padded day, so multi-month custom
+    // ranges (e.g. Jun 28 -> Aug 03) read cleanly without repeating the year.
+    private static final DateTimeFormatter CUSTOM_LABEL_FORMAT =
+            DateTimeFormatter.ofPattern("MMM dd", Locale.ENGLISH);
+
     // Fallback window used only if the branch lookup fails or hours are missing
     private static final int DEFAULT_OPEN_HOUR = 8;
     private static final int DEFAULT_CLOSE_HOUR = 20;
     private static final int SLOT_INTERVAL_HOURS = 2;
+
     @Autowired
     private CustomerOnboardingRepository onboardingRepository;
+
     @Autowired
     private AdminServiceClient adminServiceClient;
+
     @Override
     public Response getPatientAnalytics(String clinicId, String branchId, int filterType,
                                          PatientAnalyticsRequest request) {
         LocalDateTime now = LocalDateTime.now(ZONE);
         LocalDateTime start;
         LocalDateTime end = now;
+
         switch (filterType) {
             case TODAY:
                 start = now.toLocalDate().atStartOfDay();
@@ -89,9 +114,11 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
                 err.setStatus(400);
                 return err;
         }
+
         String search = request != null ? request.getSearch() : null;
         return buildAnalytics(clinicId, branchId, start, end, filterType, search);
     }
+
     @Override
     public Response getCustomPatientAnalytics(String clinicId, String branchId, PatientAnalyticsRequest request) {
         if (request == null || request.getStartDate() == null || request.getEndDate() == null) {
@@ -105,6 +132,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         LocalDateTime end = request.getEndDate().atTime(23, 59, 59);
         return buildAnalytics(clinicId, branchId, start, end, CUSTOM, request.getSearch());
     }
+
     // ---------------- core builder ----------------
     private Response buildAnalytics(String clinicId, String branchId,
                                      LocalDateTime start, LocalDateTime end,
@@ -113,11 +141,13 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         try {
             List<CustomerOnbording> allBranchCustomers =
                     onboardingRepository.findByHospitalIdAndBranchId(clinicId, branchId);
+
             if (search != null && !search.isBlank()) {
                 allBranchCustomers = allBranchCustomers.stream()
                         .filter(c -> matchesAgeGroup(c, search))
                         .collect(Collectors.toList());
             }
+
             // Previous-period boundaries used for growth % comparisons (both the
             // top-level summary.growthRate and each ageGroupAnalytics[].growthTrend).
             //
@@ -156,8 +186,10 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
                     break;
                 }
             }
+
             List<CustomerOnbording> newInPeriod = filterByCreatedAt(allBranchCustomers, start, end);
             List<CustomerOnbording> newInPrevPeriod = filterByCreatedAt(allBranchCustomers, prevStart, prevEnd);
+
             // NOTE: no "last visit"/appointment field exists on CustomerOnbording yet,
             // so "active" is approximated as customers who have a deviceId (i.e. have
             // logged into the app at least once). Swap this for real visit/booking
@@ -165,6 +197,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
             long activePatients = allBranchCustomers.stream()
                     .filter(c -> c.getDeviceId() != null && !c.getDeviceId().isBlank())
                     .count();
+
             // NOTE: totalPatients / activePatients are branch-wide counts (all-time),
             // independent of the start/end filter window. newPatients / newPatientsTrend
             // are the only summary fields scoped to the selected date range. This is
@@ -174,19 +207,24 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
             summary.setNewPatients(newInPeriod.size());
             summary.setActivePatients((int) activePatients);
             summary.setGrowthRate(growthRate(newInPeriod.size(), newInPrevPeriod.size()));
+
             List<TrendData> trend = buildTrend(newInPeriod, start, end, filterType, clinicId, branchId);
+
             // ageGroupAnalytics is scoped to the selected date range: male/female/total
             // reflect only patients who newly registered within [start, end], not the
             // branch's all-time demographic mix.
             List<AgeGroupAnalytics> ageGroups = buildAgeGroupAnalytics(newInPeriod, newInPrevPeriod);
+
             PatientAnalyticsResponse data = new PatientAnalyticsResponse();
             data.setSummary(summary);
             data.setNewPatientsTrend(trend);
             data.setAgeGroupAnalytics(ageGroups);
+
             response.setSuccess(true);
             response.setMessage("Patient analytics fetched successfully");
             response.setData(data);
             response.setStatus(200);
+
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage("Error fetching patient analytics: " + e.getMessage());
@@ -194,7 +232,9 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         }
         return response;
     }
+
     // ---------------- helpers ----------------
+
     private List<CustomerOnbording> filterByCreatedAt(List<CustomerOnbording> customers,
                                                         LocalDateTime start, LocalDateTime end) {
         return customers.stream()
@@ -204,128 +244,151 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
                 })
                 .collect(Collectors.toList());
     }
+
     /**
-     * Parses the raw createdAt string ("dd/MM/yyyy hh:mm:ss a") into a LocalDateTime.
+     * Parses the raw createdAt string into a LocalDateTime, supporting BOTH
+     * formats that exist in the data:
      *
-     * IMPORTANT: normalizes whitespace before parsing. Some upstream sources
-     * (Mongo exports, copy/paste, certain drivers/locales) emit a non-breaking
-     * space (U+00A0) or repeated spaces between the time and the am/pm marker
+     *   1) Current format  -> "dd/MM/yyyy hh:mm:ss a"        e.g. "14/07/2026 02:42:51 PM"
+     *   2) Legacy format   -> ISO_LOCAL_DATE_TIME             e.g. "2026-06-01T06:16:04.297517422"
+     *
+     * Background: CustomerOnboardingServiceImpl originally stored createdAt via
+     * LocalDateTime.now().toString() (ISO format), then was changed to
+     * getIndianDateTime() (dd/MM/yyyy hh:mm:ss a). Older Mongo documents were
+     * never migrated, so both formats coexist in the collection today. Without
+     * this fallback, every legacy-format record fails to parse, returns null,
+     * and is silently dropped from newPatients / newPatientsTrend /
+     * ageGroupAnalytics — while still being counted in totalPatients (which is
+     * a plain size(), not date-filtered). That mismatch is exactly what made
+     * "220 total patients" but only 1-8 "new patients" show up across every
+     * filter range.
+     *
+     * Also normalizes whitespace before parsing: some upstream sources (Mongo
+     * exports, copy/paste, certain drivers/locales) emit a non-breaking space
+     * (U+00A0) or repeated spaces between the time and the am/pm marker
      * instead of a single regular ASCII space — e.g. "11:44:17\u00A0am".
      * DateTimeFormatter matches the literal space in the pattern exactly, so
-     * that single invisible character causes parsing to throw, and the record
-     * silently gets dropped from newPatients/trend/ageGroupAnalytics even
-     * though it looks completely normal when printed or viewed in a JSON tool.
-     * This was the root cause of "today shows 0 new patients" even when a
-     * patient was created earlier today.
+     * that single invisible character would otherwise cause parsing to throw.
      */
     private LocalDateTime parseCreatedAt(String createdAt) {
         if (createdAt == null || createdAt.isBlank()) return null;
+
+        String normalized = createdAt
+                .replace('\u00A0', ' ')   // non-breaking space -> regular space
+                .replaceAll("\\s+", " ")  // collapse repeated/mixed whitespace
+                .trim();
+
+        // Try current format first (dd/MM/yyyy hh:mm:ss a)
         try {
-            String normalized = createdAt
-                    .replace('\u00A0', ' ')   // non-breaking space -> regular space
-                    .replaceAll("\\s+", " ")  // collapse repeated/mixed whitespace
-                    .trim();
             return LocalDateTime.parse(normalized, CREATED_AT_FORMAT);
-        } catch (Exception e) {
-            // Don't swallow silently — a record with an unparseable createdAt
-            // is still counted in totalPatients but quietly dropped from
-            // newPatients/trend/ageGroupAnalytics, which looks like a bug from
-            // the outside. Log it so mismatched formats are visible.
-            log.warn("Could not parse createdAt='{}' with pattern dd/MM/yyyy hh:mm:ss a", createdAt, e);
-            return null;
+        } catch (Exception primaryEx) {
+            // Fall back to legacy ISO format (e.g. "2026-06-01T06:16:04.297517422")
+            try {
+                return LocalDateTime.parse(normalized, LEGACY_ISO_FORMAT);
+            } catch (Exception legacyEx) {
+                // Don't swallow silently — a record with an unparseable createdAt
+                // is still counted in totalPatients but quietly dropped from
+                // newPatients/trend/ageGroupAnalytics, which looks like a bug from
+                // the outside. Log it so mismatched formats are visible.
+                log.warn("Could not parse createdAt='{}' with either 'dd/MM/yyyy hh:mm:ss a' or ISO_LOCAL_DATE_TIME",
+                        createdAt, legacyEx);
+                return null;
+            }
         }
     }
+
     private double growthRate(int current, int previous) {
         if (previous == 0) return current > 0 ? 100.0 : 0.0;
         return Math.round(((current - previous) * 100.0 / previous) * 10.0) / 10.0;
     }
 
-    
-    
     private List<TrendData> buildTrend(List<CustomerOnbording> newInPeriod,
             LocalDateTime start, LocalDateTime end, int filterType,
             String clinicId, String branchId) {
-    			Map<String, Integer> buckets = new LinkedHashMap<>();
-    				if (filterType == TODAY) {
-    					int[] hourSlots = resolveHourSlots(clinicId, branchId);
-    					String[] labels = toLabels(hourSlots);
-    					for (String h : labels) buckets.put(h, 0);
-    					for (CustomerOnbording c : newInPeriod) {
-						LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
-						if (createdAt == null) continue;
-						String bucket = nearestHourBucket(createdAt.getHour(), hourSlots, labels);
-						buckets.merge(bucket, 1, Integer::sum);
-					}
-		} else if (filterType == WEEK) {
-			for (LocalDate d = start.toLocalDate(); !d.isAfter(end.toLocalDate()); d = d.plusDays(1)) {
-			buckets.put(d.getDayOfWeek().toString().substring(0, 3), 0);
-		}
-			for (CustomerOnbording c : newInPeriod) {
-			LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
-			if (createdAt == null) continue;
-			String bucket = createdAt.getDayOfWeek().toString().substring(0, 3);
-			buckets.merge(bucket, 1, Integer::sum);
-		}
-		} else if (filterType == YEAR) {
-			for (int m = 1; m <= 12; m++) {
-			String label = LocalDate.of(2000, m, 1).getMonth().toString().substring(0, 3);
-			buckets.put(label, 0);
-		}
-			for (CustomerOnbording c : newInPeriod) {
-			LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
-			if (createdAt == null) continue;
-			String label = createdAt.getMonth().toString().substring(0, 3);
-			buckets.merge(label, 1, Integer::sum);
-		}
-		} else if (filterType == MONTH) {
-		// "Week 1".."Week N" buckets, matching the mockup — Week N = days
-		// (N-1)*7+1 .. N*7 of the calendar month.
-		//
-		// IMPORTANT: bucket labels must cover the ENTIRE calendar month
-		// (1st -> last day), not just start..end. When filterType=MONTH,
-		// `end` is `now` (today), so if we looped start..end here, any
-		// week after "today" would never get a bucket created at all
-		// (not even a 0) instead of showing as an upcoming/empty week.
-		// e.g. on Jul 14, this previously produced only Week 1 + Week 2,
-		// silently dropping Week 3/4/5.
-		//
-		// The actual counts below are still correctly bounded by
-		// newInPeriod (which only contains records up to `end`), so
-		// future weeks in the current month will correctly show 0.
-			LocalDate monthStart = start.toLocalDate().withDayOfMonth(1);
-			LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
-			for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
-			buckets.putIfAbsent(weekBucketLabel(d), 0);
-		}
-			for (CustomerOnbording c : newInPeriod) {
-			LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
-			if (createdAt == null) continue;
-			buckets.merge(weekBucketLabel(createdAt.toLocalDate()), 1, Integer::sum);
-		}
-		} else { // CUSTOM -> daily buckets, labeled e.g. "2026-July-07"
-			for (LocalDate d = start.toLocalDate(); !d.isAfter(end.toLocalDate()); d = d.plusDays(1)) {
-			buckets.put(d.format(CUSTOM_LABEL_FORMAT), 0);
-		}
-			for (CustomerOnbording c : newInPeriod) {
-			LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
-			if (createdAt == null) continue;
-			buckets.merge(createdAt.toLocalDate().format(CUSTOM_LABEL_FORMAT), 1, Integer::sum);
-		}
-		}
-			List<TrendData> trend = new ArrayList<>();
-			for (Map.Entry<String, Integer> e : buckets.entrySet()) {
-				TrendData t = new TrendData();
-				t.setLabel(e.getKey());
-				t.setPatients(e.getValue());
-				trend.add(t);
-		}
-		return trend;
-		}
-    
+        Map<String, Integer> buckets = new LinkedHashMap<>();
+
+        if (filterType == TODAY) {
+            int[] hourSlots = resolveHourSlots(clinicId, branchId);
+            String[] labels = toLabels(hourSlots);
+            for (String h : labels) buckets.put(h, 0);
+            for (CustomerOnbording c : newInPeriod) {
+                LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
+                if (createdAt == null) continue;
+                String bucket = nearestHourBucket(createdAt.getHour(), hourSlots, labels);
+                buckets.merge(bucket, 1, Integer::sum);
+            }
+        } else if (filterType == WEEK) {
+            for (LocalDate d = start.toLocalDate(); !d.isAfter(end.toLocalDate()); d = d.plusDays(1)) {
+                buckets.put(d.getDayOfWeek().toString().substring(0, 3), 0);
+            }
+            for (CustomerOnbording c : newInPeriod) {
+                LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
+                if (createdAt == null) continue;
+                String bucket = createdAt.getDayOfWeek().toString().substring(0, 3);
+                buckets.merge(bucket, 1, Integer::sum);
+            }
+        } else if (filterType == YEAR) {
+            for (int m = 1; m <= 12; m++) {
+                String label = LocalDate.of(2000, m, 1).getMonth().toString().substring(0, 3);
+                buckets.put(label, 0);
+            }
+            for (CustomerOnbording c : newInPeriod) {
+                LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
+                if (createdAt == null) continue;
+                String label = createdAt.getMonth().toString().substring(0, 3);
+                buckets.merge(label, 1, Integer::sum);
+            }
+        } else if (filterType == MONTH) {
+            // "Week 1".."Week N" buckets, matching the mockup — Week N = days
+            // (N-1)*7+1 .. N*7 of the calendar month.
+            //
+            // IMPORTANT: bucket labels must cover the ENTIRE calendar month
+            // (1st -> last day), not just start..end. When filterType=MONTH,
+            // `end` is `now` (today), so if we looped start..end here, any
+            // week after "today" would never get a bucket created at all
+            // (not even a 0) instead of showing as an upcoming/empty week.
+            // e.g. on Jul 14, this previously produced only Week 1 + Week 2,
+            // silently dropping Week 3/4/5.
+            //
+            // The actual counts below are still correctly bounded by
+            // newInPeriod (which only contains records up to `end`), so
+            // future weeks in the current month will correctly show 0.
+            LocalDate monthStart = start.toLocalDate().withDayOfMonth(1);
+            LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
+            for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
+                buckets.putIfAbsent(weekBucketLabel(d), 0);
+            }
+            for (CustomerOnbording c : newInPeriod) {
+                LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
+                if (createdAt == null) continue;
+                buckets.merge(weekBucketLabel(createdAt.toLocalDate()), 1, Integer::sum);
+            }
+        } else { // CUSTOM -> daily buckets, labeled e.g. "Jul 07"
+            for (LocalDate d = start.toLocalDate(); !d.isAfter(end.toLocalDate()); d = d.plusDays(1)) {
+                buckets.put(d.format(CUSTOM_LABEL_FORMAT), 0);
+            }
+            for (CustomerOnbording c : newInPeriod) {
+                LocalDateTime createdAt = parseCreatedAt(c.getCreatedAt());
+                if (createdAt == null) continue;
+                buckets.merge(createdAt.toLocalDate().format(CUSTOM_LABEL_FORMAT), 1, Integer::sum);
+            }
+        }
+
+        List<TrendData> trend = new ArrayList<>();
+        for (Map.Entry<String, Integer> e : buckets.entrySet()) {
+            TrendData t = new TrendData();
+            t.setLabel(e.getKey());
+            t.setPatients(e.getValue());
+            trend.add(t);
+        }
+        return trend;
+    }
+
     private String weekBucketLabel(LocalDate day) {
         int weekNumber = ((day.getDayOfMonth() - 1) / 7) + 1; // days 1-7 -> Week 1, 8-14 -> Week 2, ...
         return "Week " + weekNumber;
     }
+
     /**
      * Fetches the clinic's real opening/closing hours via AdminServiceClient.getClinicById()
      * and generates dynamic time slots instead of a hardcoded 8am-8pm range.
@@ -371,6 +434,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
             log.warn("Could not resolve clinic hours for clinicId={}. Falling back to default hours.",
                     clinicId, e);
         }
+
         // Safety check: if parsed hours are invalid, fall back to defaults
         // rather than producing a broken/empty trend.
         if (openHour >= closeHour) {
@@ -379,6 +443,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
             openHour = DEFAULT_OPEN_HOUR;
             closeHour = DEFAULT_CLOSE_HOUR;
         }
+
         List<Integer> slots = new ArrayList<>();
         for (int h = openHour; h <= closeHour; h += SLOT_INTERVAL_HOURS) {
             slots.add(h);
@@ -388,6 +453,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         }
         return slots.stream().mapToInt(Integer::intValue).toArray();
     }
+
     private String[] toLabels(int[] hourSlots) {
         String[] labels = new String[hourSlots.length];
         for (int i = 0; i < hourSlots.length; i++) {
@@ -398,6 +464,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         }
         return labels;
     }
+
     private String nearestHourBucket(int hour, int[] slots, String[] labels) {
         int closestIdx = 0;
         int closestDiff = Integer.MAX_VALUE;
@@ -407,6 +474,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         }
         return labels[closestIdx];
     }
+
     // Scoped to the date-filtered lists (newInPeriod / newInPrevPeriod) instead
     // of the branch's all-time customer list, so male/female/total reflect only
     // new registrations within the selected range.
@@ -434,13 +502,16 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
         }
         return result;
     }
+
     private boolean isGender(CustomerOnbording c, String gender) {
         return c.getGender() != null && c.getGender().equalsIgnoreCase(gender);
     }
+
     private boolean matchesAgeGroup(CustomerOnbording c, String search) {
         String group = groupOf(parseAge(c.getAge()));
         return group.toLowerCase().contains(search.toLowerCase());
     }
+
     // Handles ages like "27 yrs" / "27" by stripping any non-digit characters.
     private int parseAge(String age) {
         if (age == null || age.isBlank()) return -1;
@@ -453,6 +524,7 @@ public class PatientAnalyticsServiceImpl implements PatientAnalyticsService {
             return -1;
         }
     }
+
     private String groupOf(int age) {
         if (age < 0) return "Unknown";
         if (age <= 18) return "0-18 Years";

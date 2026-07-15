@@ -40,7 +40,7 @@ spring.lifecycle:
 # WHATSAPP
 # =========================================================
 whatsapp:
-  base-url:
+  base-url: 
   auth-key: 
   phone-number-id: 
   booking-confirmation-template-id: 
