@@ -374,6 +374,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 * ENTIRE request — even though the other 100+ documents were perfectly fine.
 	 * Now a single bad document is logged and skipped; the caller still gets
 	 * every other valid booking back.
+	 *
+	 * NOTE: this method signs partImage / consentFormPdf / attachments / reports
+	 * / prescriptionPdf via S3Service / ClinicAdminFeign / PhysioDoctorFeign for
+	 * EVERY booking in the list, sequentially. That's up to 4-5 blocking network
+	 * calls per booking. Use this only for endpoints whose response actually
+	 * needs those signed fields. For summary/list endpoints that don't expose
+	 * those fields (e.g. bookingByCustomerId), use toSummaryResponses() instead
+	 * — see below.
 	 */
 	private List<BookingResponse> toResponses(List<Booking> bookings) {
 		ObjectMapper mapper = new ObjectMapper();
@@ -469,6 +477,44 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			}
 
 			res.add(bres);
+		}
+
+		return res;
+	}
+
+	/**
+	 * ✅ ADDED: lightweight counterpart to toResponses() for endpoints whose
+	 * output only needs basic summary fields (bookingId, serviceDate,
+	 * servicetime, name, mobileNumber, doctorId, doctorName, paymentType,
+	 * visitType, status, followupStatus, patientId, clinicId, customerId,
+	 * branchId, age, gender, branchName, problem) and does NOT expose
+	 * partImage / consentFormPdf / attachments / reports / prescriptionPdf.
+	 *
+	 * Skips all S3Service / ClinicAdminFeign / PhysioDoctorFeign signed-URL
+	 * calls entirely — just does the Jackson entity-to-DTO conversion. This
+	 * avoids making up to 4-5 blocking network calls per booking for data the
+	 * caller throws away, which was the main cause of slow / timing-out
+	 * responses on customers with many bookings (e.g. bookingByCustomerId).
+	 */
+	private List<BookingResponse> toSummaryResponses(List<Booking> bookings) {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.registerModule(new JavaTimeModule());
+		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+		List<BookingResponse> res = new ArrayList<>();
+
+		if (bookings == null) {
+			return res;
+		}
+
+		for (Booking booking : bookings) {
+			try {
+				BookingResponse bres = mapper.convertValue(booking, BookingResponse.class);
+				res.add(bres);
+			} catch (Exception e) {
+				log.error("Skipping unmappable booking, bookingId={} : {}",
+						booking != null ? booking.getBookingId() : "null", e.getMessage(), e);
+			}
 		}
 
 		return res;
@@ -950,6 +996,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	 * ✅ FIXED: wrapped in try/catch. Previously an unmappable document or a
 	 * downstream exception in toResponses() would propagate uncaught straight to
 	 * the controller and surface as a raw Whitelabel 500 page.
+	 *
+	 * ✅ PERFORMANCE FIX: switched from toResponses() to toSummaryResponses().
+	 * This endpoint's output map only ever uses bookingId, serviceDate,
+	 * servicetime, name, mobileNumber, doctorId, doctorName, paymentType,
+	 * visitType, status, followupStatus, patientId, clinicId, customerId,
+	 * branchId, age, gender, branchName, problem — none of which require
+	 * signed S3/report/prescription URLs. toResponses() was previously making
+	 * up to 4-5 blocking network calls PER BOOKING to sign fields that were
+	 * immediately discarded, which was the root cause of this endpoint timing
+	 * out (500 from gateway, then 503) for customers with many bookings.
 	 */
 	@Override
 	public List<Map<String, Object>> bookingByCustomerId(String customerId) {
@@ -963,7 +1019,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			bookings = bookings.stream().filter(booking -> !"COMPLETED".equalsIgnoreCase(booking.getStatus()))
 					.toList();
 
-			List<BookingResponse> reversedBookings = toResponses(bookings);
+			List<BookingResponse> reversedBookings = toSummaryResponses(bookings);
 
 			List<Map<String, Object>> list = new ArrayList<>();
 			reversedBookings.forEach(n -> {
@@ -1002,6 +1058,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	/**
 	 * ✅ FIXED: same guard as bookingByCustomerId above.
+	 *
+	 * ✅ PERFORMANCE FIX: same reasoning as bookingByCustomerId — switched to
+	 * toSummaryResponses() since this endpoint's output map doesn't use any
+	 * signed-URL fields either.
 	 */
 	@Override
 	public List<Map<String, Object>> CompletedbookingByCustomerId(String customerId) {
@@ -1014,7 +1074,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			bookings = bookings.stream().filter(booking -> "COMPLETED".equalsIgnoreCase(booking.getStatus())).toList();
 
-			List<BookingResponse> reversedBookings = toResponses(bookings);
+			List<BookingResponse> reversedBookings = toSummaryResponses(bookings);
 
 			List<Map<String, Object>> list = new ArrayList<>();
 			reversedBookings.forEach(n -> {
