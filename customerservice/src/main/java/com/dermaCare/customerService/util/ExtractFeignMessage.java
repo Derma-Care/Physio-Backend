@@ -5,26 +5,45 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
 
-public class ExtractFeignMessage {
-	
-	public static String clearMessage(FeignException e) {
-	
-	 String errorMessage = "An unexpected error occurred";
-	    try {
-	        String responseBody = e.contentUTF8();  // Get clean response body
+public final class ExtractFeignMessage {
 
-	        ObjectMapper mapper = new ObjectMapper();
-	        JsonNode root = mapper.readTree(responseBody);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-	        if (root.has("message")) {
-	            errorMessage = root.get("message").asText();
-	            return errorMessage;
-	        }else {
-	        	return "Message Not Found";
-	        }
-	    } catch (Exception parseEx) {
-	        return parseEx.getMessage();
-	    }
-	}
+    private ExtractFeignMessage() {
+    }
 
+    public static String clearMessage(FeignException e) {
+
+        if (e == null) {
+            return "Unknown error";
+        }
+
+        String responseBody = e.contentUTF8();
+
+        if (responseBody == null || responseBody.isBlank()) {
+            return e.getMessage();
+        }
+
+        try {
+
+            JsonNode root = OBJECT_MAPPER.readTree(responseBody);
+
+            if (root.hasNonNull("message")) {
+                return root.get("message").asText();
+            }
+
+            if (root.hasNonNull("error")) {
+                return root.get("error").asText();
+            }
+
+            if (root.hasNonNull("details")) {
+                return root.get("details").asText();
+            }
+
+            return responseBody;
+
+        } catch (Exception ex) {
+            return responseBody;
+        }
+    }
 }

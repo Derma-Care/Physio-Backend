@@ -2008,33 +2008,60 @@ public ResponseEntity<ResponseStructure<List<BookingResponse>>> getBookingsByCli
     }
 }
 
-
 @Override
-public ResponseEntity<?> getBookingsByCustomerId(String customerId) {
+public ResponseEntity<ResponseStructure<List<Map<String, Object>>>> getBookingsByCustomerId(
+        String customerId) {
 
     log.info("GET_BOOKINGS_BY_CUSTOMER :: START :: customerId={}", customerId);
 
-    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
-
     try {
-         return bookingFeign.getBookingByCustomerId(customerId);
+
+        ResponseEntity<ResponseStructure<List<Map<String, Object>>>> response =
+                bookingFeign.getBookingByCustomerId(customerId);
+
+        if (response == null || response.getBody() == null) {
+
+            log.warn("No booking data found for customerId={}", customerId);
+
+            return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                    .body(ResponseStructure.buildResponse(
+                            null,
+                            "No booking data found.",
+                            HttpStatus.NO_CONTENT,
+                            HttpStatus.NO_CONTENT.value()));
+        }
+
+        return ResponseEntity.status(response.getStatusCode())
+                .body(response.getBody());
 
     } catch (FeignException e) {
 
-        log.error("GET_BOOKINGS_BY_CUSTOMER :: FEIGN_ERROR :: customerId={}",
-                customerId, e);
+        log.error("Booking Service error for customerId={}", customerId, e);
 
-        res = new ResponseStructure<>(
-                null,
-                ExtractFeignMessage.clearMessage(e),
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                e.status()
-        );
+        HttpStatus status = HttpStatus.resolve(e.status());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
 
-        return ResponseEntity.status(res.getStatusCode()).body(res);
+        return ResponseEntity.status(status)
+                .body(ResponseStructure.buildResponse(
+                        null,
+                        ExtractFeignMessage.clearMessage(e),
+                        status,
+                        status.value()));
+
+    } catch (Exception e) {
+
+        log.error("Unexpected error while fetching bookings for customerId={}", customerId, e);
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ResponseStructure.buildResponse(
+                        null,
+                        e.getMessage(),
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 }
-
 
 @Override
 public ResponseEntity<?> getCompletedBookingsByCustomerId(String customerId) {
