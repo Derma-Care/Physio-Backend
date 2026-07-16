@@ -1,5 +1,6 @@
 package com.clinicadmin.controller;
 
+import com.clinicadmin.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,11 +12,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.clinicadmin.dto.BookingRequset;
-import com.clinicadmin.dto.BookingResponse;
-import com.clinicadmin.dto.Response;
 import com.clinicadmin.service.BookingService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/clinic-admin")
@@ -56,9 +56,7 @@ public class BookingServiceController {
 		return bookingService.updateAppointmentBasedOnBookingId(bookingResponse);
 		
 	}
-	
-	
-	
+
 	   @GetMapping("/bookings/byPatientId/{patientId}")
 	   public ResponseEntity<?> getInprogressBookingsByPatientId(
 				 @PathVariable String patientId){
@@ -76,7 +74,8 @@ public class BookingServiceController {
 	   @GetMapping("/reports/patientId/{patientId}")
 	    public ResponseEntity<?> getReportsByPatientId(@PathVariable String patientId){
 	    return bookingService.getReportsByPatientId(patientId);}
-	   
+
+
 	   @PostMapping("/bookService")
 	   public ResponseEntity<Object> bookService(@RequestBody BookingResponse req)throws JsonProcessingException  {
 	   	Response response = bookingService.bookService(req);
@@ -200,5 +199,4 @@ public class BookingServiceController {
 	 		
 	 		}
 
-	   
 }

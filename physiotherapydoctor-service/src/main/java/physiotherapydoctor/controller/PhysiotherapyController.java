@@ -1,6 +1,8 @@
 package physiotherapydoctor.controller;
 
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -269,7 +271,7 @@ public class PhysiotherapyController {
 	    }
 
 	@GetMapping("/followUpDateRange/clinicId/{clinicId}/branchId/{branchId}/startDate/{startDate}/endDate/{endDate}")
-	public List<String> getPhysioRecordsByFollowUpDateRange(
+	public List<Map<String,String>> getPhysioRecordsByFollowUpDateRange(
 			@PathVariable String clinicId,
 			@PathVariable String branchId,
 			@PathVariable String startDate,
@@ -278,7 +280,7 @@ public class PhysiotherapyController {
 	}
 
 	@GetMapping("/today/clinicId/{clinicId}/branchId/{branchId}/date/{date}")
-	public List<String> getPhysioRecordsByTodayDate(
+	public List<Map<String,String>> getPhysioRecordsByTodayDate(
 			@PathVariable	String clinicId,
 			@PathVariable String branchId,
 			@PathVariable String date){

@@ -649,6 +649,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 	        	if(b != null) {
 	        	bkng.setAge(b.getAge());
 		        bkng.setClinicId(b.getHospitalId());
+				bkng.setBranchId(b.getBranchId());
 		        bkng.setCustomerId(b.getCustomerId());
 		        bkng.setGender(b.getGender());
 		        bkng.setMobileNumber(b.getMobileNumber());
@@ -665,6 +666,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 			      if(b != null) {
 			        bkng.setAge(b.getAge());
 			        bkng.setClinicId(b.getHospitalId());
+					bkng.setBranchId(b.getBranchId());
 			        bkng.setCustomerId(b.getCustomerId());
 			        bkng.setGender(b.getGender());
 			        bkng.setMobileNumber(b.getMobileNumber());
@@ -681,6 +683,7 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		        for(CustomerOnbordingDTO dto : customerOnbordingDTO) {
 		        BookingInfoByInput bookingInfoByInput = new BookingInfoByInput();
 		        bookingInfoByInput.setAge(dto.getAge());
+				bookingInfoByInput.setBranchId(dto.getBranchId());
 		        bookingInfoByInput.setClinicId(dto.getHospitalId());
 		        bookingInfoByInput.setCustomerId(dto.getCustomerId());
 		        bookingInfoByInput.setGender(dto.getGender());

@@ -3,13 +3,7 @@ package physiotherapydoctor.serviceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -2278,14 +2272,13 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	public List<String> getPhysioRecordsByFollowUpDateRange(
+	public List<Map<String,String>> getPhysioRecordsByFollowUpDateRange(
 			String clinicId,
 			String branchId,
 			String startDate,
 			String endDate) {
-
 		Response response = new Response();
-
+		List<Map<String,String>> map = new LinkedList<>();
 		try {
 
 			LocalDate start = LocalDate.parse(startDate);
@@ -2309,9 +2302,12 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					})
 					.toList();
 
-			List<String> bookingIds = new ArrayList<>();
-			filteredRecords.forEach(n->bookingIds.add(n.getBookingId()));
-            return bookingIds;
+			filteredRecords.forEach(n->{
+				Map<String,String> values = new LinkedHashMap<>();
+				values.put(n.getBookingId(),n.getFollowUp().getNextVisitDate());
+				map.add(values);
+			});
+            return map;
 		} catch (Exception e) {
 
 			return null;
@@ -2321,17 +2317,17 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	public List<String> getPhysioRecordsByTodayDate(
+	public List<Map<String,String>> getPhysioRecordsByTodayDate(
 			String clinicId,
 			String branchId,
 			String date) {
 
 		Response response = new Response();
-
+		List<Map<String,String>> map = new LinkedList<>();
 		try {
 
 			LocalDate start = LocalDate.parse(date);
-
+			LocalDate nextDate = start.plusDays(1);
 			List<PhysiotherapyRecord> records =
 					repository.findByClinicIdAndBranchId(
 							clinicId,
@@ -2346,13 +2342,15 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 								LocalDate.parse(record.getFollowUp().getNextVisitDate());
 
 						return !nextVisitDate.isBefore(start)
-								&& !nextVisitDate.isAfter(start);
+								&& !nextVisitDate.isAfter(nextDate);
 					})
 					.toList();
-
-			List<String> bookingIds = new ArrayList<>();
-			filteredRecords.forEach(n->bookingIds.add(n.getBookingId()));
-			return bookingIds;
+			filteredRecords.forEach(n->{
+				Map<String,String> values = new LinkedHashMap<>();
+				values.put(n.getBookingId(),n.getFollowUp().getNextVisitDate());
+				map.add(values);
+			});
+			return map;
 		} catch (Exception e) {
 
 			return null;

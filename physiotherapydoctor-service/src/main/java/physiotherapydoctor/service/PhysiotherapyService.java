@@ -1,6 +1,7 @@
 package physiotherapydoctor.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 
@@ -84,13 +85,13 @@ public interface PhysiotherapyService {
 	 public Response getInvestigations(String bookingId, String patientId);
 
 
-	public List<String> getPhysioRecordsByFollowUpDateRange(
+	public List<Map<String,String>> getPhysioRecordsByFollowUpDateRange(
 			String clinicId,
 			String branchId,
 			String startDate,
 			String endDate);
 
-	public List<String> getPhysioRecordsByTodayDate(
+	public List<Map<String,String>> getPhysioRecordsByTodayDate(
 			String clinicId,
 			String branchId,
 			String date);

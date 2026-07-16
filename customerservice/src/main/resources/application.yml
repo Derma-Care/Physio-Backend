@@ -18,7 +18,7 @@ spring:
             connectTimeout: 30000
             readTimeout: 60000
 #  config:
-#   import: optional:classpath:application-secrets.yml  
+#   import: optional:classpath:application-secrets.yml
 
 server:
   port: 8083

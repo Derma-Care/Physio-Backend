@@ -99,7 +99,7 @@ public class Booking  {
 	private List<FollowupBooking> follwupBookings;
     private String transactionId;
 	private String referredDoctorId;
-
+    private Boolean nextVisit;
 	public void setIsFollowupStatus(boolean followupStatus) {
 	    isFollowupStatus = followupStatus;
 	}

@@ -4,17 +4,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.clinicadmin.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import com.clinicadmin.dto.BookingRequset;
-import com.clinicadmin.dto.BookingResponse;
-import com.clinicadmin.dto.Response;
-import com.clinicadmin.dto.ResponseStructure;
-import com.clinicadmin.dto.TheraphyAnswersDTO;
 import com.clinicadmin.entity.QuestionsByPartEntity;
 import com.clinicadmin.entity.QuestionsEntity;
 import com.clinicadmin.feignclient.BookingFeign;
@@ -25,6 +21,8 @@ import com.clinicadmin.utils.ExtractFeignMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import feign.FeignException;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -469,4 +467,6 @@ public ResponseEntity<?> physioAppointment(BookingRequset req) {
 			//response.setData(Collections.emptyList());
         return ResponseEntity.status(response.getStatus()).body(response);}
 }
+
+
 }

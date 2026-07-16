@@ -20,5 +20,6 @@ public class BookingInfoByInput {
 	private String gender;
 	private String customerId;
 	private String clinicId;
+	private String branchId;
 
 }

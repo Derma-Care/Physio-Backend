@@ -2323,7 +2323,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			List<Map<String, Object>> list = new ArrayList<>();
 			String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 			List<Booking> b = repository.findByClinicIdAndBranchIdAndServiceDate(cId, bId, today);
-			if (b != null || !b.isEmpty()) {
+			if (!b.isEmpty()) {
 				List<BookingResponse> dto = toResponses(b);
 				dto.stream().map(n -> {
 					Map<String, Object> map = new LinkedHashMap<>();
@@ -2496,65 +2496,71 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			List<Map<String, Object>> responseList = new ArrayList<>();
 
 			// Today's bookings for logged-in clinic & branch
-			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId, today);
-
+			List<Booking> data = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId, today);
+			List<BookingResponse> responses =  toResponses(data);
 			// Follow-up booking IDs
-			List<String> followupIds = physioDoctorFeign.getTodayFollowUpBookingIds();
+			List<Map<String,String>> bookingIds =
+					physioDoctorFeign.getPhysioRecordsByTodayDate(clinicId,branchId,today);
 
-			List<Booking> followupBookings = new ArrayList<>();
+			log.info("Found {} follow-up booking ids",
+					bookingIds != null ? bookingIds.size() : 0);
 
-			if (followupIds != null && !followupIds.isEmpty()) {
+			if (bookingIds != null && !bookingIds.isEmpty()) {
 
-				// IMPORTANT:
-				// Filter by clinicId & branchId also
-				followupBookings = repository.findByBookingIdInAndClinicIdAndBranchId(followupIds, clinicId, branchId);
+				List<String> keys = bookingIds.stream()
+						.flatMap(map -> map.keySet().stream())
+						.collect(Collectors.toList());
 
-				if (!followupBookings.isEmpty()) {
+				List<Booking> followUpBookings =
+						repository.findByBookingIdIn(keys);
 
-					followupBookings.forEach(b -> {
+				log.info("Found {} follow-up bookings",
+						followUpBookings != null ? followUpBookings.size() : 0);
 
-						b.setStatus("follow-up");
+				if (followUpBookings != null && !followUpBookings.isEmpty()) {
+					followUpBookings.forEach(booking -> {
 
-						List<Status> statusList = b.getCurrentStatus();
+						String value =	bookingIds.stream().filter(f->f.containsKey(booking.getBookingId()))
+								.map(n->n.get(booking.getBookingId())).findFirst().orElse(null);
 
-						if (statusList == null) {
-							statusList = new ArrayList<>();
+						booking.setStatus("follow-up Pending");
+						booking.setFollowupDate(value);
+
+						List<Status> statusList =
+								booking.getCurrentStatus() == null
+										? new ArrayList<>()
+										: new ArrayList<>(booking.getCurrentStatus());
+
+						boolean alreadyExists =
+								statusList.stream()
+										.anyMatch(status ->
+												"follow-up Pending".equalsIgnoreCase(
+														status.getStatus()));
+
+						if (!alreadyExists) {
+							Status status = new Status();
+							status.setDATE_TIME(
+									LocalDateTime.now(
+											ZoneId.of("Asia/Kolkata")));
+							status.setStatus("follow-up Pending");
+
+							statusList.add(status);
 						}
 
-						Status status = new Status();
-						status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-						status.setStatus("follow-up");
-
-						statusList.add(status);
-
-						b.setCurrentStatus(statusList);
+						booking.setCurrentStatus(statusList);
 					});
 
-					repository.saveAll(followupBookings);
+					repository.saveAll(followUpBookings);
+
+					responses.addAll(
+							followUpBookings.stream()
+									.map(this::toResponse)
+									.collect(Collectors.toList()));
 				}
 			}
-
-			// Convert bookings
-			List<BookingResponse> bookingResponses = new ArrayList<>();
-
-			if (!bookings.isEmpty()) {
-				bookingResponses.addAll(toResponses(bookings));
-			}
-
-			if (!followupBookings.isEmpty()) {
-				bookingResponses.addAll(toResponses(followupBookings));
-			}
-
-			// Remove duplicate bookingIds
-			bookingResponses = bookingResponses.stream().collect(Collectors.toMap(BookingResponse::getBookingId,
-					Function.identity(), (oldValue, newValue) -> oldValue, LinkedHashMap::new)).values().stream()
-					.toList();
-
 			// Session details
-			for (BookingResponse booking : bookingResponses) {
-
+			for (BookingResponse booking : responses) {
 				try {
-
 					ResponseEntity<List<Session>> sessionResponse = physioDoctorFeign
 							.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
 
@@ -2576,9 +2582,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 							+ ex.getMessage());
 				}
 			}
-
 			// Build response list
-			for (BookingResponse n : bookingResponses) {
+			for (BookingResponse n : responses) {
 
 				Map<String, Object> map = new LinkedHashMap<>();
 
@@ -2607,19 +2612,18 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 				responseList.add(map);
 			}
-
 			// Summary counts
-			long totalCount = bookingResponses.size();
+			long totalCount = responses.size();
 
-			long pendingCount = bookingResponses.stream()
+			long pendingCount = responses.stream()
 					.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
-			long confirmedCount = bookingResponses.stream()
+			long confirmedCount = responses.stream()
 					.filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
-			long inProgressCount = bookingResponses.stream()
+			long inProgressCount = responses.stream()
 					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
@@ -2629,17 +2633,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			summary.put("confirmed", confirmedCount);
 			summary.put("inProgress", inProgressCount);
 
-			if (bookingResponses.isEmpty()) {
-
+			if (responses.isEmpty()) {
 				return ResponseEntity
 						.ok(new Response(true, Collections.emptyList(), summary, "No bookings found", 200, null, null));
 			}
-
 			return ResponseEntity
 					.ok(new Response(true, responseList, summary, "Today bookings fetched", 200, null, null));
 
 		} catch (Exception e) {
-
 			e.printStackTrace();
 
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Response(false, null, null,
@@ -3034,7 +3035,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					.collect(Collectors.toCollection(ArrayList::new)); // Mutable list
 
 			// Fetch follow-up booking ids
-			List<String> bookingIds =
+			List<Map<String,String>> bookingIds =
 					physioDoctorFeign.getPhysioRecordsByFollowUpDateRange(
 							clinicId,
 							branchId,
@@ -3046,19 +3047,25 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			if (bookingIds != null && !bookingIds.isEmpty()) {
 
+				List<String> keys = list.stream()
+						.flatMap(map -> map.keySet().stream())
+						.collect(Collectors.toList());
+
 				List<Booking> followUpBookings =
-						repository.findByBookingIdIn(bookingIds);
+						repository.findByBookingIdIn(keys);
 
 				log.info("Found {} follow-up bookings",
 						followUpBookings != null ? followUpBookings.size() : 0);
-
 				if (followUpBookings != null && !followUpBookings.isEmpty()) {
-
 					followUpBookings.forEach(booking -> {
 
-						booking.setStatus("follow-up");
+					String value =	bookingIds.stream().filter(f->f.containsKey(booking.getBookingId()))
+								.map(n->n.get(booking.getBookingId())).findFirst().orElse(null);
 
-						List<Status> statusList =
+						booking.setStatus("follow-up Pending");
+						booking.setFollowupDate(value);
+
+					List<Status> statusList =
 								booking.getCurrentStatus() == null
 										? new ArrayList<>()
 										: new ArrayList<>(booking.getCurrentStatus());
@@ -3066,7 +3073,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						boolean alreadyExists =
 								statusList.stream()
 										.anyMatch(status ->
-												"follow-up".equalsIgnoreCase(
+												"follow-up Pending".equalsIgnoreCase(
 														status.getStatus()));
 
 						if (!alreadyExists) {
@@ -3075,7 +3082,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 							status.setDATE_TIME(
 									LocalDateTime.now(
 											ZoneId.of("Asia/Kolkata")));
-							status.setStatus("follow-up");
+							status.setStatus("follow-up Pending");
 
 							statusList.add(status);
 						}
