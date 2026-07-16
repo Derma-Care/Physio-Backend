@@ -8,7 +8,8 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
-  
+      auto-index-creation: true
+
   cloud:
     openfeign:
       client:
