@@ -98,298 +98,357 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	public ResponseEntity<?> addService(BookingResponse request) {
-		ResponseStructure<Booking> response = new ResponseStructure<>();
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(new JavaTimeModule());
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		try {
-			Booking updatedBooking = updateForFollowup(request);
-			if (updatedBooking != null) {
+	    ResponseStructure<Booking> response = new ResponseStructure<>();
+	    ObjectMapper mapper = new ObjectMapper();
+	    mapper.registerModule(new JavaTimeModule());
+	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-				try {
+	    try {
+	        // ✅ Attempt to update for follow-up booking
+	        Booking updatedBooking = updateForFollowup(request);
 
-					DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
+	        if (updatedBooking != null) {
+	            // =========================
+	            // Doctor Push Notification
+	            // =========================
+	            try {
+	                DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
+	                dto.setDoctorId(updatedBooking.getDoctorId());
+	                dto.setBookingId(updatedBooking.getBookingId());
+	                dto.setPatientName(updatedBooking.getName());
+	                dto.setAppointmentDate(updatedBooking.getServiceDate());
+	                dto.setAppointmentTime(updatedBooking.getServicetime());
+	                dto.setAppointmentType(updatedBooking.getVisitType());
 
-					dto.setDoctorId(updatedBooking.getDoctorId());
+	                notificationFeign.sendDoctorPushNotification(dto);
+	                log.info("Follow-up notification sent for booking {}", updatedBooking.getBookingId());
+	            } catch (Exception ex) {
+	                log.error("Failed to send follow-up notification for booking {} : {}", updatedBooking.getBookingId(), ex.getMessage());
+	            }
 
-					dto.setBookingId(updatedBooking.getBookingId());
+	            // ✅ Build success response
+	            response = ResponseStructure.buildResponse(
+	                    updatedBooking,
+	                    "Last follow-up booking retrieved successfully",
+	                    HttpStatus.CREATED,
+	                    HttpStatus.CREATED.value()
+	            );
+	        } else {
+	            log.warn("No follow-up bookings found for request with bookingId={}", request.getBookingId());
+	            response = ResponseStructure.buildResponse(
+	                    null,
+	                    "No follow-up bookings found",
+	                    HttpStatus.BAD_REQUEST,
+	                    HttpStatus.BAD_REQUEST.value()
+	            );
+	        }
 
-					dto.setPatientName(updatedBooking.getName());
+	        return ResponseEntity.status(response.getHttpStatus().value()).body(response);
 
-					dto.setAppointmentDate(updatedBooking.getServiceDate());
-
-					dto.setAppointmentTime(updatedBooking.getServicetime());
-
-					dto.setAppointmentType(updatedBooking.getVisitType());
-
-					notificationFeign.sendDoctorPushNotification(dto);
-
-					log.info("Follow-up notification sent for booking {}", updatedBooking.getBookingId());
-
-				} catch (Exception ex) {
-
-					log.error("Failed to send follow-up notification for booking {} : {}",
-							updatedBooking.getBookingId(), ex.getMessage());
-				}
-			}
-			if (updatedBooking != null) {
-				response = ResponseStructure.buildResponse(updatedBooking,
-						"Last follow-up booking retrieved successfully", HttpStatus.CREATED,
-						HttpStatus.CREATED.value());
-
-			} else {
-				response = ResponseStructure.buildResponse(null, "No follow-up bookings found", HttpStatus.BAD_REQUEST,
-						HttpStatus.BAD_REQUEST.value());
-			}
-		} catch (Exception e) {
-			// Log properly (avoid System.out in real apps)
-			e.printStackTrace();
-			response = ResponseStructure.buildResponse(null, "Exception occurred: " + e.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-		return ResponseEntity.status(response.getHttpStatus().value()).body(response);
+	    } catch (Exception e) {
+	        log.error("Exception occurred while processing addService: {}", e.getMessage(), e);
+	        response = ResponseStructure.buildResponse(
+	                null,
+	                "Internal error: " + e.getMessage(),
+	                HttpStatus.INTERNAL_SERVER_ERROR,
+	                HttpStatus.INTERNAL_SERVER_ERROR.value()
+	        );
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+	    }
 	}
 
+
+	/**
+	 * Clears large or sensitive fields from a Booking entity before returning it in API responses.
+	 * This helps reduce payload size and avoids exposing unnecessary data.
+	 */
 	private void nullifyLargeFields(Booking booking) {
-		if (booking == null)
-			return;
-		booking.setReports(null);
-		// booking.setNotes(null);
-		booking.setAttachments(null);
-		booking.setConsentFormPdf(null);
-		booking.setPrescriptionPdf(null);
+	    if (booking == null) {
+	        log.warn("Attempted to nullify fields on a null Booking entity");
+	        return;
+	    }
+
+	    try {
+	        // ✅ Clear heavy collections
+	        if (booking.getReports() != null) {
+	            booking.setReports(null);
+	            log.debug("Reports cleared for bookingId={}", booking.getBookingId());
+	        }
+
+	        if (booking.getAttachments() != null) {
+	            booking.setAttachments(null);
+	            log.debug("Attachments cleared for bookingId={}", booking.getBookingId());
+	        }
+
+	        // ✅ Clear large binary/pdf fields
+	        if (booking.getConsentFormPdf() != null) {
+	            booking.setConsentFormPdf(null);
+	            log.debug("ConsentFormPdf cleared for bookingId={}", booking.getBookingId());
+	        }
+
+	        if (booking.getPrescriptionPdf() != null) {
+	            booking.setPrescriptionPdf(null);
+	            log.debug("PrescriptionPdf cleared for bookingId={}", booking.getBookingId());
+	        }
+
+	        // ⚠️ If you later add other large fields (e.g., notes, images, raw binary data),
+	        // include them here for consistency.
+	    } catch (Exception e) {
+	        log.error("Error nullifying large fields for bookingId={}: {}", booking.getBookingId(), e.getMessage(), e);
+	    }
 	}
+
 
 	private Booking toEntity(BookingRequset request) {
-		Booking entity = null;
-		try {
-			entity = new ObjectMapper().convertValue(request, Booking.class);
+	    Booking entity = null;
+	    try {
+	        ObjectMapper mapper = new ObjectMapper();
+	        mapper.registerModule(new JavaTimeModule());
+	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-			entity.setFollowupStatus("pending");
-			String patientId = null;
-			String customerId = null;
-			Map<String, String> res = new LinkedHashMap<>();
-			try {
-				if (request.getCustomerId().isEmpty() || request.getPatientId().isEmpty()) {
-					res = clinnicfeign.getCustomerByMobilenumberAndName(request.getMobileNumber(), request.getName());
-					customerId = res.get("customerId");
-					patientId = res.get("patientId");
-				}
-			} catch (Exception e) {
-				System.out.println(e.getMessage());
-			}
-			if (request.getCustomerId().isEmpty()) {
-				entity.setCustomerId(customerId);
-			}
-			if (request.getPatientId().isEmpty()) {
-				entity.setPatientId(patientId);
-			}
-			entity.setConsultationType("First-Time");
-			ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
-			if (request.getTotalFee() != 0.0) {
-				double due = request.getTotalFee() - request.getPartAmount();
-				entity.setDueAmount(due);
-				entity.setBookedAt(istTime.format(formatter));
-			}
-			entity.setFreeFollowUpsLeft(request.getFreeFollowUps());
-			entity.setFollowupStatus("pending");
-			// Case 1: No free follow-ups → always true
-			if (request.getFreeFollowUps() != null && request.getFreeFollowUps() == 0) {
-				entity.setIsFollowupStatus(true);
-			}
-			int days = 0;
-			try {
-				if (request.getConsultationExpiration() != null) {
-					String consultationExp = request.getConsultationExpiration(); // e.g. "8 days"
-					days = Integer.parseInt(consultationExp.replaceAll("[^0-9]", ""));
-				}
+	        entity = mapper.convertValue(request, Booking.class);
 
-				// Parse serviceDate (assumes format: yyyy-MM-dd)
-				LocalDate serviceDate = LocalDate.parse(request.getServiceDate());
+	        // ✅ Default values
+	        entity.setFollowupStatus("pending");
+	        entity.setConsultationType("First-Time");
 
-				// Add extracted days
-				LocalDate expiryDate = serviceDate.plusDays(days);
+	        // ✅ Resolve customerId/patientId if missing
+	        if ((request.getCustomerId() == null || request.getCustomerId().isEmpty()) ||
+	            (request.getPatientId() == null || request.getPatientId().isEmpty())) {
+	            try {
+	                Map<String, String> res = clinnicfeign.getCustomerByMobilenumberAndName(
+	                        request.getMobileNumber(), request.getName());
+	                if (request.getCustomerId() == null || request.getCustomerId().isEmpty()) {
+	                    entity.setCustomerId(res.get("customerId"));
+	                }
+	                if (request.getPatientId() == null || request.getPatientId().isEmpty()) {
+	                    entity.setPatientId(res.get("patientId"));
+	                }
+	            } catch (Exception e) {
+	                log.warn("Failed to fetch customer/patient info: {}", e.getMessage());
+	            }
+	        }
 
-				LocalDate today = LocalDate.now();
+	     // ✅ Booking timestamp and due amount calculation
+	        ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+	        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
 
-				if (!today.isAfter(expiryDate) && request.getFreeFollowUps() != null
-						&& request.getFreeFollowUps() == 0) {
-					entity.setIsFollowupStatus(true);
-				} else if (today.isAfter(expiryDate)) {
-					entity.setIsFollowupStatus(true);
-				} else {
-					entity.setIsFollowupStatus(false);
-				}
-			} catch (Exception e) {
-				// fallback safety
-				entity.setIsFollowupStatus(false);
-			}
+	        if (request.getTotalFee() > 0.0) {   // no null check needed, primitive double defaults to 0.0
+	            double partAmt = request.getPartAmount(); // primitive double, defaults to 0.0
+	            double due = request.getTotalFee() - partAmt;
+	            entity.setDueAmount(due);
+	            entity.setBookedAt(istTime.format(formatter));
+	        }
 
-			// ✅ Generate Custom Booking ID
-			String bookingId = sequenceGeneratorService.generateBookingId(request.getClinicName().substring(0, 3),
-					request.getBranchname().substring(0, 3));
-			entity.setBookingId(bookingId);
 
-			// Channel ID logic
-			if (request.getConsultationType() != null
-					&& (request.getConsultationType().equalsIgnoreCase("video consultation")
-							|| request.getConsultationType().equalsIgnoreCase("online consultation"))) {
-				entity.setChannelId(randomNumber());
-			}
-			if (request.getFoc() != null && request.getPaymentType() != null) {
+	        // ✅ Follow-up status logic
+	        entity.setFreeFollowUpsLeft(request.getFreeFollowUps());
+	        if (request.getFreeFollowUps() != null && request.getFreeFollowUps() == 0) {
+	            entity.setIsFollowupStatus(true);
+	        } else {
+	            entity.setIsFollowupStatus(false);
+	        }
 
-				if ("paid".equalsIgnoreCase(request.getFoc())
-						&& "not paid".equalsIgnoreCase(request.getPaymentType())) {
-					entity.setStatus("pending");
-				} else if ("foc".equalsIgnoreCase(request.getFoc())
-						&& "not paid".equalsIgnoreCase(request.getPaymentType())) {
-					entity.setStatus("confirmed");
-				} else {
-					if ("paid".equalsIgnoreCase(request.getFoc()) && !request.getPaymentType().isEmpty()) {
-						entity.setStatus("confirmed");
-					}
-				}
-			}
-			List<Status> status = new LinkedList<>();
-			Status s = new Status();
-			ZoneId zone = ZoneId.of("Asia/Kolkata");
-			LocalDateTime dateTime = LocalDateTime.now(zone);
-			s.setDATE_TIME(dateTime);
-			s.setStatus(entity.getStatus());
-			status.add(s);
-			Collections.reverse(status);
-			entity.setCurrentStatus(status);
-			if (request.getConsultationFee() != 0.0) {
-				ObjectMapper mapper = new ObjectMapper();
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-				List<ConsultationFees> lst = new LinkedList<>();
-				ConsultationFees fee = new ConsultationFees();
-				fee.setConsulationFee(request.getConsultationFee());
-				fee.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-				lst.add(fee);
-				Collections.reverse(lst);
-				entity.setListOfConsultationFee(lst);
-			}
-			if (entity.getFollwupBookings() == null) {
-				List<FollowupBooking> lst = new LinkedList<>();
-				FollowupBooking followup = new FollowupBooking();
-				followup.setDoctorId(entity.getDoctorId());
-				followup.setDoctorName(entity.getDoctorName());
-				followup.setServiceDate(entity.getServiceDate());
-				followup.setServicetime(entity.getServicetime());
-				followup.setStatus(entity.getStatus());
-				followup.setVisitType(entity.getVisitType());
-				lst.add(followup);
-				entity.setFollwupBookings(lst);
-			}
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-		}
-		return entity;
+	        try {
+	            if (request.getConsultationExpiration() != null) {
+	                int days = Integer.parseInt(request.getConsultationExpiration().replaceAll("[^0-9]", ""));
+	                LocalDate serviceDate = LocalDate.parse(request.getServiceDate());
+	                LocalDate expiryDate = serviceDate.plusDays(days);
+	                LocalDate today = LocalDate.now();
+
+	                if (!today.isAfter(expiryDate) && request.getFreeFollowUps() != null && request.getFreeFollowUps() == 0) {
+	                    entity.setIsFollowupStatus(true);
+	                } else if (today.isAfter(expiryDate)) {
+	                    entity.setIsFollowupStatus(true);
+	                }
+	            }
+	        } catch (Exception e) {
+	            log.warn("Consultation expiration parsing failed: {}", e.getMessage());
+	            entity.setIsFollowupStatus(false);
+	        }
+
+	        // ✅ Generate custom booking ID
+	        String bookingId = sequenceGeneratorService.generateBookingId(
+	                request.getClinicName().substring(0, 3),
+	                request.getBranchname().substring(0, 3));
+	        entity.setBookingId(bookingId);
+
+	        // ✅ Channel ID logic
+	        if (request.getConsultationType() != null &&
+	            (request.getConsultationType().equalsIgnoreCase("video consultation") ||
+	             request.getConsultationType().equalsIgnoreCase("online consultation"))) {
+	            entity.setChannelId(randomNumber());
+	        }
+
+	        // ✅ Payment & status logic
+	        if (request.getFoc() != null && request.getPaymentType() != null) {
+	            if ("paid".equalsIgnoreCase(request.getFoc()) && "not paid".equalsIgnoreCase(request.getPaymentType())) {
+	                entity.setStatus("pending");
+	            } else if ("foc".equalsIgnoreCase(request.getFoc()) && "not paid".equalsIgnoreCase(request.getPaymentType())) {
+	                entity.setStatus("confirmed");
+	            } else if ("paid".equalsIgnoreCase(request.getFoc()) && !request.getPaymentType().isEmpty()) {
+	                entity.setStatus("confirmed");
+	            }
+	        }
+
+	        // ✅ Current status tracking
+	        List<Status> statusList = new LinkedList<>();
+	        Status s = new Status();
+	        s.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+	        s.setStatus(entity.getStatus());
+	        statusList.add(s);
+	        entity.setCurrentStatus(statusList);
+
+	        // ✅ Consultation fee tracking
+	        if (request.getConsultationFee() != null && request.getConsultationFee() > 0.0) {
+	            ConsultationFees fee = new ConsultationFees();
+	            fee.setConsulationFee(request.getConsultationFee());
+	            fee.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+	            entity.setListOfConsultationFee(Collections.singletonList(fee));
+	        }
+
+	        // ✅ Follow-up bookings initialization
+	        if (entity.getFollwupBookings() == null) {
+	            FollowupBooking followup = new FollowupBooking();
+	            followup.setDoctorId(entity.getDoctorId());
+	            followup.setDoctorName(entity.getDoctorName());
+	            followup.setServiceDate(entity.getServiceDate());
+	            followup.setServicetime(entity.getServicetime());
+	            followup.setStatus(entity.getStatus());
+	            followup.setVisitType(entity.getVisitType());
+	            entity.setFollwupBookings(Collections.singletonList(followup));
+	        }
+
+	    } catch (Exception e) {
+	        log.error("Error converting BookingRequest to Booking entity: {}", e.getMessage(), e);
+	        throw new RuntimeException("Failed to convert request to Booking entity", e);
+	    }
+	    return entity;
 	}
+
 
 	private BookingResponse toResponse(Booking entity) {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(new JavaTimeModule());
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
-		response.setIsFollowupStatus(entity.getIsFollowupStatus());
-		response.setConsultationFee(entity.getListOfConsultationFee().get(0).getConsulationFee());
+	    ObjectMapper mapper = new ObjectMapper();
+	    mapper.registerModule(new JavaTimeModule());
+	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-		String dto = getPrescriptionpdf(response.getBookingId());
-		if (dto != null) {
-			response.setPrescriptionPdf(Collections.singletonList(dto));
-		}
+	    BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
 
-		response.setBookingId(String.valueOf(entity.getBookingId()));
+	    // ✅ Follow-up status
+	    response.setIsFollowupStatus(entity.getIsFollowupStatus());
 
-//		    if (entity.getTreatments() != null && entity.getTreatments().getGeneratedData() != null) {
-//		        entity.getTreatments().getGeneratedData().forEach((name, t) -> {
-//		            if (t.getPendingSittings() != null && t.getPendingSittings() > 0) {
-//		                t.setStatus("In-Progress");
-//		            } else {
-//		                t.setStatus("Confirmed");
-//		            }
-//		        });
-//		    }
+	    // ✅ Consultation fee check
+	    if (entity.getListOfConsultationFee() != null && !entity.getListOfConsultationFee().isEmpty()) {
+	        response.setConsultationFee(entity.getListOfConsultationFee().get(0).getConsulationFee());
+	    }
 
-		// ── S3 signed URLs ──────────────────────────────
-		try {
-			if (entity.getPartImage() != null && !entity.getPartImage().isEmpty()) {
-				  String key = entity.getPartImage(); // plain key stored in DB
-			      response.setPartImageKey(key);  
-				response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
-			}
-		} catch (Exception e) {
-			System.out.println("partImage URL error: " + e.getMessage());
-		}
+	    // ✅ Prescription PDF
+	    try {
+	        String dto = getPrescriptionpdf(response.getBookingId());
+	        if (dto != null) {
+	            response.setPrescriptionPdf(Collections.singletonList(dto));
+	        }
+	    } catch (Exception e) {
+	        log.warn("Prescription PDF error for bookingId={}: {}", response.getBookingId(), e.getMessage());
+	    }
 
-		try {
-			if (entity.getConsentFormPdf() != null && !entity.getConsentFormPdf().isEmpty()) {
-				response.setConsentFormPdf(s3Service.generateSignedUrl(entity.getConsentFormPdf()));
-			}
-		} catch (Exception e) {
-			System.out.println("consentFormPdf URL error: " + e.getMessage());
-		}
+	    response.setBookingId(String.valueOf(entity.getBookingId()));
 
-		try {
-			if (entity.getAttachments() != null && !entity.getAttachments().isEmpty()) {
-				List<String> signedUrls = entity.getAttachments().stream().map(key -> {
-					try {
-						return s3Service.generateSignedUrl(key);
-					} catch (Exception ex) {
-						return key;
-					}
-				}).collect(Collectors.toList());
-				response.setAttachments(signedUrls);
-			}
-		} catch (Exception e) {
-			System.out.println("attachments URL error: " + e.getMessage());
-		}
+	    // ✅ S3 signed URLs
+	    try {
+	        if (entity.getPartImage() != null && !entity.getPartImage().isEmpty()) {
+	            response.setPartImageKey(entity.getPartImage());
+	            response.setPartImage(s3Service.generateSignedUrl(entity.getPartImage()));
+	        }
+	    } catch (Exception e) {
+	        log.warn("PartImage URL error for bookingId={}: {}", entity.getBookingId(), e.getMessage());
+	    }
 
-		// ── ✅ NEW: Sign report file keys → signed URLs ──
-		try {
-			if (response.getReports() != null) {
-				for (com.dermacare.bookingService.dto.ReportsDtoList reportsDtoList : response.getReports()) {
-					if (reportsDtoList.getReportsList() == null)
-						continue;
-					for (com.dermacare.bookingService.dto.ReportsDTO report : reportsDtoList.getReportsList()) {
-						if (report.getReportFile() == null || report.getReportFile().isEmpty())
-							continue;
-						List<String> signedUrls = report.getReportFile().stream()
-								.filter(key -> key != null && !key.isBlank()).map(key -> {
-									try {
-										return clinicAdminFeign.getSignedUrl(key); // ✅ calls Clinic Admin
-									} catch (Exception ex) {
-										System.out.println("report sign error: " + ex.getMessage());
-										return key; // fallback to raw key
-									}
-								}).collect(Collectors.toList());
-						report.setReportFile(signedUrls);
-					}
-				}
-			}
-		} catch (Exception e) {
-			System.out.println("reports URL signing error: " + e.getMessage());
-		}
+	    try {
+	        if (entity.getConsentFormPdf() != null && !entity.getConsentFormPdf().isEmpty()) {
+	            response.setConsentFormPdf(s3Service.generateSignedUrl(entity.getConsentFormPdf()));
+	        }
+	    } catch (Exception e) {
+	        log.warn("ConsentFormPdf URL error for bookingId={}: {}", entity.getBookingId(), e.getMessage());
+	    }
 
-		return response;
+	    try {
+	        if (entity.getAttachments() != null && !entity.getAttachments().isEmpty()) {
+	            List<String> signedUrls = entity.getAttachments().stream().map(key -> {
+	                try {
+	                    return s3Service.generateSignedUrl(key);
+	                } catch (Exception ex) {
+	                    log.warn("Attachment signing failed for key={} bookingId={}", key, entity.getBookingId());
+	                    return key;
+	                }
+	            }).collect(Collectors.toList());
+	            response.setAttachments(signedUrls);
+	        }
+	    } catch (Exception e) {
+	        log.warn("Attachments URL error for bookingId={}: {}", entity.getBookingId(), e.getMessage());
+	    }
+
+	    // ✅ Reports signing via Clinic Admin
+	    try {
+	        if (response.getReports() != null) {
+	            for (ReportsDtoList reportsDtoList : response.getReports()) {
+	                if (reportsDtoList.getReportsList() == null) continue;
+	                for (ReportsDTO report : reportsDtoList.getReportsList()) {
+	                    if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
+	                    List<String> signedUrls = report.getReportFile().stream()
+	                            .filter(key -> key != null && !key.isBlank())
+	                            .map(key -> {
+	                                try {
+	                                    return clinicAdminFeign.getSignedUrl(key);
+	                                } catch (Exception ex) {
+	                                    log.warn("Report signing failed for key={} bookingId={}", key, entity.getBookingId());
+	                                    return key;
+	                                }
+	                            }).collect(Collectors.toList());
+	                    report.setReportFile(signedUrls);
+	                }
+	            }
+	        }
+	    } catch (Exception e) {
+	        log.warn("Reports URL signing error for bookingId={}: {}", entity.getBookingId(), e.getMessage());
+	    }
+
+	    return response;
 	}
 
-	private String getPrescriptionpdf(String bid) {
-		try {
-			String res = physioDoctorFeign.getByBookingId(bid);
-			if (res != null && !res.isBlank()) {
-				return s3Service.generateSignedUrl(res);
-			}
-			return null;
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			return null;
-		}
+	/**
+	 * Retrieves the prescription PDF for a given bookingId and generates a signed S3 URL.
+	 * Returns null if no prescription is found or if signing fails.
+	 */
+	private String getPrescriptionpdf(String bookingId) {
+	    if (bookingId == null || bookingId.trim().isEmpty()) {
+	        log.warn("getPrescriptionpdf called with null/empty bookingId");
+	        return null;
+	    }
+
+	    try {
+	        String res = physioDoctorFeign.getByBookingId(bookingId);
+
+	        if (res != null && !res.isBlank()) {
+	            try {
+	                String signedUrl = s3Service.generateSignedUrl(res);
+	                log.debug("Prescription PDF signed successfully for bookingId={}", bookingId);
+	                return signedUrl;
+	            } catch (Exception ex) {
+	                log.error("Failed to sign prescription PDF for bookingId={} : {}", bookingId, ex.getMessage(), ex);
+	                return res; // fallback to raw key if signing fails
+	            }
+	        } else {
+	            log.info("No prescription PDF found for bookingId={}", bookingId);
+	            return null;
+	        }
+
+	    } catch (Exception e) {
+	        log.error("Error fetching prescription PDF for bookingId={} : {}", bookingId, e.getMessage(), e);
+	        return null;
+	    }
 	}
+
 
 	private static String randomNumber() {
 		Random random = new Random();
@@ -398,72 +457,73 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	}
 
 	private List<BookingResponse> toResponses(List<Booking> bookings) {
+	    if (bookings == null || bookings.isEmpty()) {
+	        return Collections.emptyList();
+	    }
+
 	    ObjectMapper mapper = new ObjectMapper();
 	    mapper.registerModule(new JavaTimeModule());
 	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-	    List<BookingResponse> res;
+	    List<BookingResponse> responses;
 	    try {
-	        res = mapper.convertValue(bookings, new TypeReference<List<BookingResponse>>() {
-	        });
+	        responses = mapper.convertValue(bookings, new TypeReference<List<BookingResponse>>() {});
 	    } catch (Exception e) {
-	        System.out.println("convertValue mapping error: " + e.getMessage());
-	        e.printStackTrace(); // temporary — remove/replace with logger once root cause is found
-	        throw new RuntimeException("Failed to map bookings to BookingResponse", e);
+	        log.error("Failed to map bookings to BookingResponse: {}", e.getMessage(), e);
+	        throw new RuntimeException("Failed to convert bookings list", e);
 	    }
 
-	    for (BookingResponse bres : res) {
-
-	        // ── partImage ───────────────────────────────────
+	    for (BookingResponse bres : responses) {
+	        // ✅ Part Image
 	        try {
 	            if (bres.getPartImage() != null && !bres.getPartImage().isEmpty()) {
 	                bres.setPartImage(s3Service.generateSignedUrl(bres.getPartImage()));
 	            }
 	        } catch (Exception e) {
-	            System.out.println("partImage URL error: " + e.getMessage());
+	            log.warn("PartImage URL error for bookingId={}: {}", bres.getBookingId(), e.getMessage());
 	        }
 
-	        // ── consentFormPdf ──────────────────────────────
+	        // ✅ Consent Form PDF
 	        try {
 	            if (bres.getConsentFormPdf() != null && !bres.getConsentFormPdf().isEmpty()) {
 	                bres.setConsentFormPdf(s3Service.generateSignedUrl(bres.getConsentFormPdf()));
 	            }
 	        } catch (Exception e) {
-	            System.out.println("consentFormPdf URL error: " + e.getMessage());
+	            log.warn("ConsentFormPdf URL error for bookingId={}: {}", bres.getBookingId(), e.getMessage());
 	        }
 
-	        // ── attachments ─────────────────────────────────
+	        // ✅ Attachments
 	        try {
 	            if (bres.getAttachments() != null && !bres.getAttachments().isEmpty()) {
 	                List<String> signedUrls = bres.getAttachments().stream().map(key -> {
 	                    try {
 	                        return s3Service.generateSignedUrl(key);
 	                    } catch (Exception ex) {
+	                        log.warn("Attachment signing failed for key={} bookingId={}", key, bres.getBookingId());
 	                        return key;
 	                    }
 	                }).collect(Collectors.toList());
 	                bres.setAttachments(signedUrls);
 	            }
 	        } catch (Exception e) {
-	            System.out.println("attachments URL error: " + e.getMessage());
+	            log.warn("Attachments URL error for bookingId={}: {}", bres.getBookingId(), e.getMessage());
 	        }
 
-	        // ── ✅ reports — sign raw S3 keys via Clinic Admin Feign ──
+	        // ✅ Reports signing via Clinic Admin
 	        try {
 	            if (bres.getReports() != null) {
 	                for (ReportsDtoList reportsDtoList : bres.getReports()) {
-	                    if (reportsDtoList.getReportsList() == null)
-	                        continue;
+	                    if (reportsDtoList.getReportsList() == null) continue;
 	                    for (ReportsDTO report : reportsDtoList.getReportsList()) {
-	                        if (report.getReportFile() == null || report.getReportFile().isEmpty())
-	                            continue;
+	                        if (report.getReportFile() == null || report.getReportFile().isEmpty()) continue;
 	                        List<String> signedUrls = report.getReportFile().stream()
-	                                .filter(key -> key != null && !key.isBlank()).map(key -> {
+	                                .filter(key -> key != null && !key.isBlank())
+	                                .map(key -> {
 	                                    try {
-	                                        return clinicAdminFeign.getSignedUrl(key); // ✅ Clinic Admin signs it
+	                                        return clinicAdminFeign.getSignedUrl(key);
 	                                    } catch (Exception ex) {
-	                                        System.out.println("report sign error: " + ex.getMessage());
-	                                        return key; // fallback to raw key
+	                                        log.warn("Report signing failed for key={} bookingId={}", key, bres.getBookingId());
+	                                        return key;
 	                                    }
 	                                }).collect(Collectors.toList());
 	                        report.setReportFile(signedUrls);
@@ -471,349 +531,350 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	                }
 	            }
 	        } catch (Exception e) {
-	            System.out.println("reports URL signing error: " + e.getMessage());
+	            log.warn("Reports URL signing error for bookingId={}: {}", bres.getBookingId(), e.getMessage());
 	        }
 
-	        // ── prescriptionPdf ─────────────────────────────
+	        // ✅ Prescription PDF
 	        try {
 	            String dto = getPrescriptionpdf(bres.getBookingId());
 	            if (dto != null) {
 	                bres.setPrescriptionPdf(Collections.singletonList(dto));
 	            }
 	        } catch (Exception e) {
-	            System.out.println("prescriptionPdf error for bookingId " + bres.getBookingId() + ": " + e.getMessage());
+	            log.warn("PrescriptionPdf error for bookingId={}: {}", bres.getBookingId(), e.getMessage());
 	        }
 	    }
 
-	    return res;
+	    return responses;
 	}
+
 
 
 	@Override
 	public ResponseEntity<?> physioAppointment(BookingRequset request) {
+	    Response res = new Response();
+	    ObjectMapper mapper = new ObjectMapper();
+	    mapper.registerModule(new JavaTimeModule());
+	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-		Response res = new Response();
+	    try {
+	        // =========================
+	        // VALIDATIONS
+	        // =========================
+	        if (request.getFreeFollowUps() == null) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Free FollowUps is mandatory");
+	        }
+	        if (request.getClinicId() == null || request.getClinicId().trim().isEmpty()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Clinic Id is mandatory");
+	        }
+	        if (request.getBranchId() == null || request.getBranchId().trim().isEmpty()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Branch Id is mandatory");
+	        }
+	        if (request.getDoctorId() == null || request.getDoctorId().trim().isEmpty()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Doctor Id is mandatory");
+	        }
+	        if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Service Date is mandatory");
+	        }
+	        if (request.getServicetime() == null || request.getServicetime().trim().isEmpty()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Service Time is mandatory");
+	        }
+	        if (request.getConsultationExpiration() == null || request.getConsultationExpiration().trim().isEmpty()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Consultation Expiration is mandatory");
+	        }
+	        boolean hasPatientMobile = request.getPatientMobileNumber() != null && !request.getPatientMobileNumber().trim().isEmpty();
+	        boolean hasMobile = request.getMobileNumber() != null && !request.getMobileNumber().trim().isEmpty();
+	        if (!hasPatientMobile && !hasMobile) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Patient Mobile Number or Mobile Number is mandatory");
+	        }
 
-		try {
+	        // =========================
+	        // SAVE BOOKING
+	        // =========================
+	        Booking entity = toEntity(request);
+	        Booking updatedBooking = repository.save(entity);
+	        if (updatedBooking == null) {
+	            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to save appointment");
+	        }
 
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.registerModule(new JavaTimeModule());
-			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+	        // =========================
+	        // Doctor Push Notification
+	        // =========================
+	        try {
+	            DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
+	            dto.setDoctorId(updatedBooking.getDoctorId());
+	            dto.setBookingId(updatedBooking.getBookingId());
+	            dto.setPatientName(updatedBooking.getName());
+	            dto.setAppointmentDate(updatedBooking.getServiceDate());
+	            dto.setAppointmentTime(updatedBooking.getServicetime());
+	            dto.setAppointmentType(updatedBooking.getVisitType());
 
-			// =====================================================
-			// VALIDATIONS
-			// =====================================================
+	            notificationFeign.sendDoctorPushNotification(dto);
+	            log.info("Doctor push notification sent successfully for booking {}", updatedBooking.getBookingId());
+	        } catch (Exception ex) {
+	            log.error("Failed to send doctor push notification for booking {} : {}", updatedBooking.getBookingId(), ex.getMessage());
+	        }
 
-			if (request.getFreeFollowUps() == null) {
-				throw new RuntimeException("Free FollowUps is mandatory");
-			}
+	        // =========================
+	        // Notification Service
+	        // =========================
+	        int notificationStatus = 0;
+	        try {
+	            Response notificationResponse = notificationFeign
+	                    .createNotification(mapper.convertValue(updatedBooking, BookingResponse.class))
+	                    .getBody();
+	            if (notificationResponse != null) {
+	                notificationStatus = notificationResponse.getStatus();
+	            }
+	        } catch (Exception e) {
+	            log.warn("Notification service failed for booking {} : {}", updatedBooking.getBookingId(), e.getMessage());
+	        }
 
-			if (request.getClinicId() == null || request.getClinicId().trim().isEmpty()) {
-				throw new RuntimeException("Clinic Id is mandatory");
-			}
+	        // =========================
+	        // WhatsApp Notification
+	        // =========================
+	        try {
+	            request.setBookingId(updatedBooking.getBookingId());
+	            request.setClinicId(updatedBooking.getClinicId());
+	            request.setBranchId(updatedBooking.getBranchId());
 
-			if (request.getBranchId() == null || request.getBranchId().trim().isEmpty()) {
-				throw new RuntimeException("Branch Id is mandatory");
-			}
+	            whatsAppService.sendBookingConfirmation(request);
+	            log.info("WhatsApp sent successfully for booking {}", updatedBooking.getBookingId());
+	        } catch (Exception e) {
+	            log.warn("WhatsApp notification failed for booking {} : {}", updatedBooking.getBookingId(), e.getMessage());
+	        }
 
-			if (request.getDoctorId() == null || request.getDoctorId().trim().isEmpty()) {
-				throw new RuntimeException("Doctor Id is mandatory");
-			}
+	        // =========================
+	        // SUCCESS RESPONSE
+	        // =========================
+	        res.setStatus(200);
+	        res.setSuccess(true);
+	        if (notificationStatus == 200) {
+	            res.setMessage("Appointment Booked Successfully and notification sent");
+	        } else {
+	            res.setMessage("Appointment Booked Successfully but Notification not sent");
+	        }
+	        return ResponseEntity.ok(res);
 
-			if (request.getServiceDate() == null || request.getServiceDate().trim().isEmpty()) {
-				throw new RuntimeException("Service Date is mandatory");
-			}
-
-			if (request.getServicetime() == null || request.getServicetime().trim().isEmpty()) {
-				throw new RuntimeException("Service Time is mandatory");
-			}
-
-			if (request.getConsultationExpiration() == null || request.getConsultationExpiration().trim().isEmpty()) {
-				throw new RuntimeException("Consultation Expiration is mandatory");
-			}
-
-			boolean hasPatientMobile = request.getPatientMobileNumber() != null
-					&& !request.getPatientMobileNumber().trim().isEmpty();
-
-			boolean hasMobile = request.getMobileNumber() != null && !request.getMobileNumber().trim().isEmpty();
-
-			if (!hasPatientMobile && !hasMobile) {
-				throw new RuntimeException("Patient Mobile Number or Mobile Number is mandatory");
-			}
-
-			// =====================================================
-			// SAVE BOOKING
-			// =====================================================
-
-			Booking entity = toEntity(request);
-
-			Booking updatedBooking = repository.save(entity);
-
-			if (updatedBooking == null) {
-				throw new RuntimeException("Unable to save appointment");
-			}
-
-			// Doctor Push Notification - New Appointment
-
-			try {
-
-				DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
-
-				dto.setDoctorId(updatedBooking.getDoctorId());
-
-				dto.setBookingId(updatedBooking.getBookingId());
-
-				dto.setPatientName(updatedBooking.getName());
-
-				dto.setAppointmentDate(updatedBooking.getServiceDate());
-
-				dto.setAppointmentTime(updatedBooking.getServicetime());
-
-				dto.setAppointmentType(updatedBooking.getVisitType());
-
-				notificationFeign.sendDoctorPushNotification(dto);
-
-				log.info("Doctor push notification sent successfully for booking {}", updatedBooking.getBookingId());
-
-			} catch (Exception ex) {
-
-				log.error("Failed to send doctor push notification for booking {} : {}", updatedBooking.getBookingId(),
-						ex.getMessage());
-			}
-
-			// =====================================================
-			// SEND NOTIFICATION
-			// =====================================================
-
-			int notificationStatus = 0;
-
-			try {
-
-				Response notificationResponse = notificationFeign
-						.createNotification(mapper.convertValue(updatedBooking, BookingResponse.class)).getBody();
-				if (notificationResponse != null) {
-					notificationStatus = notificationResponse.getStatus();
-				}
-
-			} catch (Exception e) {
-
-				log.warn("Notification service failed for booking {} : {}", updatedBooking.getBookingId(),
-						e.getMessage());
-			}
-
-			// =====================================================
-			// SEND WHATSAPP
-			// =====================================================
-
-			try {
-
-				request.setBookingId(updatedBooking.getBookingId());
-
-				request.setClinicId(updatedBooking.getClinicId());
-
-				request.setBranchId(updatedBooking.getBranchId());
-
-				whatsAppService.sendBookingConfirmation(request);
-
-				log.info("WhatsApp sent successfully for booking {}", updatedBooking.getBookingId());
-
-			} catch (Exception e) {
-
-				log.warn("WhatsApp notification failed for booking {} : {}", updatedBooking.getBookingId(),
-						e.getMessage());
-
-				// Do not fail booking if WhatsApp fails
-			}
-
-			// =====================================================
-			// SUCCESS RESPONSE
-			// =====================================================
-
-			res.setStatus(200);
-			res.setSuccess(true);
-
-			if (notificationStatus == 200) {
-
-				res.setMessage("Appointment Booked Successfully and notification sent");
-
-			} else {
-
-				res.setMessage("Appointment Booked Successfully but Notification not sent");
-			}
-
-			return ResponseEntity.ok(res);
-
-		} catch (Exception e) {
-
-			log.error("Appointment booking failed : {}", e.getMessage(), e);
-
-			res.setStatus(500);
-			res.setSuccess(false);
-			res.setMessage(e.getMessage());
-
-			return ResponseEntity.status(500).body(res);
-		}
+	    } catch (ResponseStatusException e) {
+	        log.error("Validation failed: {}", e.getReason());
+	        res.setStatus(e.getStatusCode().value());
+	        res.setSuccess(false);
+	        res.setMessage(e.getReason());
+	        return ResponseEntity.status(e.getStatusCode()).body(res);
+	    } catch (Exception e) {
+	        log.error("Appointment booking failed : {}", e.getMessage(), e);
+	        res.setStatus(500);
+	        res.setSuccess(false);
+	        res.setMessage("Internal error: " + e.getMessage());
+	        return ResponseEntity.status(500).body(res);
+	    }
 	}
 
+
+	@Override
 	public ResponseEntity<?> getAppointsByPatientId(String patientId) {
-		ResponseStructure<List<Map<String, Object>>> res = new ResponseStructure<List<Map<String, Object>>>();
-		List<Map<String, Object>> list = new ArrayList<>();
-		try {
-			List<Booking> existingBooking = repository.findByPatientId(patientId);
-			if (existingBooking != null && !existingBooking.isEmpty()) {
-				ObjectMapper mapper = new ObjectMapper();
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-				List<BookingResponse> respnse = mapper.convertValue(existingBooking,
-						new TypeReference<List<BookingResponse>>() {
-						});
-				respnse.stream().map(n -> {
-					Map<String, Object> map = new LinkedHashMap<>();
-					map.put("bookingId", n.getBookingId());
-					map.put("serviceDate", n.getServiceDate());
-					map.put("servicetime", n.getServicetime());
-					map.put("name", n.getName());
-					map.put("mobileNumber",
-							!n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber());
-					map.put("doctorId", n.getDoctorId());
-					map.put("doctorName", n.getDoctorName());
-					map.put("paymentType", n.getPaymentType());
-					map.put("visitType", n.getVisitType());
-					map.put("status", n.getStatus());
-					map.put("followupStatus", n.getFollowupStatus());
-					map.put("patientId", n.getPatientId());
-					map.put("clinicId", n.getClinicId());
-					map.put("customerId", n.getCustomerId());
-					map.put("branchId", n.getBranchId());
-					map.put("age", n.getAge());
-					map.put("gender", n.getGender());
-					map.put("branchName", n.getBranchname());
-					map.put("session", n.getSession());
-					map.put("problem", n.getProblem());
-					list.add(map);
-					return n;
-				}).toList();
-				res.setStatusCode(200);
-				res.setData(list);
-				res.setMessage("Appointments Are Found");
-				return ResponseEntity.status(200).body(res);
-			} else {
-				res.setStatusCode(200);
-				res.setMessage("Appointments Are Not Found");
-				return ResponseEntity.status(200).body(res);
-			}
-		} catch (Exception e) {
-			res.setStatusCode(500);
-			res.setMessage(e.getMessage());
-			return ResponseEntity.status(500).body(res);
-		}
+	    ResponseStructure<List<Map<String, Object>>> res = new ResponseStructure<>();
+	    List<Map<String, Object>> list = new ArrayList<>();
+
+	    try {
+	        // ✅ Uses patientId index
+	        List<Booking> existingBookings = repository.findByPatientId(patientId);
+
+	        if (existingBookings == null || existingBookings.isEmpty()) {
+	            log.warn("No appointments found for patientId={}", patientId);
+	            res.setStatusCode(200);
+	            res.setMessage("Appointments Are Not Found");
+	            res.setData(Collections.emptyList());
+	            return ResponseEntity.ok(res);
+	        }
+
+	        ObjectMapper mapper = new ObjectMapper();
+	        mapper.registerModule(new JavaTimeModule());
+	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+	        List<BookingResponse> responses = mapper.convertValue(existingBookings, new TypeReference<List<BookingResponse>>() {});
+
+	        responses.forEach(n -> {
+	            Map<String, Object> map = new LinkedHashMap<>();
+	            map.put("bookingId", n.getBookingId());
+	            map.put("serviceDate", n.getServiceDate());
+	            map.put("servicetime", n.getServicetime());
+	            map.put("name", n.getName());
+	            map.put("mobileNumber",
+	                n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+	                    ? n.getPatientMobileNumber()
+	                    : n.getMobileNumber());
+	            map.put("doctorId", n.getDoctorId());
+	            map.put("doctorName", n.getDoctorName());
+	            map.put("paymentType", n.getPaymentType());
+	            map.put("visitType", n.getVisitType());
+	            map.put("status", n.getStatus());
+	            map.put("followupStatus", n.getFollowupStatus());
+	            map.put("patientId", n.getPatientId());
+	            map.put("clinicId", n.getClinicId());
+	            map.put("customerId", n.getCustomerId());
+	            map.put("branchId", n.getBranchId());
+	            map.put("age", n.getAge());
+	            map.put("gender", n.getGender());
+	            map.put("branchName", n.getBranchname());
+	            map.put("session", n.getSession());
+	            map.put("problem", n.getProblem());
+
+	            list.add(map);
+	        });
+
+	        res.setStatusCode(200);
+	        res.setMessage("Appointments Are Found");
+	        res.setData(list);
+	        log.info("Found {} appointments for patientId={}", list.size(), patientId);
+
+	        return ResponseEntity.ok(res);
+
+	    } catch (Exception e) {
+	        log.error("Error fetching appointments for patientId={}: {}", patientId, e.getMessage(), e);
+	        res.setStatusCode(500);
+	        res.setMessage("Internal error: " + e.getMessage());
+	        res.setData(Collections.emptyList());
+	        return ResponseEntity.status(500).body(res);
+	    }
 	}
 
+
+	@Override
 	public ResponseEntity<?> getAppointsByInput(String input) {
-		ResponseStructure<List<BookingResponse>> res = new ResponseStructure<List<BookingResponse>>();
-		try {
-			List<Booking> existingBooking = repository.findByNameIgnoreCaseOrBookingIdOrPatientId(input);
-			if (existingBooking != null && !existingBooking.isEmpty()) {
-				List<BookingResponse> respnse = new ObjectMapper().convertValue(existingBooking,
-						new TypeReference<List<BookingResponse>>() {
-						});
-				res.setStatusCode(200);
-				res.setData(respnse);
-				res.setMessage("Appointments Are Found");
-				return ResponseEntity.status(200).body(res);
-			} else {
-				res.setStatusCode(200);
-				res.setMessage("Appointments Are Not Found");
-				return ResponseEntity.status(200).body(res);
-			}
-		} catch (Exception e) {
-			res.setStatusCode(500);
-			res.setMessage(e.getMessage());
-			return ResponseEntity.status(500).body(res);
-		}
+	    ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
+
+	    try {
+	        // ✅ Uses patientId and bookingId indexes; name regex is slower
+	        List<Booking> existingBookings = repository.findByNameIgnoreCaseOrBookingIdOrPatientId(input);
+
+	        if (existingBookings == null || existingBookings.isEmpty()) {
+	            log.warn("No appointments found for input={}", input);
+	            res.setStatusCode(200);
+	            res.setMessage("Appointments Are Not Found");
+	            res.setData(Collections.emptyList());
+	            return ResponseEntity.ok(res);
+	        }
+
+	        ObjectMapper mapper = new ObjectMapper();
+	        mapper.registerModule(new JavaTimeModule());
+	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+	        List<BookingResponse> responses = mapper.convertValue(existingBookings, new TypeReference<List<BookingResponse>>() {});
+
+	        res.setStatusCode(200);
+	        res.setMessage("Appointments Are Found");
+	        res.setData(responses);
+	        log.info("Found {} appointments for input={}", responses.size(), input);
+
+	        return ResponseEntity.ok(res);
+
+	    } catch (Exception e) {
+	        log.error("Error fetching appointments for input={}: {}", input, e.getMessage(), e);
+	        res.setStatusCode(500);
+	        res.setMessage("Internal error: " + e.getMessage());
+	        res.setData(Collections.emptyList());
+	        return ResponseEntity.status(500).body(res);
+	    }
 	}
 
+	@Override
 	public ResponseEntity<?> getTodayDoctorAppointmentsByDoctorId(String clinicId, String doctorId) {
-		List<Map<String, Object>> list = new ArrayList<>();
-		ResponseStructure<List<Map<String, Object>>> res = new ResponseStructure<>();
-		List<BookingResponse> responseList = new ArrayList<>();
-		try {
-// Fetch bookings based on clinicId and doctorId
-			List<Booking> existingBookings = repository.findByClinicIdAndDoctorId(clinicId, doctorId);
+	    ResponseStructure<List<Map<String, Object>>> res = new ResponseStructure<>();
+	    List<Map<String, Object>> list = new ArrayList<>();
 
-			DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	    try {
+	        // ✅ Uses compound index (clinicId, doctorId, serviceDate)
+	        List<Booking> existingBookings = repository.findByClinicIdAndDoctorId(clinicId, doctorId);
 
-			LocalDate currentDate = LocalDate.now();
+	        if (existingBookings == null || existingBookings.isEmpty()) {
+	            log.warn("No appointments found for clinicId={} and doctorId={} on today", clinicId, doctorId);
+	            res.setStatusCode(200);
+	            res.setMessage("Appointments Are Not Found");
+	            res.setData(Collections.emptyList());
+	            return ResponseEntity.ok(res);
+	        }
 
-			if (!existingBookings.isEmpty()) {
+	        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	        LocalDate currentDate = LocalDate.now();
 
-				for (Booking b : existingBookings) {
+	        List<BookingResponse> responseList = new ArrayList<>();
 
-					if (b.getServiceDate() != null && b.getStatus() != null) {
+	        for (Booking b : existingBookings) {
+	            try {
+	                if (b.getServiceDate() != null && b.getStatus() != null) {
+	                    LocalDate bookingDate = LocalDate.parse(b.getServiceDate(), dateFormatter);
 
-						LocalDate bookingDate = LocalDate.parse(b.getServiceDate(), dateFormatter);
+	                    if (bookingDate.equals(currentDate) &&
+	                        (b.getStatus().equalsIgnoreCase("Confirmed") || b.getStatus().equalsIgnoreCase("pending"))) {
+	                        BookingResponse temp = toResponse(b);
+	                        responseList.add(temp);
+	                    }
+	                }
+	            } catch (Exception e) {
+	                log.error("Error parsing serviceDate for bookingId={}: {}", b.getBookingId(), e.getMessage());
+	            }
+	        }
 
-						if (bookingDate.equals(currentDate)) {
-					    if(b.getStatus().equalsIgnoreCase("Confirmed") || b.getStatus().equalsIgnoreCase("pending")){
+	        if (responseList.isEmpty()) {
+	            log.info("No confirmed/pending appointments found for clinicId={} and doctorId={} today", clinicId, doctorId);
+	            res.setStatusCode(200);
+	            res.setMessage("Appointments Are Not Found");
+	            res.setData(Collections.emptyList());
+	            return ResponseEntity.ok(res);
+	        }
 
-							BookingResponse temp = toResponse(b);
+	        // ✅ Map BookingResponse → simplified map for API response
+	        responseList.forEach(n -> {
+	            Map<String, Object> map = new LinkedHashMap<>();
+	            map.put("bookingId", n.getBookingId());
+	            map.put("serviceDate", n.getServiceDate());
+	            map.put("servicetime", n.getServicetime());
+	            map.put("name", n.getName());
+	            map.put("mobileNumber", 
+	                n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+	                    ? n.getPatientMobileNumber()
+	                    : n.getMobileNumber());
+	            map.put("doctorId", n.getDoctorId());
+	            map.put("doctorName", n.getDoctorName());
+	            map.put("paymentType", n.getPaymentType());
+	            map.put("visitType", n.getVisitType());
+	            map.put("status", n.getStatus());
+	            map.put("followupStatus", n.getFollowupStatus());
+	            map.put("patientId", n.getPatientId());
+	            map.put("clinicId", n.getClinicId());
+	            map.put("customerId", n.getCustomerId());
+	            map.put("branchId", n.getBranchId());
+	            map.put("age", n.getAge());
+	            map.put("gender", n.getGender());
+	            map.put("branchName", n.getBranchname());
+	            map.put("problem", n.getProblem());
 
-							responseList.add(temp);
-						}}}}
-				    responseList.stream().map(n -> {
-					Map<String, Object> map = new LinkedHashMap<>();
-					map.put("bookingId", n.getBookingId());
-					map.put("serviceDate", n.getServiceDate());
-					map.put("servicetime", n.getServicetime());
-					map.put("name", n.getName());
-					map.put("mobileNumber",
-							n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
-									? n.getPatientMobileNumber()
-									: n.getMobileNumber());
-					map.put("doctorId", n.getDoctorId());
-					map.put("doctorName", n.getDoctorName());
-					map.put("paymentType", n.getPaymentType());
-					map.put("visitType", n.getVisitType());
-					map.put("status", n.getStatus());
-					map.put("followupStatus", n.getFollowupStatus());
-					map.put("patientId", n.getPatientId());
-					map.put("clinicId", n.getClinicId());
-					map.put("customerId", n.getCustomerId());
-					map.put("branchId", n.getBranchId());
-					map.put("age", n.getAge());
-					map.put("gender", n.getGender());
-					map.put("branchName", n.getBranchname());
-					map.put("problem", n.getProblem());
+	            // Extra fields
+	            map.put("consultationFee", n.getConsultationFee());
+	            map.put("freeFollowUpsLeft", n.getFreeFollowUpsLeft());
+	            map.put("freeFollowUps", n.getFreeFollowUps());
 
-					// New fields
-					map.put("consultationFee", n.getConsultationFee());
-					map.put("freeFollowUpsLeft", n.getFreeFollowUpsLeft());
-					map.put("freeFollowUps", n.getFreeFollowUps());
+	            list.add(map);
+	        });
 
-					list.add(map);
-					return n;
-				}).toList();
-				res.setStatusCode(200);
-				res.setHttpStatus(HttpStatus.OK);
-				res.setData(list);
-				if (!list.isEmpty()) {
-					res.setMessage("Today's Appointments Found");
-				} else {
-					res.setMessage("No Appointments for Today");
-				}
-			} else {
-				res.setStatusCode(200);
-				res.setHttpStatus(HttpStatus.OK);
-				res.setMessage("Appointments Not Found");
-			}
-		} catch (Exception e) {
-			res.setStatusCode(500);
-			res.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-			res.setMessage("Error occurred : " + e.getMessage());
-		}
+	        res.setStatusCode(200);
+	        res.setMessage("Appointments Are Found");
+	        res.setData(list);
+	        log.info("Found {} appointments for clinicId={} and doctorId={} today", list.size(), clinicId, doctorId);
 
-		return ResponseEntity.status(res.getStatusCode()).body(res);
+	        return ResponseEntity.ok(res);
+
+	    } catch (Exception e) {
+	        log.error("Error fetching today's appointments for clinicId={} and doctorId={}: {}", clinicId, doctorId, e.getMessage(), e);
+	        res.setStatusCode(500);
+	        res.setMessage("Internal error: " + e.getMessage());
+	        res.setData(Collections.emptyList());
+	        return ResponseEntity.status(500).body(res);
+	    }
 	}
+
 
 	@Override
 	public ResponseEntity<?> filterDoctorAppointmentsByDoctorId(String hospitalId, String doctorId, String number) {
@@ -1148,53 +1209,82 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	public List<BookingResponse> bookingByPatientId(String patientId) {
-		List<Booking> bookings = repository.findByPatientId(patientId);
-		List<Booking> reversedBookings = new ArrayList<>();
-		for (int i = bookings.size() - 1; i >= 0; i--) {
-			// if(bookings.get(i).getStatus().equalsIgnoreCase("In-Progress")) {
-			reversedBookings.add(bookings.get(i));
-		}
-		// }
-		if (bookings == null || bookings.isEmpty()) {
-			return null;
-		}
-		return toResponses(reversedBookings);
+	    List<Booking> bookings = repository.findByPatientId(patientId);
+
+	    if (bookings == null || bookings.isEmpty()) {
+	        log.info("No bookings found for patientId={}", patientId);
+	        return Collections.emptyList();
+	    }
+
+	    // Reverse order
+	    List<Booking> reversedBookings = new ArrayList<>(bookings);
+	    Collections.reverse(reversedBookings);
+
+	    return toResponses(reversedBookings);
 	}
 
 	@Override
 	public List<BookingResponse> bookingByPatientIdAndBookingId(String patientId, String bookingId) {
-		List<Booking> bookings = repository.findByPatientIdAndBookingId(patientId, bookingId);
-		List<Booking> reversedBookings = new ArrayList<>();
-		for (int i = bookings.size() - 1; i >= 0; i--) {
-			if (bookings.get(i).getStatus().equalsIgnoreCase("In-Progress")) {
-				reversedBookings.add(bookings.get(i));
-			}
-		}
-		if (bookings == null || bookings.isEmpty()) {
-			return null;
-		}
-		return toResponses(reversedBookings);
+	    List<Booking> bookings = repository.findByPatientIdAndBookingId(patientId, bookingId);
+
+	    if (bookings == null || bookings.isEmpty()) {
+	        log.info("No bookings found for patientId={} and bookingId={}", patientId, bookingId);
+	        return Collections.emptyList();
+	    }
+
+	    // Reverse order and filter "In-Progress"
+	    List<Booking> reversedBookings = new ArrayList<>();
+	    for (int i = bookings.size() - 1; i >= 0; i--) {
+	        if ("In-Progress".equalsIgnoreCase(bookings.get(i).getStatus())) {
+	            reversedBookings.add(bookings.get(i));
+	        }
+	    }
+
+	    return toResponses(reversedBookings);
 	}
+
 
 	@Override
 	public List<ReportsDTO> getReportsByPatientId(String patientId) {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(new JavaTimeModule());
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		List<Booking> bookings = repository.findByPatientId(patientId);
-		List<ReportsDTO> responseList = new ArrayList<>();
-		for (Booking booking : bookings) {
-			if (booking.getReports() != null) {
-				for (ReportsList report : booking.getReports()) {
-					for (Reports reportEntity : report.getReportsList()) {
-						ReportsDTO dto = mapper.convertValue(reportEntity, ReportsDTO.class);
-						responseList.add(dto);
-					}
-				}
-			}
-		}
-		return responseList;
+	    if (patientId == null || patientId.trim().isEmpty()) {
+	        log.warn("getReportsByPatientId called with null/empty patientId");
+	        return Collections.emptyList();
+	    }
+
+	    ObjectMapper mapper = new ObjectMapper();
+	    mapper.registerModule(new JavaTimeModule());
+	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+	    List<Booking> bookings = repository.findByPatientId(patientId);
+	    if (bookings == null || bookings.isEmpty()) {
+	        log.info("No bookings found for patientId={}", patientId);
+	        return Collections.emptyList();
+	    }
+
+	    List<ReportsDTO> responseList = new ArrayList<>();
+	    for (Booking booking : bookings) {
+	        if (booking.getReports() == null || booking.getReports().isEmpty()) {
+	            continue;
+	        }
+	        for (ReportsList reportList : booking.getReports()) {
+	            if (reportList.getReportsList() == null || reportList.getReportsList().isEmpty()) {
+	                continue;
+	            }
+	            for (Reports reportEntity : reportList.getReportsList()) {
+	                try {
+	                    ReportsDTO dto = mapper.convertValue(reportEntity, ReportsDTO.class);
+	                    responseList.add(dto);
+	                } catch (Exception e) {
+	                    log.warn("Failed to convert reportEntity for bookingId={} : {}", 
+	                             booking.getBookingId(), e.getMessage());
+	                }
+	            }
+	        }
+	    }
+
+	    return responseList;
 	}
+
 
 	private boolean isValidMobileNumber(String input) {
 		if (input == null) {

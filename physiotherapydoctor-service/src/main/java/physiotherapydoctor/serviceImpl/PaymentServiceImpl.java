@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
-import javassist.bytecode.stackmap.BasicBlock.Catch;
+
 import physiotherapydoctor.dto.*;
 import physiotherapydoctor.dto.response.ExerciseResponse;
 import physiotherapydoctor.dto.response.PackageResponse;

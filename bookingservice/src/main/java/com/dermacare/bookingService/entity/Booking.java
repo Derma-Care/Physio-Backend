@@ -21,13 +21,12 @@ import lombok.NoArgsConstructor;
 @Document(collection = "Appointments")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @CompoundIndexes({
-    // Backs bookingByCustomerId() / CompletedbookingByCustomerId(), which filter
-    // by customerId AND status in the same call.
+    // Supports queries filtering by customerId + status
     @CompoundIndex(name = "customerId_status_idx", def = "{'customerId': 1, 'status': 1}"),
-    // Backs getBookedServicesByClinicIdWithBranchId() / getTodayBookings() /
-    // getBookingByDate() / getUpcomingBookings(), which all query by
-    // clinicId + branchId (+ serviceDate for some).
-    @CompoundIndex(name = "clinicId_branchId_idx", def = "{'clinicId': 1, 'branchId': 1}")
+    // Supports queries filtering by clinicId + branchId
+    @CompoundIndex(name = "clinicId_branchId_idx", def = "{'clinicId': 1, 'branchId': 1}"),
+    // ✅ New: supports queries filtering by clinicId + doctorId + serviceDate
+    @CompoundIndex(name = "clinicId_doctorId_serviceDate_idx", def = "{'clinicId': 1, 'doctorId': 1, 'serviceDate': 1}")
 })
 public class Booking {
 
@@ -125,29 +124,19 @@ public class Booking {
     private boolean isFollowupStatus;
     private List<FollowupBooking> follwupBookings;
     private String transactionId;
-	private String referredDoctorId;
+    private String referredDoctorId;
     private Boolean nextVisit;
-	public void setIsFollowupStatus(boolean followupStatus) {
-	    isFollowupStatus = followupStatus;
-	}
-	
-	public boolean getIsFollowupStatus() {
-	    return isFollowupStatus;
-	}
+
+    public void setIsFollowupStatus(boolean followupStatus) {
+        isFollowupStatus = followupStatus;
+    }
+
+    public boolean getIsFollowupStatus() {
+        return isFollowupStatus;
+    }
 
     /**
-     * Deep-ish copy constructor used by inprogressAppointmentsByConsultationExpiration()
-     * to spin off a synthetic "In-Progress" follow-up projection from an existing
-     * booking without mutating the original document.
-     *
-     * ⚠️ Kept in sync with every field above — previously this silently dropped
-     * newer fields (dueAmount, theraphyAnswers, referredByType/Name, previousInjuries,
-     * currentMedications, allergies, occupation, insuranceProvider, policyNumber,
-     * activityLevels, bodyPartId/Name, partImage, parts, partAmount, foc, focReason,
-     * paymentStatus, isFollowupStatus, transactionId, referredDoctorId, dob,
-     * customerDeviceId, doctorDeviceId, clinicDeviceId, visitCount, focReason)
-     * on any booking copied through this path, which is an easy source of subtle
-     * bugs anywhere this constructor is relied on downstream.
+     * Deep copy constructor to safely duplicate Booking objects.
      */
     public Booking(Booking booking) {
         this.bookingId = booking.getBookingId();

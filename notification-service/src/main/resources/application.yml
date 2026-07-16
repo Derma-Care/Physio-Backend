@@ -8,7 +8,7 @@ spring:
 
   mvc:
     async:
-      request-timeout: 60000
+      request-timeout: 60000   # longer for debugging
 
   cloud:
     openfeign:
@@ -17,16 +17,18 @@ spring:
           default:
             connectTimeout: 30000
             readTimeout: 60000
+            loggerLevel: FULL   # verbose logs for dev
 
 server:
   port: 9909
-
   servlet:
     context-path: /api
-
   tomcat:
     connection-timeout: 60s
 
+# =========================================================
+# Eureka (local discovery)
+# =========================================================
 eureka:
   instance:
     prefer-ip-address: true
@@ -36,50 +38,47 @@ eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
-
     healthcheck:
       enabled: true
-
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-# ===============================
-# Actuator
-# ===============================
+# =========================================================
+# Actuator (local monitoring)
+# =========================================================
 management:
   server:
     base-path: /
-
   endpoints:
     web:
       exposure:
         include: health,info,metrics
-
   endpoint:
     health:
       show-details: always
       probes:
         enabled: true
 
-# ===============================
+# =========================================================
 # App Info
-# ===============================
+# =========================================================
 info:
   app:
     name: notification-service
-    description: Service responsible for handling notifications related to bookings
+    description: Service responsible for handling notifications related to bookings (local profile)
     version: 1.0.0
 
-# ===============================
-# Firebase
-# ===============================
+# =========================================================
+# Firebase (local key)
+# =========================================================
 app:
   firebase-configuration-file: firebase-key.json
 
-# ===============================
-# Logging
-# ===============================
+# =========================================================
+# Logging (verbose for dev)
+# =========================================================
 logging:
   level:
-    org.springframework.web: INFO
+    root: INFO
+    org.springframework.web: DEBUG
     com.dermacare.notification_service: DEBUG

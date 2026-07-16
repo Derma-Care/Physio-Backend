@@ -2,13 +2,10 @@ spring:
   application:
     name: bookingservice
 
-#  config:
-#    import: optional:application-secrets.yml
-
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
-      auto-index-creation: true
+      auto-index-creation: false
 
   cloud:
     openfeign:
@@ -17,128 +14,98 @@ spring:
           default:
             connectTimeout: 30000
             readTimeout: 60000
+            loggerLevel: FULL   # detailed logs for debugging
 
 server:
-
   port: 9900
-
   servlet:
     context-path: /api
-
   shutdown: graceful
-
-  compression:
-    enabled: true
-    mime-types:
-      - application/json
-      - text/html
-      - text/plain
 
 spring.lifecycle:
   timeout-per-shutdown-phase: 30s
 
 # =========================================================
-# WHATSAPP
+# WHATSAPP (dummy values for local dev)
 # =========================================================
 whatsapp:
-  base-url: 
-  auth-key: 
-  phone-number-id: 
-  booking-confirmation-template-id: 
+  base-url: http://localhost:8080/mock-whatsapp
+  auth-key: dummy-key
+  phone-number-id: test-id
+  booking-confirmation-template-id: test-template
 
 # =========================================================
-# AWS S3
+# AWS S3 (test bucket for local dev)
 # =========================================================
-
 aws:
-  accessKeyId: 
-  secretAccessKey: 
+  accessKeyId: local-access
+  secretAccessKey: local-secret
   region: ap-south-1
   s3:
-    bucket: physiocare-prod-storage
+    bucket: physiocare-dev-storage
 
 # =========================================================
-# EUREKA
+# EUREKA (local discovery)
 # =========================================================
-
 eureka:
-
   client:
     register-with-eureka: true
     fetch-registry: true
-
     service-url:
       defaultZone: http://localhost:8761/eureka/
-
   instance:
     prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
 
 # =========================================================
-# RESILIENCE4J
+# RESILIENCE4J (local testing thresholds)
 # =========================================================
-
 resilience4j:
-
   circuitbreaker:
-
     instances:
-
       bookingService:
-
         register-health-indicator: true
-
         sliding-window-size: 10
-
         minimum-number-of-calls: 5
-
         permitted-number-of-calls-in-half-open-state: 3
-
         wait-duration-in-open-state: 10s
-
         failure-rate-threshold: 50
-
   timelimiter:
-
     instances:
-
       bookingService:
         timeout-duration: 60s
 
 # =========================================================
-# ACTUATOR — FIXED
+# ACTUATOR (local monitoring)
 # =========================================================
-
 management:
   server:
-    base-path: /              # ← FIXED: moves actuator out of /api context-path
-
+    base-path: /
   endpoints:
     web:
       exposure:
         include: health,info,metrics
-
   endpoint:
     health:
       show-details: always
       probes:
-        enabled: true         # ← enables liveness & readiness probes
+        enabled: true
 
 # =========================================================
 # INFO
 # =========================================================
-
 info:
-
   app:
     name: bookingservice
-    description: Service responsible for booking appointments
+    description: Service responsible for booking appointments (local profile)
     version: 1.0.0
 
 # =========================================================
-# LOGGING
+# LOGGING (verbose for dev)
 # =========================================================
-
 logging:
-
   level:
     root: INFO
+    org.springframework.web: DEBUG
+    com.dermaCare.bookingService: DEBUG
