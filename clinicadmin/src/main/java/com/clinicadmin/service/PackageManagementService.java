@@ -16,4 +16,5 @@ public interface PackageManagementService {
     Response deletePackage(String packageId);
 
 	Response getPackageWithPrograms(String packageId, String clinicId, String branchId);
-}
+	Response getByClinicId(String clinicId);
+	}

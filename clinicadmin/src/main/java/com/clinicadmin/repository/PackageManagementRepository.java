@@ -15,4 +15,5 @@ public interface PackageManagementRepository extends MongoRepository<PackageMana
             String clinicId, String branchId, String packageId);
 
     Optional<PackageManagement> findByPackageId(String packageId);
+    List<PackageManagement> findByClinicId(String clinicId);
 }

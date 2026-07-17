@@ -11,7 +11,6 @@ import com.clinicadmin.service.PackageManagementService;
 @RestController
 @RequestMapping("/clinic-admin")
 public class PackageManagementController {
-
     @Autowired
     private PackageManagementService service;
 
@@ -56,6 +55,18 @@ public class PackageManagementController {
                 .status(response.getStatus())
                 .body(response);
     }
+    
+ // ✅ GET by clinicId
+    @GetMapping("/getByPackageByClinicId/{clinicId}")
+    public ResponseEntity<Response> getByClinicId(
+            @PathVariable String clinicId) {
+
+        Response response = service.getByClinicId(clinicId);
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .body(response);
+    }
 
     // ✅ UPDATE
     @PutMapping("/updatePackageByPackageId/{packageId}")
@@ -82,6 +93,7 @@ public class PackageManagementController {
                 .status(response.getStatus())
                 .body(response);
     }
+    
     @GetMapping("/getPackageWithProgramsByUsingClinicIdBranchIdAndPackageId/{clinicId}/{branchId}/{packageId}")
     public ResponseEntity<Response> getPackageWithPrograms(
             @PathVariable String clinicId,

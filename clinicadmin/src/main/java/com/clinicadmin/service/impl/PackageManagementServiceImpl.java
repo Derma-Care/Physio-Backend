@@ -162,6 +162,45 @@ public class PackageManagementServiceImpl implements PackageManagementService {
     }
 
     @Override
+    public Response getByClinicId(String clinicId) {
+
+        Response response = new Response();
+
+        try {
+
+            List<PackageManagement> packages =
+                    repository.findByClinicId(clinicId);
+
+            if (!packages.isEmpty()) {
+
+                List<PackageManagementDTO> dtoList = packages.stream()
+                        .map(this::mapToDTO)
+                        .collect(Collectors.toList());
+
+                response.setSuccess(true);
+                response.setData(dtoList);
+                response.setMessage("Packages found");
+                response.setStatus(HttpStatus.OK.value());
+
+            } else {
+
+                response.setSuccess(false);
+                response.setData(null);
+                response.setMessage("No packages found");
+                response.setStatus(HttpStatus.NOT_FOUND.value());
+            }
+
+        } catch (Exception e) {
+
+            response.setSuccess(false);
+            response.setData(null);
+            response.setMessage("Error: " + e.getMessage());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+
+        return response;
+    }
+    @Override
     public Response updatePackage(String packageId, PackageManagementDTO dto) {
 
         Response response = new Response();
