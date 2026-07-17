@@ -18,7 +18,7 @@ WORKDIR /app
 COPY --from=build /app/target/notification-service-0.0.1-SNAPSHOT.jar /app/notification-service.jar
 
 # Expose the application port
-EXPOSE 8089
+EXPOSE 9909
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "notification-service.jar"]
