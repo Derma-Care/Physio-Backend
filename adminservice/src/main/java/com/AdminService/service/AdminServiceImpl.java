@@ -838,8 +838,12 @@ public class AdminServiceImpl implements AdminService {
 	                    clinicCredentialsRepository.findByUserName(clinicId);
 
 	            clnc.setFcmToken(
-	                    clinicCredentials != null ? clinicCredentials.getFcmToken() : "");
-
+	            	    clinicCredentials != null
+	            	            && clinicCredentials.getFcmToken() != null
+	            	            && !clinicCredentials.getFcmToken().isEmpty()
+	            	                    ? clinicCredentials.getFcmToken().get(0)
+	            	                    : ""
+	            	);
 
 	            response.setMessage("Clinic fetched successfully");
 
@@ -1906,9 +1910,11 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Response login(ClinicCredentialsDTO credentials) {
+
         Response response = new Response();
 
         try {
+
             String userName = credentials.getUserName();
             String password = credentials.getPassword();
 
@@ -1926,123 +1932,209 @@ public class AdminServiceImpl implements AdminService {
                 return response;
             }
 
-            // 1) Clinic login
+            // ================= CLINIC LOGIN =================
             ClinicCredentials clinicCredentials =
-                    clinicCredentialsRepository.findByUserNameAndPassword(userName, password);
+                    clinicCredentialsRepository.findByUserNameAndPassword(
+                            userName,
+                            password);
 
             if (clinicCredentials != null) {
-            	
-                // Update FCM Token if provided
-                if (credentials.getFcmToken() != null && !credentials.getFcmToken().isBlank()) {
-                    clinicCredentials.setFcmToken(credentials.getFcmToken());
-                    clinicCredentialsRepository.save(clinicCredentials);
-                }
-                
-                // ================= RETURN FCM TOKEN ← ADD THIS =================
-                response.setFcmToken(
-                        clinicCredentials.getFcmToken());
-                Clinic clinicEntity = clinicRep.findByHospitalId(clinicCredentials.getUserName());
 
-                // Default branch for this clinic
-                Branch defaultBranch = branchRepository.findFirstByClinicId(clinicCredentials.getUserName());
+            	String loginRole = credentials.getRole();
+
+            	if (credentials.getFcmToken() != null
+            	        && !credentials.getFcmToken().isBlank()) {
+
+            	    clinicCredentials.setFcmToken(
+            	            updateFcmTokens(
+            	                    clinicCredentials.getFcmToken(),
+            	                    loginRole,
+            	                    credentials.getFcmToken()));
+
+            	    clinicCredentialsRepository.save(clinicCredentials);
+            	}
+                response.setFcmTokens(
+                        clinicCredentials.getFcmToken());
+
+                Clinic clinicEntity =
+                        clinicRep.findByHospitalId(
+                                clinicCredentials.getUserName());
+
+                Branch defaultBranch =
+                        branchRepository.findFirstByClinicId(
+                                clinicCredentials.getUserName());
 
                 response.setSuccess(true);
                 response.setMessage("Clinic login successful");
                 response.setStatus(200);
 
-                // ✅ Hospital and branch name
-                response.setHospitalId(clinicCredentials.getUserName());
-                response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : clinicCredentials.getHospitalName());
-                response.setBranchId(defaultBranch != null ? defaultBranch.getBranchId() : null);
-                response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
-                response.setBranchName(defaultBranch != null ? defaultBranch.getBranchName() : null);
-                
+                response.setHospitalId(
+                        clinicCredentials.getUserName());
 
-                // ✅ Role
-                String role = (clinicEntity != null && clinicEntity.getRole() != null)
-                        ? clinicEntity.getRole()
-                        : "admin";
+                response.setHospitalName(
+                        clinicEntity != null
+                                ? clinicEntity.getName()
+                                : clinicCredentials.getHospitalName());
+
+                response.setBranchId(
+                        defaultBranch != null
+                                ? defaultBranch.getBranchId()
+                                : null);
+
+                response.setBranchName(
+                        defaultBranch != null
+                                ? defaultBranch.getBranchName()
+                                : null);
+
+                String role =
+                        (clinicEntity != null
+                                && clinicEntity.getRole() != null)
+                                        ? clinicEntity.getRole()
+                                        : "admin";
+
                 response.setRole(role);
 
-                // ✅ Permissions
                 Map<String, List<String>> permissions =
-                        (clinicEntity != null && clinicEntity.getPermissions() != null)
-                                ? clinicEntity.getPermissions()
-                                : PermissionsUtil.getAdminPermissions();
+                        (clinicEntity != null
+                                && clinicEntity.getPermissions() != null)
+                                        ? clinicEntity.getPermissions()
+                                        : PermissionsUtil.getAdminPermissions();
+
                 response.setPermissions(permissions);
 
                 return response;
             }
 
-            // 2) Branch login
+            // ================= BRANCH LOGIN =================
             BranchCredentials branchCredentials =
-                    branchCredentialsRepository.findByUserNameAndPassword(userName, password);
+                    branchCredentialsRepository.findByUserNameAndPassword(
+                            userName,
+                            password);
 
             if (branchCredentials != null) {
-            	// ================= ADD THIS =================
-                if (credentials.getFcmToken() != null
-                        && !credentials.getFcmToken().isBlank()) {
-                    branchCredentials.setFcmToken(
-                            credentials.getFcmToken());
-                    branchCredentialsRepository.save(
-                            branchCredentials);
-                }
 
-                // Return fcmToken in response
-                response.setFcmToken(
-                        branchCredentials.getFcmToken());
-                String branchId = branchCredentials.getBranchId();
+            	String role = credentials.getRole();
 
-                Optional<Branch> branchOpt = branchRepository.findByBranchId(branchId);
-                Branch branchEntity = branchOpt.orElse(null);
+            	if (credentials.getFcmToken() != null
+            	        && !credentials.getFcmToken().isBlank()) {
+
+            	    branchCredentials.setFcmTokens(
+            	            updateFcmTokens(
+            	                    branchCredentials.getFcmTokens(),
+            	                    role,
+            	                    credentials.getFcmToken()));
+
+            	    branchCredentialsRepository.save(
+            	            branchCredentials);
+            	}
+
+                response.setFcmTokens(
+                        branchCredentials.getFcmTokens());
+
+                String branchId =
+                        branchCredentials.getBranchId();
+
+                Optional<Branch> branchOpt =
+                        branchRepository.findByBranchId(
+                                branchId);
+
+                Branch branchEntity =
+                        branchOpt.orElse(null);
 
                 String clinicId;
-                if (branchEntity != null && branchEntity.getClinicId() != null) {
-                    clinicId = branchEntity.getClinicId();
+
+                if (branchEntity != null
+                        && branchEntity.getClinicId() != null) {
+
+                    clinicId =
+                            branchEntity.getClinicId();
+
                 } else {
-                    clinicId = branchId.length() >= 4 ? branchId.substring(0, 4) : branchId;
+
+                    clinicId =
+                            branchId.length() >= 4
+                                    ? branchId.substring(0, 4)
+                                    : branchId;
                 }
 
-                Clinic clinicEntity = clinicRep.findByHospitalId(clinicId);
+                Clinic clinicEntity =
+                        clinicRep.findByHospitalId(
+                                clinicId);
 
                 response.setSuccess(true);
                 response.setMessage("Branch login successful");
                 response.setStatus(200);
 
-                // ✅ Hospital and branch name
                 response.setHospitalId(clinicId);
-                response.setHospitalName(clinicEntity != null ? clinicEntity.getName() : "Unknown Clinic");
-                response.setBranchId(branchId);
-                response.setBranchName(branchEntity != null ? branchEntity.getBranchName() : branchCredentials.getBranchName());
 
-                // ✅ Role
-                String role = (branchEntity != null && branchEntity.getRole() != null)
-                        ? branchEntity.getRole()
-                        : "admin";
+                response.setHospitalName(
+                        clinicEntity != null
+                                ? clinicEntity.getName()
+                                : "Unknown Clinic");
+
+                response.setBranchId(branchId);
+
+                response.setBranchName(
+                        branchEntity != null
+                                ? branchEntity.getBranchName()
+                                : branchCredentials.getBranchName());
+
+                String loginrole =
+                        (branchEntity != null
+                                && branchEntity.getRole() != null)
+                                        ? branchEntity.getRole()
+                                        : "admin";
+
                 response.setRole(role);
 
-                // ✅ Permissions
                 Map<String, List<String>> permissions =
-                        (branchEntity != null && branchEntity.getPermissions() != null)
-                                ? branchEntity.getPermissions()
-                                : PermissionsUtil.getAdminPermissions();
+                        (branchEntity != null
+                                && branchEntity.getPermissions() != null)
+                                        ? branchEntity.getPermissions()
+                                        : PermissionsUtil.getAdminPermissions();
+
                 response.setPermissions(permissions);
 
                 return response;
             }
 
-            // 3) Invalid credentials
+            // ================= INVALID LOGIN =================
             response.setSuccess(false);
             response.setMessage("Invalid username or password");
             response.setStatus(401);
             return response;
 
         } catch (Exception e) {
+
             response.setSuccess(false);
-            response.setMessage("Error during login: " + e.getMessage());
+            response.setMessage(
+                    "Error during login: " + e.getMessage());
             response.setStatus(500);
             return response;
         }
+    }
+
+    private List<String> updateFcmTokens(
+            List<String> existingTokens,
+            String role,
+            String newToken) {
+
+        if (newToken == null || newToken.isBlank()) {
+            return existingTokens;
+        }
+
+        if (existingTokens == null) {
+            existingTokens = new ArrayList<>();
+        }
+
+        // Remove old token for this role
+        existingTokens.removeIf(
+                token -> token.startsWith(role + ":"));
+
+        // Add new token for this role
+        existingTokens.add(role + ":" + newToken);
+
+        return existingTokens;
     }
 
 

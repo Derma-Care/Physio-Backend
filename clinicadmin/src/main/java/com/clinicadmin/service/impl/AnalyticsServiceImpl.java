@@ -152,10 +152,44 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         ""))
                                 .trim();
 
-                if (referralId == null
-                        || referralId.isBlank()
-                        || referralId.equals("null")) {
-                    continue;
+                String doctorRefCode =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "doctorRefCode",
+                                        "")).trim();
+
+                String referredByType =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "referredByType",
+                                        "")).trim();
+
+                String referredByName =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "referredByName",
+                                        "")).trim();
+
+                String referralKey;
+
+                if (!referralId.isBlank()
+                        && !"null".equalsIgnoreCase(referralId)) {
+
+                    referralKey = referralId;
+
+                } else if ("Other".equalsIgnoreCase(doctorRefCode)) {
+
+                    referralKey = "Other Sources";
+
+                } else if (doctorRefCode.isBlank()
+                        && referredByType.isBlank()
+                        && referredByName.isBlank()) {
+
+                    referralKey = "Others";
+
+                } else {
+
+                    referralKey = "Other Sources";
                 }
 
                 String doctorId =
@@ -185,14 +219,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                 DoctorReferralAnalyticsDTO dto =
                         doctorAnalytics.computeIfAbsent(
-                                referralId,
+                                referralKey,
                                 id -> {
 
                                     DoctorReferralAnalyticsDTO analytics =
                                             new DoctorReferralAnalyticsDTO();
 
                                     analytics.setReferralId(
-                                            referralId);
+                                            referralKey);
 
 //                                    analytics.setDoctorId(
 //                                            doctorId);
@@ -521,11 +555,51 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     continue;
                 }
 
-                String channel =
+                String referralId =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "referredDoctorId",
+                                        "")).trim();
+
+                String doctorRefCode =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "doctorRefCode",
+                                        "")).trim();
+
+                String referredByType =
                         String.valueOf(
                                 booking.getOrDefault(
                                         "referredByType",
-                                        "Other"));
+                                        "")).trim();
+
+                String referredByName =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "referredByName",
+                                        "")).trim();
+
+                String channel;
+
+                if (!referralId.isBlank()
+                        && !"null".equalsIgnoreCase(referralId)) {
+
+                    channel = "Doctor Referral";
+
+                } else if ("Other".equalsIgnoreCase(doctorRefCode)) {
+
+                    channel = "Other Sources";
+
+                } else if (doctorRefCode.isBlank()
+                        && referredByType.isBlank()
+                        && referredByName.isBlank()) {
+
+                    channel = "Others";
+
+                } else {
+
+                    channel = "Other Sources";
+                }
 
 //                String referredByName =
 //                        String.valueOf(
@@ -603,17 +677,57 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             for (Map<String, Object> booking : bookings) {
 
-                String referredByType =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "referredByType",
-                                        ""));
+            	String referralId =
+            	        String.valueOf(
+            	                booking.getOrDefault(
+            	                        "referredDoctorId",
+            	                        "")).trim();
+
+            	String doctorRefCode =
+            	        String.valueOf(
+            	                booking.getOrDefault(
+            	                        "doctorRefCode",
+            	                        "")).trim();
+
+            	String referredByType =
+            	        String.valueOf(
+            	                booking.getOrDefault(
+            	                        "referredByType",
+            	                        "")).trim();
+
+            	String referredByName =
+            	        String.valueOf(
+            	                booking.getOrDefault(
+            	                        "referredByName",
+            	                        "")).trim();
+
+            	String derivedChannel;
+
+            	if (!referralId.isBlank()
+            	        && !"null".equalsIgnoreCase(referralId)) {
+
+            	    derivedChannel = "Doctor Referral";
+
+            	} else if ("Other".equalsIgnoreCase(doctorRefCode)) {
+
+            	    derivedChannel = "Other Sources";
+
+            	} else if (doctorRefCode.isBlank()
+            	        && referredByType.isBlank()
+            	        && referredByName.isBlank()) {
+
+            	    derivedChannel = "Others";
+
+            	} else {
+
+            	    derivedChannel = "Other Sources";
+            	}
                 
 
-                if (!channel.equalsIgnoreCase(
-                        referredByType)) {
-                    continue;
-                }
+            	if (!channel.equalsIgnoreCase(
+            	        derivedChannel)) {
+            	    continue;
+            	}
 
                 String bookingId =
                         String.valueOf(

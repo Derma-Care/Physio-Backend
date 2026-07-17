@@ -760,17 +760,17 @@ public class AppointmentAnalyticsServiceImpl
                                         "followupStatus",
                                         ""));
 
-                boolean completed =
-                        "completed".equalsIgnoreCase(status)
-                        || "completed".equalsIgnoreCase(followupStatus);
+//                boolean completed =
+//                        "completed".equalsIgnoreCase(status)
+//                        || "completed".equalsIgnoreCase(followupStatus);
 
                 boolean cancelled =
                         "cancelled".equalsIgnoreCase(status)
                         || "cancelled".equalsIgnoreCase(followupStatus);
 
-                if (completed) {
-                    completedCount++;
-                }
+//                if (completed) {
+//                    completedCount++;
+//                }
 
                 if (cancelled) {
                     cancelledCount++;
@@ -805,12 +805,12 @@ public class AppointmentAnalyticsServiceImpl
                 } catch (Exception e) {
                 }
 
-                if (!completed
-                        && !cancelled
-                        && !paymentCompleted) {
-
-                    missedCount++;
-                }
+//                if (!completed
+//                        && !cancelled
+//                        && !paymentCompleted) {
+//
+//                    missedCount++;
+//                }
             }
 
             AppointmentSummaryDTO dto =

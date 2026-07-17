@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class ClinicLoginRequestDTO {
 
 	private String userName;
+	private String role;
 	private String password;
 	private String fcmToken;
 }

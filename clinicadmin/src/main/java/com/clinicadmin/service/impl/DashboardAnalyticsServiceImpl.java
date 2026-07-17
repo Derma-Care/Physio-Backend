@@ -20,6 +20,7 @@ import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.feignclient.PhysiotherapyFeignClient;
 import com.clinicadmin.repository.CustomerOnboardingRepository;
 import com.clinicadmin.service.DashboardAnalyticsService;
+import com.clinicadmin.service.ExpensesService;
 import com.clinicadmin.service.PatientAnalyticsService;
 import com.clinicadmin.service.TreatmentAnalyticsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +39,9 @@ public class DashboardAnalyticsServiceImpl implements DashboardAnalyticsService 
     
     @Autowired
     private CustomerOnboardingRepository customerOnboardingRepository;
+    
+    @Autowired
+    private ExpensesService expensesService;
 
     @Override
 
@@ -327,53 +331,124 @@ public class DashboardAnalyticsServiceImpl implements DashboardAnalyticsService 
       dashboard.put(
               "kpiSummary",
               kpiSummary);
-            // =====================================================
-            // MODULES
-            // =====================================================
+   // =====================================================
+   // EXPENSE ANALYTICS
+   // =====================================================
 
-            List<Map<String, Object>> modules =
-                    new ArrayList<>();
+   double monthlyExpense =
+           expensesService.getMonthlyExpenses(
+                   clinicId,
+                   branchId);
 
-            modules.add(
-                    Map.of(
-                            "id", 1,
-                            "title", "Revenue Analytics",
-                            "description", "View revenue performance.",
-                            "metric", "₹" + Math.round(totalRevenue),
-                            "route", "/analytics/revenue",
-                            "icon", "revenue"));
+   // =====================================================
+   // MODULES
+   // =====================================================
 
-            modules.add(
-                    Map.of(
-                            "id", 2,
-                            "title", "Patient Analytics",
-                            "description", "Analyze patient demographics and trends.",
-                            "metric", totalPatients + " patients",
-                            "route", "/analytics/patients",
-                            "icon", "patient"));
+   String revenueMetric =
+           String.format(
+                   "₹%.2fL this month",
+                   totalRevenue / 100000.0);
 
-            modules.add(
-                    Map.of(
-                            "id", 3,
-                            "title", "Appointment Analytics",
-                            "description", "Review appointment volumes and status.",
-                            "metric", totalTodayAppointments + " scheduled today",
-                            "route", "/analytics/appointments",
-                            "icon", "appointment"));
+   String expenseMetric =
+           String.format(
+                   "₹%.2fL this month",
+                   monthlyExpense / 100000.0);
 
-            modules.add(
-                    Map.of(
-                            "id", 4,
-                            "title", "Treatment Analytics",
-                            "description", "Track treatment success rates.",
-                            "metric", Math.round(successRate) + "% success rate",
-                            "route", "/analytics/treatments",
-                            "icon", "treatment"));
+   String patientMetric =
+           String.format(
+                   "%,d active patients",
+                   activePatients);
 
-            dashboard.put(
-                    "modules",
-                    modules);
+   String appointmentMetric =
+           totalTodayAppointments + " scheduled today";
 
+   String treatmentMetric =
+           Math.round(successRate) + "% success rate";
+
+   // Referral Count
+   long totalReferrals =
+           bookings.stream()
+                   .filter(b -> {
+                       String referralId =
+                               String.valueOf(
+                                       b.getOrDefault(
+                                               "referredDoctorId",
+                                               ""))
+                                       .trim();
+
+                       return !referralId.isBlank()
+                               && !"null".equalsIgnoreCase(
+                                       referralId);
+                   })
+                   .count();
+
+   String referralMetric =
+           totalReferrals + " referrals · 30d";
+
+   List<Map<String, Object>> modules =
+           new ArrayList<>();
+
+   modules.add(
+           Map.of(
+                   "id", 1,
+                   "title", "Revenue Analytics",
+                   "description",
+                   "View daily, weekly, and monthly revenue data.",
+                   "metric", revenueMetric,
+                   "route", "/analytics/revenue",
+                   "icon", "revenue"));
+
+   modules.add(
+           Map.of(
+                   "id", 2,
+                   "title", "Expense Analytics",
+                   "description",
+                   "Track clinic expenses and payouts.",
+                   "metric", expenseMetric,
+                   "route", "/expenses",
+                   "icon", "expense"));
+
+   modules.add(
+           Map.of(
+                   "id", 3,
+                   "title", "Referral Analytics",
+                   "description",
+                   "Monitor patient referrals and sources.",
+                   "metric", referralMetric,
+                   "route", "/analytics/referrals",
+                   "icon", "referral"));
+
+   modules.add(
+           Map.of(
+                   "id", 4,
+                   "title", "Patient Analytics",
+                   "description",
+                   "Analyze patient demographics and trends.",
+                   "metric", patientMetric,
+                   "route", "/analytics/patients",
+                   "icon", "patient"));
+
+   modules.add(
+           Map.of(
+                   "id", 5,
+                   "title", "Appointment Analytics",
+                   "description",
+                   "Review appointment volumes and status.",
+                   "metric", appointmentMetric,
+                   "route", "/analytics/appointments",
+                   "icon", "appointment"));
+
+   modules.add(
+           Map.of(
+                   "id", 6,
+                   "title", "Treatment Analytics",
+                   "description",
+                   "Track popular treatments and success rates.",
+                   "metric", treatmentMetric,
+                   "route", "/analytics/treatments",
+                   "icon", "treatment"));
+
+   dashboard.put("modules", modules);
             response.setSuccess(true);
             response.setMessage(
                     "Analytics dashboard data fetched successfully");

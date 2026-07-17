@@ -27,7 +27,7 @@ public class BranchCredentials {
     private String branchName;
     private String role;
     private Map<String, List<String>> permissions;
-    private String fcmToken;
+    private List<String> fcmTokens;
     private String email;
 
 }

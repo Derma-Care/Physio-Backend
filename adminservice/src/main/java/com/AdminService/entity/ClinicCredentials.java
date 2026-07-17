@@ -27,7 +27,7 @@ public class ClinicCredentials {
     private String role;
     private String email;
     private Map<String, Map<String, List<String>>> permissions;
-    private String fcmToken;
+    private List<String> fcmToken;
     
   }
     
