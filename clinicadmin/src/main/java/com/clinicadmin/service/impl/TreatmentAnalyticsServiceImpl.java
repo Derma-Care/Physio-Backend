@@ -27,14 +27,17 @@ import com.clinicadmin.service.TreatmentAnalyticsService;
 import com.clinicadmin.utils.KeyCloakTokenStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService {
 
 	@Autowired
 	private PhysiotherapyFeignClient physiotherapyDoctorFeign;
 		
-	  @Autowired
-	  private KeyCloakTokenStore keyCloakTokenStore;
+	@Autowired
+	private KeyCloakTokenStore keyCloakTokenStore;
 	 
 
 	private final ObjectMapper mapper = new ObjectMapper();
@@ -61,6 +64,8 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 	// ========================================================
 	@Override
 	public Response getTreatmentAnalytics(String clinicId, String branchId, String type, String period) {
+		log.info("getTreatmentAnalytics method is called with clinicId:{},branchId:{},type:{},period:{}",
+				clinicId,branchId,type,period);
 		Predicate<LocalDate> dateFilter = buildPeriodFilter(period);
 		TreatmentAnalyticsResponse analytics = getAnalytics(clinicId, branchId, type, dateFilter);
 		return Response.builder().success(true).status(200).message("Treatment analytics fetched successfully")
@@ -73,10 +78,11 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 	@Override
 	public Response getTreatmentAnalyticsByDateRange(String clinicId, String branchId, String type, String fromDate,
 			String toDate) {
-
+		log.info("getTreatmentAnalyticsByDateRange method is called with clinicId:{},branchId:{},type:{},fromDate:{}",
+				clinicId,branchId,type,fromDate);
 		LocalDate from = LocalDate.parse(fromDate);
 		LocalDate to = LocalDate.parse(toDate);
-
+        log.info("from:{},to:{}",from,to);
 		if (from.isAfter(to)) {
 			LocalDate tmp = from;
 			from = to;
@@ -88,7 +94,7 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 		Predicate<LocalDate> dateFilter = d -> !d.isBefore(f) && !d.isAfter(t);
 
 		TreatmentAnalyticsResponse analytics = getAnalytics(clinicId, branchId, type, dateFilter);
-
+     log.info("getAnalytics method invoked successfully");
 		return Response.builder().success(true).status(200).message("Treatment analytics fetched successfully")
 				.data(analytics).build();
 	}
@@ -98,7 +104,8 @@ public class TreatmentAnalyticsServiceImpl implements TreatmentAnalyticsService 
 	// ========================================================
 	private TreatmentAnalyticsResponse getAnalytics(String clinicId, String branchId, String type,
 			Predicate<LocalDate> dateFilter) {
-
+log.info("getAnalytics method invoked with inputs clinicId:{},branchId:{},type:{},dateFilter:{}",
+		clinicId,branchId,type,dateFilter);
 		List<PaymentRecordResponse> records = fetchPaymentRecords(clinicId, branchId);
 		List<Entry> allEntries = new ArrayList<>();
 

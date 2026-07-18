@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.clinicadmin.dto.CustomerOnbordingDTO;
 import com.clinicadmin.dto.DoctorReferralAnalyticsDTO;
@@ -32,7 +34,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Autowired
@@ -53,6 +59,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
    
 
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getDoctorReferralAnalyticsFallback")
     public Response getDoctorReferralAnalytics(
             String clinicId,
             String branchId,
@@ -60,30 +69,53 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             String startDate,
             String endDate) {
 
+        log.info(
+                "Fetching doctor referral analytics. ClinicId: {}, BranchId: {}, Type: {}, StartDate: {}, EndDate: {}",
+                clinicId,
+                branchId,
+                type,
+                startDate,
+                endDate);
+
         Response response = new Response();
 
         try {
 
-        	   ResponseEntity<Response> bookingResponse =
-                       bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
-                               clinicId,
-                               branchId);
-            
+            ResponseEntity<Response> bookingResponse =
+                    bookingFeign.getBookedServicesByClinicIdWithBranchId(
+                            keyCloakTokenStore.getAccess_token(),
+                            clinicId,
+                            branchId);
+
             if (bookingResponse == null
-                    || bookingResponse.getBody() == null
-                   ) {
+                    || bookingResponse.getBody() == null) {
+
+                log.warn(
+                        "No booking data found. ClinicId: {}, BranchId: {}",
+                        clinicId,
+                        branchId);
 
                 response.setSuccess(false);
                 response.setMessage("No booking data found");
+
                 return response;
             }
-            
+
             ObjectMapper mapper = new ObjectMapper();
-   		    mapper.registerModule(new JavaTimeModule());
-   		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-   		  
-               List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {
-   			});
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            List<Map<String, Object>> bookings =
+                    mapper.convertValue(
+                            bookingResponse.getBody(),
+                            new TypeReference<List<Map<String, Object>>>() {
+                            });
+
+            log.info(
+                    "Total bookings received: {}. ClinicId: {}, BranchId: {}",
+                    bookings.size(),
+                    clinicId,
+                    branchId);
 
             LocalDate today = LocalDate.now();
 
@@ -110,18 +142,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                 switch (type) {
 
-                case 1: // Today
+                case 1:
                     include = serviceDate.equals(today);
                     break;
 
-                case 2: // Weekly (Last 7 Days including today)
+                case 2:
                     include =
-                            !serviceDate.isBefore(
-                                    today.minusDays(6))
-                            && !serviceDate.isAfter(today);
+                            !serviceDate.isBefore(today.minusDays(6))
+                                    && !serviceDate.isAfter(today);
                     break;
 
-                case 3: // Monthly
+                case 3:
                     include =
                             serviceDate.getMonthValue()
                                             == today.getMonthValue()
@@ -129,7 +160,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                             == today.getYear();
                     break;
 
-                case 4: // Yearly
+                case 4:
                     include =
                             serviceDate.getYear()
                                     == today.getYear();
@@ -151,7 +182,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                 default:
                     include = false;
-            }
+                }
 
                 if (!include) {
                     continue;
@@ -164,17 +195,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         ""))
                                 .trim();
 
-                if (referralId == null
-                        || referralId.isBlank()
+                if (referralId.isBlank()
                         || referralId.equals("null")) {
                     continue;
                 }
-
-                String doctorId =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "doctorId",
-                                        ""));
 
                 Double revenue = 0.0;
 
@@ -189,7 +213,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                 Double.parseDouble(
                                         totalFeeObj.toString());
 
-                    } catch (Exception e) {
+                    } catch (Exception ex) {
+
+                        log.warn(
+                                "Invalid totalFee value for referralId: {}",
+                                referralId);
 
                         revenue = 0.0;
                     }
@@ -205,9 +233,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                                     analytics.setReferralId(
                                             referralId);
-
-//                                    analytics.setDoctorId(
-//                                            doctorId);
 
                                     ReferredDoctor referredDoctor =
                                             referredDoctorRepository
@@ -228,21 +253,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                                         analytics.setContactInfo(
                                                 referredDoctor.getMobileNumber());
-
-                                    } else {
-
-                                        analytics.setDoctorName("N/A");
-
-                                        analytics.setClinicHospitalName("N/A");
-
-                                        analytics.setSpecialization("N/A");
-
-                                        analytics.setContactInfo("N/A");
                                     }
-
-                                    analytics.setPatientsReferred(0);
-
-                                    analytics.setRevenueGenerated(0.0);
 
                                     return analytics;
                                 });
@@ -254,6 +265,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         dto.getRevenueGenerated() + revenue);
             }
 
+            log.info(
+                    "Doctor referral analytics generated successfully. Total Referrals: {}",
+                    doctorAnalytics.size());
+
             response.setSuccess(true);
             response.setData(
                     new ArrayList<>(
@@ -264,6 +279,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         } catch (Exception e) {
 
+            log.error(
+                    "Error while fetching doctor referral analytics. ClinicId: {}, BranchId: {}",
+                    clinicId,
+                    branchId,
+                    e);
+
             response.setSuccess(false);
             response.setMessage(
                     e.getMessage());
@@ -273,26 +294,49 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return response;
     }
     
+    
+   
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getDoctorReferralPatientDetailsFallback")
     public Response getDoctorReferralPatientDetails(
             String clinicId,
             String branchId,
             String referralId) {
 
+        log.info(
+                "Fetching referral patient details. clinicId={}, branchId={}, referralId={}",
+                clinicId,
+                branchId,
+                referralId);
+
         Response response = new Response();
 
         try {
 
-        	   ResponseEntity<Response> bookingResponse =
-                       bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
-                               clinicId,
-                               branchId);
-               ObjectMapper mapper = new ObjectMapper();
-   		    mapper.registerModule(new JavaTimeModule());
-   		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-   		  
-               List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {
-   			});
+            ResponseEntity<Response> bookingResponse =
+                    bookingFeign.getBookedServicesByClinicIdWithBranchId(
+                            keyCloakTokenStore.getAccess_token(),
+                            clinicId,
+                            branchId);
+
+            log.info(
+                    "Received booking response for clinicId={}, branchId={}",
+                    clinicId,
+                    branchId);
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(
+                    SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            List<Map<String, Object>> bookings =
+                    mapper.convertValue(
+                            bookingResponse.getBody().getData(),
+                            new TypeReference<List<Map<String, Object>>>() {});
+
+            log.info("Total bookings fetched: {}", bookings.size());
 
             List<DoctorReferralPatientDTO> result =
                     new ArrayList<>();
@@ -321,12 +365,22 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "patientId",
                                         ""));
 
+                log.debug(
+                        "Processing bookingId={}, patientId={}",
+                        bookingId,
+                        patientId);
+
                 Response paymentResponse =
-                        PhysiotherapyFeignClient.getPayment(keyCloakTokenStore.getAccess_token(),
+                        PhysiotherapyFeignClient.getPayment(
+                                keyCloakTokenStore.getAccess_token(),
                                 bookingId);
 
                 if (paymentResponse == null
                         || paymentResponse.getData() == null) {
+
+                    log.warn(
+                            "Payment details not found for bookingId={}",
+                            bookingId);
                     continue;
                 }
 
@@ -348,10 +402,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                             && customerResponse.getData() != null) {
 
                         CustomerOnbordingDTO customer =
-                                new ObjectMapper()
-                                        .convertValue(
-                                                customerResponse.getData(),
-                                                CustomerOnbordingDTO.class);
+                                new ObjectMapper().convertValue(
+                                        customerResponse.getData(),
+                                        CustomerOnbordingDTO.class);
 
                         patientName =
                                 customer.getFullName();
@@ -361,7 +414,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     }
 
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+
+                    log.error(
+                            "Error fetching customer details for patientId={}",
+                            patientId,
+                            ex);
                 }
 
                 DoctorReferralPatientDTO dto =
@@ -370,6 +427,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 dto.setPatientName(patientName);
                 dto.setContactNumber(contactNumber);
                 dto.setBookingId(bookingId);
+
                 dto.setServiceDate(
                         String.valueOf(
                                 booking.getOrDefault(
@@ -381,9 +439,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                 booking.getOrDefault(
                                         "servicetime",
                                         "")));
+
                 dto.setDateOfVisit(
                         String.valueOf(
-                        		payment.getOrDefault(
+                                payment.getOrDefault(
                                         "sessionStartDate",
                                         "")));
 
@@ -429,6 +488,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 result.add(dto);
             }
 
+            log.info(
+                    "Referral patient details fetched successfully. Total records={}",
+                    result.size());
+
             response.setSuccess(true);
             response.setStatus(200);
             response.setMessage(
@@ -437,6 +500,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         } catch (Exception e) {
 
+            log.error(
+                    "Error while fetching referral patient details for referralId={}",
+                    referralId,
+                    e);
+
             response.setSuccess(false);
             response.setStatus(500);
             response.setMessage(e.getMessage());
@@ -444,7 +512,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         return response;
     }
+    
+    
+    
+   
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getReferralChannelsFallback")
     public Response getReferralChannels(
             String clinicId,
             String branchId,
@@ -452,20 +527,40 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             String startDate,
             String endDate) {
 
+        log.info(
+                "Fetching referral channel analytics. clinicId={}, branchId={}, type={}, startDate={}, endDate={}",
+                clinicId,
+                branchId,
+                type,
+                startDate,
+                endDate);
+
         Response response = new Response();
 
         try {
 
-        	   ResponseEntity<Response> bookingResponse =
-                       bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
-                               clinicId,
-                               branchId);
-               ObjectMapper mapper = new ObjectMapper();
-   		    mapper.registerModule(new JavaTimeModule());
-   		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-   		  
-               List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {
-   			});
+            ResponseEntity<Response> bookingResponse =
+                    bookingFeign.getBookedServicesByClinicIdWithBranchId(
+                            keyCloakTokenStore.getAccess_token(),
+                            clinicId,
+                            branchId);
+
+            log.info(
+                    "Successfully fetched bookings for clinicId={}, branchId={}",
+                    clinicId,
+                    branchId);
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(
+                    SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            List<Map<String, Object>> bookings =
+                    mapper.convertValue(
+                            bookingResponse.getBody().getData(),
+                            new TypeReference<List<Map<String, Object>>>() {});
+
+            log.info("Total bookings fetched: {}", bookings.size());
 
             LocalDate today = LocalDate.now();
 
@@ -492,32 +587,28 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                 switch (type) {
 
-                case 1: // Today
+                case 1:
                     include = serviceDate.equals(today);
                     break;
 
-                case 2: // Weekly
-                    include =
-                            !serviceDate.isBefore(
-                                    today.minusDays(6))
+                case 2:
+                    include = !serviceDate.isBefore(today.minusDays(6))
                             && !serviceDate.isAfter(today);
                     break;
 
-                case 3: // Monthly
-                    include =
-                            serviceDate.getMonthValue()
-                                    == today.getMonthValue()
+                case 3:
+                    include = serviceDate.getMonthValue()
+                            == today.getMonthValue()
                             && serviceDate.getYear()
-                                    == today.getYear();
+                            == today.getYear();
                     break;
 
-                case 4: // Yearly
-                    include =
-                            serviceDate.getYear()
-                                    == today.getYear();
+                case 4:
+                    include = serviceDate.getYear()
+                            == today.getYear();
                     break;
 
-                case 5: // Custom
+                case 5:
 
                     LocalDate start =
                             LocalDate.parse(startDate);
@@ -525,8 +616,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     LocalDate end =
                             LocalDate.parse(endDate);
 
-                    include =
-                            !serviceDate.isBefore(start)
+                    include = !serviceDate.isBefore(start)
                             && !serviceDate.isAfter(end);
 
                     break;
@@ -545,12 +635,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "referredByType",
                                         "Other"));
 
-//                String referredByName =
-//                        String.valueOf(
-//                                booking.getOrDefault(
-//                                        "referredByName",
-//                                        ""));
-
                 Double revenue =
                         Double.parseDouble(
                                 String.valueOf(
@@ -566,9 +650,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                             new ReferralChannelDTO();
 
                                     r.setChannel(k);
-//                                    r.setReferredByName(
-//                                            referredByName);
-
                                     r.setPatientsReferred(0L);
                                     r.setRevenueGenerated(0.0);
 
@@ -582,6 +663,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         dto.getRevenueGenerated() + revenue);
             }
 
+            log.info(
+                    "Referral analytics generated successfully. Total channels={}",
+                    channelMap.size());
+
             response.setSuccess(true);
             response.setStatus(200);
             response.setMessage(
@@ -591,6 +676,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         } catch (Exception e) {
 
+            log.error(
+                    "Error while fetching referral channel analytics. clinicId={}, branchId={}",
+                    clinicId,
+                    branchId,
+                    e);
+
             response.setSuccess(false);
             response.setStatus(500);
             response.setMessage(e.getMessage());
@@ -598,26 +689,45 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         return response;
     }
+    
+    
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getReferralChannelPatientDetailsFallback")
     public Response getReferralChannelPatientDetails(
             String clinicId,
             String branchId,
             String channel) {
 
+        log.info(
+                "Fetching referral channel patient details. clinicId={}, branchId={}, channel={}",
+                clinicId,
+                branchId,
+                channel);
+
         Response response = new Response();
 
         try {
 
-        	   ResponseEntity<Response> bookingResponse =
-                       bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
-                               clinicId,
-                               branchId);
-               ObjectMapper mapper = new ObjectMapper();
-   		    mapper.registerModule(new JavaTimeModule());
-   		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-   		  
-               List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {
-   			});
+            ResponseEntity<Response> bookingResponse =
+                    bookingFeign.getBookedServicesByClinicIdWithBranchId(
+                            keyCloakTokenStore.getAccess_token(),
+                            clinicId,
+                            branchId);
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            List<Map<String, Object>> bookings =
+                    mapper.convertValue(
+                            bookingResponse.getBody().getData(),
+                            new TypeReference<List<Map<String, Object>>>() {});
+
+            log.info(
+                    "Total bookings fetched for channel analysis: {}",
+                    bookings.size());
 
             List<ReferralChannelPatientDTO> result =
                     new ArrayList<>();
@@ -629,10 +739,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                 booking.getOrDefault(
                                         "referredByType",
                                         ""));
-                
 
-                if (!channel.equalsIgnoreCase(
-                        referredByType)) {
+                if (!channel.equalsIgnoreCase(referredByType)) {
                     continue;
                 }
 
@@ -648,19 +756,27 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "patientId",
                                         ""));
 
+                log.debug(
+                        "Processing bookingId={}, patientId={}",
+                        bookingId,
+                        patientId);
+
                 Response paymentResponse =
-                        PhysiotherapyFeignClient
-                                .getPayment(keyCloakTokenStore.getAccess_token(),
-                                        bookingId);
+                        PhysiotherapyFeignClient.getPayment(
+                                keyCloakTokenStore.getAccess_token(),
+                                bookingId);
 
                 if (paymentResponse == null
                         || paymentResponse.getData() == null) {
+
+                    log.warn(
+                            "Payment details not found for bookingId={}",
+                            bookingId);
                     continue;
                 }
 
                 Map<String, Object> payment =
-                        (Map<String, Object>)
-                                paymentResponse.getData();
+                        (Map<String, Object>) paymentResponse.getData();
 
                 String patientName = "";
                 String contactNumber = "";
@@ -677,20 +793,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                             && customerResponse.getData() != null) {
 
                         CustomerOnbordingDTO customer =
-                                new ObjectMapper()
-                                        .convertValue(
-                                                customerResponse.getData(),
-                                                CustomerOnbordingDTO.class);
+                                new ObjectMapper().convertValue(
+                                        customerResponse.getData(),
+                                        CustomerOnbordingDTO.class);
 
-                        patientName =
-                                customer.getFullName();
-
-                        contactNumber =
-                                customer.getMobileNumber();
+                        patientName = customer.getFullName();
+                        contactNumber = customer.getMobileNumber();
                     }
 
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+
+                    log.error(
+                            "Error fetching customer details for patientId={}",
+                            patientId,
+                            ex);
                 }
 
                 ReferralChannelPatientDTO dto =
@@ -756,6 +872,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         payment.getOrDefault(
                                                 "balanceAmount",
                                                 0))));
+
                 dto.setDateOfVisit(
                         String.valueOf(
                                 payment.getOrDefault(
@@ -765,6 +882,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 result.add(dto);
             }
 
+            log.info(
+                    "Referral channel patient details fetched successfully. channel={}, totalPatients={}",
+                    channel,
+                    result.size());
+
             response.setSuccess(true);
             response.setStatus(200);
             response.setMessage(
@@ -772,6 +894,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             response.setData(result);
 
         } catch (Exception e) {
+
+            log.error(
+                    "Error while fetching referral channel patient details. clinicId={}, branchId={}, channel={}",
+                    clinicId,
+                    branchId,
+                    channel,
+                    e);
 
             response.setSuccess(false);
             response.setStatus(500);
@@ -782,6 +911,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
     
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getReferralSummaryFallback")
     public Response getReferralSummary(
             String clinicId,
             String branchId,
@@ -789,21 +921,38 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             String startDate,
             String endDate) {
 
+        log.info(
+                "Fetching referral summary. clinicId={}, branchId={}, type={}, startDate={}, endDate={}",
+                clinicId,
+                branchId,
+                type,
+                startDate,
+                endDate);
+
         Response response = new Response();
 
         try {
 
             ResponseEntity<Response> bookingResponse =
-                    bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
+                    bookingFeign.getBookedServicesByClinicIdWithBranchId(
+                            keyCloakTokenStore.getAccess_token(),
                             clinicId,
                             branchId);
+
             ObjectMapper mapper = new ObjectMapper();
-		    mapper.registerModule(new JavaTimeModule());
-		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		  
-            List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {
-			});
-              
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(
+                    SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            List<Map<String, Object>> bookings =
+                    mapper.convertValue(
+                            bookingResponse.getBody().getData(),
+                            new TypeReference<List<Map<String, Object>>>() {});
+
+            log.info(
+                    "Total bookings fetched for referral summary: {}",
+                    bookings.size());
+
             LocalDate today = LocalDate.now();
 
             long totalReferrals = 0;
@@ -837,24 +986,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     break;
 
                 case 2:
-                    include =
-                            !serviceDate.isBefore(
-                                    today.minusDays(6))
+                    include = !serviceDate.isBefore(today.minusDays(6))
                             && !serviceDate.isAfter(today);
                     break;
 
                 case 3:
-                    include =
-                            serviceDate.getMonthValue()
-                                    == today.getMonthValue()
+                    include = serviceDate.getMonthValue()
+                            == today.getMonthValue()
                             && serviceDate.getYear()
-                                    == today.getYear();
+                            == today.getYear();
                     break;
 
                 case 4:
-                    include =
-                            serviceDate.getYear()
-                                    == today.getYear();
+                    include = serviceDate.getYear()
+                            == today.getYear();
                     break;
 
                 case 5:
@@ -865,11 +1010,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     LocalDate end =
                             LocalDate.parse(endDate);
 
-                    include =
-                            !serviceDate.isBefore(start)
+                    include = !serviceDate.isBefore(start)
                             && !serviceDate.isAfter(end);
 
                     break;
+
+                default:
+                    include = false;
                 }
 
                 if (!include) {
@@ -885,8 +1032,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "")).trim();
 
                 if (!referralId.isBlank()
-                        && !"null".equalsIgnoreCase(
-                                referralId)) {
+                        && !"null".equalsIgnoreCase(referralId)) {
 
                     doctorReferrals++;
 
@@ -905,14 +1051,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     totalReferrals == 0
                             ? 0
                             : (doctorReferrals * 100.0)
-                                    / totalReferrals;
+                            / totalReferrals;
 
             double otherPercentage =
                     totalReferrals == 0
                             ? 0
-                            : (otherChannelsReferrals
-                                    * 100.0)
-                                    / totalReferrals;
+                            : (otherChannelsReferrals * 100.0)
+                            / totalReferrals;
 
             String topDoctorName = "N/A";
             long topDoctorPatients = 0;
@@ -920,8 +1065,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             for (Map.Entry<String, Long> entry :
                     doctorCountMap.entrySet()) {
 
-                if (entry.getValue()
-                        > topDoctorPatients) {
+                if (entry.getValue() > topDoctorPatients) {
 
                     topDoctorPatients =
                             entry.getValue();
@@ -973,6 +1117,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             dto.setTopReferringDoctor(
                     topDoctor);
 
+            log.info(
+                    "Referral summary generated successfully. totalReferrals={}, doctorReferrals={}, otherChannelsReferrals={}",
+                    totalReferrals,
+                    doctorReferrals,
+                    otherChannelsReferrals);
+
             response.setSuccess(true);
             response.setStatus(200);
             response.setMessage(
@@ -980,6 +1130,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             response.setData(dto);
 
         } catch (Exception e) {
+
+            log.error(
+                    "Error while fetching referral summary. clinicId={}, branchId={}",
+                    clinicId,
+                    branchId,
+                    e);
 
             response.setSuccess(false);
             response.setStatus(500);
@@ -989,4 +1145,103 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         return response;
     }
+    
+    
+    public Response getDoctorReferralAnalyticsFallback(
+            String clinicId,
+            String branchId,
+            Integer type,
+            String startDate,
+            String endDate,
+            Exception ex) {
+
+        log.error(
+                "Rate limiter fallback triggered for getDoctorReferralAnalytics. ClinicId: {}, BranchId: {}",
+                clinicId,
+                branchId,
+                ex);
+
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    public Response getDoctorReferralPatientDetailsFallback(
+            String clinicId,
+            String branchId,
+            String referralId,
+            Exception ex) {
+
+        log.error(
+                "Rate limiter fallback triggered for referral patient details. clinicId={}, branchId={}, referralId={}",
+                clinicId,
+                branchId,
+                referralId,
+                ex);
+
+
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    public Response getReferralChannelsFallback(
+            String clinicId,
+            String branchId,
+            Integer type,
+            String startDate,
+            String endDate,
+            Exception ex) {
+
+        log.error(
+                "Rate limiter fallback triggered for getReferralChannels. clinicId={}, branchId={}, type={}",
+                clinicId,
+                branchId,
+                type,
+                ex);
+
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    public Response getReferralChannelPatientDetailsFallback(
+            String clinicId,
+            String branchId,
+            String channel,
+            Exception ex) {
+
+        log.error(
+                "Fallback triggered for getReferralChannelPatientDetails. clinicId={}, branchId={}, channel={}",
+                clinicId,
+                branchId,
+                channel,
+                ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    
+    public Response getReferralSummaryFallback(
+            String clinicId,
+            String branchId,
+            Integer type,
+            String startDate,
+            String endDate,
+            Exception ex) {
+
+        log.error(
+                "Fallback triggered for getReferralSummary. clinicId={}, branchId={}, type={}",
+                clinicId,
+                branchId,
+                type,
+                ex);
+
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    
 }

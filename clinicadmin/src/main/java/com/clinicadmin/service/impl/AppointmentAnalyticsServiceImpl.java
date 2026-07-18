@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.clinicadmin.dto.AppointmentSummaryDTO;
 import com.clinicadmin.dto.Response;
@@ -31,7 +32,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class AppointmentAnalyticsServiceImpl
         implements AppointmentAnalyticsService {
 
@@ -48,12 +53,23 @@ public class AppointmentAnalyticsServiceImpl
     private KeyCloakTokenStore keyCloakTokenStore;
   
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getAppointmentAnalyticsFallback")
     public Response getAppointmentAnalytics(
             String clinicId,
             String branchId,
             Integer type,
             String startDate,
             String endDate) {
+    	
+    	log.info(
+    	        "Fetching appointment analytics. clinicId={}, branchId={}, type={}, startDate={}, endDate={}",
+    	        clinicId,
+    	        branchId,
+    	        type,
+    	        startDate,
+    	        endDate);
 
         Response response = new Response();
 
@@ -63,6 +79,11 @@ public class AppointmentAnalyticsServiceImpl
                      bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
                              clinicId,
                              branchId);
+        	 
+        	 log.info(
+        		        "Calling booking service to fetch bookings. clinicId={}, branchId={}",
+        		        clinicId,
+        		        branchId);
 
             if (bookingResponse == null
                     || bookingResponse.getBody() == null
@@ -84,10 +105,17 @@ public class AppointmentAnalyticsServiceImpl
 
             List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {});
            		
+            log.info(
+                    "Booking service response received successfully for clinicId={}, branchId={}",
+                    clinicId,
+                    branchId);
+            
             Response clinicResponse =
                     adminServiceClient.getClinicById(keyCloakTokenStore.getAccess_token(),
                             clinicId);
-
+            log.info(
+                    "Fetched clinic details for clinicId={}",
+                    clinicId);
 
             Map<String, Object> clinic =
                     (Map<String, Object>) clinicResponse                          
@@ -109,6 +137,9 @@ public class AppointmentAnalyticsServiceImpl
 
             Map<String, Long> chartData =
                     new LinkedHashMap<>();
+            log.info(
+                    "Preparing chart data for analytics type={}",
+                    type);
 
             switch (type) {
 
@@ -446,9 +477,10 @@ public class AppointmentAnalyticsServiceImpl
 
                 } catch (Exception e) {
 
-                    System.out.println(
-                            "Payment not found for bookingId : "
-                                    + bookingId);
+                	log.warn(
+                	        "Payment details not found for bookingId={}",
+                	        bookingId,
+                	        e);
                 }
 
                 if (!completed
@@ -517,10 +549,28 @@ public class AppointmentAnalyticsServiceImpl
                     dashboard);
             response.setStatus(
                     HttpStatus.OK.value());
+            
+            log.info(
+                    "Appointment analytics fetched successfully for clinicId={}, branchId={}",
+                    clinicId,
+                    branchId);
+            
+            log.info(
+                    "Appointment analytics summary generated. totalAppointments={}, completed={}, cancelled={}, missed={}, booked={}",
+                    totalAppointments,
+                    completedCount,
+                    cancelledCount,
+                    missedCount,
+                    bookedCount);
 
         } catch (Exception e) {
 
-            e.printStackTrace();
+        	log.error(
+        	        "Error while fetching appointment analytics. clinicId={}, branchId={}, error={}",
+        	        clinicId,
+        	        branchId,
+        	        e.getMessage(),
+        	        e);
 
             response.setSuccess(false);
             response.setMessage(
@@ -531,7 +581,11 @@ public class AppointmentAnalyticsServiceImpl
 
         return response;
     }
+    
     @Override
+    @RateLimiter(
+            name = "bookingService",
+            fallbackMethod = "getAppointmentSummaryFallback")
     public Response getAppointmentSummary(
             String clinicId,
             String branchId,
@@ -539,32 +593,60 @@ public class AppointmentAnalyticsServiceImpl
             String startDate,
             String endDate) {
 
+        log.info(
+                "Fetching appointment summary. clinicId={}, branchId={}, type={}, startDate={}, endDate={}",
+                clinicId,
+                branchId,
+                type,
+                startDate,
+                endDate);
+
         Response response = new Response();
 
         try {
 
-        	 ResponseEntity<Response> bookingResponse =
-                     bookingFeign.getBookedServicesByClinicIdWithBranchId(keyCloakTokenStore.getAccess_token(),
-                             clinicId,
-                             branchId);
+            log.info(
+                    "Calling booking service to fetch bookings. clinicId={}, branchId={}",
+                    clinicId,
+                    branchId);
+
+            ResponseEntity<Response> bookingResponse =
+                    bookingFeign.getBookedServicesByClinicIdWithBranchId(
+                            keyCloakTokenStore.getAccess_token(),
+                            clinicId,
+                            branchId);
 
             if (bookingResponse == null
                     || bookingResponse.getBody() == null
                     || bookingResponse.getBody().getData() == null) {
 
+                log.warn(
+                        "No booking data found. clinicId={}, branchId={}",
+                        clinicId,
+                        branchId);
+
                 response.setSuccess(false);
                 response.setMessage("No booking data found");
-                response.setStatus(404);
+                response.setStatus(HttpStatus.NOT_FOUND.value());
 
                 return response;
             }
 
             ObjectMapper mapper = new ObjectMapper();
-   		    mapper.registerModule(new JavaTimeModule());
-   		    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-   		  
-               List<Map<String, Object>> bookings = mapper.convertValue( bookingResponse.getBody(),  new TypeReference<List<Map<String, Object>>>() {
-   			});
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            List<Map<String, Object>> bookings =
+                    mapper.convertValue(
+                            bookingResponse.getBody().getData(),
+                            new TypeReference<List<Map<String, Object>>>() {});
+
+            log.info(
+                    "Successfully fetched {} bookings for clinicId={}, branchId={}",
+                    bookings.size(),
+                    clinicId,
+                    branchId);
+
             LocalDate today = LocalDate.now();
 
             long totalAppointments = 0;
@@ -672,8 +754,9 @@ public class AppointmentAnalyticsServiceImpl
                 try {
 
                     Response paymentResponse =
-                            physiotherapyFeignClient
-                                    .getPayment(keyCloakTokenStore.getAccess_token(),bookingId);
+                            physiotherapyFeignClient.getPayment(
+                                    keyCloakTokenStore.getAccess_token(),
+                                    bookingId);
 
                     if (paymentResponse != null
                             && paymentResponse.getData() != null) {
@@ -692,7 +775,12 @@ public class AppointmentAnalyticsServiceImpl
                                         overallStatus);
                     }
 
-                } catch (Exception e) {
+                } catch (Exception ex) {
+
+                    log.warn(
+                            "Failed to fetch payment details for bookingId={}",
+                            bookingId,
+                            ex);
                 }
 
                 if (!completed
@@ -711,20 +799,81 @@ public class AppointmentAnalyticsServiceImpl
             dto.setCancelled(cancelledCount);
             dto.setMissed(missedCount);
 
+            log.info(
+                    "Appointment summary generated successfully. totalAppointments={}, completed={}, cancelled={}, missed={}",
+                    totalAppointments,
+                    completedCount,
+                    cancelledCount,
+                    missedCount);
+
             response.setSuccess(true);
             response.setMessage(
                     "Appointment summary fetched successfully");
             response.setData(dto);
-            response.setStatus(200);
+            response.setStatus(HttpStatus.OK.value());
 
-        } catch (Exception e) {
+            log.info(
+                    "Appointment summary response sent successfully. clinicId={}, branchId={}",
+                    clinicId,
+                    branchId);
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Error while fetching appointment summary. clinicId={}, branchId={}, error={}",
+                    clinicId,
+                    branchId,
+                    ex.getMessage(),
+                    ex);
 
             response.setSuccess(false);
-            response.setMessage(e.getMessage());
-            response.setStatus(500);
+            response.setMessage(ex.getMessage());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
 
         return response;
     }
+    
+    public Response getAppointmentAnalyticsFallback(
+            String clinicId,
+            String branchId,
+            Integer type,
+            String startDate,
+            String endDate,
+            Exception ex) {
+
+        log.error(
+                "Rate limiter triggered while fetching appointment analytics. clinicId={}, branchId={}",
+                clinicId,
+                branchId,
+                ex);
+
+
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    
+    
+    public Response getAppointmentSummaryFallback(
+            String clinicId,
+            String branchId,
+            Integer type,
+            String startDate,
+            String endDate,
+            Exception ex) {
+
+        log.error(
+                "Rate limiter fallback triggered for getAppointmentSummary. clinicId={}, branchId={}",
+                clinicId,
+                branchId,
+                ex);
+        throw new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again after some time.");
+    }
+    
+    
     
 }
