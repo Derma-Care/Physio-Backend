@@ -71,7 +71,22 @@ public class TherapyExercisesServiceImpl implements TherapyExercisesService {
                 200
         );
     }
+    @Override
+    public ResponseStructure<List<TherapyExercisesDTO>> getByClinicId(String clinicId) {
 
+        List<TherapyExercisesDTO> list = repository
+                .findByClinicId(clinicId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+
+        return ResponseStructure.buildResponse(
+                list,
+                "Fetched Successfully",
+                HttpStatus.OK,
+                200
+        );
+    }
  // ================= UPDATE =================
     @Override
     public ResponseStructure<TherapyExercisesDTO> updateTherapyExercisesById(

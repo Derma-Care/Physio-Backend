@@ -42,6 +42,11 @@ public class TherophyProgramController {
     public ResponseEntity<Response> getAll() {
         return service.getAll();
     }
+    //get by clinic id
+    @GetMapping("/getByclinicId/{clinicId}")
+    public ResponseEntity<Response> getByClinicId(@PathVariable String clinicId) {
+        return service.getByClinicId(clinicId);
+    }
 
     // UPDATE
     @PutMapping("/update/{id}")

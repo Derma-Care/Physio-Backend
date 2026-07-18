@@ -56,6 +56,13 @@ public class TherapyExercisesController {
         return ResponseEntity.ok(
                 service.getByClinicIdAndBranchId(clinicId, branchId));
     }
+    ////Get By clinic Id /////////
+    @GetMapping("/getBytherapyExercisesClinicId/{clinicId}")
+    public ResponseEntity<ResponseStructure<List<TherapyExercisesDTO>>> getByClinicId(
+            @PathVariable String clinicId) {
+
+        return ResponseEntity.ok(service.getByClinicId(clinicId));
+    }
 
     // ================= GET BY clinicId + branchId + therapyExercisesId =================
     @GetMapping("/getBytherapyExercisesClinicIdAndBranchIdAndtherapyExercisesId/{clinicId}/{branchId}/{therapyExercisesId}")

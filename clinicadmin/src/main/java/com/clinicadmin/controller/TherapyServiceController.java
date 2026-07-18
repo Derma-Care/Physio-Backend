@@ -45,6 +45,11 @@ public class TherapyServiceController {
         Response res = service.getByIdClinicBranch(id, clinicId, branchId);
         return ResponseEntity.status(res.getStatus()).body(res);
     }
+    //get clinic id //
+    @GetMapping("/getByTherapyServiceClinicId/{clinicId}")
+    public ResponseEntity<Response> getByClinicId(@PathVariable String clinicId) {
+        return ResponseEntity.ok(service.getByClinicId(clinicId));
+    }
 
     // ✅ UPDATE 
     @PutMapping("/updateByTherapyServieId/{id}")

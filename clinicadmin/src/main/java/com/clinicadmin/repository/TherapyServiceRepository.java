@@ -12,7 +12,7 @@ public interface TherapyServiceRepository extends MongoRepository<TherapyService
     List<TherapyService> findByClinicIdAndBranchId(String clinicId, String branchId);
 
     Optional<TherapyService> findByIdAndClinicIdAndBranchId(String id, String clinicId, String branchId);
-    
+    Optional<TherapyService> findByClinicId(String clinicId);
   
 
 }

@@ -29,4 +29,5 @@ public interface TherapyExercisesService {
     // DELETE
     ResponseStructure<String> deleteTherapyExercisesById(
             String therapyExercisesId);
+    ResponseStructure<List<TherapyExercisesDTO>> getByClinicId(String clinicId);
 }

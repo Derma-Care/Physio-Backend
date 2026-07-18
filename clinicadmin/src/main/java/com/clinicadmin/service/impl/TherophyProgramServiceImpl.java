@@ -172,7 +172,67 @@ public class TherophyProgramServiceImpl implements TherophyProgramService {
             );
         }
     }
+///get by clinic id //
+    @Override
+    public ResponseEntity<Response> getByClinicId(String clinicId) {
 
+        try {
+
+            List<TherophyProgramEntity> entities = repository.findByClinicId(clinicId);
+
+            if (entities.isEmpty()) {
+                return ResponseEntity.ok(
+                        Response.builder()
+                                .success(false)
+                                .message("Program not found")
+                                .status(404)
+                                .build());
+            }
+
+            List<ProgramWithTherophy> programList = new ArrayList<>();
+
+            for (TherophyProgramEntity entity : entities) {
+
+                List<TherapyServiceDTO> therapyList = new ArrayList<>();
+
+                for (String therapyId : entity.getTherophyIds()) {
+                    TherapyServiceDTO therapy =
+                            therapyServiceServiceImpl.getTherapyWithExercisesWithId(therapyId);
+
+                    if (therapy != null) {
+                        therapyList.add(therapy);
+                    }
+                }
+
+                ProgramWithTherophy program = new ProgramWithTherophy();
+                program.setId(entity.getId());
+                program.setClinicId(entity.getClinicId());
+                program.setBranchId(entity.getBranchId());
+                program.setProgramName(entity.getProgramName());
+                program.setTherophyData(therapyList);
+                program.setTotalTherophyIds(therapyList.size());
+
+                programList.add(program);
+            }
+
+            return ResponseEntity.ok(
+                    Response.builder()
+                            .success(true)
+                            .data(programList)
+                            .message("Programs fetched successfully")
+                            .status(200)
+                            .build());
+
+        } catch (Exception e) {
+
+            return ResponseEntity.internalServerError().body(
+                    Response.builder()
+                            .success(false)
+                            .message("Error fetching programs: " + e.getMessage())
+                            .status(500)
+                            .build());
+        }
+    }
     public ResponseEntity<Response> getByclinicAndBranchId(String cid, String bid) {
 
         try {

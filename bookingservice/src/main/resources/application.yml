@@ -29,17 +29,17 @@ spring.lifecycle:
 # WHATSAPP (dummy values for local dev)
 # =========================================================
 whatsapp:
-  base-url: http://localhost:8080/mock-whatsapp
-  auth-key: dummy-key
-  phone-number-id: test-id
-  booking-confirmation-template-id: test-template
+  base-url:
+  auth-key: 
+  phone-number-id:
+  booking-confirmation-template-id: 
 
 # =========================================================
 # AWS S3 (test bucket for local dev)
 # =========================================================
 aws:
-  accessKeyId: local-access
-  secretAccessKey: local-secret
+  accessKeyId: 
+  secretAccessKey: 
   region: ap-south-1
   s3:
     bucket: physiocare-dev-storage

@@ -139,7 +139,28 @@ public class TherapyServiceServiceImpl implements TherapyServiceService {
         }       
         return mapToDTO(optional.get()); 
     }
+//get by clinic id//
+    @Override
+    public Response getByClinicId(String clinicId) {
 
+        Optional<TherapyService> optional = repository.findByClinicId(clinicId);
+
+        Response response = new Response();
+
+        if (optional.isEmpty()) {
+            response.setSuccess(false);
+            response.setMessage("Data not found");
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return response;
+        }
+
+        response.setSuccess(true);
+        response.setData(mapToDTO(optional.get()));
+        response.setMessage("Fetched successfully");
+        response.setStatus(HttpStatus.OK.value());
+
+        return response;
+    }
     @Override
     public Response updateTherapyById(String id, TherapyServiceDTO dto) {
 

@@ -16,5 +16,6 @@ public interface TherapyServiceService {
     Response deleteTherapyById(String id);
 
 	Response getTherapyWithExercises(String id, String clinicId, String branchId);
-	
+	public Response getByClinicId(String clinicId) ;
+
 }
