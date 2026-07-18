@@ -17,5 +17,7 @@ public interface BranchCredentialsRepository extends MongoRepository<BranchCrede
 	void deleteByBranchId(String branchId);
 	
 	BranchCredentials findByMobilenumber(String mobilenumber);
+	
+	BranchCredentials findByMobilenumberAndRole(String mobilenumber, String role);
 
 }

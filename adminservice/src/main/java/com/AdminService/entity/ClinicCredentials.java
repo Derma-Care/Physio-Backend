@@ -28,6 +28,8 @@ public class ClinicCredentials {
     private String email;
     private Map<String, Map<String, List<String>>> permissions;
     private List<String> fcmToken;
+    private String otp;
+    private Long otpExpiryMillis;
     
   }
     

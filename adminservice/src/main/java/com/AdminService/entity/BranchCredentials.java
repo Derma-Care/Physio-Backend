@@ -29,6 +29,8 @@ public class BranchCredentials {
     private Map<String, List<String>> permissions;
     private List<String> fcmTokens;
     private String email;
+    private String otp;
+    private Long otpExpiryMillis;
 
 }
 

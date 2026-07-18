@@ -375,5 +375,79 @@ public class EmailService {
             """.formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
     }
 
-   
+ // ================= FORGOT PASSWORD OTP =================
+    public void sendForgotPasswordOtp(String to, String otp, String accountName) {
+        try {
+            if (to == null || to.isBlank()) {
+                logger.warn("Email not sent: recipient address is blank");
+                return;
+            }
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setFrom(fromAddress);
+            helper.setSubject("🔒 Password Reset OTP");
+            helper.setText(buildForgotPasswordOtpBody(otp, accountName), true);
+
+            mailSender.send(mimeMessage);
+            logger.info("Forgot-password OTP sent successfully to {}", to);
+
+        } catch (Exception e) {
+            logger.error("Failed to send forgot-password OTP to {}: {}", to, e.getMessage(), e);
+        }
+    }
+
+    private String buildForgotPasswordOtpBody(String otp, String accountName) {
+
+        String greetingName = (accountName != null && !accountName.isBlank())
+                ? accountName
+                : "there";
+
+        return """
+            <html>
+            <body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fa;">
+
+            <div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px;
+                        border:1px solid #e0e0e0; overflow:hidden;">
+
+                <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
+                    <h2 style="color:#ffffff; margin:0;">Password Reset Request</h2>
+                </div>
+
+                <div style="padding:20px; color:#333;">
+                    <p>👋 Hello %s,</p>
+                    <p style="line-height:1.6;">
+                        We received a request to reset the password for your account.
+                        Use the OTP below to proceed. If you didn't request this, you can safely ignore this email.
+                    </p>
+
+                    <div style="text-align:center; margin:25px 0;">
+                        <span style="display:inline-block; font-size:28px; font-weight:bold;
+                                     letter-spacing:6px; color:#28a745; background:#e8f0fe;
+                                     padding:14px 28px; border-radius:8px;">
+                            %s
+                        </span>
+                    </div>
+
+                    <p style="color:#777; font-size:13px;">
+                        This OTP is valid for 10 minutes. Do not share it with anyone.
+                    </p>
+
+                    <p style="margin-top:20px;">
+                        Regards,<br>
+                        Support Team
+                    </p>
+                </div>
+
+                <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
+                    © 2026. All rights reserved.
+                </div>
+            </div>
+
+            </body>
+            </html>
+            """.formatted(greetingName, otp);
+    } 
 }

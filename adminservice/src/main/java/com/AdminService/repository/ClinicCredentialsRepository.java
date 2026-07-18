@@ -17,6 +17,6 @@ public interface ClinicCredentialsRepository extends MongoRepository<ClinicCrede
     void deleteByUserName(String name);
 	ClinicCredentials findByUserName(String userName);
 	ClinicCredentials findByMobilenumber(String mobilenumber);
-
+	ClinicCredentials findByMobilenumberAndRole(String mobilenumber, String role);
 }
 

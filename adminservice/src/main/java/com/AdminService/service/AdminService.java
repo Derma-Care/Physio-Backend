@@ -1,33 +1,37 @@
 package com.AdminService.service;
 
-import java.util.List;
 import org.springframework.http.ResponseEntity;
+
 import com.AdminService.dto.AdminHelper;
 //import com.AdminService.dto.CategoryDto;
 import com.AdminService.dto.ClinicCredentialsDTO;
 import com.AdminService.dto.ClinicDTO;
 import com.AdminService.dto.CustomerDTO;
+import com.AdminService.dto.ResetPasswordDTO;
 //import com.AdminService.dto.ServicesDto;
 //import com.AdminService.dto.SubServicesDto;
 //import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
 import com.AdminService.util.Response;
-import com.AdminService.util.ResponseStructure;
 
 public interface AdminService {
 
 //ADMIN
-	
-public Response adminRegister(AdminHelper helperAdmin);
-	
-public Response adminLogin(String userName,String password);
-	
+
+	public Response adminRegister(AdminHelper helperAdmin);
+
+	public Response adminLogin(String userName, String password);
+
 //CLINIC MANAGEMENT
-public Response createClinic(ClinicDTO clinic);
-Response getClinicById(String clinicId);
-public Response getAllClinics();
-Response updateClinic(String clinicId, ClinicDTO clinic);
-Response deleteClinic(String clinicId);
+	public Response createClinic(ClinicDTO clinic);
+
+	Response getClinicById(String clinicId);
+
+	public Response getAllClinics();
+
+	Response updateClinic(String clinicId, ClinicDTO clinic);
+
+	Response deleteClinic(String clinicId);
 ///public String findEmailByMobileNumber(String mobileNumber);
 ////================= CLINIC VERIFICATION FLOW =================
 //
@@ -41,45 +45,50 @@ Response deleteClinic(String clinicId);
 //Response rejectClinic(String clinicId, String reason);
 
 //CLINIC CREDENTIALS
-public Response getClinicCredentials(String userName);
+	public Response getClinicCredentials(String userName);
 
-public Response updateClinicCredentials(UpdateClinicCredentials credentials,String userName) ;
+	public Response updateClinicCredentials(UpdateClinicCredentials credentials, String userName);
 
-public Response deleteClinicCredentials(String userName );
+	public Response deleteClinicCredentials(String userName);
 
-public Response login(ClinicCredentialsDTO credentials);
-
+	public Response login(ClinicCredentialsDTO credentials);
 
 //CUSTOMER MANAGEMENT
-public Response saveCustomerBasicDetails(CustomerDTO customerDTO );
-public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input);
-public Response getCustomerBasicDetails(String mobileNumber );
-public Response getAllCustomers();
-public Response updateCustomerBasicDetails(CustomerDTO customerDTO,String mobileNumber );
-public Response deleteCustomerBasicDetails(String mobileNumber);
+	public Response saveCustomerBasicDetails(CustomerDTO customerDTO);
+
+	public ResponseEntity<?> getCustomerByUsernameMobileEmail(String input);
+
+	public Response getCustomerBasicDetails(String mobileNumber);
+
+	public Response getAllCustomers();
+
+	public Response updateCustomerBasicDetails(CustomerDTO customerDTO, String mobileNumber);
+
+	public Response deleteCustomerBasicDetails(String mobileNumber);
 
 //SUBSERVICES
 //public Response getAllSubServicesFromClincAdmin();
 
 //BOOKINGS
 
-
 //DOCTORS
-public Response getDoctorInfoByDoctorId(String doctorId);
+	public Response getDoctorInfoByDoctorId(String doctorId);
 
-public Response getClinicsByRecommondation();
+	public Response getClinicsByRecommondation();
 
-Response getAllRecommendClinicThenAnotherClincs();
+	Response getAllRecommendClinicThenAnotherClincs();
 
+	Response rejectClinic(String clinicId, String reason);
 
-Response rejectClinic(String clinicId, String reason);
+	Response verifyClinic(String clinicId);
 
-Response verifyClinic(String clinicId);
+	Response startVerificationProcess(String clinicId);
 
-Response startVerificationProcess(String clinicId);
+//---------------Forgot Password---------------------------------------
 
+	Response resetPasswordWithOtp(ResetPasswordDTO dto);
 
+	Response forgotPassword(String mobileNumber, String role);
+
+	Response verifyForgotPasswordOtp(String mobileNumber, String otp, String role);
 }
-
-
-
