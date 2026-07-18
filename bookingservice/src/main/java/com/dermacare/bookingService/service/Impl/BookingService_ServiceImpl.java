@@ -17,10 +17,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -47,7 +53,6 @@ import com.dermacare.bookingService.entity.TheraphyAnswersEntity;
 import com.dermacare.bookingService.feign.ClinicAdminFeign;
 import com.dermacare.bookingService.feign.NotificationFeign;
 import com.dermacare.bookingService.feign.PhysioDoctorFeign;
-//import com.dermacare.bookingService.producer.KafkaProducer;
 import com.dermacare.bookingService.repository.BookingServiceRepository;
 import com.dermacare.bookingService.service.BookingService_Service;
 import com.dermacare.bookingService.service.S3Service;
@@ -56,8 +61,6 @@ import com.dermacare.bookingService.util.ResponseStructure;
 import com.dermacare.bookingService.util.geneateIds;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.server.ResponseStatusException;
@@ -75,14 +78,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private ClinicAdminFeign clinnicfeign;
 
-//	@Autowired
-//	private KafkaProducer kafkaProducer;
-
 	@Autowired
 	private NotificationFeign notificationFeign;
-
-//	@Autowired
-//	private DoctorFeign doctorFeign;
 
 	@Autowired
 	private ClinicAdminFeign clinicAdminFeign;
@@ -96,12 +93,24 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private WhatsAppService whatsAppService;
 
+	// ✅ CHANGE 1: single shared ObjectMapper instead of "new ObjectMapper()" in
+	// ~20 different methods. Jackson's ObjectMapper is thread-safe and expensive
+	// to construct (rebuilds serializer/deserializer caches each time), so reusing
+	// one injected instance removes a large amount of avoidable allocation churn.
+	@Autowired
+	private ObjectMapper mapper;
+
+	// ✅ CHANGE 2: needed for the rewritten scheduled aggregation (see
+	// autoCalculatePatientCompletedAppointments below).
+	@Autowired
+	private MongoTemplate mongoTemplate;
+
+	// Cap for unbounded list endpoints (see CHANGE 3 / getAllBookedServices)
+	private static final int MAX_UNPAGED_RESULTS = 500;
+
 	@Override
 	public ResponseEntity<?> addService(BookingResponse request) {
 	    ResponseStructure<Booking> response = new ResponseStructure<>();
-	    ObjectMapper mapper = new ObjectMapper();
-	    mapper.registerModule(new JavaTimeModule());
-	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 	    try {
 	        // ✅ Attempt to update for follow-up booking
@@ -190,9 +199,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	            booking.setPrescriptionPdf(null);
 	            log.debug("PrescriptionPdf cleared for bookingId={}", booking.getBookingId());
 	        }
-
-	        // ⚠️ If you later add other large fields (e.g., notes, images, raw binary data),
-	        // include them here for consistency.
 	    } catch (Exception e) {
 	        log.error("Error nullifying large fields for bookingId={}: {}", booking.getBookingId(), e.getMessage(), e);
 	    }
@@ -202,10 +208,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	private Booking toEntity(BookingRequset request) {
 	    Booking entity = null;
 	    try {
-	        ObjectMapper mapper = new ObjectMapper();
-	        mapper.registerModule(new JavaTimeModule());
-	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
 	        entity = mapper.convertValue(request, Booking.class);
 
 	        // ✅ Default values
@@ -233,8 +235,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        ZonedDateTime istTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 	        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
 
-	        if (request.getTotalFee() > 0.0) {   // no null check needed, primitive double defaults to 0.0
-	            double partAmt = request.getPartAmount(); // primitive double, defaults to 0.0
+	        if (request.getTotalFee() > 0.0) {
+	            double partAmt = request.getPartAmount();
 	            double due = request.getTotalFee() - partAmt;
 	            entity.setDueAmount(due);
 	            entity.setBookedAt(istTime.format(formatter));
@@ -328,10 +330,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 
 	private BookingResponse toResponse(Booking entity) {
-	    ObjectMapper mapper = new ObjectMapper();
-	    mapper.registerModule(new JavaTimeModule());
-	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
 	    BookingResponse response = mapper.convertValue(entity, BookingResponse.class);
 
 	    // ✅ Follow-up status
@@ -452,7 +450,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	private static String randomNumber() {
 		Random random = new Random();
-		int sixDigitNumber = 100000 + random.nextInt(900000); // Generates number from 100000 to 999999
+		int sixDigitNumber = 100000 + random.nextInt(900000);
 		return String.valueOf(sixDigitNumber);
 	}
 
@@ -460,10 +458,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	    if (bookings == null || bookings.isEmpty()) {
 	        return Collections.emptyList();
 	    }
-
-	    ObjectMapper mapper = new ObjectMapper();
-	    mapper.registerModule(new JavaTimeModule());
-	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 	    List<BookingResponse> responses;
 	    try {
@@ -553,9 +547,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Override
 	public ResponseEntity<?> physioAppointment(BookingRequset request) {
 	    Response res = new Response();
-	    ObjectMapper mapper = new ObjectMapper();
-	    mapper.registerModule(new JavaTimeModule());
-	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 	    try {
 	        // =========================
@@ -689,10 +680,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	            return ResponseEntity.ok(res);
 	        }
 
-	        ObjectMapper mapper = new ObjectMapper();
-	        mapper.registerModule(new JavaTimeModule());
-	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
 	        List<BookingResponse> responses = mapper.convertValue(existingBookings, new TypeReference<List<BookingResponse>>() {});
 
 	        responses.forEach(n -> {
@@ -756,10 +743,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	            res.setData(Collections.emptyList());
 	            return ResponseEntity.ok(res);
 	        }
-
-	        ObjectMapper mapper = new ObjectMapper();
-	        mapper.registerModule(new JavaTimeModule());
-	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 	        List<BookingResponse> responses = mapper.convertValue(existingBookings, new TypeReference<List<BookingResponse>>() {});
 
@@ -1015,7 +998,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	public BookingResponse getBookedService(String bookingId) {
 		try {
 			Booking entity = repository.findByBookingId(bookingId).get();
-			// System.out.println(entity);
 			if (entity != null) {
 				BookingResponse res = toResponse(entity);
 				List<Session> lst = new ArrayList<>();
@@ -1074,9 +1056,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		return toResponses(reversedBookings);
 	}
 
+	// ✅ CHANGE 3: previously repository.findAll() with no bound — a clinic with
+	// heavy booking volume could pull the entire collection (including nested
+	// reports/attachments) into heap on a single request. Bounded with a
+	// PageRequest so worst-case memory per call is capped. If callers need true
+	// pagination (page/size params from the client), the interface method and
+	// controller should be updated to accept a Pageable — flag this if you want
+	// that follow-up change too.
 	@Override
 	public List<BookingResponse> getAllBookedServices() {
-		List<Booking> bookings = repository.findAll();
+		List<Booking> bookings = repository.findAll(PageRequest.of(0, MAX_UNPAGED_RESULTS)).getContent();
 		List<Booking> reversedBookings = new ArrayList<>();
 		for (int i = bookings.size() - 1; i >= 0; i--) {
 			reversedBookings.add(bookings.get(i));
@@ -1099,19 +1088,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 		return toResponses(reversedBookings);
 	}
-
-	// @Override
-	// public List<BookingResponse> bookingByServiceId(String serviceId) {
-	// List<Booking> bookings = repository.findBySubServiceId(serviceId);
-	// List<Booking> reversedBookings = new ArrayList<>();
-	// for(int i = bookings.size()-1; i >= 0; i--) {
-	// reversedBookings.add(bookings.get(i));
-	// }
-	// if (bookings == null || bookings.isEmpty()) {
-	// return null;
-	// }
-	// return toResponses(reversedBookings);
-	// }
 
 	@Override
 	public List<Map<String, Object>> bookingByCustomerId(String customerId) {
@@ -1216,7 +1192,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        return Collections.emptyList();
 	    }
 
-	    // Reverse order
 	    List<Booking> reversedBookings = new ArrayList<>(bookings);
 	    Collections.reverse(reversedBookings);
 
@@ -1232,7 +1207,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        return Collections.emptyList();
 	    }
 
-	    // Reverse order and filter "In-Progress"
 	    List<Booking> reversedBookings = new ArrayList<>();
 	    for (int i = bookings.size() - 1; i >= 0; i--) {
 	        if ("In-Progress".equalsIgnoreCase(bookings.get(i).getStatus())) {
@@ -1250,10 +1224,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        log.warn("getReportsByPatientId called with null/empty patientId");
 	        return Collections.emptyList();
 	    }
-
-	    ObjectMapper mapper = new ObjectMapper();
-	    mapper.registerModule(new JavaTimeModule());
-	    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 	    List<Booking> bookings = repository.findByPatientId(patientId);
 	    if (bookings == null || bookings.isEmpty()) {
@@ -1307,50 +1277,43 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		return toResponses(bookings);
 	}
 
+	// ✅ CHANGE 2: rewritten to avoid findAll() + nested N+1 query/save loops.
+	// The previous version pulled the entire booking collection into heap every
+	// hour, then re-queried and re-saved patients inside a triple-nested loop —
+	// this was the single biggest recurring memory spike in the service. The
+	// counting now happens inside MongoDB via aggregation, and the JVM only
+	// ever holds the small (patientId -> count) result set, followed by a
+	// single bulk updateMulti per patient.
 	@Scheduled(fixedRate = 60 * 60 * 1000)
 	public void autoCalculatePatientCompletedAppointments() {
-		Map<String, Integer> map = new LinkedHashMap<>();
-		Set<String> ids = new LinkedHashSet<>();
 		try {
-			List<Booking> existingBooking = repository.findAll();
-			// System.out.println("existingBooking");
-			if (existingBooking != null && !existingBooking.isEmpty()) {
-				// System.out.println("not null");
-				for (Booking b : existingBooking) {
-					if (b.getStatus().equalsIgnoreCase("Completed")) {
-						// System.out.println("find complted");
-						if (!ids.contains(b.getPatientId())) {
-							List<Booking> bookings = repository.findByPatientId(b.getPatientId());
-							ids.add(b.getPatientId());
-							// System.out.println("got obj by patient id");
-							for (Booking c : bookings) {
-								if (c.getStatus().equalsIgnoreCase("Completed")) {
-									// System.out.println("patient id with cmplted");
-									if (map.containsKey(b.getPatientId())) {
-										// System.out.println("adding to map");
-										Integer value = map.get(b.getPatientId());
-										int vlue = value.intValue();
-										vlue += 1;
-										value = Integer.valueOf(vlue);
-										map.put(b.getPatientId(), value);
-									} else {
-										map.put(b.getPatientId(), 1);
-									}
-									for (String key : map.keySet()) {
-										List<Booking> bkings = repository.findByPatientId(key);
-										// System.out.println("got obj with key in map");
-										for (Booking bkng : bkings) {
-											bkng.setVisitCount(map.get(key));
-											repository.save(bkng);
-										}
-									}
-								}
-							}
-						}
-					}
+			Aggregation agg = Aggregation.newAggregation(
+					Aggregation.match(Criteria.where("status").regex("^completed$", "i")),
+					Aggregation.group("patientId").count().as("visitCount")
+			);
+
+			AggregationResults<Map> results = mongoTemplate.aggregate(agg, "booking", Map.class);
+
+			for (Map<String, Object> r : results.getMappedResults()) {
+				Object patientId = r.get("_id");
+				Object visitCount = r.get("visitCount");
+
+				if (patientId == null || visitCount == null) {
+					continue;
 				}
+
+				mongoTemplate.updateMulti(
+						Query.query(Criteria.where("patientId").is(patientId)),
+						Update.update("visitCount", visitCount),
+						Booking.class
+				);
 			}
+
+			log.info("autoCalculatePatientCompletedAppointments: updated visitCount for {} patients",
+					results.getMappedResults().size());
+
 		} catch (Exception e) {
+			log.error("autoCalculatePatientCompletedAppointments failed: {}", e.getMessage(), e);
 		}
 	}
 
@@ -1365,7 +1328,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				Booking booking = optionalBooking.get();
 				if (booking.getStatus().equalsIgnoreCase("Confirmed")
 						|| booking.getStatus().equalsIgnoreCase("Completed")) {
-					BookingResponse response = new ObjectMapper().convertValue(booking, BookingResponse.class);
+					BookingResponse response = mapper.convertValue(booking, BookingResponse.class);
 					return Response.builder().success(true).status(200).message("Booking details fetched successfully.")
 							.data(response).build();
 				} else {
@@ -1424,7 +1387,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			}
 
 			List<BookingResponse> bookingResponses = bookings.stream().peek(this::nullifyLargeFields).map(booking -> {
-				BookingResponse response = new ObjectMapper().convertValue(booking, BookingResponse.class);
+				BookingResponse response = mapper.convertValue(booking, BookingResponse.class);
 
 				String pdf = getPrescriptionpdf(response.getBookingId());
 
@@ -1461,7 +1424,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					.filter(booking -> "In-Progress".equalsIgnoreCase(booking.getStatus()))
 					.peek(this::nullifyLargeFields).map(booking -> {
 
-						BookingResponse response = new ObjectMapper().convertValue(booking, BookingResponse.class);
+						BookingResponse response = mapper.convertValue(booking, BookingResponse.class);
 
 						String pdf = getPrescriptionpdf(booking.getBookingId());
 
@@ -1516,7 +1479,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					int days = 0;
 					if (exp == null) {
 						days = Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", ""));
-						// System.out.println(days);
 						LocalDate serviceDate = LocalDate.parse(booking.getServiceDate(), isoFormatter);
 						exp = serviceDate.plusDays(days);
 					}
@@ -1538,22 +1500,13 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						int days = 0;
 						if (exp == null) {
 							days = Integer.parseInt(booking.getConsultationExpiration().replaceAll("\\D+", ""));
-							// System.out.println(days);
 							LocalDate serviceDate = LocalDate.parse(booking.getServiceDate(), isoFormatter);
 							exp = serviceDate.plusDays(days);
 						}
-						// System.out.println(expDate);
 						for (int i = 0; i <= 6; i++) {
 							LocalDate date = today.plusDays(i);
-							// System.out.println(date);
-							// System.out.println(sixthDate);
 							if ((!date.isAfter(sixthDate)) && (date.isBefore(exp) || date.equals(exp))) {
-								// System.out.println("hii");
 								Booking bkng = new Booking(booking);
-								// bkng.setConsentFormPdf(null);
-								// bkng.setAttachments(null);
-								// bkng.setReports(null);
-								// System.out.println(bkng);
 								bkng.setFollowupDate(date.format(isoFormatter));
 								bkng.setStatus("In-Progress");
 								finalList.add(toResponse(bkng));
@@ -1648,7 +1601,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	    List<Booking> bookings = repository.findByClinicIdAndBranchId(clinicId, branchId);
 
 	    if (bookings == null || bookings.isEmpty()) {
-	        return new ArrayList<>(); // return empty list, not null
+	        return new ArrayList<>();
 	    }
 
 	    List<Booking> reversedBookings = new ArrayList<>();
@@ -1712,7 +1665,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					List<Booking> bookings = repository.findByClinicIdAndBranchIdAndDoctorIdAndStatusIgnoreCase(
 							clinicId, branchId, doctorId, requiredStatus);
 					reversedBookings = toResponses(bookings);
-					// BEFORE current date
 					reversedBookings = reversedBookings.stream().filter(b -> {
 						LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
 						return bookingDate.isBefore(currentDate);
@@ -1723,7 +1675,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 					reversedBookings = toResponses(bookings);
 
-					// AFTER current date
 					reversedBookings = reversedBookings.stream().filter(b -> {
 						LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
 						return bookingDate.isAfter(currentDate);
@@ -1782,7 +1733,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					List<Booking> bookings = repository.findByClinicIdAndDoctorIdAndStatusIgnoreCase(clinicId, doctorId,
 							requiredStatus);
 					reversedBookings = toResponses(bookings);
-					// BEFORE current date
 					reversedBookings = reversedBookings.stream().filter(b -> {
 						LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
 						return bookingDate.isBefore(currentDate);
@@ -1793,7 +1743,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 					reversedBookings = toResponses(bookings);
 
-					// AFTER current date
 					reversedBookings = reversedBookings.stream().filter(b -> {
 						LocalDate bookingDate = LocalDate.parse(b.getServiceDate());
 						return bookingDate.isAfter(currentDate);
@@ -1917,7 +1866,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		try {
 			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateOrderByServicetimeAsc(cinicId,
 					branchId, date);
-			// System.out.println(todayBookings);
 			bookings = bookings.stream().filter(n -> n.getStatus().equalsIgnoreCase("In-Progress")).toList();
 			List<BookingResponse> todayBookingsDto = toResponses(bookings);
 			if (todayBookingsDto != null && !todayBookingsDto.isEmpty()) {
@@ -1945,8 +1893,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			Booking entity = repository.findByBookingId(dto.getBookingId())
 					.orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
-
-			ObjectMapper mapper = new ObjectMapper();
 
 			// -------- BASIC --------
 
@@ -2267,8 +2213,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						dto.setCustomerId(n.getCustomerId());
 						dto.setPatientId(n.getPatientId());
 						return dto;
-					}, Collectors.toList()), list -> list.stream().distinct().collect(Collectors.toList()) // remove
-																											// duplicates
+					}, Collectors.toList()), list -> list.stream().distinct().collect(Collectors.toList())
 					)));
 			res.setStatusCode(200);
 			res.setHttpStatus(HttpStatus.OK);
@@ -2448,135 +2393,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	}
 
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-//@Override
-//public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
-//	try {
-//		String today = LocalDate.now().format(FORMATTER);
-//		List<Map<String,Object>> list = new ArrayList<>();
-//
-//		// ✅ Fetch ALL bookings (no status filter)
-//		List<Booking> bookings =
-//				repository.findByClinicIdAndBranchIdAndServiceDate(
-//						clinicId,
-//						branchId,
-//						today
-//				);
-//		List<String> followup = physioDoctorFeign.getTodayFollowUpBookingIds();
-//
-//		List<Booking> bkngs = repository.findByBookingIdIn(followup);
-//		  List<Booking> modifiedBookings = null;
-//		if (!bkngs.isEmpty()) {
-//
-//		      modifiedBookings = bkngs.stream().map(n -> {
-//
-//		        n.setStatus("follow-up");
-//
-//		        List<Status> statusList = n.getCurrentStatus();
-//
-//		        if (statusList == null || statusList.isEmpty()) {
-//		            statusList = new ArrayList<>();
-//		        }
-//
-//		        Status status = new Status();
-//
-//		        status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-//		        status.setStatus("follow-up");
-//
-//		        statusList.add(status);
-//
-//		        n.setCurrentStatus(statusList);
-//		        bookings.add(n);
-//		        return n;
-//
-//		    }).toList();		  
-//		    repository.saveAll(modifiedBookings);
-//		}
-//		// ✅ Convert to response DTO
-//		List<BookingResponse> res = null;
-//		List<BookingResponse> bookingres = null;
-//		try {
-//		if(!bookings.isEmpty()) {
-//	    bookingres = toResponses(bookings);}
-//	    if(modifiedBookings != null || !modifiedBookings.isEmpty()) {
-//		res = toResponses(modifiedBookings);
-//		bookingres.addAll(res);}}catch(Exception e) {}
-//		//System.out.println(res.get(1));
-//		// ✅ Enrich with session details (Feign call)
-//		    try {
-//		    if(bookingres != null) {
-//			bookingres = bookingres.stream().map(n -> {
-//						List<Session> lst = physioDoctorFeign
-//						.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
-//						.getBody();
-//			 // System.out.println(n.getBookingId());
-//			  // System.out.println(lst);
-//                if(lst != null ) {
-//				n.setSession(lst);
-//				n.setVisitType("session");
-//				}else {
-//				n.setSession(null);}
-//				return n;
-//			}).toList();}
-//		    bookingres.stream().map(n->{Map<String,Object> map = new LinkedHashMap<>();
-//		    map.put("bookingId", n.getBookingId()); map.put("serviceDate", n.getServiceDate()); map.put("servicetime", n.getServicetime());
-//		    map.put("name", n.getName());  map.put("mobileNumber", !n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber()); map.put("doctorId", n.getDoctorId());
-//		    map.put("doctorName", n.getDoctorName()); map.put("paymentType", n.getPaymentType()); map.put("visitType", n.getVisitType());
-//		    map.put("status", n.getStatus()); map.put("followupStatus", n.getFollowupStatus()); map.put("patientId", n.getPatientId());
-//		    map.put("clinicId", n.getClinicId()); map.put("customerId", n.getCustomerId());  map.put("branchId", n.getBranchId());
-//		    map.put("session", n.getSession());map.put("problem", n.getProblem());				
-//		    list.add(map);
-//		    return n;
-//		    }).toList();  
-//
-//		} catch (Exception e) {
-//			// log error instead of silent ignore
-//			System.out.println("Error while fetching session details: " + e.getMessage());
-//		}
-//		Map<String, Object> summary = null;
-//		// ✅ Total count
-//		if(bookingres != null) {
-//		long totalCount = bookings.size();
-//
-//		// ✅ Status counts (case-insensitive + null safe)
-//		long pendingCount = bookingres.stream()
-//				.filter(b -> "PENDING".equalsIgnoreCase(
-//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
-//				))
-//				.count();
-//
-//		long confirmedCount = bookingres.stream()
-//				.filter(b -> "CONFIRMED".equalsIgnoreCase(
-//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
-//				))
-//				.count();
-//
-//		long inProgressCount = bookingres.stream()
-//				.filter(b -> "IN-PROGRESS".equalsIgnoreCase(
-//						Optional.ofNullable(b.getFollowupStatus()).orElse("")
-//				))
-//				.count();
-//
-//		// ✅ Summary response
-//		summary = new HashMap<>();
-//		summary.put("totalAppointments", totalCount);
-//		summary.put("pending", pendingCount);
-//		summary.put("confirmed", confirmedCount);
-//		summary.put("inProgress", inProgressCount);
-//		return ResponseEntity.ok(
-//				new Response(true, list, summary, "Today bookings fetched", 200, null, null)
-//		);}
-//		else {
-//			return ResponseEntity.ok(
-//					new Response(true, Collections.emptyList(), summary, "Today bookings not found", 200, null, null));}
-//
-//	} catch (Exception e) {
-//		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//				.body(new Response(false, null, null,
-//						"Error fetching today bookings: " + e.getMessage(),
-//						500, null, null));
-//	}
-//}
 
 	@Override
 	public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
@@ -2821,7 +2637,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	            map.put("clinicId", booking.getClinicId());
 	            map.put("customerId", booking.getCustomerId());
 	            map.put("branchId", booking.getBranchId());
-	           // map.put("session", booking.getSession());
 	            map.put("problem", booking.getProblem());
 
 	            filteredBookings.add(map);
@@ -2881,35 +2696,27 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	    }
 	}
 
-// ✅ API 2 → UPCOMING BOOKINGS (3 or 7 days)
 	@Override
 	public ResponseEntity<Response> getUpcomingBookings(String clinicId, String branchId, int option) {
 		List<Map<String, Object>> list = new ArrayList<>();
 		try {
 			int days;
 
-			// ✅ Decide range
 			if (option == 1) {
-				days = 3; // today + next 2 days
+				days = 3;
 			} else if (option == 2) {
-				days = 7; // today + next 6 days
+				days = 7;
 			} else {
 				return ResponseEntity.badRequest()
 						.body(new Response(false, null, null, "Invalid option (1=3days, 2=7days)", 400, null, null));
 			}
 
-			// ✅ Date range (correct logic)
 			LocalDate startDate = LocalDate.now().minusDays(1);
 			LocalDate endDate = startDate.plusDays(days + 1);
 
-			// ✅ Fetch ALL bookings (no status filter)
 			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateBetween(clinicId, branchId,
 					startDate.format(FORMATTER), endDate.format(FORMATTER));
-			// System.out.println(bookings);
-			// ✅ Convert to response DTO
 			List<BookingResponse> res = toResponses(bookings);
-			// System.out.println(res);
-			// ✅ Enrich with session details
 			try {
 				res = res.stream().map(n -> {
 
@@ -2918,7 +2725,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 					if (lst != null && !lst.isEmpty()) {
 
-						// If Session already contains exerciseId and exerciseName
 						n.setSession(lst);
 
 						n.setVisitType("session");
@@ -2958,14 +2764,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					list.add(map);
 					return n;
 				}).toList();
-//System.out.println(bookings);
 			} catch (Exception e) {
 				System.out.println("Error while fetching session details: " + e.getMessage());
 			}
-			// ✅ Total count
 			long totalCount = bookings.size();
 
-			// ✅ Status counts (case-insensitive + null-safe)
 			long pendingCount = bookings.stream()
 					.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
@@ -2978,7 +2781,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
-			// ✅ Summary
 			Map<String, Object> summary = new HashMap<>();
 			summary.put("totalAppointments", totalCount);
 			summary.put("pending", pendingCount);
@@ -3001,13 +2803,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		try {
 			LocalDate dte = LocalDate.parse(date);
 
-			// ✅ Fetch ALL bookings for the date (no status filter)
 			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId,
 					dte.format(FORMATTER));
 
 			List<BookingResponse> res = toResponses(bookings);
 
-			// ✅ Enrich with session details
 			try {
 				res = res.stream().map(n -> {
 					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
@@ -3025,10 +2825,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				System.out.println("Error while fetching session details: " + e.getMessage());
 			}
 
-			// ✅ Total count
 			long totalCount = bookings.size();
 
-			// ✅ Status counts (case-insensitive + null-safe)
 			long pendingCount = bookings.stream()
 					.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
@@ -3041,7 +2839,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
 					.count();
 
-			// ✅ Summary
 			Map<String, Object> summary = new HashMap<>();
 			summary.put("totalAppointments", totalCount);
 			summary.put("pending", pendingCount);
@@ -3123,7 +2920,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						return response;
 
 					})
-					.collect(Collectors.toCollection(ArrayList::new)); // Mutable list
+					.collect(Collectors.toCollection(ArrayList::new));
 
 			// Fetch follow-up booking ids
 			List<Map<String,String>> bookingIds =
@@ -3289,9 +3086,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			Optional<Booking> booking = repository.findByBookingId(bookingId);
 			if (booking.isPresent()) {
 				if (!booking.get().getFollwupBookings().isEmpty()) {
-					ObjectMapper mapper = new ObjectMapper();
-					mapper.registerModule(new JavaTimeModule());
-					mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 					BookingResponse res = null;
 					if (booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size() - 1)
 							.getStatus().equalsIgnoreCase("in-progress")) {
@@ -3380,7 +3174,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			if (dto.getFollowupStatus() != null) {
 				entity.setFollowupStatus(dto.getFollowupStatus());
 			}
-			// System.out.println(dto.getFollowupStatus()); }
 			// -------- PROBLEM --------
 			if (dto.getProblem() != null && !dto.getProblem().isEmpty())
 				entity.setProblem(dto.getProblem());
@@ -3439,9 +3232,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			if (dto.getConsultationType() != null && !dto.getConsultationType().isEmpty())
 				entity.setConsultationType(dto.getConsultationType());
 			if (dto.getConsultationFee() != null) {
-				ObjectMapper mapper = new ObjectMapper();
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 				List<ConsultationFees> consultationFees = entity.getListOfConsultationFee();
 				ConsultationFees fee = new ConsultationFees();
 				fee.setConsulationFee(dto.getConsultationFee());
@@ -3490,7 +3280,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			// -------- THERAPY --------
 			if (dto.getTheraphyAnswers() != null)
-				entity.setTheraphyAnswers(new ObjectMapper().convertValue(dto.getTheraphyAnswers(),
+				entity.setTheraphyAnswers(mapper.convertValue(dto.getTheraphyAnswers(),
 						new TypeReference<Map<String, List<TheraphyAnswersEntity>>>() {
 						}));
 
@@ -3543,14 +3333,12 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			int days = 0;
 			try {
 				if (entity.getConsultationExpiration() != null) {
-					String consultationExp = entity.getConsultationExpiration(); // e.g. "8 days"
+					String consultationExp = entity.getConsultationExpiration();
 					days = Integer.parseInt(consultationExp.replaceAll("[^0-9]", ""));
 				}
 
-				// Parse serviceDate (assumes format: yyyy-MM-dd)
 				LocalDate serviceDate = LocalDate.parse(entity.getServiceDate());
 
-				// Add extracted days
 				LocalDate expiryDate = serviceDate.plusDays(days);
 
 				LocalDate today = LocalDate.now();
@@ -3563,18 +3351,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					entity.setIsFollowupStatus(false);
 				}
 			} catch (Exception e) {
-				// fallback safety
 				entity.setIsFollowupStatus(false);
 			}
 
-//        if(dto.getConsultationFee() == 0.0 && dto.getIsFollowupStatus() ) {
-//           	entity.setStatus("confirmed");}
-//           else if(dto.getConsultationFee() == 0.0 && !dto.getIsFollowupStatus()) {
-//           	entity.setStatus("pending");
-//           }else {
-//           if(dto.getConsultationFee() == 0.0 && dto.getPaymentType() != null) {
-//           	entity.setStatus("confirmed");
-//           	}}
 			if (dto.getFoc() != null && dto.getPaymentType() != null) {
 				if ("paid".equalsIgnoreCase(dto.getFoc()) && "not paid".equalsIgnoreCase(dto.getPaymentType())) {
 					entity.setStatus("pending");
@@ -3599,7 +3378,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			booking.setFollwupBookings(null);
 			return booking;
 		} catch (Exception e) {
-			/// System.out.println(e.getMessage());
 			return null;
 		}
 	}
@@ -3616,22 +3394,18 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 				bookings = repository.findByMobileNumberAndClinicId(input, clinicId);
 
-				// If patient mobile number is stored separately
 				if (bookings.isEmpty()) {
 					bookings = repository.findByPatientMobileNumberAndClinicId(input, clinicId);
 				}
 
 			} else {
 
-				// Patient Name validation
 				if (input.length() < 3) {
 					throw new IllegalArgumentException("Please enter at least 3 characters to search by patient name");
 				}
 
-				// Search by Patient Id first
 				bookings = repository.findByPatientIdAndClinicId(input, clinicId);
 
-				// If Patient Id not found, search by Name
 				if (bookings.isEmpty()) {
 					bookings = repository.findByNameContainingIgnoreCaseAndClinicId(input, clinicId);
 				}
