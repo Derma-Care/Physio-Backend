@@ -3,6 +3,7 @@ package com.clinicadmin.service.impl;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.ResetPasswordDTO;
@@ -24,6 +25,9 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private static final long OTP_VALID_MILLIS = 10 * 60 * 1000; // 10 minutes
 
@@ -142,7 +146,7 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
             return otpCheck;
         }
 
-        user.setPassword(dto.getNewPassword());
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         user.setOtp(null);
         user.setOtpExpiryMillis(null);
         loginRepository.save(user);
