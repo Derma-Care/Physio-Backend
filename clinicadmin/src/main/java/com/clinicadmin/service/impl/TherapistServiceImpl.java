@@ -391,6 +391,9 @@ public class TherapistServiceImpl implements TherapistService {
 			existing.setAvailability(dto.getAvailability());
 		if (dto.getBio() != null)
 			existing.setBio(dto.getBio());
+		
+		if (dto.getEmailId() != null)
+			existing.setEmailId(dto.getEmailId());
 
 		// ================= S3 FILE KEYS (SAVE) =================
 		// Frontend uploads files to S3 first via /api/s3/upload-url
@@ -459,6 +462,7 @@ public class TherapistServiceImpl implements TherapistService {
 		response.setTreatmentTypes(updated.getTreatmentTypes());
 		response.setAvailability(updated.getAvailability());
 		response.setBio(updated.getBio());
+		response.setEmailId(updated.getEmailId());
 
 		// ================= S3 SIGNED URLS (RESPONSE) =================
 		// Generate 1-hour signed URLs from stored S3 file keys
