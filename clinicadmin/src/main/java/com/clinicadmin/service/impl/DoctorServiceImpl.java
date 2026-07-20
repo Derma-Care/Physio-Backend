@@ -742,6 +742,39 @@ public class DoctorServiceImpl implements DoctorService {
 
 			log.info("Saving updated doctor data for doctorId={}", doctorId);
 			Doctors updatedDoctor = doctorsRepository.save(doctor);
+			
+			// ============================================
+			// ADD NEW CODE HERE
+			// ============================================
+
+			Optional<DoctorAndStaffLoginCredentials> credentialsOpt =
+			        credentialsRepository.findByStaffId(doctorId);
+
+			if (credentialsOpt.isPresent()) {
+
+			    DoctorAndStaffLoginCredentials credentials =
+			            credentialsOpt.get();
+
+			    if (dto.getDoctorName() != null 
+			            && !dto.getDoctorName().isBlank()) {
+
+			        credentials.setStaffName(dto.getDoctorName());
+			    }
+
+			    credentialsRepository.save(credentials);
+
+			    log.info(
+			        "Login credentials staffName updated for doctorId={}",
+			        doctorId
+			    );
+
+			} else {
+
+			    log.warn(
+			        "Login credentials not found for doctorId={}",
+			        doctorId
+			    );
+			}
 
 			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(updatedDoctor,s3Service);
 
