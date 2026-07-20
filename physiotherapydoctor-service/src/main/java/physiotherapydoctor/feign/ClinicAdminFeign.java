@@ -18,6 +18,7 @@ import physiotherapydoctor.dto.ClinicInfoDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.DoctorsDTO;
+import physiotherapydoctor.dto.ResetPasswordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.TherapistRecordDTO;
@@ -139,17 +140,28 @@ public interface ClinicAdminFeign {
 
 	@GetMapping("/clinic-admin/getAllRecoverySupportsByClinicId/{clinicId}")
 	public Response getAllRecoverySupportsByClinicId(@PathVariable String clinicId);
-	
-	   @GetMapping("/clinic-admin/customername/{id}")
-	    public String getCustomername(
-	 			 @PathVariable String id ); 
 
-	 @GetMapping("/clinic-admin/getAssignedTherapistDetails/{therapistRecordId}")
-	    public ResponseEntity<Response> getAssignedTherapistDetails(
-	            @PathVariable String therapistRecordId);
+	@GetMapping("/clinic-admin/customername/{id}")
+	public String getCustomername(@PathVariable String id);
+
+	@GetMapping("/clinic-admin/getAssignedTherapistDetails/{therapistRecordId}")
+	public ResponseEntity<Response> getAssignedTherapistDetails(@PathVariable String therapistRecordId);
 
 	@GetMapping("/clinic-admin/patinetname/{id}")
-	public String getPatientname(
-			@PathVariable String id );
+	public String getPatientname(@PathVariable String id);
 
-	}
+	// ================= FORGOT PASSWORD (delegates to ClinicAdminService)
+	// =================
+	@GetMapping("/clinic-admin/forgot-password/{mobileNumber}/{role}")
+	public ResponseEntity<Response> forgotPassword(@PathVariable("mobileNumber") String mobileNumber,
+			@PathVariable("role") String role);
+
+	@GetMapping("/clinic-admin/verify-otp/{mobileNumber}/{role}/{otp}")
+	public ResponseEntity<Response> verifyOtp(@PathVariable("mobileNumber") String mobileNumber,
+			@PathVariable("role") String role, @PathVariable("otp") String otp);
+
+	@PostMapping("/clinic-admin/reset-password/{mobileNumber}/{role}")
+	public ResponseEntity<Response> resetPassword(@PathVariable("role") String role,
+			@PathVariable("mobileNumber") String mobileNumber, @RequestBody ResetPasswordDTO dto);
+
+}

@@ -480,6 +480,7 @@ public class AdminServiceImpl implements AdminService {
 			credentials.setUserName(clinic.getHospitalId());
 			credentials.setPassword(tempPassword);
 			credentials.setEmail(clinic.getEmailAddress());
+			credentials.setMobilenumber(clinic.getContactNumber());
 			credentials.setRole("ADMIN");
 
 			// 🔧 FIX: permissions type mismatch
@@ -1629,6 +1630,10 @@ public class AdminServiceImpl implements AdminService {
 				clinicCredentialsDTO.setPassword(clinicCredentials.getPassword());
 
 				clinicCredentialsDTO.setHospitalName(clinicCredentials.getHospitalName());
+				
+				clinicCredentialsDTO.setEmail(clinicCredentials.getEmail());
+				
+				clinicCredentialsDTO.setMobilenumber(clinicCredentials.getMobilenumber());
 
 				response.setSuccess(true);
 
@@ -2498,7 +2503,6 @@ public class AdminServiceImpl implements AdminService {
 		return rawMessage;
 	}
 
-
 	// --------------------------Forgot password------------------------------------
 	private static final long OTP_VALID_MILLIS = 10 * 60 * 1000; // 10 minutes
 
@@ -2527,6 +2531,7 @@ public class AdminServiceImpl implements AdminService {
 
 			// ---------- Try CLINIC credentials ----------
 			ClinicCredentials clinicCreds = clinicCredentialsRepository.findByMobilenumberAndRole(mobileNumber, role);
+			System.out.println(clinicCreds);
 
 			if (clinicCreds != null) {
 

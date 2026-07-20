@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
+import physiotherapydoctor.dto.ResetPasswordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.service.PhysiotherapyDoctorDetails;
 
@@ -26,8 +27,7 @@ public class PhysiotherapyDoctorController {
 
 	@GetMapping("/getTherapistWithRequiredFileds/{clinicId}/{branchId}")
 	public ResponseEntity<Response> getTherapistDataFrom(@PathVariable String clinicId, @PathVariable String branchId) {
-		Response response = doctorService
-				.getPhysioDoctorDetails(clinicId, branchId);
+		Response response = doctorService.getPhysioDoctorDetails(clinicId, branchId);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
@@ -104,5 +104,32 @@ public class PhysiotherapyDoctorController {
 	public ResponseEntity<Response> getLabTests(@PathVariable String hospitalId) {
 
 		return doctorService.getLabTestsFromClinicAdmin(hospitalId);
+	}
+
+//	---------forgot password-------------------
+	// ================= FORGOT PASSWORD (delegates through to ClinicAdminService)
+	// =================
+
+	@GetMapping("/forgot-password/{mobileNumber}/{role}")
+	public ResponseEntity<Response> forgotPassword(@PathVariable String mobileNumber, @PathVariable String role) {
+
+		return doctorService.forgotPassword(mobileNumber, role);
+	}
+
+	@GetMapping("/verify-otp/{mobileNumber}/{role}/{otp}")
+	public ResponseEntity<Response> verifyOtp(@PathVariable String mobileNumber, @PathVariable String role,
+			@PathVariable String otp) {
+
+		return doctorService.verifyOtp(mobileNumber, role, otp);
+	}
+
+	@PostMapping("/reset-password/{role}/{mobileNumber}")
+	public ResponseEntity<Response> resetPassword(@PathVariable String role, @PathVariable String mobileNumber,
+			@RequestBody ResetPasswordDTO dto) {
+
+		dto.setMobileNumber(mobileNumber);
+		dto.setRole(role);
+
+		return doctorService.resetPassword(role, mobileNumber, dto);
 	}
 }

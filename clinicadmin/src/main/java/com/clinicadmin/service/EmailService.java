@@ -14,567 +14,606 @@ import org.springframework.stereotype.Service;
 import java.io.InputStream;
 import java.net.URI;
 
-
 import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
-    private final Logger logger = LoggerFactory.getLogger(EmailService.class);
-
-    private final String fromAddress;
-    private final String doctorLoginUrl;       
-    private final String therapistLoginUrl;
-
-    public EmailService(JavaMailSender mailSender, Environment env) {
-        this.mailSender = mailSender;
-        this.fromAddress = env.getProperty(
-                "notification.default-from-email",
-                "no-reply@glowkart.com"
-        );
-        this.doctorLoginUrl = env.getProperty(
-                "notification.doctor-login-url",
-                "https://doctor.ccmstestserver.online"      // ✅ updated
-        );
-        this.therapistLoginUrl = env.getProperty(
-                "notification.therapist-login-url",
-                "https://therapist.ccmstestserver.online"   // ✅ updated
-        );
-    }
-
-    // ===================== RESOLVE LOGIN URL BY ROLE =====================
-    private String resolveLoginUrl(String role) {
-        if (role == null || role.isBlank()) return doctorLoginUrl;
-        return switch (role.toLowerCase()) {
-            case "doctor"          -> doctorLoginUrl;      // ✅ renamed
-            case "physiotherapist" -> therapistLoginUrl;
-            // case "receptionist" -> receptionistLoginUrl;
-            default                -> doctorLoginUrl;      // ✅ renamed
-        };
-    }
-
-    // ===================== MAIN SEND METHOD =====================
-    public void sendEmail(String to, Map<String, String> data) {
-        try {
-            if (to == null || to.isBlank()) {
-                logger.warn("Email not sent: recipient address is blank");
-                return;
-            }
-
-            String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
-            String role    = data.getOrDefault("role", "doctor");
-
-            String emoji = "";
-            if (subject.contains("Verified"))       emoji = "🎉";
-            else if (subject.contains("Pending"))   emoji = "⏳";
-            else if (subject.contains("Review"))    emoji = "🔍";
-            else if (subject.contains("Rejected"))  emoji = "❌";
-            else if (subject.contains("OTP"))       emoji = "🔒";
-
-            String subjectWithEmoji = emoji.isEmpty() ? subject : emoji + " " + subject;
-
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(to);
-            helper.setFrom(fromAddress);
-            helper.setSubject(subjectWithEmoji);
-
-            if (subject.contains("OTP")) {
-                helper.setText(buildOtpMessageBody(data, emoji), true);
-            } else if (subject.contains("Rejected")) {
-                helper.setText(buildRejectionMessageBody(data, emoji), true);
-            } else {
-                helper.setText(buildMessageBody(data, emoji, resolveLoginUrl(role)), true);
-            }
-
-            mailSender.send(mimeMessage);
-            logger.info("Email sent successfully to {} with role={}", to, role);
-
-        } catch (Exception e) {
-            logger.error("Failed to send email to {}: {}", to, e.getMessage(), e);
-        }
-    }
-
-    // ===================== GENERAL EMAIL BODY =====================
-    private String buildMessageBody(Map<String, String> data, String emoji, String loginUrl) {
-
-        String bodyMessage = data.getOrDefault("message", "");
-        String username    = data.get("username");
-        String password    = data.get("password");
-
-        if (bodyMessage != null && !bodyMessage.toLowerCase().contains("welcome to ccms kinetix")) {
-            bodyMessage = "Welcome to CCMS Kinetix!\n\n" + bodyMessage;
-        }
-
-        return """
-            <html>
-            <body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fa;">
-
-            <div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px;
-                        border:1px solid #e0e0e0; overflow:hidden;">
-
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-                    <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
-                </div>
-
-                <!-- Body -->
-                <div style="padding:20px; color:#333;">
-
-                    <p>👋 Hello,</p>
-
-                    <p style="line-height:1.6;">
-                        %s
-                    </p>
-
-                    %s
-
-                    %s
-
-                    <p style="margin-top:20px;">
-                        Regards,<br>
-                        CCMS Team
-                    </p>
-
-                </div>
-
-                <!-- Footer -->
-                <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
-                    © 2026 CCMS. All rights reserved.
-                </div>
-
-            </div>
-
-            </body>
-            </html>
-            """.formatted(
-
-                bodyMessage.replace("\n", "<br>"),
-
-                // ✅ Credentials Box
-                (username != null && password != null)
-                        ? """
-                        <div style="background:#e8f0fe; padding:15px; border-radius:6px; margin-top:15px;">
-                            <h3 style="margin-top:0; color:#1a73e8;">Login Credentials</h3>
-                            <p><b>Username:</b> %s</p>
-                            <p><b>Password:</b> %s</p>
-                        </div>
-                        """.formatted(username, password)
-                        : "",
-
-                // ✅ Login Button — resolved by role
-                (username != null && password != null)
-                        ? """
-                        <div style="text-align:center; margin-top:20px;">
-                            <a href="%s"
-                               style="background:#28a745; color:white; padding:10px 22px;
-                                      border-radius:6px; text-decoration:none; font-weight:bold;">
-                               Login Now
-                            </a>
-                        </div>
-                        """.formatted(loginUrl)
-                        : ""
-        );
-    }
+	private final JavaMailSender mailSender;
+	private final Logger logger = LoggerFactory.getLogger(EmailService.class);
+
+	private final String fromAddress;
+	private final String doctorLoginUrl;
+	private final String therapistLoginUrl;
+
+	public EmailService(JavaMailSender mailSender, Environment env) {
+		this.mailSender = mailSender;
+		this.fromAddress = env.getProperty("notification.default-from-email", "no-reply@glowkart.com");
+		this.doctorLoginUrl = env.getProperty("notification.doctor-login-url", "https://doctor.ccmstestserver.online" // ✅
+																														// updated
+		);
+		this.therapistLoginUrl = env.getProperty("notification.therapist-login-url",
+				"https://therapist.ccmstestserver.online" // ✅ updated
+		);
+	}
+
+	// ===================== RESOLVE LOGIN URL BY ROLE =====================
+	private String resolveLoginUrl(String role) {
+		if (role == null || role.isBlank())
+			return doctorLoginUrl;
+		return switch (role.toLowerCase()) {
+		case "doctor" -> doctorLoginUrl; // ✅ renamed
+		case "physiotherapist" -> therapistLoginUrl;
+		// case "receptionist" -> receptionistLoginUrl;
+		default -> doctorLoginUrl; // ✅ renamed
+		};
+	}
+
+	// ===================== MAIN SEND METHOD =====================
+	public void sendEmail(String to, Map<String, String> data) {
+		try {
+			if (to == null || to.isBlank()) {
+				logger.warn("Email not sent: recipient address is blank");
+				return;
+			}
+
+			String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
+			String role = data.getOrDefault("role", "doctor");
+
+			String emoji = "";
+			if (subject.contains("Verified"))
+				emoji = "🎉";
+			else if (subject.contains("Pending"))
+				emoji = "⏳";
+			else if (subject.contains("Review"))
+				emoji = "🔍";
+			else if (subject.contains("Rejected"))
+				emoji = "❌";
+			else if (subject.contains("OTP"))
+				emoji = "🔒";
+
+			String subjectWithEmoji = emoji.isEmpty() ? subject : emoji + " " + subject;
+
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+			helper.setTo(to);
+			helper.setFrom(fromAddress);
+			helper.setSubject(subjectWithEmoji);
+
+			if (subject.contains("OTP")) {
+				helper.setText(buildOtpMessageBody(data, emoji), true);
+			} else if (subject.contains("Rejected")) {
+				helper.setText(buildRejectionMessageBody(data, emoji), true);
+			} else {
+				helper.setText(buildMessageBody(data, emoji, resolveLoginUrl(role)), true);
+			}
+
+			mailSender.send(mimeMessage);
+			logger.info("Email sent successfully to {} with role={}", to, role);
+
+		} catch (Exception e) {
+			logger.error("Failed to send email to {}: {}", to, e.getMessage(), e);
+		}
+	}
+
+	// ===================== GENERAL EMAIL BODY =====================
+	private String buildMessageBody(Map<String, String> data, String emoji, String loginUrl) {
+
+		String bodyMessage = data.getOrDefault("message", "");
+		String username = data.get("username");
+		String password = data.get("password");
+
+		if (bodyMessage != null && !bodyMessage.toLowerCase().contains("welcome to ccms kinetix")) {
+			bodyMessage = "Welcome to CCMS Kinetix!\n\n" + bodyMessage;
+		}
+
+		return """
+				<html>
+				<body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fa;">
+
+				<div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px;
+				            border:1px solid #e0e0e0; overflow:hidden;">
+
+				    <!-- Header -->
+				    <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
+				        <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
+				    </div>
+
+				    <!-- Body -->
+				    <div style="padding:20px; color:#333;">
+
+				        <p>👋 Hello,</p>
+
+				        <p style="line-height:1.6;">
+				            %s
+				        </p>
+
+				        %s
+
+				        %s
+
+				        <p style="margin-top:20px;">
+				            Regards,<br>
+				            CCMS Team
+				        </p>
+
+				    </div>
 
-    // ===================== OTP EMAIL BODY =====================
-    private String buildOtpMessageBody(Map<String, String> data, String emoji) {
-        String bodyMessage = data.getOrDefault("message", "");
+				    <!-- Footer -->
+				    <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
+				        © 2026 CCMS. All rights reserved.
+				    </div>
 
-        return """
-            <html>
-            <body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
-                <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-                    <h3 style="color:#0f2027;">🔒 OTP Verification</h3>
-                    <p>%s</p>
-                    <p style="font-size:24px; font-weight:bold; color:#28a745;">%s</p>
-                    <p>This OTP is valid for 10 minutes.</p>
-                </div>
-            </body>
-            </html>
-            """.formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
-    }
+				</div>
 
-    // ===================== REJECTION EMAIL BODY =====================
-    private String buildRejectionMessageBody(Map<String, String> data, String emoji) {
-        String bodyMessage = data.getOrDefault("message", "");
-        String reason      = data.getOrDefault("reason", "Not specified");
+				</body>
+				</html>
+				"""
+				.formatted(
 
-        return """
-            <html>
-            <body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
-                <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-                    <h3 style="color:#d32f2f;">❌ Rejected</h3>
-                    <p>%s</p>
-                    <p style="background:#fdecea; padding:10px; border-radius:5px;">
-                        <b>Reason:</b> %s
-                    </p>
-                </div>
-            </body>
-            </html>
-            """.formatted(bodyMessage, reason);
-    }
-    
-    public void sendPatientEmail(
+						bodyMessage.replace("\n", "<br>"),
 
-            String to,
+						// ✅ Credentials Box
+						(username != null && password != null) ? """
+								<div style="background:#e8f0fe; padding:15px; border-radius:6px; margin-top:15px;">
+								    <h3 style="margin-top:0; color:#1a73e8;">Login Credentials</h3>
+								    <p><b>Username:</b> %s</p>
+								    <p><b>Password:</b> %s</p>
+								</div>
+								""".formatted(username, password) : "",
 
-            String patientName,
+						// ✅ Login Button — resolved by role
+						(username != null && password != null) ? """
+								<div style="text-align:center; margin-top:20px;">
+								    <a href="%s"
+								       style="background:#28a745; color:white; padding:10px 22px;
+								              border-radius:6px; text-decoration:none; font-weight:bold;">
+								       Login Now
+								    </a>
+								</div>
+								""".formatted(loginUrl) : "");
+	}
 
-            String clinicName,
+	// ===================== OTP EMAIL BODY =====================
+	private String buildOtpMessageBody(Map<String, String> data, String emoji) {
+		String bodyMessage = data.getOrDefault("message", "");
 
-            String branchName,
+		return """
+				<html>
+				<body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
+				    <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
+				        <h3 style="color:#0f2027;">🔒 OTP Verification</h3>
+				        <p>%s</p>
+				        <p style="font-size:24px; font-weight:bold; color:#28a745;">%s</p>
+				        <p>This OTP is valid for 10 minutes.</p>
+				    </div>
+				</body>
+				</html>
+				""".formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
+	}
 
-            String title,
+	// ===================== REJECTION EMAIL BODY =====================
+	private String buildRejectionMessageBody(Map<String, String> data, String emoji) {
+		String bodyMessage = data.getOrDefault("message", "");
+		String reason = data.getOrDefault("reason", "Not specified");
 
-            String body) {
+		return """
+				<html>
+				<body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
+				    <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
+				        <h3 style="color:#d32f2f;">❌ Rejected</h3>
+				        <p>%s</p>
+				        <p style="background:#fdecea; padding:10px; border-radius:5px;">
+				            <b>Reason:</b> %s
+				        </p>
+				    </div>
+				</body>
+				</html>
+				""".formatted(bodyMessage, reason);
+	}
 
-        try {
+	public void sendPatientEmail(
 
-            if (to == null || to.isBlank()) {
+			String to,
 
-                logger.warn(
-                        "Patient email not sent: recipient address is blank");
+			String patientName,
 
-                return;
-            }
+			String clinicName,
 
-            MimeMessage mimeMessage =
-                    mailSender.createMimeMessage();
+			String branchName,
 
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(
-                            mimeMessage,
-                            true,
-                            "UTF-8");
+			String title,
 
-            helper.setTo(to);
+			String body) {
 
-            helper.setFrom(fromAddress);
+		try {
 
-            helper.setSubject(title);
+			if (to == null || to.isBlank()) {
 
-            helper.setText(
+				logger.warn("Patient email not sent: recipient address is blank");
 
-                    buildPatientMessageBody(
+				return;
+			}
 
-                            patientName,
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
 
-                            clinicName,
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-                            branchName,
+			helper.setTo(to);
 
-                            title,
+			helper.setFrom(fromAddress);
 
-                            body),
+			helper.setSubject(title);
 
-                    true);
+			helper.setText(
 
-            mailSender.send(mimeMessage);
+					buildPatientMessageBody(
 
-            logger.info(
-                    "Patient email sent successfully to {}",
-                    to);
+							patientName,
 
-        } catch (Exception e) {
+							clinicName,
 
-            logger.error(
-                    "Failed to send patient email to {} : {}",
-                    to,
-                    e.getMessage(),
-                    e);
-        }
-    }
-    private String buildPatientMessageBody(
+							branchName,
 
-            String patientName,
+							title,
 
-            String clinicName,
+							body),
 
-            String branchName,
+					true);
 
-            String title,
+			mailSender.send(mimeMessage);
 
-            String body) {
+			logger.info("Patient email sent successfully to {}", to);
 
-        return """
-            <html>
+		} catch (Exception e) {
 
-            <body style="
-                margin:0;
-                padding:0;
-                font-family:Arial,sans-serif;
-                background:#f5f7fa;">
+			logger.error("Failed to send patient email to {} : {}", to, e.getMessage(), e);
+		}
+	}
 
-            <div style="
-                max-width:600px;
-                margin:30px auto;
-                background:#ffffff;
-                border-radius:10px;
-                border:1px solid #e0e0e0;
-                overflow:hidden;">
+	private String buildPatientMessageBody(
 
-                <!-- Header -->
+			String patientName,
 
-                <div style="
-                    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-                    padding:12px 10px;
-                    text-align:center;">
+			String clinicName,
 
-                    <div style="
-                        color:#ffffff;
-                        font-size:22px;
-                        font-weight:700;
-                        line-height:1.2;">
+			String branchName,
 
-                        %s
+			String title,
 
-                    </div>
+			String body) {
 
-                    <div style="
-                        color:#d9e3ea;
-                        font-size:12px;
-                        margin-top:3px;
-                        font-weight:400;">
+		return """
+				<html>
 
-                        %s
+				<body style="
+				    margin:0;
+				    padding:0;
+				    font-family:Arial,sans-serif;
+				    background:#f5f7fa;">
 
-                    </div>
+				<div style="
+				    max-width:600px;
+				    margin:30px auto;
+				    background:#ffffff;
+				    border-radius:10px;
+				    border:1px solid #e0e0e0;
+				    overflow:hidden;">
 
-                </div>
+				    <!-- Header -->
 
-                <!-- Body -->
+				    <div style="
+				        background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+				        padding:12px 10px;
+				        text-align:center;">
 
-                <div style="
-                    padding:25px;
-                    color:#333;">
+				        <div style="
+				            color:#ffffff;
+				            font-size:22px;
+				            font-weight:700;
+				            line-height:1.2;">
 
-                    <p style="
-                        margin-top:0;">
+				            %s
 
-                        Dear %s,
+				        </div>
 
-                    </p>
+				        <div style="
+				            color:#d9e3ea;
+				            font-size:12px;
+				            margin-top:3px;
+				            font-weight:400;">
 
-                    <h3 style="
-                        margin-top:10px;">
+				            %s
 
-                        %s
+				        </div>
 
-                    </h3>
+				    </div>
 
-                    <p style="
-                        line-height:1.8;">
+				    <!-- Body -->
 
-                        %s
+				    <div style="
+				        padding:25px;
+				        color:#333;">
 
-                    </p>
+				        <p style="
+				            margin-top:0;">
 
-                    <br>
+				            Dear %s,
 
-                    <p>
+				        </p>
 
-                        Regards,<br>
+				        <h3 style="
+				            margin-top:10px;">
 
-                        <strong>%s</strong>
+				            %s
 
-                    </p>
+				        </h3>
 
-                    <hr style="
-                        border:none;
-                        border-top:1px solid #e0e0e0;
-                        margin-top:25px;">
+				        <p style="
+				            line-height:1.8;">
 
-                    <p style="
-                        text-align:center;
-                        font-size:12px;
-                        color:#777;
-                        margin-top:15px;">
+				            %s
 
-                        Powered by CCMS
+				        </p>
 
-                    </p>
+				        <br>
 
-                </div>
+				        <p>
 
-            </div>
+				            Regards,<br>
 
-            </body>
+				            <strong>%s</strong>
 
-            </html>
-            """
-            .formatted(
+				        </p>
 
-                    clinicName,
+				        <hr style="
+				            border:none;
+				            border-top:1px solid #e0e0e0;
+				            margin-top:25px;">
 
-                    branchName,
+				        <p style="
+				            text-align:center;
+				            font-size:12px;
+				            color:#777;
+				            margin-top:15px;">
 
-                    patientName,
+				            Powered by CCMS
 
-                    title,
+				        </p>
 
-                    body.replace("\n", "<br>"),
+				    </div>
 
-                    clinicName
-            );
-    }
- 
+				</div>
 
+				</body>
 
-    public void sendPatientPdfEmail(
+				</html>
+				""".formatted(
 
-            String to,
+				clinicName,
 
-            String patientName,
+				branchName,
 
-            String title,
+				patientName,
 
-            String body,
+				title,
 
-            String pdfFile) {
+				body.replace("\n", "<br>"),
 
-        try {
+				clinicName);
+	}
 
-            if (to == null || to.isBlank()) {
+	public void sendPatientPdfEmail(
 
-                logger.warn(
-                        "Patient PDF email not sent: recipient address is blank");
+			String to,
 
-                return;
-            }
+			String patientName,
 
-            MimeMessage mimeMessage =
-                    mailSender.createMimeMessage();
+			String title,
 
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(
-                            mimeMessage,
-                            true,
-                            "UTF-8");
+			String body,
 
-            helper.setTo(to);
+			String pdfFile) {
 
-            helper.setFrom(fromAddress);
+		try {
 
-            helper.setSubject(title);
+			if (to == null || to.isBlank()) {
 
-            helper.setText(
+				logger.warn("Patient PDF email not sent: recipient address is blank");
 
-                    buildPatientPdfMessageBody(
+				return;
+			}
 
-                            patientName,
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
 
-                            title,
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-                            body),
+			helper.setTo(to);
 
-                    true);
+			helper.setFrom(fromAddress);
 
-            // ✅ Attach PDF from S3 signed URL
-            if (pdfFile != null
-                    && !pdfFile.isBlank()) {
+			helper.setSubject(title);
 
-                try (InputStream inputStream =
+			helper.setText(
 
-                        URI.create(pdfFile)
-                                .toURL()
-                                .openStream()) {
+					buildPatientPdfMessageBody(
 
-                    byte[] pdfBytes =
-                            inputStream.readAllBytes();
+							patientName,
 
-                    helper.addAttachment(
+							title,
 
-                            title + ".pdf",
+							body),
 
-                            new ByteArrayResource(
-                                    pdfBytes));
-                }
-            }
+					true);
 
-            mailSender.send(mimeMessage);
+			// ✅ Attach PDF from S3 signed URL
+			if (pdfFile != null && !pdfFile.isBlank()) {
 
-            logger.info(
-                    "Patient PDF email sent successfully to {}",
-                    to);
+				try (InputStream inputStream =
 
-        } catch (Exception e) {
+						URI.create(pdfFile).toURL().openStream()) {
 
-            logger.error(
-                    "Failed to send patient PDF email to {} : {}",
-                    to,
-                    e.getMessage(),
-                    e);
-        }
-    }
-    private String buildPatientPdfMessageBody(
+					byte[] pdfBytes = inputStream.readAllBytes();
 
-            String patientName,
+					helper.addAttachment(
 
-            String title,
+							title + ".pdf",
 
-            String body) {
+							new ByteArrayResource(pdfBytes));
+				}
+			}
 
-        return """
-            <html>
+			mailSender.send(mimeMessage);
 
-            <body style="
-                font-family:Arial,sans-serif;
-                font-size:14px;
-                color:#333333;">
+			logger.info("Patient PDF email sent successfully to {}", to);
 
-                <h3>%s</h3>
+		} catch (Exception e) {
 
-                <p>
+			logger.error("Failed to send patient PDF email to {} : {}", to, e.getMessage(), e);
+		}
+	}
 
-                    Dear %s,
+	private String buildPatientPdfMessageBody(
 
-                </p>
+			String patientName,
 
-                <p>
+			String title,
 
-                    Please find the attached PDF document.
+			String body) {
 
-                </p>
+		return """
+				<html>
 
-                <br>
+				<body style="
+				    font-family:Arial,sans-serif;
+				    font-size:14px;
+				    color:#333333;">
 
-                <p>
+				    <h3>%s</h3>
 
-                    Regards,<br>
+				    <p>
 
-                    <strong>Kinetix Wellness Care</strong>
+				        Dear %s,
 
-                </p>
+				    </p>
 
-                <hr>
+				    <p>
 
-                <p style="
-                    font-size:12px;
-                    color:#777777;">
+				        Please find the attached PDF document.
 
-                    This is a computer-generated email. Please do not reply to this email.
+				    </p>
 
-                </p>
+				    <br>
 
-                <p style="
-                    font-size:12px;
-                    color:#777777;">
+				    <p>
 
-                    Powered by <strong>CCMS</strong>
+				        Regards,<br>
 
-                </p>
+				        <strong>Kinetix Wellness Care</strong>
 
-            </body>
+				    </p>
 
-            </html>
-            """
-            .formatted(
+				    <hr>
 
-                    title,
+				    <p style="
+				        font-size:12px;
+				        color:#777777;">
 
-                    patientName);
-    }
+				        This is a computer-generated email. Please do not reply to this email.
+
+				    </p>
+
+				    <p style="
+				        font-size:12px;
+				        color:#777777;">
+
+				        Powered by <strong>CCMS</strong>
+
+				    </p>
+
+				</body>
+
+				</html>
+				""".formatted(
+
+				title,
+
+				patientName);
+	}
+
+// ================= FORGOT PASSWORD OTP =================
+	public void sendForgotPasswordOtp(String to, String otp, String accountName) {
+		try {
+			if (to == null || to.isBlank()) {
+				logger.warn("Email not sent: recipient address is blank");
+				return;
+			}
+
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+			helper.setTo(to);
+			helper.setFrom(fromAddress);
+			helper.setSubject("🔒 Password Reset OTP");
+			helper.setText(buildForgotPasswordOtpBody(otp, accountName), true);
+
+			mailSender.send(mimeMessage);
+			logger.info("Forgot-password OTP sent successfully to {}", to);
+
+		} catch (Exception e) {
+			logger.error("Failed to send forgot-password OTP to {}: {}", to, e.getMessage(), e);
+		}
+	}
+
+	private String buildForgotPasswordOtpBody(String otp, String accountName) {
+
+		String greetingName = (accountName != null && !accountName.isBlank()) ? accountName : "there";
+
+		return """
+				<html>
+				<body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fa;">
+
+				<div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px;
+				            border:1px solid #e0e0e0; overflow:hidden;">
+
+				    <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
+				        <h2 style="color:#ffffff; margin:0;">Password Reset Request</h2>
+				    </div>
+
+				    <div style="padding:20px; color:#333;">
+				        <p>👋 Hello %s,</p>
+				        <p style="line-height:1.6;">
+				            We received a request to reset the password for your account.
+				            Use the OTP below to proceed. If you didn't request this, you can safely ignore this email.
+				        </p>
+
+				        <div style="text-align:center; margin:25px 0;">
+				            <span style="display:inline-block; font-size:28px; font-weight:bold;
+				                         letter-spacing:6px; color:#28a745; background:#e8f0fe;
+				                         padding:14px 28px; border-radius:8px;">
+				                %s
+				            </span>
+				        </div>
+
+				        <p style="color:#777; font-size:13px;">
+				            This OTP is valid for 10 minutes. Do not share it with anyone.
+				        </p>
+
+				        <p style="margin-top:20px;">
+				            Regards,<br>
+				            Support Team
+				        </p>
+				    </div>
+
+				    <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
+				        © 2026. All rights reserved.
+				    </div>
+				</div>
+
+				</body>
+				</html>
+				"""
+				.formatted(greetingName, otp);
+	}
 }

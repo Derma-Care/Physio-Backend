@@ -8,14 +8,17 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 
 public interface DoctorLoginCredentialsRepository extends MongoRepository<DoctorAndStaffLoginCredentials, String> {
-   
+
 	Optional<DoctorAndStaffLoginCredentials> findByUsername(String username);
-    boolean existsByUsername(String username);  // fixed
-    Optional<DoctorAndStaffLoginCredentials> findByStaffId(String staffId);
-    List<DoctorAndStaffLoginCredentials> findByHospitalIdAndBranchId(
-            String hospitalId,
-            String branchId
-    );
+
+	DoctorAndStaffLoginCredentials findByMobilenumberAndRole(String mobilenumber, String role);
+
+	boolean existsByUsername(String username); // fixed
+
+	Optional<DoctorAndStaffLoginCredentials> findByStaffId(String staffId);
+
+	List<DoctorAndStaffLoginCredentials> findByHospitalIdAndBranchId(String hospitalId, String branchId);
+
 	void deleteByStaffId(String therapistId);
-    
+
 }

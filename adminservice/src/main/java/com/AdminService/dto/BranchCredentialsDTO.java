@@ -11,10 +11,12 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BranchCredentialsDTO {
 	
-	///private String mobilenumber;
+	private String mobilenumber;
     private String branchId;     // e.g., H_1-B_2
     private String userName;     // same as branchId or custom username
     private String password;     // generated password
     private String branchName; 
-   
+    private String email;
+    private String otp;
+    private Long otpExpiryMillis;
 }

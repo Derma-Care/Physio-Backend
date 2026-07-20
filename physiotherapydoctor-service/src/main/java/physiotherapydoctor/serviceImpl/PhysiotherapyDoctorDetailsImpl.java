@@ -14,6 +14,7 @@ import feign.FeignException;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
+import physiotherapydoctor.dto.ResetPasswordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.TherapistResponseDTO;
 import physiotherapydoctor.feign.BookingFeignClient;
@@ -220,5 +221,57 @@ public class PhysiotherapyDoctorDetailsImpl implements PhysiotherapyDoctorDetail
 	public ResponseEntity<Response> getLabTestsFromClinicAdmin(String hospitalId) {
 		return clinicAdminServiceClient.getLabTestsByHospitalId(hospitalId);
 	}
+	
+//	--------------------------------Forgot password---------------------------------
+	
 
+		@Override
+		public ResponseEntity<Response> forgotPassword(String mobileNumber, String role) {
+			try {
+				return clinicAdminServiceClient.forgotPassword(mobileNumber, role);
+			} catch (FeignException e) {
+				return buildErrorResponse(e);
+			}
+		}
+
+		@Override
+		public ResponseEntity<Response> verifyOtp(String mobileNumber, String role, String otp) {
+			try {
+				return clinicAdminServiceClient.verifyOtp(mobileNumber, role, otp);
+			} catch (FeignException e) {
+				return buildErrorResponse(e);
+			}
+		}
+
+		@Override
+		public ResponseEntity<Response> resetPassword(String role, String mobileNumber, ResetPasswordDTO dto) {
+			try {
+				return clinicAdminServiceClient.resetPassword(role, mobileNumber, dto);
+			} catch (FeignException e) {
+				return buildErrorResponse(e);
+			}
+		}
+
+		// ---------------- helper: decode ClinicAdminService's error body ----------------
+		private ResponseEntity<Response> buildErrorResponse(FeignException e) {
+
+			Response response = new Response();
+
+			try {
+				String body = e.contentUTF8();
+				if (body != null && !body.isBlank()) {
+					Response decoded = new ObjectMapper().readValue(body, Response.class);
+					return ResponseEntity.status(e.status()).body(decoded);
+				}
+			} catch (Exception parseEx) {
+				// fall through to generic error below
+			}
+
+			response.setSuccess(false);
+			response.setStatus(e.status());
+			response.setMessage("Error communicating with ClinicAdminService: " + e.getMessage());
+
+			return ResponseEntity.status(e.status()).body(response);
+		}
+	
 }

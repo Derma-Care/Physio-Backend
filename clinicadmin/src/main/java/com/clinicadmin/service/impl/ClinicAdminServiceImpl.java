@@ -7,12 +7,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
 import com.clinicadmin.dto.ClinicDTO;
 import com.clinicadmin.dto.ClinicLoginRequestDTO;
+import com.clinicadmin.dto.ResetPasswordDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.StaffInfoDTO;
 import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
@@ -28,6 +29,7 @@ import com.clinicadmin.repository.WardBoyRepository;
 import com.clinicadmin.service.ClinicAdminService;
 import com.clinicadmin.utils.ExtractFeignMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import feign.FeignException;
 
 @Service
@@ -283,4 +285,50 @@ public class ClinicAdminServiceImpl implements ClinicAdminService {
     	///System.out.println(deviceId);
     	return  deviceId;
         }
+//    ----------forgot password-------------------------------
+    @Override
+    public Response forgotPassword(String mobileNumber, String role) {
+        try {
+            ResponseEntity<Response> response = adminServiceClient.forgotPassword(mobileNumber, role);
+            return response.getBody();
+        } catch (FeignException e) {
+            Response res = new Response();
+            res.setStatus(e.status());
+            res.setMessage(ExtractFeignMessage.clearMessage(e));
+            res.setSuccess(false);
+            return res;
+        }
+    }
+    @Override
+    public Response verifyOtp(String mobileNumber, String role, String otp) {
+        try {
+            ResponseEntity<Response> response =
+                    adminServiceClient.verifyOtp(mobileNumber, role, otp);
+            return response.getBody();
+        } catch (FeignException e) {
+            Response res = new Response();
+            res.setStatus(e.status());
+            res.setMessage(ExtractFeignMessage.clearMessage(e));
+            res.setSuccess(false);
+            return res;
+        }
+    }
+    @Override
+    public Response resetPassword(String mobileNumber, String role, ResetPasswordDTO dto) {
+        try {
+            dto.setMobileNumber(mobileNumber);
+            dto.setRole(role);
+
+            ResponseEntity<Response> response =
+                    adminServiceClient.resetPassword(role, mobileNumber, dto);
+
+            return response.getBody();
+        } catch (FeignException e) {
+            Response res = new Response();
+            res.setStatus(e.status());
+            res.setMessage(ExtractFeignMessage.clearMessage(e));
+            res.setSuccess(false);
+            return res;
+        }
+    }
 }

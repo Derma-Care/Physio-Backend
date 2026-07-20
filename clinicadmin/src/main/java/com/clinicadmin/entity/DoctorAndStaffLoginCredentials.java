@@ -31,6 +31,9 @@ public class DoctorAndStaffLoginCredentials {
 	private String deviceId;
 	private String emailId;
 	private Map<String, List<String>> permissions;
+	 // ===== Added for Forgot Password =====
+    private String otp;
+    private Long otpExpiryMillis;
 
 
 }
