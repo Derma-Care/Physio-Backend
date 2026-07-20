@@ -339,18 +339,9 @@ public class TherapistServiceImpl implements TherapistService {
 		return response;
 	}
 
-<<<<<<< Updated upstream
 	// ================= UPDATE BY THERAPISTID =================
 	@Override
 	public ResponseStructure<TherapistDTO> updateBytherapistId(String therapistId, TherapistDTO dto) {
-=======
-        // Basic Info
-        if (dto.getFullName() != null) existing.setFullName(dto.getFullName());
-        if (dto.getContactNumber() != null) existing.setContactNumber(dto.getContactNumber());
-        if (dto.getGender() != null) existing.setGender(dto.getGender());
-        if (dto.getDateOfBirth() != null) existing.setDateOfBirth(dto.getDateOfBirth());
-        if (dto.getEmailId() != null) existing.setEmailId(dto.getEmailId());
->>>>>>> Stashed changes
 
 		Therapist existing = repository.findByTherapistId(therapistId)
 				.orElseThrow(() -> new RuntimeException("Therapist not found"));
@@ -421,28 +412,12 @@ public class TherapistServiceImpl implements TherapistService {
 			existing.setDateofJoining(dto.getDateofJoining());
 		if (dto.getEmergencyContact() != null)
 			existing.setEmergencyContact(dto.getEmergencyContact());
+		
+	
 
-<<<<<<< Updated upstream
+
 		// Save
 		Therapist updated = repository.save(existing);
-=======
-        response.setTherapistId(updated.getTherapistId());
-        response.setClinicId(updated.getClinicId());
-        response.setBranchId(updated.getBranchId());
-        response.setFullName(updated.getFullName());
-        response.setContactNumber(updated.getContactNumber());
-        response.setGender(updated.getGender());
-        response.setDateOfBirth(updated.getDateOfBirth());
-        response.setQualification(updated.getQualification());
-        response.setYearsOfExperience(updated.getYearsOfExperience());
-        response.setServices(updated.getServices());
-        response.setSpecializations(updated.getSpecializations());
-        response.setExpertiseAreas(updated.getExpertiseAreas());
-        response.setTreatmentTypes(updated.getTreatmentTypes());
-        response.setAvailability(updated.getAvailability());
-        response.setBio(updated.getBio());
-        response.setEmailId(updated.getEmailId());
->>>>>>> Stashed changes
 
 		// ================= BUILD RESPONSE DTO =================
 		TherapistDTO response = new TherapistDTO();
@@ -500,7 +475,6 @@ public class TherapistServiceImpl implements TherapistService {
 
 		therapistAttendanceRepository.deleteByTherapistId(therapistId);
 //        therapistRecordRepository.deleteByTherapistId(therapistId);
-<<<<<<< Updated upstream
 		credentialsRepository.deleteByStaffId(therapistId);
 
 		repository.deleteByTherapistId(therapistId);
@@ -638,231 +612,6 @@ public class TherapistServiceImpl implements TherapistService {
 		dto.setLanguages(entity.getLanguages());
 		dto.setRole(entity.getRole());
 		dto.setPhysioType(entity.getPhysioType());
-=======
-        credentialsRepository.deleteByStaffId(therapistId);
-
-        repository.deleteByTherapistId(therapistId);
-
-        return ResponseStructure.buildResponse(
-                therapistId,
-                "Therapist and all linked records deleted successfully",
-                HttpStatus.OK,
-                200);
-    }
-
-    private Therapist mapToEntity(TherapistDTO dto) {
-
-        Therapist entity = new Therapist();
-
-        entity.setClinicId(dto.getClinicId());
-        entity.setBranchId(dto.getBranchId());
-        entity.setFullName(dto.getFullName());
-        entity.setContactNumber(dto.getContactNumber());
-        entity.setEmailId(dto.getEmailId());
-        entity.setGender(dto.getGender());
-        entity.setDateOfBirth(dto.getDateOfBirth());
-        entity.setQualification(dto.getQualification());
-        entity.setYearsOfExperience(dto.getYearsOfExperience());
-        entity.setServices(dto.getServices());
-        entity.setSpecializations(dto.getSpecializations());
-        entity.setExpertiseAreas(dto.getExpertiseAreas());
-        entity.setTreatmentTypes(dto.getTreatmentTypes());
-        entity.setAvailability(dto.getAvailability());
-        entity.setBio(dto.getBio());
-        entity.setUserName(dto.getUserName());
-        entity.setPassword(dto.getPassword());
-        entity.setAadharID(dto.getAadharID());
-        entity.setDateofJoining(dto.getDateofJoining());
-        entity.setEmergencyContact(dto.getEmergencyContact());
-        if (dto.getIsPresent() != null) {
-            entity.setIsPresent(dto.getIsPresent());
-        } else {
-            entity.setIsPresent(false);
-        }
-        
-
-        // ================= S3 FILE KEYS =================
-        if (dto.getDocuments() != null) {
-
-            Documents docs = new Documents();
-
-            // Store S3 file keys directly as received from frontend
-            // Frontend must upload to S3 first via /api/s3/upload-url
-            // and pass back the returned fileKey here
-            docs.setLicenseCertificate(dto.getDocuments().getLicenseCertificate());
-            docs.setDegreeCertificate(dto.getDocuments().getDegreeCertificate());
-            docs.setProfilePhoto(dto.getDocuments().getProfilePhoto());
-
-            entity.setDocuments(docs);
-        }
-
-        entity.setLanguages(dto.getLanguages());
-        entity.setRole(dto.getRole());
-        entity.setPhysioType(dto.getPhysioType());
-
-        return entity;
-    }
-    private TherapistDTO mapToDTO(Therapist entity) {
-
-        TherapistDTO dto = new TherapistDTO();
-
-        dto.setTherapistId(entity.getTherapistId());
-        dto.setClinicId(entity.getClinicId());
-        dto.setBranchId(entity.getBranchId());
-        dto.setFullName(entity.getFullName());
-        dto.setContactNumber(entity.getContactNumber());
-        dto.setEmailId(entity.getEmailId());
-        dto.setGender(entity.getGender());
-        dto.setDateOfBirth(entity.getDateOfBirth());
-        dto.setQualification(entity.getQualification());
-        dto.setYearsOfExperience(entity.getYearsOfExperience());
-        dto.setServices(entity.getServices());
-        dto.setSpecializations(entity.getSpecializations());
-        dto.setExpertiseAreas(entity.getExpertiseAreas());
-        dto.setTreatmentTypes(entity.getTreatmentTypes());
-        dto.setAvailability(entity.getAvailability());
-        dto.setBio(entity.getBio());
-        dto.setUserName(entity.getUserName());
-        dto.setPassword(entity.getPassword());
-        dto.setAadharID(entity.getAadharID());
-        dto.setDateofJoining(entity.getDateofJoining());
-        dto.setEmergencyContact(entity.getEmergencyContact());
-        dto.setIsPresent(entity.getIsPresent());
-        dto.setEmailId(entity.getEmailId());
-
-        
-     // ================= S3 SIGNED URLS (RESPONSE) =================
-     // Generate 1-hour signed URLs from stored S3 file keys
-     if (entity.getDocuments() != null) {
-
-         Documents docs = new Documents();
-
-         if (entity.getDocuments().getLicenseCertificate() != null
-                 && !entity.getDocuments().getLicenseCertificate().trim().isEmpty()) {
-
-             try {
-                 docs.setLicenseCertificate(
-                     s3Service.generateSignedUrl(
-                         entity.getDocuments().getLicenseCertificate().trim()
-                     )
-                 );
-             } catch (Exception e) {
-                 log.error("Failed to generate signed URL for licenseCertificate: {}",
-                         entity.getDocuments().getLicenseCertificate());
-                 docs.setLicenseCertificate(null);
-             }
-         }
-
-         if (entity.getDocuments().getDegreeCertificate() != null
-                 && !entity.getDocuments().getDegreeCertificate().trim().isEmpty()) {
-
-             try {
-                 docs.setDegreeCertificate(
-                     s3Service.generateSignedUrl(
-                         entity.getDocuments().getDegreeCertificate().trim()
-                     )
-                 );
-             } catch (Exception e) {
-                 log.error("Failed to generate signed URL for degreeCertificate: {}",
-                         entity.getDocuments().getDegreeCertificate());
-                 docs.setDegreeCertificate(null);
-             }
-         }
-
-         if (entity.getDocuments().getProfilePhoto() != null
-                 && !entity.getDocuments().getProfilePhoto().trim().isEmpty()) {
-
-             try {
-                 docs.setProfilePhoto(
-                     s3Service.generateSignedUrl(
-                         entity.getDocuments().getProfilePhoto().trim()
-                     )
-                 );
-             } catch (Exception e) {
-                 log.error("Failed to generate signed URL for profilePhoto: {}",
-                         entity.getDocuments().getProfilePhoto());
-                 docs.setProfilePhoto(null);
-             }
-         }
-
-         dto.setDocuments(docs);
-     }
-        
-        dto.setLanguages(entity.getLanguages());
-        dto.setRole(entity.getRole());
-        dto.setPhysioType(entity.getPhysioType());
-
-        return dto;
-    }
-
-    // ================= HELPERS =================
-    private String generateTherapistId() {
-        return "THER-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-    }
-
-    private String generatePassword() {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#";
-        SecureRandom random = new SecureRandom();
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < 8; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-        return sb.toString();
-    }
-    @Override
-    public Response getPaidSessions(String clinicId,
-                                    String branchId,
-                                    String bookingId,
-                                    String therapistRecordId) {
-
-        Response response = new Response();
-
-        try {
-
-            Response paymentResponse =
-                    physiotherapyFeignClient.getPayment(bookingId);
-
-            Map<String, Object> data =
-                    (Map<String, Object>) paymentResponse.getData();
-
-            if (data == null) {
-                throw new RuntimeException("Payment data not found");
-            }
-
-            // ✅ Validate fields
-            if (!clinicId.equals(String.valueOf(data.get("clinicId")))
-                    || !branchId.equals(String.valueOf(data.get("branchId")))
-                    || !bookingId.equals(String.valueOf(data.get("bookingId")))
-                    || !therapistRecordId.equals(String.valueOf(data.get("therapistRecordId")))) {
-
-                throw new RuntimeException("Record mismatch");
-            }
-
-            // 🔥 UPDATED CODE START
-            String serviceType =
-                    String.valueOf(data.get("serviceType")).trim();
-
-            List<Map<String, Object>> therapyWithSessions = null;
-
-            // For therapy records, use therapyWithSessions
-            if ("THERAPY".equalsIgnoreCase(serviceType)) {
-                therapyWithSessions =
-                        (List<Map<String, Object>>) data.get("therapyWithSessions");
-            }
-
-            // For exercise records, use exerciseWithSessions
-            else if ("EXERCISE".equalsIgnoreCase(serviceType)) {
-                therapyWithSessions =
-                        (List<Map<String, Object>>) data.get("exerciseWithSessions");
-            }
-
-            // If selected list is null or empty, fallback to therapyWithSessions
-            if (therapyWithSessions == null || therapyWithSessions.isEmpty()) {
-                therapyWithSessions =
-                        (List<Map<String, Object>>) data.get("therapyWithSessions");
-            }
->>>>>>> Stashed changes
 
 		return dto;
 	}
