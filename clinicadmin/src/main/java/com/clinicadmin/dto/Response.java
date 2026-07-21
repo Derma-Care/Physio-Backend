@@ -25,9 +25,13 @@ public class Response {
 	private String hospitalId;
 	private String branchId;
     private String branchName;
+    private String loginType;
+    private boolean mainBranch;
 	private String role;
 	private Map<String, List<String>> permissions;
 	private String fcmToken;
+	
+
 	
 
 }

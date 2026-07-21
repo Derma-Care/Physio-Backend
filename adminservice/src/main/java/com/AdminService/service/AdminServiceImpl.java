@@ -1861,7 +1861,8 @@ public class AdminServiceImpl implements AdminService {
 				response.setSuccess(true);
 				response.setMessage("Clinic login successful");
 				response.setStatus(200);
-
+				 response.setMainBranch(true);
+				response.setLoginType("MAIN_BRANCH");
 				response.setHospitalId(clinicCredentials.getUserName());
 
 				response.setHospitalName(
@@ -1900,6 +1901,8 @@ public class AdminServiceImpl implements AdminService {
 
 					branchCredentialsRepository.save(branchCredentials);
 				}
+				response.setMainBranch(false);
+				response.setLoginType("BRANCH");
 
 				response.setFcmTokens(branchCredentials.getFcmTokens());
 
