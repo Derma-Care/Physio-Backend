@@ -584,21 +584,24 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 if (!referralId.isBlank()
                         && !"null".equalsIgnoreCase(referralId)) {
 
+                    // Referred by registered doctor
                     channel = "Doctor Referral";
 
-                } else if ("Other".equalsIgnoreCase(doctorRefCode)) {
+                } else if (!referredByType.isBlank()
+                        && !"null".equalsIgnoreCase(referredByType)) {
 
-                    channel = "Other Sources";
+                    // Facebook, Instagram, Google, Website, etc.
+                    channel = referredByType.trim();
 
-                } else if (doctorRefCode.isBlank()
-                        && referredByType.isBlank()
-                        && referredByName.isBlank()) {
+                } else if (!referredByName.isBlank()
+                        && !"null".equalsIgnoreCase(referredByName)) {
 
-                    channel = "Others";
+                    // Fallback if source is stored in referredByName
+                    channel = referredByName.trim();
 
                 } else {
 
-                    channel = "Other Sources";
+                    channel = "Others";
                 }
 
 //                String referredByName =
