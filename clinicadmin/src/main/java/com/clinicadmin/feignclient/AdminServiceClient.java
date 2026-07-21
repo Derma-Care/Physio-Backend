@@ -1,4 +1,5 @@
 package com.clinicadmin.feignclient;
+
 import java.util.List;
 import java.util.Map;
 
@@ -14,26 +15,34 @@ import org.springframework.web.bind.annotation.RequestBody;
 import com.clinicadmin.dto.CategoryMediaCarouselDTO;
 import com.clinicadmin.dto.ClinicDTO;
 import com.clinicadmin.dto.ClinicLoginRequestDTO;
+import com.clinicadmin.dto.ClinicStaffUpdatedPassword;
 import com.clinicadmin.dto.ResetPasswordDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
+
+import jakarta.validation.Valid;
+
 @FeignClient(name = "adminservice")
 public interface AdminServiceClient {
 
 	@PostMapping("/admin/login")
-    public Response login(@RequestBody ClinicLoginRequestDTO credentials);
+	public Response login(@RequestBody ClinicLoginRequestDTO credentials);
 
 	// Update clinic credentials
 	@PutMapping("/admin/updateClinicCredentials/{userName}")
 	public Response updateClinicCredentials(@RequestBody UpdateClinicLoginCredentialsDTO updatedCredentials,
 			@PathVariable String userName);
 
+	@PutMapping("/admin/update-password")
+	public ResponseEntity<Response> updateClinicCredentialsWithUserNameAndRole(
+			@RequestBody @Valid ClinicStaffUpdatedPassword credentials);
+
 	// Get Clinic by ID
 	@GetMapping("/admin/getClinicById/{clinicId}")
-	 public ResponseEntity<Response> getClinicById(@PathVariable String clinicId);
-	
-	 @GetMapping("/admin/getAllClinics")
-	    public ResponseEntity<Response> getAllClinics();
+	public ResponseEntity<Response> getClinicById(@PathVariable String clinicId);
+
+	@GetMapping("/admin/getAllClinics")
+	public ResponseEntity<Response> getAllClinics();
 
 	// Update Clinic
 	@PutMapping("/admin/updateClinic/{clinicId}")
@@ -42,54 +51,50 @@ public interface AdminServiceClient {
 	// Delete Clinic
 	@DeleteMapping("/admin/deleteClinic/{clinicId}")
 	public Response deleteClinic(@PathVariable String clinicId);
-	
+
 	@GetMapping("/admin/clinics/recommended")
-	public ResponseEntity<Response>getHospitalUsingRecommendentaion();
-	
+	public ResponseEntity<Response> getHospitalUsingRecommendentaion();
+
 //	sorted recommended clincs first;
 	@GetMapping("/admin/clinics/firstRecommendedTureClincs")
-	public ResponseEntity<Response>firstRecommendedTureClincs();
-	
+	public ResponseEntity<Response> firstRecommendedTureClincs();
+
 	@GetMapping("/admin/getBranchByClinicId/{clinicId}")
-	public  ResponseEntity<?> getBranchByClinicId(@PathVariable String clinicId);
-	
+	public ResponseEntity<?> getBranchByClinicId(@PathVariable String clinicId);
+
 	@GetMapping("/admin/getBranchByClinicAndBranchId/{clinicId}/{branchId}")
 	public ResponseEntity<Response> getBranchByClinicAndBranchId(@PathVariable String clinicId,
-	                                                      @PathVariable String branchId);
+			@PathVariable String branchId);
+
 	@GetMapping("/admin/getBranchById/{branchId}")
 	public ResponseEntity<Response> getBranchById(@PathVariable String branchId);
-	
-	  @GetMapping("/admin/getAllBranches")
-	    public ResponseEntity<Response> getAllBranches();
 
-	 @GetMapping("/admin/getDefaultAdminPermissions")
-	    ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions();
+	@GetMapping("/admin/getAllBranches")
+	public ResponseEntity<Response> getAllBranches();
+
+	@GetMapping("/admin/getDefaultAdminPermissions")
+	ResponseEntity<Map<String, List<String>>> getDefaultAdminPermissions();
 
 //	CategoryMediaCarouselDTO
-	
-    @GetMapping("/admin/categoryAdvertisement/getAll")
-    ResponseEntity<Iterable<CategoryMediaCarouselDTO>> getAllMedia();
 
-    // ================= Forgot Password =================
+	@GetMapping("/admin/categoryAdvertisement/getAll")
+	ResponseEntity<Iterable<CategoryMediaCarouselDTO>> getAllMedia();
 
-    @GetMapping("/admin/forgot-password/{mobileNumber}/{role}")
-    ResponseEntity<Response> forgotPassword(
-            @PathVariable("mobileNumber") String mobileNumber,
-            @PathVariable("role") String role);
+	// ================= Forgot Password =================
 
-    // ================= Verify OTP =================
+	@GetMapping("/admin/forgot-password/{mobileNumber}/{role}")
+	ResponseEntity<Response> forgotPassword(@PathVariable("mobileNumber") String mobileNumber,
+			@PathVariable("role") String role);
 
-    @GetMapping("/admin/verify-otp/{mobileNumber}/{role}/{otp}")
-    ResponseEntity<Response> verifyOtp(
-            @PathVariable("mobileNumber") String mobileNumber,
-            @PathVariable("role") String role,
-            @PathVariable("otp") String otp);
+	// ================= Verify OTP =================
 
-    // ================= Reset Password =================
+	@GetMapping("/admin/verify-otp/{mobileNumber}/{role}/{otp}")
+	ResponseEntity<Response> verifyOtp(@PathVariable("mobileNumber") String mobileNumber,
+			@PathVariable("role") String role, @PathVariable("otp") String otp);
 
-    @PostMapping("/admin/reset-password/{role}/{mobileNumber}")
-    ResponseEntity<Response> resetPassword(
-            @PathVariable("role") String role,
-            @PathVariable("mobileNumber") String mobileNumber,
-            @RequestBody ResetPasswordDTO dto);
+	// ================= Reset Password =================
+
+	@PostMapping("/admin/reset-password/{role}/{mobileNumber}")
+	ResponseEntity<Response> resetPassword(@PathVariable("role") String role,
+			@PathVariable("mobileNumber") String mobileNumber, @RequestBody ResetPasswordDTO dto);
 }

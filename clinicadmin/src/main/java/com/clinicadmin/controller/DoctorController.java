@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
+import com.clinicadmin.dto.ClinicStaffUpdatedPassword;
 import com.clinicadmin.dto.DoctorAndStaffLoginDto;
 import com.clinicadmin.dto.DoctorAvailabilityStatusDTO;
 import com.clinicadmin.dto.DoctorSlotDTO;
@@ -449,7 +450,17 @@ public class DoctorController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 
 	}
+	
+//	--------------------If Resetpasword with roles----------------------------------
+	
+	   @PutMapping("/update-password")
+	    public ResponseEntity<Response> changePasswordWithRole(
+	            @RequestBody @Valid ClinicStaffUpdatedPassword updateDTO) {
 
+	        Response response = doctorService.changePasswordWithRole(updateDTO);
+
+	        return ResponseEntity.status(response.getStatus()).body(response);
+	   }
 //		---------------------------------------------Slots using branchId----------------------------------------------
 	// ------------------ Generate slots dynamically ------------------
 	@GetMapping("/generateDoctorSlots/{doctorId}/{branchId}/{date}/{intervalMinutes}/{openingTime}/{closingTime}")

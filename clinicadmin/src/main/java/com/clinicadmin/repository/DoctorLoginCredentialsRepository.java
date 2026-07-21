@@ -11,6 +11,8 @@ public interface DoctorLoginCredentialsRepository extends MongoRepository<Doctor
 
 	Optional<DoctorAndStaffLoginCredentials> findByUsername(String username);
 
+	Optional<DoctorAndStaffLoginCredentials> findByUsernameAndRole(String username, String role);
+
 	DoctorAndStaffLoginCredentials findByMobilenumberAndRole(String mobilenumber, String role);
 
 	boolean existsByUsername(String username); // fixed

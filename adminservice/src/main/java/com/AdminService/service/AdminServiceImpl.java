@@ -35,6 +35,7 @@ import com.AdminService.dto.ResetPasswordDTO;
 //import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.TreatmentDTO;
 import com.AdminService.dto.UpdateClinicCredentials;
+import com.AdminService.dto.UpdateClinicCredentialsWithUserNameAndRole;
 import com.AdminService.entity.Admin;
 import com.AdminService.entity.Branch;
 import com.AdminService.entity.BranchCounter;
@@ -1630,9 +1631,9 @@ public class AdminServiceImpl implements AdminService {
 				clinicCredentialsDTO.setPassword(clinicCredentials.getPassword());
 
 				clinicCredentialsDTO.setHospitalName(clinicCredentials.getHospitalName());
-				
+
 				clinicCredentialsDTO.setEmail(clinicCredentials.getEmail());
-				
+
 				clinicCredentialsDTO.setMobilenumber(clinicCredentials.getMobilenumber());
 
 				response.setSuccess(true);
@@ -1763,6 +1764,69 @@ public class AdminServiceImpl implements AdminService {
 			return response;
 		}
 
+	}
+
+	@Override
+	public Response updateClinicCredentialsWithUserNameAndRole(UpdateClinicCredentialsWithUserNameAndRole credentials) {
+
+		Response response = new Response();
+
+		try {
+
+			String role = credentials.getRole().trim().toUpperCase();
+
+			// Check Username and Role
+			ClinicCredentials existingCredentials = clinicCredentialsRepository
+					.findByUserNameAndRole(credentials.getUsername(), role);
+
+			if (existingCredentials == null) {
+				response.setSuccess(false);
+				response.setMessage("Invalid Username or Role.");
+				response.setStatus(401);
+				return response;
+			}
+
+			// Validate Current Password
+			if (!existingCredentials.getPassword().equals(credentials.getCurrentPassword())) {
+				response.setSuccess(false);
+				response.setMessage("Incorrect Current Password.");
+				response.setStatus(401);
+				return response;
+			}
+
+			// Validate New Password and Confirm Password
+			if (!credentials.getNewPassword().equals(credentials.getConfirmPassword())) {
+				response.setSuccess(false);
+				response.setMessage("New Password and Confirm Password do not match.");
+				response.setStatus(400);
+				return response;
+			}
+
+			// Optional: Prevent same password
+			if (credentials.getCurrentPassword().equals(credentials.getNewPassword())) {
+				response.setSuccess(false);
+				response.setMessage("New Password cannot be the same as the Current Password.");
+				response.setStatus(400);
+				return response;
+			}
+
+			// Update Password
+			existingCredentials.setPassword(credentials.getNewPassword());
+
+			clinicCredentialsRepository.save(existingCredentials);
+
+			response.setSuccess(true);
+			response.setData(null);
+			response.setMessage("Clinic Credentials Updated Successfully.");
+			response.setStatus(200);
+
+		} catch (Exception e) {
+			response.setSuccess(false);
+			response.setMessage("Error updating clinic credentials: " + e.getMessage());
+			response.setStatus(500);
+		}
+
+		return response;
 	}
 
 	@Override
@@ -2531,7 +2595,7 @@ public class AdminServiceImpl implements AdminService {
 
 			String otp = generateOtp();
 			long expiry = System.currentTimeMillis() + OTP_VALID_MILLIS;
-
+			role = role.trim().toUpperCase();
 			// ---------- Try CLINIC credentials ----------
 			ClinicCredentials clinicCreds = clinicCredentialsRepository.findByMobilenumberAndRole(mobileNumber, role);
 			System.out.println(clinicCreds);
@@ -2598,6 +2662,21 @@ public class AdminServiceImpl implements AdminService {
 	public Response verifyForgotPasswordOtp(String mobileNumber, String otp, String role) {
 
 		Response response = new Response();
+		if (mobileNumber == null || mobileNumber.isBlank()) {
+			response.setSuccess(false);
+			response.setStatus(400);
+			response.setMessage("Mobile number is required");
+			return response;
+		}
+
+		if (role == null || role.isBlank()) {
+			response.setSuccess(false);
+			response.setStatus(400);
+			response.setMessage("Role is required");
+			return response;
+		}
+
+		role = role.trim().toUpperCase();
 
 		try {
 			ClinicCredentials clinicCreds = clinicCredentialsRepository.findByMobilenumberAndRole(mobileNumber, role);
@@ -2637,9 +2716,17 @@ public class AdminServiceImpl implements AdminService {
 				response.setMessage("New password and confirm password do not match");
 				return response;
 			}
+			if (dto.getRole() == null || dto.getRole().isBlank()) {
+				response.setSuccess(false);
+				response.setStatus(400);
+				response.setMessage("Role is required");
+				return response;
+			}
+
+			String role = dto.getRole().trim().toUpperCase();
 
 			ClinicCredentials clinicCreds = clinicCredentialsRepository.findByMobilenumberAndRole(dto.getMobileNumber(),
-					dto.getRole());
+					role);
 
 			if (clinicCreds != null) {
 
@@ -2661,7 +2748,7 @@ public class AdminServiceImpl implements AdminService {
 			}
 
 			BranchCredentials branchCreds = branchCredentialsRepository.findByMobilenumberAndRole(dto.getMobileNumber(),
-					dto.getRole());
+					role);
 
 			if (branchCreds != null) {
 

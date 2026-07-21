@@ -3,7 +3,9 @@ package com.clinicadmin.service;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
+import com.clinicadmin.dto.ClinicStaffUpdatedPassword;
 import com.clinicadmin.dto.DoctorAndStaffLoginDto;
 import com.clinicadmin.dto.DoctorAvailabilityStatusDTO;
 import com.clinicadmin.dto.DoctorSlotDTO;
@@ -45,13 +47,13 @@ public interface DoctorService {
 
 	public Response getDoctorsByClinicIdAndDoctorId(String clinicId, String doctorId);
 
-	public boolean updateSlot(String doctorId, String branchId,String date, String time);
+	public boolean updateSlot(String doctorId, String branchId, String date, String time);
 
 //	public Response getHospitalAndDoctorsUsingSubserviceId(String subServiceId);
 
 //	public Response getAllDoctorsBySubserviceId(String subServiceId);
 
-	public boolean makingFalseDoctorSlot(String doctorId,String branchId, String date, String time);
+	public boolean makingFalseDoctorSlot(String doctorId, String branchId, String date, String time);
 
 	public ResponseEntity<?> notificationToClinic(String hospitalId);
 
@@ -92,7 +94,7 @@ public interface DoctorService {
 
 	Response generateDoctorSlots(String doctorId, String branchId, String date, int intervalMinutes, String openingTime,
 			String closingTime);
-	
+
 	public boolean blockingSlot(TempBlockingSlot tempBlockingSlot);
 
 	Response deleteDoctorSlot(String doctorId, String branchId, String date, String slotToDelete);
@@ -112,7 +114,9 @@ public interface DoctorService {
 //	Response verifyDoctor(String doctorId);
 //
 //	Response rejectDoctor(String doctorId, String reason);
-	
+
 	public String getByTherapistDeviceId(String therapistId);
+
+	Response changePasswordWithRole(ClinicStaffUpdatedPassword updateDTO);
 
 }

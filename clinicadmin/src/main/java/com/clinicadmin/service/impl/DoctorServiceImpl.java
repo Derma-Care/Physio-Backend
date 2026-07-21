@@ -40,6 +40,7 @@ import com.clinicadmin.dto.BookingResponse;
 import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
 import com.clinicadmin.dto.ClinicDTO;
+import com.clinicadmin.dto.ClinicStaffUpdatedPassword;
 import com.clinicadmin.dto.ClinicWithDoctorsDTO;
 import com.clinicadmin.dto.ConsultationTypeDTO;
 import com.clinicadmin.dto.DoctorAndStaffLoginDto;
@@ -50,8 +51,8 @@ import com.clinicadmin.dto.DoctorsDTO;
 import com.clinicadmin.dto.ResBody;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.TempBlockingSlot;
-import com.clinicadmin.entity.DoctorCounter;
 import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
+import com.clinicadmin.entity.DoctorCounter;
 import com.clinicadmin.entity.DoctorSlot;
 import com.clinicadmin.entity.Doctors;
 import com.clinicadmin.feignclient.AdminServiceClient;
@@ -3419,7 +3420,142 @@ public class DoctorServiceImpl implements DoctorService {
 
 		return response;
 	}
-	
+	// ------------------------Update password with username and role---------------------------
+	@Override
+	public Response changePasswordWithRole(ClinicStaffUpdatedPassword updateDTO) {
+
+	    log.info("Change password request received for username={}", updateDTO.getUsername());
+
+	    Response response = new Response();
+
+	    try {
+
+	        // Normalize values
+	        String username = updateDTO.getUsername() != null
+	                ? updateDTO.getUsername().trim()
+	                : null;
+
+	        String role = updateDTO.getRole() != null
+	                ? updateDTO.getRole().trim()
+	                : null;
+
+	        // Validate Username
+	        if (username == null || username.isBlank()) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("Username is required");
+	            return response;
+	        }
+
+	        // Validate Role
+	        if (role == null || role.isBlank()) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("Role is required");
+	            return response;
+	        }
+
+	        // Validate Current Password
+	        if (updateDTO.getCurrentPassword() == null || updateDTO.getCurrentPassword().isBlank()) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("Current password is required");
+	            return response;
+	        }
+
+	        // Validate New Password
+	        if (updateDTO.getNewPassword() == null || updateDTO.getNewPassword().isBlank()) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("New password is required");
+	            return response;
+	        }
+
+	        // Validate Confirm Password
+	        if (updateDTO.getConfirmPassword() == null || updateDTO.getConfirmPassword().isBlank()) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("Confirm password is required");
+	            return response;
+	        }
+
+	        // Validate Password Match
+	        if (!updateDTO.getNewPassword().equals(updateDTO.getConfirmPassword())) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("New password and confirm password do not match");
+	            return response;
+	        }
+
+	        // ================= ADMIN =================
+	        if ("ADMIN".equalsIgnoreCase(role)) {
+
+	            ResponseEntity<Response> adminResponse =
+	                    adminServiceClient.updateClinicCredentialsWithUserNameAndRole(updateDTO);
+
+	            if (adminResponse != null && adminResponse.getBody() != null) {
+	                return adminResponse.getBody();
+	            }
+
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+	            response.setMessage("Failed to get response from Admin Service");
+	            return response;
+	        }
+
+	        // ================= Doctor / Therapist / Receptionist / Nurse / Staff =================
+	        Optional<DoctorAndStaffLoginCredentials> optional =
+	                credentialsRepository.findByUsernameAndRole(username, role);
+
+	        if (optional.isEmpty()) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.NOT_FOUND.value());
+	            response.setMessage("User not found");
+	            return response;
+	        }
+
+	        DoctorAndStaffLoginCredentials credentials = optional.get();
+
+	        // Validate Current Password
+	        if (!passwordEncoder.matches(updateDTO.getCurrentPassword(), credentials.getPassword())) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+	            response.setMessage("Current password is incorrect");
+	            return response;
+	        }
+
+	        // Prevent same password
+	        if (passwordEncoder.matches(updateDTO.getNewPassword(), credentials.getPassword())) {
+	            response.setSuccess(false);
+	            response.setStatus(HttpStatus.BAD_REQUEST.value());
+	            response.setMessage("New password cannot be the same as the current password");
+	            return response;
+	        }
+
+	        // Update Password
+	        credentials.setPassword(passwordEncoder.encode(updateDTO.getNewPassword()));
+
+	        credentialsRepository.save(credentials);
+
+	        response.setSuccess(true);
+	        response.setStatus(HttpStatus.OK.value());
+	        response.setMessage("Password updated successfully");
+	        response.setData(null);
+
+	        return response;
+
+	    } catch (Exception e) {
+
+	        log.error("Error while updating password", e);
+
+	        response.setSuccess(false);
+	        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+	        response.setMessage("Failed to update password: " + e.getMessage());
+	        response.setData(null);
+
+	        return response;
+	    }
+	}
 	
 	@Override
 	public String getByTherapistDeviceId(String therapistId) {

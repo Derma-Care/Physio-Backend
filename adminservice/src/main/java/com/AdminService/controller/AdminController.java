@@ -26,6 +26,7 @@ import com.AdminService.dto.ResetPasswordDTO;
 //import com.AdminService.dto.SubServicesDto;
 //import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
+import com.AdminService.dto.UpdateClinicCredentialsWithUserNameAndRole;
 import com.AdminService.service.AdminService;
 import com.AdminService.util.PermissionsUtil;
 import com.AdminService.util.Response;
@@ -466,6 +467,16 @@ public class AdminController {
 		dto.setRole(role);
 
 		Response response = serviceImpl.resetPasswordWithOtp(dto);
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+
+//	-----------------reset password with username and password-----------------------
+	@PutMapping("/update-password")
+	public ResponseEntity<Response> updateClinicCredentialsWithUserNameAndRole(
+			@RequestBody @Valid UpdateClinicCredentialsWithUserNameAndRole credentials) {
+
+		Response response = serviceImpl.updateClinicCredentialsWithUserNameAndRole(credentials);
+
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 

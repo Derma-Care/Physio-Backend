@@ -12,6 +12,7 @@ import com.AdminService.dto.ResetPasswordDTO;
 //import com.AdminService.dto.SubServicesDto;
 //import com.AdminService.dto.SubServicesInfoDto;
 import com.AdminService.dto.UpdateClinicCredentials;
+import com.AdminService.dto.UpdateClinicCredentialsWithUserNameAndRole;
 import com.AdminService.util.Response;
 
 public interface AdminService {
@@ -91,4 +92,6 @@ public interface AdminService {
 	Response forgotPassword(String mobileNumber, String role);
 
 	Response verifyForgotPasswordOtp(String mobileNumber, String otp, String role);
+
+	Response updateClinicCredentialsWithUserNameAndRole(UpdateClinicCredentialsWithUserNameAndRole credentials);
 }
