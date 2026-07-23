@@ -53,7 +53,14 @@ public class BookingServiceController {
 	@GetMapping("/getTodayBookings/{clincId}/{branchId}")
 	public ResponseEntity<ResponseStructure<List<Map<String,Object>>>> getTodayBookings(@PathVariable String clincId,@PathVariable String branchId) {
 		List<Map<String,Object>> response = service.getTodayBookings(clincId, branchId);
-		if(response != null || !response.isEmpty()) {
+		// ✅ FIX: was `!= null || !isEmpty()` — since service.getTodayBookings()
+		// never returns null (it returns Collections.emptyList() on the empty
+		// path), that OR condition was always true, so this endpoint reported
+		// "Fetched Successfully" even when there were zero bookings and never
+		// reached the "Not Found" branch. Corrected to && so an empty list is
+		// reported correctly, and consistent with every other endpoint in
+		// this controller.
+		if (response != null && !response.isEmpty()) {
 			return new ResponseEntity<>(ResponseStructure.buildResponse(response, "Booked Service Fetched Sucessfully",
 					HttpStatus.OK, HttpStatus.OK.value()), HttpStatus.OK);}
 			else {

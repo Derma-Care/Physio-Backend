@@ -454,14 +454,26 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		return String.valueOf(sixDigitNumber);
 	}
 
+	// ✅ FIX (root cause of "Error fetching today bookings : null"):
+	// Previously this returned Collections.emptyList() for the empty/null
+	// case. Collections.emptyList() is IMMUTABLE. Several callers
+	// (getTodayAllBookings, getBookingByCustomRange, etc.) do
+	// `responses.addAll(...)` on the result of this method after checking
+	// for follow-up bookings. When today's own bookings were empty but
+	// follow-ups existed, that .addAll() call threw
+	// UnsupportedOperationException — and that exception's getMessage() is
+	// null by default, which is exactly why the API returned:
+	//   {"success":false,"message":"Error fetching today bookings : null","status":500}
+	// Returning a plain mutable ArrayList here fixes every call site at once,
+	// with zero behavior change for callers that only read the list.
 	private List<BookingResponse> toResponses(List<Booking> bookings) {
 	    if (bookings == null || bookings.isEmpty()) {
-	        return Collections.emptyList();
+	        return new ArrayList<>();
 	    }
 
 	    List<BookingResponse> responses;
 	    try {
-	        responses = mapper.convertValue(bookings, new TypeReference<List<BookingResponse>>() {});
+	        responses = new ArrayList<>(mapper.convertValue(bookings, new TypeReference<List<BookingResponse>>() {}));
 	    } catch (Exception e) {
 	        log.error("Failed to map bookings to BookingResponse: {}", e.getMessage(), e);
 	        throw new RuntimeException("Failed to convert bookings list", e);
@@ -2459,6 +2471,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 					repository.saveAll(followUpBookings);
 
+					// ✅ Safe now: toResponses() returns a mutable ArrayList
+					// even for the empty-input case, so this addAll() can no
+					// longer throw UnsupportedOperationException.
 					responses.addAll(
 							followUpBookings.stream()
 									.map(this::toResponse)
