@@ -49,7 +49,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Autowired
 	AdminServiceClient adminServiceClient;
-	
+
 	@Autowired
 	private BookingFeign bookingFeign;
 
@@ -58,8 +58,8 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 	@Override
 	public ResponseStructure<ReceptionistRequestDTO> createReceptionist(ReceptionistRequestDTO dto) {
-		log.info("Create Receptionist request | contactNumber={}, branchId={}",
-				dto.getContactNumber(), dto.getBranchId());
+		log.info("Create Receptionist request | contactNumber={}, branchId={}", dto.getContactNumber(),
+				dto.getBranchId());
 
 		if (repository.existsByContactNumber(dto.getContactNumber())) {
 			log.warn("Receptionist already exists with contactNumber={}", dto.getContactNumber());
@@ -91,8 +91,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 
 		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
-				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
-				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
+				.emailId(saved.getEmailId()).mobilenumber(saved.getContactNumber()).branchId(saved.getBranchId())
+				.branchName(saved.getBranchName()).username(username).password(encodedPassword).role(dto.getRole())
+				.permissions(saved.getPermissions()).build();
 		credentialsRepository.save(credentials);
 		log.info("Login credentials created | receptionistId={}", saved.getId());
 
@@ -136,100 +137,111 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 				HttpStatus.OK.value());
 	}
 
-
 	@Override
 	public ResponseStructure<ReceptionistRequestDTO> updateReceptionist(String id, ReceptionistRequestDTO dto) {
 		log.info("Update Receptionist request | receptionistId={}", id);
 
 		Optional<ReceptionistEntity> optional = repository.findById(id);
-	    if (optional.isEmpty()) {
+		if (optional.isEmpty()) {
 			log.warn("Receptionist not found for update | receptionistId={}", id);
 
-	        return ResponseStructure.buildResponse(
-	            null,
-	            "Receptionist not found",
-	            HttpStatus.NOT_FOUND,
-	            HttpStatus.NOT_FOUND.value()
-	        );
-	    }
+			return ResponseStructure.buildResponse(null, "Receptionist not found", HttpStatus.NOT_FOUND,
+					HttpStatus.NOT_FOUND.value());
+		}
 
-	    ReceptionistEntity existing = optional.get();
+		ReceptionistEntity existing = optional.get();
 
-	    // 🔹 Update normal fields
-	    if (dto.getFullName() != null)
-	        existing.setFullName(dto.getFullName());
-	    if (dto.getHospitalName() != null)
-	        existing.setHospitalName(dto.getHospitalName());
-	    if (dto.getRole() != null)
-	        existing.setRole(dto.getRole());
-	    if (dto.getBranchId() != null)
-	        existing.setBranchId(dto.getBranchId());
-	    if (dto.getDateOfBirth() != null)
-	        existing.setDateOfBirth(dto.getDateOfBirth());
-	    if (dto.getContactNumber() != null)
-	        existing.setContactNumber(dto.getContactNumber());
-	    if (dto.getQualification() != null)
-	        existing.setQualification(dto.getQualification());
-	    if (dto.getGovernmentId() != null)
-	        existing.setGovernmentId(dto.getGovernmentId());
-	    if (dto.getDateOfJoining() != null)
-	        existing.setDateOfJoining(dto.getDateOfJoining());
-	    if (dto.getDepartment() != null)
-	        existing.setDepartment(dto.getDepartment());
-	    if (dto.getAddress() != null)
-	        existing.setAddress(dto.getAddress());
-	    if (dto.getEmergencyContact() != null)
-	        existing.setEmergencyContact(dto.getEmergencyContact());
-	    if (dto.getPermissions() != null)
-	        existing.setPermissions(dto.getPermissions());
-	    if (dto.getBankAccountDetails() != null)
-	        existing.setBankAccountDetails(dto.getBankAccountDetails());
-	    if (dto.getEmailId() != null)
-	        existing.setEmailId(dto.getEmailId());
-	    if (dto.getPreviousEmploymentHistory() != null)
-	        existing.setPreviousEmploymentHistory(dto.getPreviousEmploymentHistory());
-	    if (dto.getShiftTimingsOrAvailability() != null)
-	        existing.setShiftTimingsOrAvailability(dto.getShiftTimingsOrAvailability());
+		// 🔹 Update normal fields
+		if (dto.getFullName() != null)
+			existing.setFullName(dto.getFullName());
+		if (dto.getHospitalName() != null)
+			existing.setHospitalName(dto.getHospitalName());
+		if (dto.getRole() != null)
+			existing.setRole(dto.getRole());
+		if (dto.getBranchId() != null)
+			existing.setBranchId(dto.getBranchId());
+		if (dto.getDateOfBirth() != null)
+			existing.setDateOfBirth(dto.getDateOfBirth());
+		if (dto.getContactNumber() != null)
+			existing.setContactNumber(dto.getContactNumber());
+		if (dto.getQualification() != null)
+			existing.setQualification(dto.getQualification());
+		if (dto.getGovernmentId() != null)
+			existing.setGovernmentId(dto.getGovernmentId());
+		if (dto.getDateOfJoining() != null)
+			existing.setDateOfJoining(dto.getDateOfJoining());
+		if (dto.getDepartment() != null)
+			existing.setDepartment(dto.getDepartment());
+		if (dto.getAddress() != null)
+			existing.setAddress(dto.getAddress());
+		if (dto.getEmergencyContact() != null)
+			existing.setEmergencyContact(dto.getEmergencyContact());
+		if (dto.getPermissions() != null)
+			existing.setPermissions(dto.getPermissions());
+		if (dto.getBankAccountDetails() != null)
+			existing.setBankAccountDetails(dto.getBankAccountDetails());
+		if (dto.getEmailId() != null)
+			existing.setEmailId(dto.getEmailId());
+		if (dto.getPreviousEmploymentHistory() != null)
+			existing.setPreviousEmploymentHistory(dto.getPreviousEmploymentHistory());
+		if (dto.getShiftTimingsOrAvailability() != null)
+			existing.setShiftTimingsOrAvailability(dto.getShiftTimingsOrAvailability());
 
-	    // 🔹 Update Base64 fields (PDF/Image)
-	    if (dto.getProfilePicture() != null)
-	        existing.setProfilePicture(encodeIfNotBase64(dto.getProfilePicture()));
-	    if (dto.getGraduationCertificate() != null)
-	        existing.setGraduationCertificate(encodeIfNotBase64(dto.getGraduationCertificate()));
-	    if (dto.getComputerSkillsProof() != null)
-	        existing.setComputerSkillsProof(encodeIfNotBase64(dto.getComputerSkillsProof()));
-	    existing.setUpdatedDate(LocalDate.now().toString());
-	    // 🔹 Save receptionist entity
-	    ReceptionistEntity updated = repository.save(existing);
+		// 🔹 Update Base64 fields (PDF/Image)
+		if (dto.getProfilePicture() != null)
+			existing.setProfilePicture(encodeIfNotBase64(dto.getProfilePicture()));
+		if (dto.getGraduationCertificate() != null)
+			existing.setGraduationCertificate(encodeIfNotBase64(dto.getGraduationCertificate()));
+		if (dto.getComputerSkillsProof() != null)
+			existing.setComputerSkillsProof(encodeIfNotBase64(dto.getComputerSkillsProof()));
+		existing.setUpdatedDate(LocalDate.now().toString());
+		// 🔹 Save receptionist entity
+		ReceptionistEntity updated = repository.save(existing);
 		log.info("Receptionist updated successfully | receptionistId={}", updated.getId());
 
-	    // 🔹 Sync with DoctorLoginCredentials using receptionist.id
-	    Optional<DoctorAndStaffLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getId());
-	    if (credsOpt.isPresent()) {
+		// 🔹 Sync with DoctorLoginCredentials using receptionist.id
+		Optional<DoctorAndStaffLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getId());
+		if (credsOpt.isPresent()) {
+
 			log.info("Syncing login credentials | receptionistId={}", updated.getId());
 
-	        DoctorAndStaffLoginCredentials creds = credsOpt.get();
+			DoctorAndStaffLoginCredentials creds = credsOpt.get();
 
-	        creds.setStaffName(updated.getFullName());
-	        creds.setBranchId(updated.getBranchId());
-	        creds.setBranchName(updated.getBranchName());
-	        creds.setHospitalId(updated.getClinicId());
-	        creds.setHospitalName(updated.getHospitalName());
-	        creds.setRole(updated.getRole());
-	        creds.setPermissions(updated.getPermissions()); // ✅ sync new permissions
-	        creds.setUsername(updated.getContactNumber()); // optional
-	        credentialsRepository.save(creds);
-	    }
+			if (updated.getFullName() != null)
+				creds.setStaffName(updated.getFullName());
 
-	    return ResponseStructure.buildResponse(
-	        ReceptionistMapper.toDTO(updated),
-	        "Receptionist updated successfully",
-	        HttpStatus.OK,
-	        HttpStatus.OK.value()
-	    );
+			if (updated.getBranchId() != null)
+				creds.setBranchId(updated.getBranchId());
+
+			if (updated.getBranchName() != null)
+				creds.setBranchName(updated.getBranchName());
+
+			if (updated.getClinicId() != null)
+				creds.setHospitalId(updated.getClinicId());
+
+			if (updated.getHospitalName() != null)
+				creds.setHospitalName(updated.getHospitalName());
+
+			if (updated.getRole() != null)
+				creds.setRole(updated.getRole());
+
+			if (updated.getPermissions() != null)
+				creds.setPermissions(updated.getPermissions());
+
+			if (updated.getContactNumber() != null)
+				creds.setMobilenumber(updated.getContactNumber());
+
+			if (updated.getEmailId() != null)
+				creds.setEmailId(updated.getEmailId());
+
+			credentialsRepository.save(creds);
+
+			log.info("Login credentials synced successfully | receptionistId={}", updated.getId());
+		}
+
+		return ResponseStructure.buildResponse(ReceptionistMapper.toDTO(updated), "Receptionist updated successfully",
+				HttpStatus.OK, HttpStatus.OK.value());
 	}
-
-
 
 	/**
 	 * Utility method to encode string to Base64 only if not already encoded.
@@ -248,49 +260,36 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 		log.info("Delete Receptionist request | receptionistId={}", id);
 
 		try {
-	        Optional<ReceptionistEntity> optional = repository.findById(id);
-	        if (optional.isEmpty()) {
+			Optional<ReceptionistEntity> optional = repository.findById(id);
+			if (optional.isEmpty()) {
 				log.warn("Receptionist not found for delete | receptionistId={}", id);
 
-	            return ResponseStructure.buildResponse(
-	                null,
-	                "Receptionist not found",
-	                HttpStatus.NOT_FOUND,
-	                HttpStatus.NOT_FOUND.value()
-	            );
-	        }
+				return ResponseStructure.buildResponse(null, "Receptionist not found", HttpStatus.NOT_FOUND,
+						HttpStatus.NOT_FOUND.value());
+			}
 
-	        // ✅ Delete receptionist record
-	        repository.deleteById(id);
+			// ✅ Delete receptionist record
+			repository.deleteById(id);
 			log.info("Receptionist deleted | receptionistId={}", id);
 
-	        // ✅ Delete corresponding login credentials (if any)
-	        Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
-	        if (credentials.isPresent()) {
-	            credentialsRepository.deleteById(credentials.get().getId());
+			// ✅ Delete corresponding login credentials (if any)
+			Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+			if (credentials.isPresent()) {
+				credentialsRepository.deleteById(credentials.get().getId());
 				log.info("Login credentials deleted | receptionistId={}", id);
 
-	        }
+			}
 
-	        return ResponseStructure.buildResponse(
-	            id,
-	            "Receptionist and credentials deleted successfully",
-	            HttpStatus.OK,
-	            HttpStatus.OK.value()
-	        );
+			return ResponseStructure.buildResponse(id, "Receptionist and credentials deleted successfully",
+					HttpStatus.OK, HttpStatus.OK.value());
 
-	    } catch (Exception e) {
+		} catch (Exception e) {
 			log.error("Error deleting receptionist | receptionistId={}", id, e);
 
-	        return ResponseStructure.buildResponse(
-	            null,
-	            "Error deleting receptionist: " + e.getMessage(),
-	            HttpStatus.INTERNAL_SERVER_ERROR,
-	            HttpStatus.INTERNAL_SERVER_ERROR.value()
-	        );
-	    }
+			return ResponseStructure.buildResponse(null, "Error deleting receptionist: " + e.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
 	}
-
 
 //    @Override
 //    public OnBoardResponse login(String userName, String password) {
@@ -383,162 +382,142 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	@Override
 	public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndId(String clinicId,
 			String receptionistId) {
-		log.info("Fetching Receptionist | clinicId={}, receptionistId={}",
-				clinicId, receptionistId);
-		
+		log.info("Fetching Receptionist | clinicId={}, receptionistId={}", clinicId, receptionistId);
+
 		ReceptionistEntity entity = repository.findByClinicIdAndId(clinicId, receptionistId)
 				.orElseThrow(() -> new RuntimeException("Receptionist not found with clinicId: " + clinicId
 						+ " and receptionistId: " + receptionistId));
 
-	    log.debug("Receptionist entity fetched successfully | receptionistId={}",
-	            receptionistId);
-	    
+		log.debug("Receptionist entity fetched successfully | receptionistId={}", receptionistId);
+
 		ReceptionistRequestDTO dto = ReceptionistMapper.toDTO(entity);
 
-		  log.info("Receptionist fetched successfully | clinicId={}, receptionistId={}",
-		            clinicId, receptionistId);
-		  
+		log.info("Receptionist fetched successfully | clinicId={}, receptionistId={}", clinicId, receptionistId);
+
 		return ResponseStructure.<ReceptionistRequestDTO>builder().statusCode(200)
 				.message("Receptionist data fetched successfully").data(dto).build();
 	}
+
 	@Override
-	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranch(String clinicId, String branchId) {
+	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranch(String clinicId,
+			String branchId) {
 		log.info("Fetching Receptionists | clinicId={}, branchId={}", clinicId, branchId);
 
 		// Fetch receptionist entities from repository by clinicId and branchId
-	    List<ReceptionistEntity> entities = repository.findByClinicIdAndBranchId(clinicId, branchId);
+		List<ReceptionistEntity> entities = repository.findByClinicIdAndBranchId(clinicId, branchId);
 
-	    // Map entities to DTOs
-	    List<ReceptionistRequestDTO> dtos = entities.stream()
-	            .map(ReceptionistMapper::toDTO)
-	            .collect(Collectors.toList());
-	    log.info("Receptionists fetched | clinicId={}, branchId={}, count={}",
-				clinicId, branchId, dtos.size());
-	    
-	    // Build response
-	    String message = dtos.isEmpty() 
-	            ? "No receptionists found for clinic " + clinicId + " and branch " + branchId 
-	            : "Receptionists retrieved successfully";
+		// Map entities to DTOs
+		List<ReceptionistRequestDTO> dtos = entities.stream().map(ReceptionistMapper::toDTO)
+				.collect(Collectors.toList());
+		log.info("Receptionists fetched | clinicId={}, branchId={}, count={}", clinicId, branchId, dtos.size());
 
-	    return ResponseStructure.buildResponse(dtos, message, HttpStatus.OK, HttpStatus.OK.value());
+		// Build response
+		String message = dtos.isEmpty() ? "No receptionists found for clinic " + clinicId + " and branch " + branchId
+				: "Receptionists retrieved successfully";
+
+		return ResponseStructure.buildResponse(dtos, message, HttpStatus.OK, HttpStatus.OK.value());
 	}
-	
 
 	@Override
-	public ResponseEntity<Response> getReceptionistDashboard(
-	        String clinicId,
-	        String branchId,
-	        String role) {
+	public ResponseEntity<Response> getReceptionistDashboard(String clinicId, String branchId, String role) {
 
-	    // Fetch receptionist
-	    ReceptionistEntity receptionist = repository
-	            .findByClinicIdAndBranchIdAndRoleIgnoreCase(
-	                    clinicId,
-	                    branchId,
-	                    role)
-	            .orElseThrow(() ->
-	                    new RuntimeException("Receptionist not found"));
+		// Fetch receptionist
+		ReceptionistEntity receptionist = repository
+				.findByClinicIdAndBranchIdAndRoleIgnoreCase(clinicId, branchId, role)
+				.orElseThrow(() -> new RuntimeException("Receptionist not found"));
 
-	    ResponseEntity<ResponseStructure<List<Map<String, Object>>>> response =
-	            bookingFeign.getTodayBookings(clinicId, branchId);
+		ResponseEntity<ResponseStructure<List<Map<String, Object>>>> response = bookingFeign.getTodayBookings(clinicId,
+				branchId);
 
-	    List<Map<String, Object>> bookings = response.getBody().getData();
+		List<Map<String, Object>> bookings = response.getBody().getData();
 
-	    long pending = 0;
-	    long confirmed = 0;
-	    long followupNeeded = 0;
-	    long followupDue = 0;
-	    long dueForInvestigation = 0;
-	    long investigationDone = 0;
+		long pending = 0;
+		long confirmed = 0;
+		long followupNeeded = 0;
+		long followupDue = 0;
+		long dueForInvestigation = 0;
+		long investigationDone = 0;
 
-	    if (bookings != null) {
+		if (bookings != null) {
 
-	        for (Map<String, Object> booking : bookings) {
+			for (Map<String, Object> booking : bookings) {
 
-	            String bookingStatus = booking.get("status") != null
-	                    ? booking.get("status").toString().trim()
-	                    : "";
+				String bookingStatus = booking.get("status") != null ? booking.get("status").toString().trim() : "";
 
-	            String followupStatus = booking.get("followupStatus") != null
-	                    ? booking.get("followupStatus").toString().trim()
-	                    : "";
+				String followupStatus = booking.get("followupStatus") != null
+						? booking.get("followupStatus").toString().trim()
+						: "";
 
-	            if ("pending".equalsIgnoreCase(bookingStatus))
-	                pending++;
+				if ("pending".equalsIgnoreCase(bookingStatus))
+					pending++;
 
-	            if ("confirmed".equalsIgnoreCase(bookingStatus))
-	                confirmed++;
+				if ("confirmed".equalsIgnoreCase(bookingStatus))
+					confirmed++;
 
-	            if ("Follow-up Needed".equalsIgnoreCase(followupStatus))
-	                followupNeeded++;
+				if ("Follow-up Needed".equalsIgnoreCase(followupStatus))
+					followupNeeded++;
 
-	            if ("Follow-up".equalsIgnoreCase(bookingStatus))
-	                followupDue++;
+				if ("Follow-up".equalsIgnoreCase(bookingStatus))
+					followupDue++;
 
-	            if ("Due for Investigation".equalsIgnoreCase(bookingStatus))
-	                dueForInvestigation++;
+				if ("Due for Investigation".equalsIgnoreCase(bookingStatus))
+					dueForInvestigation++;
 
-	            if ("Investigation Done".equalsIgnoreCase(bookingStatus))
-	                investigationDone++;
-	        }
-	    }
+				if ("Investigation Done".equalsIgnoreCase(bookingStatus))
+					investigationDone++;
+			}
+		}
 
-	    Map<String, Object> dashboard = new LinkedHashMap<>();
+		Map<String, Object> dashboard = new LinkedHashMap<>();
 
-	    dashboard.put("clinicId", clinicId);
-	    dashboard.put("branchId", branchId);
-	    dashboard.put("role", role);
+		dashboard.put("clinicId", clinicId);
+		dashboard.put("branchId", branchId);
+		dashboard.put("role", role);
 
-	    // This comes from Receptionist entity
-	    dashboard.put("status", receptionist.getDashboardStatus());
+		// This comes from Receptionist entity
+		dashboard.put("status", receptionist.getDashboardStatus());
 
-	    dashboard.put("pending", pending);
-	    dashboard.put("confirmed", confirmed);
-	    dashboard.put("followupNeeded", followupNeeded);
-	    dashboard.put("followupDue", followupDue);
-	    dashboard.put("dueForInvestigation", dueForInvestigation);
-	    dashboard.put("investigationDone", investigationDone);
+		dashboard.put("pending", pending);
+		dashboard.put("confirmed", confirmed);
+		dashboard.put("followupNeeded", followupNeeded);
+		dashboard.put("followupDue", followupDue);
+		dashboard.put("dueForInvestigation", dueForInvestigation);
+		dashboard.put("investigationDone", investigationDone);
 
-	    Response res = new Response();
-	    res.setSuccess(true);
-	    res.setData(dashboard);
-	    res.setMessage("Dashboard data fetched successfully");
-	    res.setStatus(HttpStatus.OK.value());
+		Response res = new Response();
+		res.setSuccess(true);
+		res.setData(dashboard);
+		res.setMessage("Dashboard data fetched successfully");
+		res.setStatus(HttpStatus.OK.value());
 
-	    return ResponseEntity.ok(res);
+		return ResponseEntity.ok(res);
 	}
+
 	@Override
-	public Response updateReceptionistDashboard(
-	        String clinicId,
-	        String branchId,
-	        String role,
-	        DashboardRequest request) {
+	public Response updateReceptionistDashboard(String clinicId, String branchId, String role,
+			DashboardRequest request) {
 
-	    ReceptionistEntity receptionist =
-	            repository.findByClinicIdAndBranchIdAndRoleIgnoreCase(
-	                    clinicId,
-	                    branchId,
-	                    role)
-	            .orElseThrow(() ->
-	                    new RuntimeException("Receptionist not found"));
+		ReceptionistEntity receptionist = repository
+				.findByClinicIdAndBranchIdAndRoleIgnoreCase(clinicId, branchId, role)
+				.orElseThrow(() -> new RuntimeException("Receptionist not found"));
 
-	    receptionist.setDashboardStatus(request.getStatus());
+		receptionist.setDashboardStatus(request.getStatus());
 
-	    repository.save(receptionist);
+		repository.save(receptionist);
 
-	    Map<String, Object> dashboard = new LinkedHashMap<>();
+		Map<String, Object> dashboard = new LinkedHashMap<>();
 
-	    dashboard.put("clinicId", clinicId);
-	    dashboard.put("branchId", branchId);
-	    dashboard.put("role", role);
-	    dashboard.put("status", receptionist.getDashboardStatus());
+		dashboard.put("clinicId", clinicId);
+		dashboard.put("branchId", branchId);
+		dashboard.put("role", role);
+		dashboard.put("status", receptionist.getDashboardStatus());
 
-	    Response res = new Response();
-	    res.setSuccess(true);
-	    res.setData(dashboard);
-	    res.setMessage("Dashboard updated successfully");
-	    res.setStatus(HttpStatus.OK.value());
+		Response res = new Response();
+		res.setSuccess(true);
+		res.setData(dashboard);
+		res.setMessage("Dashboard updated successfully");
+		res.setStatus(HttpStatus.OK.value());
 
-	    return res;
+		return res;
 	}
 }

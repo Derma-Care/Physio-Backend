@@ -100,6 +100,8 @@ public class NurseServiceImpl implements NurseService {
                 .branchName(savedNurse.getBranchName())
                 .username(username)
                 .password(encodedPassword)
+                .emailId(savedNurse.getEmailId())
+                .mobilenumber(savedNurse.getNurseContactNumber())
                 .role(dto.getRole())
                 .permissions(savedNurse.getPermissions())
                 .build();
@@ -343,7 +345,35 @@ public class NurseServiceImpl implements NurseService {
 
             if (credsOpt.isPresent()) {
                 log.info("Updating login credentials for nurseId: {}", updated.getNurseId());
-                credentialsRepository.save(credsOpt.get());
+                DoctorAndStaffLoginCredentials creds = credsOpt.get();
+                if (updated.getFullName() != null)
+                    creds.setStaffName(updated.getFullName());
+
+                if (updated.getBranchId() != null)
+                    creds.setBranchId(updated.getBranchId());
+
+                if (updated.getBranchName() != null)
+                    creds.setBranchName(updated.getBranchName());
+
+                if (updated.getHospitalId() != null)
+                    creds.setHospitalId(updated.getHospitalId());
+
+                if (updated.getHospitalName() != null)
+                    creds.setHospitalName(updated.getHospitalName());
+
+                if (updated.getRole() != null)
+                    creds.setRole(updated.getRole());
+
+                if (updated.getPermissions() != null)
+                    creds.setPermissions(updated.getPermissions());
+
+                if (updated.getNurseContactNumber() != null)
+                    creds.setMobilenumber(updated.getNurseContactNumber());
+
+                if (updated.getEmailId() != null)
+                    creds.setEmailId(updated.getEmailId());
+                credentialsRepository.save(creds);
+                
             } else {
                 log.warn("No login credentials found for nurseId: {}", updated.getNurseId());
             }

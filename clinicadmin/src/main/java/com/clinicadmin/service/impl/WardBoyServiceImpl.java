@@ -55,8 +55,8 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 	@Override
 	public ResponseStructure<WardBoyDTO> addWardBoy(WardBoyDTO dto) {
-		log.info("Add WardBoy started | clinicId={}, branchId={}, contact={}",
-				dto.getClinicId(), dto.getBranchId(), dto.getContactNumber());
+		log.info("Add WardBoy started | clinicId={}, branchId={}, contact={}", dto.getClinicId(), dto.getBranchId(),
+				dto.getContactNumber());
 
 		if (wardBoyRepository.findByContactNumber(dto.getContactNumber()).isPresent()) {
 			log.warn("WardBoy already exists | contactNumber={}", dto.getContactNumber());
@@ -79,17 +79,18 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 		WardBoy saved = wardBoyRepository.save(wardBoy);
 		log.info("WardBoy saved successfully | wardBoyId={}", saved.getWardBoyId());
-		
+
 		String username = dto.getContactNumber();
 		String rawPassword = generateStructuredPassword();
 		String encodedPassword = passwordEncoder.encode(rawPassword);
 
 		log.debug("Credentials generated | username={}", username);
-		
-		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getWardBoyId())
-				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
-				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
-				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
+
+		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder()
+				.staffId(saved.getWardBoyId()).staffName(saved.getFullName()).hospitalId(saved.getClinicId())
+				.hospitalName(saved.getHospitalName()).branchId(saved.getBranchId()).branchName(saved.getBranchName())
+				.username(username).password(encodedPassword).role(saved.getRole()).permissions(saved.getPermissions())
+				.mobilenumber(saved.getContactNumber()).emailId(saved.getEmailId()).build();
 		credentialsRepository.save(credentials);
 
 		log.info("Login credentials created | wardBoyId={}", saved.getWardBoyId());
@@ -109,11 +110,10 @@ public class WardBoyServiceImpl implements WardBoyService {
 	public ResponseStructure<WardBoyDTO> getWardBoyById(String id) {
 		log.info("Fetching WardBoy by ID | id={}", id);
 
-		WardBoy wardBoy = wardBoyRepository.findById(id)
-				.orElseThrow(() ->{
-					log.warn("WardBoy not found | id={}", id);
-				return new RuntimeException("WardBoy not found with ID: " + id);
-				});
+		WardBoy wardBoy = wardBoyRepository.findById(id).orElseThrow(() -> {
+			log.warn("WardBoy not found | id={}", id);
+			return new RuntimeException("WardBoy not found with ID: " + id);
+		});
 		WardBoyDTO dto = WardBoyMapper.toDTO(wardBoy);
 		log.info("WardBoy fetched successfully | id={}", id);
 
@@ -137,15 +137,13 @@ public class WardBoyServiceImpl implements WardBoyService {
 	public ResponseStructure<WardBoyDTO> updateWardBoy(String id, WardBoyDTO dto) {
 		log.info("Updating WardBoy | id={}", id);
 
-		WardBoy existing = wardBoyRepository.findById(id)
-				.orElseThrow(() -> {
-					log.warn("WardBoy not found for update | id={}", id);
-					return new RuntimeException("WardBoy not found with ID: " + id);
-				});
+		WardBoy existing = wardBoyRepository.findById(id).orElseThrow(() -> {
+			log.warn("WardBoy not found for update | id={}", id);
+			return new RuntimeException("WardBoy not found with ID: " + id);
+		});
 		log.debug("WardBoy fetched successfully for update | id={}", id);
 		if (dto.getContactNumber() != null && !existing.getContactNumber().equals(dto.getContactNumber())) {
-			log.debug("Updating contact number | old={}, new={}",
-					existing.getContactNumber(), dto.getContactNumber());
+			log.debug("Updating contact number | old={}, new={}", existing.getContactNumber(), dto.getContactNumber());
 			if (wardBoyRepository.findByContactNumber(dto.getContactNumber()).isPresent()) {
 				log.warn("Duplicate contact number detected | contact={}", dto.getContactNumber());
 
@@ -253,8 +251,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 //		
 		if (dto.getPoliceVerificationCertificate() != null) {
 			log.debug("Updating policeVerificationCertificate");
-			existing.setPoliceVerificationCertificate(
-					WardBoyMapper.toEntity(dto).getPoliceVerificationCertificate());
+			existing.setPoliceVerificationCertificate(WardBoyMapper.toEntity(dto).getPoliceVerificationCertificate());
 		}
 		if (dto.getProfilePicture() != null) {
 			log.debug("Updating profilePicture");
@@ -262,7 +259,47 @@ public class WardBoyServiceImpl implements WardBoyService {
 		}
 		log.info("Saving updated WardBoy | id={}", id);
 		WardBoy saved = wardBoyRepository.save(existing);
-		
+		Optional<DoctorAndStaffLoginCredentials> credsOpt = credentialsRepository.findByStaffId(saved.getWardBoyId());
+
+		if (credsOpt.isPresent()) {
+
+			log.info("Syncing login credentials | wardBoyId={}", saved.getWardBoyId());
+
+			DoctorAndStaffLoginCredentials creds = credsOpt.get();
+
+			if (saved.getFullName() != null)
+				creds.setStaffName(saved.getFullName());
+
+			if (saved.getClinicId() != null)
+				creds.setHospitalId(saved.getClinicId());
+
+			if (saved.getHospitalName() != null)
+				creds.setHospitalName(saved.getHospitalName());
+
+			if (saved.getBranchId() != null)
+				creds.setBranchId(saved.getBranchId());
+
+			if (saved.getBranchName() != null)
+				creds.setBranchName(saved.getBranchName());
+
+			if (saved.getRole() != null)
+				creds.setRole(saved.getRole());
+
+			if (saved.getPermissions() != null)
+				creds.setPermissions(saved.getPermissions());
+
+			if (saved.getContactNumber() != null) {
+				creds.setMobilenumber(saved.getContactNumber());
+				creds.setUsername(saved.getContactNumber()); // Username is mobile number
+			}
+
+			if (saved.getEmailId() != null)
+				creds.setEmailId(saved.getEmailId());
+
+			credentialsRepository.save(creds);
+
+			log.info("Login credentials synced successfully | wardBoyId={}", saved.getWardBoyId());
+		}
 		log.info("WardBoy updated successfully | id={}", id);
 		WardBoyDTO responseDto = WardBoyMapper.toDTO(saved);
 
@@ -274,54 +311,41 @@ public class WardBoyServiceImpl implements WardBoyService {
 	public ResponseStructure<Void> deleteWardBoy(String id) {
 		log.info("Delete WardBoy request received | id={}", id);
 
-	    try {
-	        // ✅ Step 1: Check if WardBoy exists
-	        if (!wardBoyRepository.existsById(id)) {
+		try {
+			// ✅ Step 1: Check if WardBoy exists
+			if (!wardBoyRepository.existsById(id)) {
 				log.warn("WardBoy not found for deletion | id={}", id);
 
-	            return ResponseStructure.buildResponse(
-	                null,
-	                "WardBoy not found with ID: " + id,
-	                HttpStatus.NOT_FOUND,
-	                HttpStatus.NOT_FOUND.value()
-	            );
-	        }
-	        log.info("WardBoy exists, proceeding with deletion | id={}", id);
-	        // ✅ Step 2: Delete WardBoy record
-	        wardBoyRepository.deleteById(id);
-	        log.info("WardBoy deleted successfully | id={}", id);
-	        // ✅ Step 3: Delete corresponding login credentials (if exist)
-	        Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
-	        if (credentials.isPresent()) {
-	        	log.debug("Deleting WardBoy login credentials | id={}", id);
-	            credentialsRepository.deleteById(credentials.get().getId());
-	            log.info("WardBoy login credentials deleted | id={}", id);
-	        }else {
+				return ResponseStructure.buildResponse(null, "WardBoy not found with ID: " + id, HttpStatus.NOT_FOUND,
+						HttpStatus.NOT_FOUND.value());
+			}
+			log.info("WardBoy exists, proceeding with deletion | id={}", id);
+			// ✅ Step 2: Delete WardBoy record
+			wardBoyRepository.deleteById(id);
+			log.info("WardBoy deleted successfully | id={}", id);
+			// ✅ Step 3: Delete corresponding login credentials (if exist)
+			Optional<DoctorAndStaffLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+			if (credentials.isPresent()) {
+				log.debug("Deleting WardBoy login credentials | id={}", id);
+				credentialsRepository.deleteById(credentials.get().getId());
+				log.info("WardBoy login credentials deleted | id={}", id);
+			} else {
 				log.debug("No login credentials found for WardBoy | id={}", id);
 			}
 
 			log.info("Delete WardBoy completed successfully | id={}", id);
 
-	        // ✅ Step 4: Return success response
-	        return ResponseStructure.buildResponse(
-	            null,
-	            "WardBoy and credentials deleted successfully",
-	            HttpStatus.OK,
-	            HttpStatus.OK.value()
-	        );
+			// ✅ Step 4: Return success response
+			return ResponseStructure.buildResponse(null, "WardBoy and credentials deleted successfully", HttpStatus.OK,
+					HttpStatus.OK.value());
 
-	    } catch (Exception e) {
+		} catch (Exception e) {
 			log.error("Error occurred while deleting WardBoy | id={}", id, e);
 
-	        return ResponseStructure.buildResponse(
-	            null,
-	            "Error deleting WardBoy: " + e.getMessage(),
-	            HttpStatus.INTERNAL_SERVER_ERROR,
-	            HttpStatus.INTERNAL_SERVER_ERROR.value()
-	        );
-	    }
+			return ResponseStructure.buildResponse(null, "Error deleting WardBoy: " + e.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
 	}
-
 
 	@Override
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicId(String clinicId) {
@@ -329,8 +353,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 		List<WardBoyDTO> wardBoys = wardBoyRepository.findAllByClinicId(clinicId).stream().map(WardBoyMapper::toDTO)
 				.collect(Collectors.toList());
-		log.info("WardBoys fetched successfully | clinicId={}, count={}",
-				clinicId, wardBoys.size());
+		log.info("WardBoys fetched successfully | clinicId={}, count={}", clinicId, wardBoys.size());
 		return ResponseStructure.buildResponse(wardBoys, "WardBoys fetched successfully for clinicId: " + clinicId,
 				HttpStatus.OK, HttpStatus.OK.value());
 	}
@@ -339,17 +362,14 @@ public class WardBoyServiceImpl implements WardBoyService {
 	public ResponseStructure<WardBoyDTO> getWardBoyByIdAndClinicId(String wardBoyId, String clinicId) {
 		log.info("Fetching WardBoy | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
 
-		WardBoy wardBoy = wardBoyRepository
-				.findByWardBoyIdAndClinicId(wardBoyId, clinicId)
-				.orElseThrow(() -> {
-					log.warn("WardBoy not found | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
-					return new RuntimeException(
-							"WardBoy not found with ID: " + wardBoyId + " for clinicId: " + clinicId);
-				});
+		WardBoy wardBoy = wardBoyRepository.findByWardBoyIdAndClinicId(wardBoyId, clinicId).orElseThrow(() -> {
+			log.warn("WardBoy not found | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
+			return new RuntimeException("WardBoy not found with ID: " + wardBoyId + " for clinicId: " + clinicId);
+		});
 		log.debug("WardBoy entity fetched successfully | wardBoyId={}", wardBoyId);
 
 		WardBoyDTO dto = WardBoyMapper.toDTO(wardBoy);
-		
+
 		log.info("WardBoy fetched successfully | wardBoyId={}, clinicId={}", wardBoyId, clinicId);
 
 		return ResponseStructure.buildResponse(dto, "WardBoy fetched successfully", HttpStatus.OK,
@@ -367,43 +387,34 @@ public class WardBoyServiceImpl implements WardBoyService {
 		return sb.toString();
 	}
 
-	
 	@Override
 	public ResponseStructure<List<WardBoyDTO>> getWardBoysByClinicIdAndBranchId(String clinicId, String branchId) {
 		log.info("Fetching WardBoys | clinicId={}, branchId={}", clinicId, branchId);
 
 		// Fetch all ward boys for the given clinicId and branchId
-		List<WardBoy>  wordboy=wardBoyRepository
-        .findByClinicIdAndBranchId(clinicId, branchId);
-		log.debug("WardBoy entities fetched from DB | clinicId={}, branchId={}, count={}",
-				clinicId, branchId, wordboy.size());
-	    List<WardBoyDTO> wardBoys =wordboy  // Repository method
-	            .stream()
-	            .map(WardBoyMapper::toDTO) // Convert Entity → DTO
-	            .collect(Collectors.toList());
-		
-	    log.debug("WardBoy entities converted to DTOs | count={}", wardBoys.size());
+		List<WardBoy> wordboy = wardBoyRepository.findByClinicIdAndBranchId(clinicId, branchId);
+		log.debug("WardBoy entities fetched from DB | clinicId={}, branchId={}, count={}", clinicId, branchId,
+				wordboy.size());
+		List<WardBoyDTO> wardBoys = wordboy // Repository method
+				.stream().map(WardBoyMapper::toDTO) // Convert Entity → DTO
+				.collect(Collectors.toList());
 
-	    // Return response
-	    if (wardBoys.isEmpty()) {
+		log.debug("WardBoy entities converted to DTOs | count={}", wardBoys.size());
+
+		// Return response
+		if (wardBoys.isEmpty()) {
 			log.info("No WardBoys found | clinicId={}, branchId={}", clinicId, branchId);
 
-	        return ResponseStructure.buildResponse(
-	                null,
-	                "No WardBoys found for clinicId: " + clinicId + " and branchId: " + branchId,
-	                HttpStatus.OK,
-	                HttpStatus.OK.value()
-	        );
-	    }
-		log.info("WardBoys fetched successfully | clinicId={}, branchId={}, count={}",
-				clinicId, branchId, wardBoys.size());
-		
-	    return ResponseStructure.buildResponse(
-	            wardBoys,
-	            "WardBoys fetched successfully for clinicId: " + clinicId + " and branchId: " + branchId,
-	            HttpStatus.OK,
-	            HttpStatus.OK.value()
-	    );
+			return ResponseStructure.buildResponse(null,
+					"No WardBoys found for clinicId: " + clinicId + " and branchId: " + branchId, HttpStatus.OK,
+					HttpStatus.OK.value());
+		}
+		log.info("WardBoys fetched successfully | clinicId={}, branchId={}, count={}", clinicId, branchId,
+				wardBoys.size());
+
+		return ResponseStructure.buildResponse(wardBoys,
+				"WardBoys fetched successfully for clinicId: " + clinicId + " and branchId: " + branchId, HttpStatus.OK,
+				HttpStatus.OK.value());
 	}
 
 }

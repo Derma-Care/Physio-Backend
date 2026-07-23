@@ -106,10 +106,10 @@ public class DoctorServiceImpl implements DoctorService {
 
 	@Autowired
 	private BookingFeign bookingFeign;
-	
+
 	@Autowired
 	private EmailService emailService;
-	
+
 	@Autowired
 	private S3Service s3Service;
 
@@ -249,38 +249,36 @@ public class DoctorServiceImpl implements DoctorService {
 			String rawPassword = generateStructuredPassword();
 			String encodedPassword = passwordEncoder.encode(rawPassword);
 
-			DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(savedDoctor.getDoctorId())
-					.staffName(savedDoctor.getDoctorName()).hospitalId(savedDoctor.getHospitalId()).mobilenumber(savedDoctor.getDoctorMobileNumber())
+			DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder()
+					.staffId(savedDoctor.getDoctorId()).staffName(savedDoctor.getDoctorName())
+					.hospitalId(savedDoctor.getHospitalId()).mobilenumber(savedDoctor.getDoctorMobileNumber())
 					.hospitalName(savedDoctor.getHospitalName()).branchId(savedDoctor.getBranchId()).username(username)
-					.password(encodedPassword).role(dto.getRole()).emailId(savedDoctor.getDoctorEmail()).permissions(savedDoctor.getPermissions()).build();
+					.password(encodedPassword).role(dto.getRole()).emailId(savedDoctor.getDoctorEmail())
+					.permissions(savedDoctor.getPermissions()).build();
 
 			credentialsRepository.save(credentials);
 			log.info("Logib credentials created successfully for doctorId={}", savedDoctor.getDoctorId());
-	
+
 			// -------------------- Send Email to Doctor --------------------
 			try {
-			    Map<String, String> mailData = new HashMap<>();
-			    mailData.put("subject", "Doctor Onboarding Successful");
-			    mailData.put("message",
-			            "Welcome to CCMS Kinetix!\n\n" +
-			            "Your account has been created successfully.\n" +
-			            "Please use the below credentials to login.\n\n" +
-			            "Doctor ID: " + savedDoctor.getDoctorId()
-			    );
+				Map<String, String> mailData = new HashMap<>();
+				mailData.put("subject", "Doctor Onboarding Successful");
+				mailData.put("message", "Welcome to CCMS Kinetix!\n\n" + "Your account has been created successfully.\n"
+						+ "Please use the below credentials to login.\n\n" + "Doctor ID: " + savedDoctor.getDoctorId());
 
-			    mailData.put("username", username);
-			    mailData.put("password", rawPassword);
-			    mailData.put("role", dto.getRole());   // ✅ ADD THIS
+				mailData.put("username", username);
+				mailData.put("password", rawPassword);
+				mailData.put("role", dto.getRole()); // ✅ ADD THIS
 
-			    emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
+				emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
 
-			    log.info("Doctor onboarding email sent to {}", savedDoctor.getDoctorEmail());
+				log.info("Doctor onboarding email sent to {}", savedDoctor.getDoctorEmail());
 
 			} catch (Exception e) {
-			    log.error("Failed to send doctor onboarding email: {}", e.getMessage());
+				log.error("Failed to send doctor onboarding email: {}", e.getMessage());
 			}
 
-			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(savedDoctor,s3Service);
+			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(savedDoctor, s3Service);
 			Map<String, Object> data = new HashMap<>();
 			data.put("doctor", toDTO);
 			data.put("username", username);
@@ -302,7 +300,7 @@ public class DoctorServiceImpl implements DoctorService {
 		log.info("Add Doctor request completed. status={}", response.getStatus());
 		return response;
 	}
-	
+
 //	@Override
 //	public Response startVerificationProcess(String doctorId) {
 //
@@ -405,7 +403,7 @@ public class DoctorServiceImpl implements DoctorService {
 //	            return response;
 //	        }
 //	    }
-	    
+
 //	    @Override
 //	    public Response rejectDoctor(String doctorId, String reason) {
 //
@@ -502,8 +500,8 @@ public class DoctorServiceImpl implements DoctorService {
 			if (!doctorList.isEmpty()) {
 				log.info("Doctors found hospitalId={}, count={}", hospitalId, doctorList.size());
 				List<DoctorsDTO> dtos = doctorList.stream()
-				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
-				        .collect(Collectors.toList());
+						.map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+						.collect(Collectors.toList());
 				response.setSuccess(true);
 				response.setData(dtos);
 				response.setMessage("Doctors fetched successfully");
@@ -538,7 +536,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 			if (doctorOptional.isPresent()) {
 				Doctors dataFromDB = doctorOptional.get();
-				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dataFromDB,s3Service);
+				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dataFromDB, s3Service);
 				log.info("Doctor found. doctorId={}, doctorName={}", toDTO.getDoctorId(), toDTO.getDoctorName());
 				response.setSuccess(true);
 				response.setData(toDTO);
@@ -626,7 +624,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 			/* ---------- FIELD UPDATES ---------- */
 			if (dto.getDoctorPicture() != null && !dto.getDoctorPicture().isBlank())
-			    doctor.setDoctorPicture(dto.getDoctorPicture()); // S3 key stored as-is
+				doctor.setDoctorPicture(dto.getDoctorPicture()); // S3 key stored as-is
 			if (dto.getHospitalId() != null)
 				doctor.setHospitalId(dto.getHospitalId());
 			if (dto.getDoctorEmail() != null)
@@ -668,7 +666,7 @@ public class DoctorServiceImpl implements DoctorService {
 			if (dto.getDateofJoining() != null)
 				doctor.setDateofJoining(dto.getDateofJoining());
 			if (dto.getDoctorSignature() != null && !dto.getDoctorSignature().isBlank())
-			    doctor.setDoctorSignature(dto.getDoctorSignature()); // S3 key stored as-is
+				doctor.setDoctorSignature(dto.getDoctorSignature()); // S3 key stored as-is
 			if (dto.getDoctorFees() != null)
 				doctor.setDoctorFees(DoctorMapper.mapDoctorFeeDTOtoEntity(dto.getDoctorFees()));
 			if (dto.getBankAccountDetails() != null) {
@@ -677,35 +675,29 @@ public class DoctorServiceImpl implements DoctorService {
 
 				if (dto.getBankAccountDetails() != null) {
 
-				    if (dto.getBankAccountDetails().getAccountHolderName() != null) {
-				        bankDetails.setAccountHolderName(
-				                dto.getBankAccountDetails().getAccountHolderName());
-				    }
+					if (dto.getBankAccountDetails().getAccountHolderName() != null) {
+						bankDetails.setAccountHolderName(dto.getBankAccountDetails().getAccountHolderName());
+					}
 
-				    if (dto.getBankAccountDetails().getAccountNumber() != null) {
-				        bankDetails.setAccountNumber(
-				                dto.getBankAccountDetails().getAccountNumber());
-				    }
+					if (dto.getBankAccountDetails().getAccountNumber() != null) {
+						bankDetails.setAccountNumber(dto.getBankAccountDetails().getAccountNumber());
+					}
 
-				    if (dto.getBankAccountDetails().getBankName() != null) {
-				        bankDetails.setBankName(
-				                dto.getBankAccountDetails().getBankName());
-				    }
+					if (dto.getBankAccountDetails().getBankName() != null) {
+						bankDetails.setBankName(dto.getBankAccountDetails().getBankName());
+					}
 
-				    if (dto.getBankAccountDetails().getBranchName() != null) {
-				        bankDetails.setBranchName(
-				                dto.getBankAccountDetails().getBranchName());
-				    }
+					if (dto.getBankAccountDetails().getBranchName() != null) {
+						bankDetails.setBranchName(dto.getBankAccountDetails().getBranchName());
+					}
 
-				    if (dto.getBankAccountDetails().getIfscCode() != null) {
-				        bankDetails.setIfscCode(
-				                dto.getBankAccountDetails().getIfscCode());
-				    }
-				    
-				    if (dto.getBankAccountDetails().getPanCardNumber()  != null) {
-				        bankDetails.setPanCardNumber(
-				                dto.getBankAccountDetails().getPanCardNumber());
-				    }
+					if (dto.getBankAccountDetails().getIfscCode() != null) {
+						bankDetails.setIfscCode(dto.getBankAccountDetails().getIfscCode());
+					}
+
+					if (dto.getBankAccountDetails().getPanCardNumber() != null) {
+						bankDetails.setPanCardNumber(dto.getBankAccountDetails().getPanCardNumber());
+					}
 				}
 
 				doctor.setBankAccountDetails(bankDetails);
@@ -720,64 +712,72 @@ public class DoctorServiceImpl implements DoctorService {
 //			}
 
 			if (dto.getDoctorAvailabilityStatus() != null) {
-			    doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());
+				doctor.setDoctorAvailabilityStatus(dto.getDoctorAvailabilityStatus());
 			}
 
 			if (dto.isRecommendation() != doctor.isRecommendation()) {
-			    doctor.setRecommendation(dto.isRecommendation());
+				doctor.setRecommendation(dto.isRecommendation());
 			}
 
 			if (dto.isAssociatedWithIADVC() != doctor.isAssociatedWithIADVC()) {
-			    doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
+				doctor.setAssociatedWithIADVC(dto.isAssociatedWithIADVC());
 			}
 
-			if (dto.getAssociationsOrMemberships() != null 
-			        && !dto.getAssociationsOrMemberships().isEmpty()) {
-			    doctor.setAssociationsOrMemberships(dto.getAssociationsOrMemberships());
+			if (dto.getAssociationsOrMemberships() != null && !dto.getAssociationsOrMemberships().isEmpty()) {
+				doctor.setAssociationsOrMemberships(dto.getAssociationsOrMemberships());
 			}
 
-			if (dto.getBranches() != null 
-			        && !dto.getBranches().isEmpty()) {
-			    doctor.setBranches(dto.getBranches());
+			if (dto.getBranches() != null && !dto.getBranches().isEmpty()) {
+				doctor.setBranches(dto.getBranches());
 			}
 
 			log.info("Saving updated doctor data for doctorId={}", doctorId);
 			Doctors updatedDoctor = doctorsRepository.save(doctor);
-			
+
 			// ============================================
 			// ADD NEW CODE HERE
 			// ============================================
 
-			Optional<DoctorAndStaffLoginCredentials> credentialsOpt =
-			        credentialsRepository.findByStaffId(doctorId);
+			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository.findByStaffId(doctorId);
 
 			if (credentialsOpt.isPresent()) {
 
-			    DoctorAndStaffLoginCredentials credentials =
-			            credentialsOpt.get();
+				DoctorAndStaffLoginCredentials creds = credentialsOpt.get();
 
-			    if (dto.getDoctorName() != null 
-			            && !dto.getDoctorName().isBlank()) {
+				if (dto.getDoctorName() != null)
+					creds.setStaffName(dto.getDoctorName());
 
-			        credentials.setStaffName(dto.getDoctorName());
-			    }
+				if (dto.getBranchId() != null)
+					creds.setBranchId(dto.getBranchId());
 
-			    credentialsRepository.save(credentials);
+				if (dto.getHospitalId() != null)
+					creds.setHospitalId(dto.getHospitalId());
 
-			    log.info(
-			        "Login credentials staffName updated for doctorId={}",
-			        doctorId
-			    );
+				if (dto.getHospitalName() != null)
+					creds.setHospitalName(dto.getHospitalName());
+
+				if (dto.getRole() != null)
+					creds.setRole(dto.getRole());
+
+				if (dto.getPermissions() != null)
+					creds.setPermissions(dto.getPermissions());
+
+				if (dto.getDoctorMobileNumber() != null)
+					creds.setMobilenumber(dto.getDoctorMobileNumber());
+
+				if (dto.getDoctorEmail() != null)
+					creds.setEmailId(dto.getDoctorEmail());
+
+				credentialsRepository.save(creds);
+
+				log.info("Login credentials staffName updated for doctorId={}", doctorId);
 
 			} else {
 
-			    log.warn(
-			        "Login credentials not found for doctorId={}",
-			        doctorId
-			    );
+				log.warn("Login credentials not found for doctorId={}", doctorId);
 			}
 
-			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(updatedDoctor,s3Service);
+			DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(updatedDoctor, s3Service);
 
 			response.setSuccess(true);
 			response.setData(toDTO);
@@ -835,7 +835,7 @@ public class DoctorServiceImpl implements DoctorService {
 				log.info("Doctor found. clinicId={}, doctorId={}", clinicId, doctorId);
 
 				Doctors dbData = doctorOptional.get();
-				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dbData,s3Service);
+				DoctorsDTO toDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(dbData, s3Service);
 
 				response.setSuccess(true);
 				response.setData(toDTO);
@@ -882,7 +882,8 @@ public class DoctorServiceImpl implements DoctorService {
 				doctorsRepository.deleteById(optionalDoctor.get().getId());
 
 				log.debug("Checking login credentials for doctorId={}", doctorId);
-				Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
+				Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository
+						.findByStaffId(doctorId);
 
 				optionalCredentials.ifPresent(credentials -> {
 					log.info("Deleting login credentials for doctorId={}", doctorId);
@@ -954,7 +955,8 @@ public class DoctorServiceImpl implements DoctorService {
 
 			doctorsRepository.deleteById(doctor.getId());
 
-			Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
+			Optional<DoctorAndStaffLoginCredentials> optionalCredentials = credentialsRepository
+					.findByStaffId(doctorId);
 
 			optionalCredentials.ifPresent(credentials -> {
 				log.info("Deleting credentials for doctorId={}", doctorId);
@@ -1328,8 +1330,8 @@ public class DoctorServiceImpl implements DoctorService {
 				log.info("Found {} doctors for hospitalId={} and branchId={}", doctorList.size(), hospitalId, branchId);
 
 				List<DoctorsDTO> dtos = doctorList.stream()
-				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
-				        .collect(Collectors.toList());
+						.map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+						.collect(Collectors.toList());
 
 				response.setSuccess(true);
 				response.setData(dtos);
@@ -2619,7 +2621,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 		// ✅ Convert doctors with consultation mapping
 		List<DoctorsDTO> doctorDTOs = doctorList.stream().map(doc -> {
-			DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(doc,s3Service);
+			DoctorsDTO doctorDTO = DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service);
 
 //			if (doc.getConsultation() != null) {
 //				ConsultationType consultation = doc.getConsultation();
@@ -2707,7 +2709,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 					// Convert doctors
 					List<DoctorsDTO> doctors = doctorEntities.stream().map(doc -> {
-						DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doc,s3Service);
+						DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service);
 
 						// doctorFees mapping
 						if (doc.getDoctorFees() != null) {
@@ -2715,7 +2717,7 @@ public class DoctorServiceImpl implements DoctorService {
 						}
 
 						if (doc.getDoctorSignature() != null && !doc.getDoctorSignature().isBlank())
-						    dto.setDoctorSignature(doc.getDoctorSignature()); // S3 key passed through as-is
+							dto.setDoctorSignature(doc.getDoctorSignature()); // S3 key passed through as-is
 
 						return dto;
 					}).collect(Collectors.toList());
@@ -2943,7 +2945,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<DoctorsDTO> matchedDoctors = new ArrayList<>();
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor, s3Service);
 					boolean relevant = isDoctorRelevant(dto, keyPointsFromUser);
 					log.info("Doctor: {} | Relevant: {}", dto.getDoctorName(), relevant);
 
@@ -2969,8 +2971,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 					List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(clinic.getHospitalId());
 					List<DoctorsDTO> allDoctors = doctorEntities.stream()
-					        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
-					        .toList();
+							.map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service)).toList();
 					clinic.setDoctors(allDoctors);
 					result.add(clinic);
 				}
@@ -3054,8 +3055,8 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorsDbData = doctorsRepository.findByHospitalId(clinicDTO.getHospitalId());
 
 				List<DoctorsDTO> doctorDTOs = doctorsDbData.stream()
-				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
-				        .collect(Collectors.toList());
+						.map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
+						.collect(Collectors.toList());
 
 				// Map ClinicDTO -> ClinicWithDoctorsDTO
 				ClinicWithDoctorsDTO clDTO = objectMapper.convertValue(clinicDTO, ClinicWithDoctorsDTO.class);
@@ -3369,7 +3370,8 @@ public class DoctorServiceImpl implements DoctorService {
 
 		try {
 			// Find credentials by username
-			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(dto.getUserName());
+			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository
+					.findByUsername(dto.getUserName());
 
 			if (credentialsOpt.isEmpty()) {
 				response.setSuccess(false);
@@ -3420,154 +3422,155 @@ public class DoctorServiceImpl implements DoctorService {
 
 		return response;
 	}
-	// ------------------------Update password with username and role---------------------------
+
+	// ------------------------Update password with username and
+	// role---------------------------
 	@Override
 	public Response changePasswordWithRole(ClinicStaffUpdatedPassword updateDTO) {
 
-	    log.info("Change password request received for username={}", updateDTO.getUsername());
+		log.info("Change password request received for username={}", updateDTO.getUsername());
 
-	    Response response = new Response();
+		Response response = new Response();
 
-	    try {
+		try {
 
-	        // Normalize values
-	        String username = updateDTO.getUsername() != null
-	                ? updateDTO.getUsername().trim()
-	                : null;
+			// Normalize values
+			String username = updateDTO.getUsername() != null ? updateDTO.getUsername().trim() : null;
 
-	        String role = updateDTO.getRole() != null
-	                ? updateDTO.getRole().trim()
-	                : null;
+			String role = updateDTO.getRole() != null ? updateDTO.getRole().trim() : null;
 
-	        // Validate Username
-	        if (username == null || username.isBlank()) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("Username is required");
-	            return response;
-	        }
+			// Validate Username
+			if (username == null || username.isBlank()) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("Username is required");
+				return response;
+			}
 
-	        // Validate Role
-	        if (role == null || role.isBlank()) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("Role is required");
-	            return response;
-	        }
+			// Validate Role
+			if (role == null || role.isBlank()) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("Role is required");
+				return response;
+			}
 
-	        // Validate Current Password
-	        if (updateDTO.getCurrentPassword() == null || updateDTO.getCurrentPassword().isBlank()) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("Current password is required");
-	            return response;
-	        }
+			// Validate Current Password
+			if (updateDTO.getCurrentPassword() == null || updateDTO.getCurrentPassword().isBlank()) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("Current password is required");
+				return response;
+			}
 
-	        // Validate New Password
-	        if (updateDTO.getNewPassword() == null || updateDTO.getNewPassword().isBlank()) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("New password is required");
-	            return response;
-	        }
+			// Validate New Password
+			if (updateDTO.getNewPassword() == null || updateDTO.getNewPassword().isBlank()) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("New password is required");
+				return response;
+			}
 
-	        // Validate Confirm Password
-	        if (updateDTO.getConfirmPassword() == null || updateDTO.getConfirmPassword().isBlank()) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("Confirm password is required");
-	            return response;
-	        }
+			// Validate Confirm Password
+			if (updateDTO.getConfirmPassword() == null || updateDTO.getConfirmPassword().isBlank()) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("Confirm password is required");
+				return response;
+			}
 
-	        // Validate Password Match
-	        if (!updateDTO.getNewPassword().equals(updateDTO.getConfirmPassword())) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("New password and confirm password do not match");
-	            return response;
-	        }
+			// Validate Password Match
+			if (!updateDTO.getNewPassword().equals(updateDTO.getConfirmPassword())) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("New password and confirm password do not match");
+				return response;
+			}
 
-	        // ================= ADMIN =================
-	        if ("ADMIN".equalsIgnoreCase(role)) {
+			// ================= ADMIN =================
+			if ("ADMIN".equalsIgnoreCase(role)) {
 
-	            ResponseEntity<Response> adminResponse =
-	                    adminServiceClient.updateClinicCredentialsWithUserNameAndRole(updateDTO);
+				ResponseEntity<Response> adminResponse = adminServiceClient
+						.updateClinicCredentialsWithUserNameAndRole(updateDTO);
 
-	            if (adminResponse != null && adminResponse.getBody() != null) {
-	                return adminResponse.getBody();
-	            }
+				if (adminResponse != null && adminResponse.getBody() != null) {
+					return adminResponse.getBody();
+				}
 
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-	            response.setMessage("Failed to get response from Admin Service");
-	            return response;
-	        }
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+				response.setMessage("Failed to get response from Admin Service");
+				return response;
+			}
 
-	        // ================= Doctor / Therapist / Receptionist / Nurse / Staff =================
-	        Optional<DoctorAndStaffLoginCredentials> optional =
-	                credentialsRepository.findByUsernameAndRole(username, role);
+			// ================= Doctor / Therapist / Receptionist / Nurse / Staff
+			// =================
+			Optional<DoctorAndStaffLoginCredentials> optional = credentialsRepository.findByUsernameAndRole(username,
+					role);
 
-	        if (optional.isEmpty()) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.NOT_FOUND.value());
-	            response.setMessage("User not found");
-	            return response;
-	        }
+			if (optional.isEmpty()) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.NOT_FOUND.value());
+				response.setMessage("User not found");
+				return response;
+			}
 
-	        DoctorAndStaffLoginCredentials credentials = optional.get();
+			DoctorAndStaffLoginCredentials credentials = optional.get();
 
-	        // Validate Current Password
-	        if (!passwordEncoder.matches(updateDTO.getCurrentPassword(), credentials.getPassword())) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-	            response.setMessage("Current password is incorrect");
-	            return response;
-	        }
+			// Validate Current Password
+			if (!passwordEncoder.matches(updateDTO.getCurrentPassword(), credentials.getPassword())) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.UNAUTHORIZED.value());
+				response.setMessage("Current password is incorrect");
+				return response;
+			}
 
-	        // Prevent same password
-	        if (passwordEncoder.matches(updateDTO.getNewPassword(), credentials.getPassword())) {
-	            response.setSuccess(false);
-	            response.setStatus(HttpStatus.BAD_REQUEST.value());
-	            response.setMessage("New password cannot be the same as the current password");
-	            return response;
-	        }
+			// Prevent same password
+			if (passwordEncoder.matches(updateDTO.getNewPassword(), credentials.getPassword())) {
+				response.setSuccess(false);
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				response.setMessage("New password cannot be the same as the current password");
+				return response;
+			}
 
-	        // Update Password
-	        credentials.setPassword(passwordEncoder.encode(updateDTO.getNewPassword()));
+			// Update Password
+			credentials.setPassword(passwordEncoder.encode(updateDTO.getNewPassword()));
 
-	        credentialsRepository.save(credentials);
+			credentialsRepository.save(credentials);
 
-	        response.setSuccess(true);
-	        response.setStatus(HttpStatus.OK.value());
-	        response.setMessage("Password updated successfully");
-	        response.setData(null);
+			response.setSuccess(true);
+			response.setStatus(HttpStatus.OK.value());
+			response.setMessage("Password updated successfully");
+			response.setData(null);
 
-	        return response;
+			return response;
 
-	    } catch (Exception e) {
+		} catch (Exception e) {
 
-	        log.error("Error while updating password", e);
+			log.error("Error while updating password", e);
 
-	        response.setSuccess(false);
-	        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-	        response.setMessage("Failed to update password: " + e.getMessage());
-	        response.setData(null);
+			response.setSuccess(false);
+			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+			response.setMessage("Failed to update password: " + e.getMessage());
+			response.setData(null);
 
-	        return response;
-	    }
+			return response;
+		}
 	}
-	
+
 	@Override
 	public String getByTherapistDeviceId(String therapistId) {
 		try {
 			Optional<DoctorAndStaffLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(therapistId);
 
-			if (credentialsOpt.isEmpty()) {				
+			if (credentialsOpt.isEmpty()) {
 				return null;
-			}else {
+			} else {
 				return credentialsOpt.get().getDeviceId();
 			}
-		}catch(Exception e) {return null;}
+		} catch (Exception e) {
+			return null;
+		}
 	}
 
 //-----------------------best one doctor using key word-------------------------------------------
@@ -3595,7 +3598,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(clinic.getHospitalId());
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor, s3Service);
 					int score = calculateDoctorScore(dto, keyPointsFromUser);
 
 					log.info("Doctor: {} | Score: {}", dto.getDoctorName(), score);
@@ -3712,7 +3715,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(clinic.getHospitalId());
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor, s3Service);
 
 //					// 🧠 Step 1: Filter based on consultation type (numeric)
 //					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
@@ -3789,7 +3792,7 @@ public class DoctorServiceImpl implements DoctorService {
 				List<Doctors> doctorEntities = doctorsRepository.findByHospitalId(hospitalId);
 
 				for (Doctors doctor : doctorEntities) {
-					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor,s3Service);
+					DoctorsDTO dto = DoctorMapper.mapDoctorEntityToDoctorDTO(doctor, s3Service);
 
 //					// ✅ Step 1: Filter by consultation type
 //					if (!matchesConsultationType(dto.getConsultation(), consultationType)) {
@@ -3833,8 +3836,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 			if (!doctorList.isEmpty()) {
 				List<DoctorsDTO> dtos = doctorList.stream()
-				        .map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service))
-				        .toList();
+						.map(doc -> DoctorMapper.mapDoctorEntityToDoctorDTO(doc, s3Service)).toList();
 				response.setSuccess(true);
 				response.setData(dtos);
 				response.setMessage(
@@ -3937,7 +3939,4 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 	}
 
-	
-
-	
 }

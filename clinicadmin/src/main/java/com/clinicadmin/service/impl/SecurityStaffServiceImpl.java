@@ -89,7 +89,8 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 		DoctorAndStaffLoginCredentials credentials = DoctorAndStaffLoginCredentials.builder().staffId(saved.getSecurityStaffId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
-				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
+				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions())
+				.emailId(saved.getEmailId()).mobilenumber(saved.getContactNumber()).build();
 		credentialsRepository.save(credentials);
 		
 		log.info("Login credentials created | securityStaffId={}", saved.getSecurityStaffId());
@@ -154,6 +155,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	    existing.setUpdatedDate(LocalDate.now().toString());
 	    // ---------- Save ----------
 	    SecurityStaff updated = repository.save(existing);
+	    
 		log.info("SecurityStaff updated | securityStaffId={}", updated.getSecurityStaffId());
 
 	    // ---------- Decode Before Response ----------
@@ -161,6 +163,49 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	    updated.setPoliceVerificationCertificate(SecurityStaffMapper.decode(updated.getPoliceVerificationCertificate()));
 	    updated.setMedicalFitnessCertificate(SecurityStaffMapper.decode(updated.getMedicalFitnessCertificate()));
 	    updated.setProfilePicture(SecurityStaffMapper.decode(updated.getProfilePicture()));
+	    
+	    Optional<DoctorAndStaffLoginCredentials> credsOpt =
+	            credentialsRepository.findByStaffId(updated.getSecurityStaffId());
+
+	    if (credsOpt.isPresent()) {
+
+	        log.info("Syncing login credentials | securityStaffId={}", updated.getSecurityStaffId());
+
+	        DoctorAndStaffLoginCredentials creds = credsOpt.get();
+
+	        if (updated.getFullName() != null)
+	            creds.setStaffName(updated.getFullName());
+
+	        if (updated.getClinicId() != null)
+	            creds.setHospitalId(updated.getClinicId());
+
+	        if (updated.getHospitalName() != null)
+	            creds.setHospitalName(updated.getHospitalName());
+
+	        if (updated.getBranchId() != null)
+	            creds.setBranchId(updated.getBranchId());
+
+	        if (updated.getBranchName() != null)
+	            creds.setBranchName(updated.getBranchName());
+
+	        if (updated.getRole() != null)
+	            creds.setRole(updated.getRole());
+
+	        if (updated.getPermissions() != null)
+	            creds.setPermissions(updated.getPermissions());
+
+	        if (updated.getContactNumber() != null) {
+	            creds.setMobilenumber(updated.getContactNumber());
+	        }
+
+	        if (updated.getEmailId() != null)
+	            creds.setEmailId(updated.getEmailId());
+
+	        credentialsRepository.save(creds);
+
+	        log.info("Login credentials synced successfully | securityStaffId={}",
+	                updated.getSecurityStaffId());
+	    }
 	    
 
 	    return ResponseStructure.buildResponse(updated, "Security staff updated successfully",

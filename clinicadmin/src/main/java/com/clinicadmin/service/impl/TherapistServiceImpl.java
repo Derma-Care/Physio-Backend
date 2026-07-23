@@ -418,6 +418,45 @@ public class TherapistServiceImpl implements TherapistService {
 
 		// Save
 		Therapist updated = repository.save(existing);
+		
+		Optional<DoctorAndStaffLoginCredentials> credsOpt =
+		        credentialsRepository.findByStaffId(updated.getTherapistId());
+
+		if (credsOpt.isPresent()) {
+
+		    log.info("Syncing login credentials | therapistId={}", updated.getTherapistId());
+
+		    DoctorAndStaffLoginCredentials creds = credsOpt.get();
+
+		    if (updated.getFullName() != null)
+		        creds.setStaffName(updated.getFullName());
+
+		    if (updated.getClinicId() != null)
+		        creds.setHospitalId(updated.getClinicId());
+
+		    if (updated.getClinicName() != null)
+		        creds.setHospitalName(updated.getClinicName());
+
+		    if (updated.getBranchId() != null)
+		        creds.setBranchId(updated.getBranchId());
+
+		    if (updated.getBranchName() != null)
+		        creds.setBranchName(updated.getBranchName());
+
+		    if (updated.getRole() != null)
+		        creds.setRole(updated.getRole());
+
+		    if (updated.getContactNumber() != null)
+		        creds.setMobilenumber(updated.getContactNumber());
+
+		    if (updated.getEmailId() != null)
+		        creds.setEmailId(updated.getEmailId());
+
+		    credentialsRepository.save(creds);
+
+		    log.info("Login credentials updated successfully | therapistId={}",
+		            updated.getTherapistId());
+		}
 
 		// ================= BUILD RESPONSE DTO =================
 		TherapistDTO response = new TherapistDTO();
