@@ -1,5 +1,5 @@
-package com.clinicadmin.dto;
-
+package com.clinicadmin.entity;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,13 +7,17 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public  class PaymentDTO {
+public class Transaction {
+
+    private String receiptNo;
+
+    private LocalDate paymentDate;
 
     private String paymentMode;
+
     private String transactionId;
 
-    private Double paidAmount;
-    private Double dueAmount;
+    private Double amount;
 
     private String remarks;
 }

@@ -33,7 +33,7 @@ private String branchId;
     private int yearsOfExperience;
     private String currentHospitalName;
     private String department;
-	@NotBlank(message = "Mobile is required", groups = RequiredChecks.class)
+	
 
     private String mobileNumber;
     private String email;

@@ -1,8 +1,6 @@
 package com.clinicadmin.dto;
-
 import java.time.LocalDate;
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,7 +25,14 @@ public class BillingDTO {
 
     private List<ServiceItemDTO> services;
 
-    private PaymentDTO payment;
+    // Latest/current transaction
+    private TransactionDTO newTransaction;
+
+    // Complete payment transaction history
+    private List<TransactionDTO> transactions;
+
+    // Billing/payment totals
+    private PaymentSummaryDTO paymentSummary;
 
     private AdditionalDetailsDTO additionalDetails;
 

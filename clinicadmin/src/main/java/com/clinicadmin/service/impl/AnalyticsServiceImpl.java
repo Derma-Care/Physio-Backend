@@ -67,6 +67,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                 response.setSuccess(false);
                 response.setMessage("No booking data found");
+                response.setStatus(404);
+
                 return response;
             }
 
@@ -76,54 +78,99 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             LocalDate today = LocalDate.now();
 
             Map<String, DoctorReferralAnalyticsDTO> doctorAnalytics =
-                    new HashMap<>();
+                    new LinkedHashMap<>();
+
+
+            // =========================================================
+            // LOOP BOOKINGS
+            // =========================================================
 
             for (Map<String, Object> booking : bookings) {
+
+
+                // ================= SERVICE DATE =================
 
                 String serviceDateStr =
                         String.valueOf(
                                 booking.getOrDefault(
                                         "serviceDate",
-                                        ""));
+                                        "")).trim();
 
-                if (serviceDateStr == null
-                        || serviceDateStr.isBlank()) {
+                if (serviceDateStr.isBlank()
+                        || "null".equalsIgnoreCase(serviceDateStr)) {
+
                     continue;
                 }
 
-                LocalDate serviceDate =
-                        LocalDate.parse(serviceDateStr);
+                LocalDate serviceDate;
+
+                try {
+
+                    serviceDate =
+                            LocalDate.parse(serviceDateStr);
+
+                } catch (Exception e) {
+
+                    // Skip booking if serviceDate is invalid
+                    continue;
+                }
+
+
+                // ================= DATE FILTER =================
 
                 boolean include = false;
 
                 switch (type) {
 
                 case 1: // Today
-                    include = serviceDate.equals(today);
+
+                    include =
+                            serviceDate.equals(today);
+
                     break;
 
-                case 2: // Weekly (Last 7 Days including today)
+
+                case 2: // Weekly - Last 7 days including today
+
                     include =
                             !serviceDate.isBefore(
                                     today.minusDays(6))
-                            && !serviceDate.isAfter(today);
+                            &&
+                            !serviceDate.isAfter(today);
+
                     break;
+
 
                 case 3: // Monthly
+
                     include =
                             serviceDate.getMonthValue()
-                                            == today.getMonthValue()
-                                    && serviceDate.getYear()
-                                            == today.getYear();
+                                    == today.getMonthValue()
+                            &&
+                            serviceDate.getYear()
+                                    == today.getYear();
+
                     break;
 
+
                 case 4: // Yearly
+
                     include =
                             serviceDate.getYear()
                                     == today.getYear();
+
                     break;
 
-                case 5:
+
+                case 5: // Custom Date Range
+
+                    if (startDate == null
+                            || startDate.isBlank()
+                            || endDate == null
+                            || endDate.isBlank()) {
+
+                        continue;
+                    }
 
                     LocalDate start =
                             LocalDate.parse(startDate);
@@ -133,72 +180,81 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                     include =
                             !serviceDate.isBefore(start)
-                                    && !serviceDate.isAfter(end);
+                            &&
+                            !serviceDate.isAfter(end);
 
                     break;
 
+
                 default:
+
                     include = false;
-            }
+                    break;
+                }
+
 
                 if (!include) {
+
                     continue;
                 }
+
+
+                // =========================================================
+                // REFERRED DOCTOR ID
+                // =========================================================
 
                 String referralId =
                         String.valueOf(
                                 booking.getOrDefault(
                                         "referredDoctorId",
-                                        ""))
-                                .trim();
-
-                String doctorRefCode =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "doctorRefCode",
                                         "")).trim();
 
-                String referredByType =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "referredByType",
-                                        "")).trim();
 
-                String referredByName =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "referredByName",
-                                        "")).trim();
+                // If referredDoctorId is empty/null,
+                // it is NOT a doctor referral.
+                //
+                // This skips:
+                // Self
+                // Friend
+                // Family
+                // Facebook
+                // Instagram
+                // Google
+                // Other Sources
+                // Others
 
-                String referralKey;
+                if (referralId.isBlank()
+                        || "null".equalsIgnoreCase(referralId)) {
 
-                if (!referralId.isBlank()
-                        && !"null".equalsIgnoreCase(referralId)) {
-
-                    referralKey = referralId;
-
-                } else if ("Other".equalsIgnoreCase(doctorRefCode)) {
-
-                    referralKey = "Other Sources";
-
-                } else if (doctorRefCode.isBlank()
-                        && referredByType.isBlank()
-                        && referredByName.isBlank()) {
-
-                    referralKey = "Others";
-
-                } else {
-
-                    referralKey = "Other Sources";
+                    continue;
                 }
 
-                String doctorId =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "doctorId",
-                                        ""));
 
-                Double revenue = 0.0;
+                // =========================================================
+                // CHECK REGISTERED REFERRED DOCTOR
+                // =========================================================
+
+                ReferredDoctor referredDoctor =
+                        referredDoctorRepository
+                                .findByReferralId(
+                                        referralId)
+                                .orElse(null);
+
+
+                // If referralId does not exist in
+                // ReferredDoctor collection, skip it.
+
+                if (referredDoctor == null) {
+
+                    continue;
+                }
+
+
+                // =========================================================
+                // CALCULATE TOTAL FEE
+                // =========================================================
+
+                double totalFee = 0.0;
 
                 Object totalFeeObj =
                         booking.get("totalFee");
@@ -207,88 +263,155 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                     try {
 
-                        revenue =
+                        totalFee =
                                 Double.parseDouble(
                                         totalFeeObj.toString());
 
-                    } catch (Exception e) {
+                    } catch (NumberFormatException e) {
 
-                        revenue = 0.0;
+                        totalFee = 0.0;
+
+                        System.out.println(
+                                "Invalid totalFee value: "
+                                        + totalFeeObj);
                     }
                 }
 
+
+                // =========================================================
+                // CALCULATE CONSULTATION FEE
+                // =========================================================
+
+                double consultationFee = 0.0;
+
+                Object consultationFeeObj =
+                        booking.get("consultationFee");
+
+                if (consultationFeeObj != null) {
+
+                    try {
+
+                        consultationFee =
+                                Double.parseDouble(
+                                        consultationFeeObj.toString());
+
+                    } catch (NumberFormatException e) {
+
+                        consultationFee = 0.0;
+
+                        System.out.println(
+                                "Invalid consultationFee value: "
+                                        + consultationFeeObj);
+                    }
+                }
+
+
+                // =========================================================
+                // TOTAL REVENUE
+                // =========================================================
+
+                double revenue =
+                        totalFee + consultationFee;
+
+
+                // =========================================================
+                // CREATE / GET DOCTOR ANALYTICS
+                // =========================================================
+
                 DoctorReferralAnalyticsDTO dto =
                         doctorAnalytics.computeIfAbsent(
-                                referralKey,
+                                referralId,
                                 id -> {
 
                                     DoctorReferralAnalyticsDTO analytics =
                                             new DoctorReferralAnalyticsDTO();
 
+
+                                    // Referral Doctor ID
+
                                     analytics.setReferralId(
-                                            referralKey);
+                                            referralId);
 
-//                                    analytics.setDoctorId(
-//                                            doctorId);
 
-                                    ReferredDoctor referredDoctor =
-                                            referredDoctorRepository
-                                                    .findByReferralId(
-                                                            referralId)
-                                                    .orElse(null);
+                                    // Doctor Name
 
-                                    if (referredDoctor != null) {
+                                    analytics.setDoctorName(
+                                            referredDoctor.getFullName());
 
-                                        analytics.setDoctorName(
-                                                referredDoctor.getFullName());
 
-                                        analytics.setClinicHospitalName(
-                                                referredDoctor.getCurrentHospitalName());
+                                    // Hospital / Clinic Name
 
-                                        analytics.setSpecialization(
-                                                referredDoctor.getSpecialization());
+                                    analytics.setClinicHospitalName(
+                                            referredDoctor
+                                                    .getCurrentHospitalName());
 
-                                        analytics.setContactInfo(
-                                                referredDoctor.getMobileNumber());
 
-                                    } else {
+                                    // Specialization
 
-                                        analytics.setDoctorName("N/A");
+                                    analytics.setSpecialization(
+                                            referredDoctor
+                                                    .getSpecialization());
 
-                                        analytics.setClinicHospitalName("N/A");
 
-                                        analytics.setSpecialization("N/A");
+                                    // Contact Number
 
-                                        analytics.setContactInfo("N/A");
-                                    }
+                                    analytics.setContactInfo(
+                                            referredDoctor
+                                                    .getMobileNumber());
+
+
+                                    // Initial values
 
                                     analytics.setPatientsReferred(0);
 
                                     analytics.setRevenueGenerated(0.0);
 
+
                                     return analytics;
                                 });
+
+
+                // =========================================================
+                // INCREMENT PATIENT COUNT
+                // =========================================================
 
                 dto.setPatientsReferred(
                         dto.getPatientsReferred() + 1);
 
+
+                // =========================================================
+                // ADD REVENUE
+                // =========================================================
+
                 dto.setRevenueGenerated(
-                        dto.getRevenueGenerated() + revenue);
+                        dto.getRevenueGenerated()
+                                + revenue);
             }
 
+
+            // =============================================================
+            // RESPONSE
+            // =============================================================
+
             response.setSuccess(true);
+
             response.setData(
                     new ArrayList<>(
                             doctorAnalytics.values()));
+
             response.setMessage(
                     "Doctor referral analytics fetched successfully");
+
             response.setStatus(200);
+
 
         } catch (Exception e) {
 
             response.setSuccess(false);
+
             response.setMessage(
                     e.getMessage());
+
             response.setStatus(500);
         }
 
@@ -318,15 +441,21 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             for (Map<String, Object> booking : bookings) {
 
-                String referredDoctorId =
-                        String.valueOf(
-                                booking.getOrDefault(
-                                        "referredDoctorId",
-                                        ""));
+            	String referredDoctorId =
+            	        String.valueOf(
+            	                booking.getOrDefault(
+            	                        "referredDoctorId",
+            	                        ""))
+            	                .trim();
 
-                if (!referralId.equals(referredDoctorId)) {
-                    continue;
-                }
+            	if (referralId == null
+            	        || referralId.isBlank()
+            	        || referredDoctorId.isBlank()
+            	        || "null".equalsIgnoreCase(referredDoctorId)
+            	        || !referralId.trim().equalsIgnoreCase(referredDoctorId)) {
+
+            	    continue;
+            	}
 
                 String bookingId =
                         String.valueOf(
@@ -340,17 +469,29 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "patientId",
                                         ""));
 
-                Response paymentResponse =
-                        PhysiotherapyFeignClient.getPayment(
-                                bookingId);
+                Map<String, Object> payment = new HashMap<>();
 
-                if (paymentResponse == null
-                        || paymentResponse.getData() == null) {
-                    continue;
+                try {
+
+                    Response paymentResponse =
+                            PhysiotherapyFeignClient.getPayment(bookingId);
+
+                    if (paymentResponse != null
+                            && paymentResponse.getData() != null) {
+
+                        payment =
+                                (Map<String, Object>)
+                                        paymentResponse.getData();
+                    }
+
+                } catch (Exception e) {
+
+                    // No payment record found.
+                    // Still include the referred patient.
+                    System.out.println(
+                            "Payment not found for bookingId: "
+                                    + bookingId);
                 }
-
-                Map<String, Object> payment =
-                        (Map<String, Object>) paymentResponse.getData();
 
                 String patientName = "";
                 String contactNumber = "";
@@ -581,23 +722,63 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
                 String channel;
 
-                if (!referralId.isBlank()
-                        && !"null".equalsIgnoreCase(referralId)) {
+                boolean hasReferralId =
+                        !referralId.isBlank()
+                        && !"null".equalsIgnoreCase(referralId);
 
-                    // Referred by registered doctor
-                    channel = "Doctor Referral";
+                boolean hasDoctorRefCode =
+                        !doctorRefCode.isBlank()
+                        && !"null".equalsIgnoreCase(doctorRefCode);
 
-                } else if (!referredByType.isBlank()
-                        && !"null".equalsIgnoreCase(referredByType)) {
+                boolean hasReferredByType =
+                        !referredByType.isBlank()
+                        && !"null".equalsIgnoreCase(referredByType);
 
-                    // Facebook, Instagram, Google, Website, etc.
-                    channel = referredByType.trim();
+                boolean hasReferredByName =
+                        !referredByName.isBlank()
+                        && !"null".equalsIgnoreCase(referredByName);
 
-                } else if (!referredByName.isBlank()
-                        && !"null".equalsIgnoreCase(referredByName)) {
 
-                    // Fallback if source is stored in referredByName
-                    channel = referredByName.trim();
+                // ================= REMOVE DOCTOR REFERRALS =================
+
+                if (hasReferralId) {
+
+                    // Doctor referrals should not be shown
+                    // in Referral Channel Analytics
+                    continue;
+                }
+
+
+                // ================= SELF =================
+
+                if ("Self".equalsIgnoreCase(doctorRefCode)) {
+
+                    channel = "Self";
+
+
+                // ================= ACTUAL REFERRAL CHANNEL =================
+
+                } else if (hasReferredByType) {
+
+                    // Friend, Family, Instagram,
+                    // Facebook, Google, Website, etc.
+                    channel = referredByType;
+
+
+                // ================= FALLBACK =================
+
+                } else if (hasReferredByName) {
+
+                    channel = referredByName;
+
+
+                // ================= ALL EMPTY = SELF =================
+
+                } else if (!hasDoctorRefCode
+                        && !hasReferredByType
+                        && !hasReferredByName) {
+
+                    channel = "Self";
 
                 } else {
 
@@ -610,12 +791,61 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 //                                        "referredByName",
 //                                        ""));
 
-                Double revenue =
-                        Double.parseDouble(
-                                String.valueOf(
-                                        booking.getOrDefault(
-                                                "totalFee",
-                                                0)));
+                double totalFee = 0.0;
+                double consultationFee = 0.0;
+
+                // ================= TOTAL FEE =================
+
+                Object totalFeeObj =
+                        booking.get("totalFee");
+
+                if (totalFeeObj != null) {
+
+                    try {
+
+                        totalFee =
+                                Double.parseDouble(
+                                        totalFeeObj.toString());
+
+                    } catch (NumberFormatException e) {
+
+                        totalFee = 0.0;
+
+                        System.out.println(
+                                "Invalid totalFee value: "
+                                        + totalFeeObj);
+                    }
+                }
+
+
+                // ================= CONSULTATION FEE =================
+
+                Object consultationFeeObj =
+                        booking.get("consultationFee");
+
+                if (consultationFeeObj != null) {
+
+                    try {
+
+                        consultationFee =
+                                Double.parseDouble(
+                                        consultationFeeObj.toString());
+
+                    } catch (NumberFormatException e) {
+
+                        consultationFee = 0.0;
+
+                        System.out.println(
+                                "Invalid consultationFee value: "
+                                        + consultationFeeObj);
+                    }
+                }
+
+
+                // ================= REVENUE =================
+
+                double revenue =
+                        totalFee + consultationFee;
 
                 ReferralChannelDTO dto =
                         channelMap.computeIfAbsent(
@@ -706,29 +936,68 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             	String derivedChannel;
 
-            	if (!referralId.isBlank()
-            	        && !"null".equalsIgnoreCase(referralId)) {
+            	// Check valid values
+            	boolean hasReferralId =
+            	        !referralId.isBlank()
+            	        && !"null".equalsIgnoreCase(referralId);
+
+            	boolean hasDoctorRefCode =
+            	        !doctorRefCode.isBlank()
+            	        && !"null".equalsIgnoreCase(doctorRefCode);
+
+            	boolean hasReferredByType =
+            	        !referredByType.isBlank()
+            	        && !"null".equalsIgnoreCase(referredByType);
+
+            	boolean hasReferredByName =
+            	        !referredByName.isBlank()
+            	        && !"null".equalsIgnoreCase(referredByName);
+
+
+            	// ================= DOCTOR REFERRAL =================
+
+            	if (hasReferralId) {
 
             	    derivedChannel = "Doctor Referral";
 
-            	} else if ("Other".equalsIgnoreCase(doctorRefCode)) {
 
-            	    derivedChannel = "Other Sources";
+            	// ================= EXPLICIT SELF =================
 
-            	} else if (doctorRefCode.isBlank()
-            	        && referredByType.isBlank()
-            	        && referredByName.isBlank()) {
+            	} else if ("Self".equalsIgnoreCase(doctorRefCode)) {
 
-            	    derivedChannel = "Others";
+            	    derivedChannel = "Self";
+
+
+            	// ================= FRIEND / FACEBOOK / INSTAGRAM ETC =================
+
+            	} else if (hasReferredByType) {
+
+            	    derivedChannel = referredByType;
+
+
+            	// ================= FALLBACK TO REFERRED BY NAME =================
+
+            	} else if (hasReferredByName) {
+
+            	    derivedChannel = referredByName;
+
+
+            	// ================= ALL EMPTY = SELF =================
+
+            	} else if (!hasDoctorRefCode
+            	        && !hasReferredByType
+            	        && !hasReferredByName) {
+
+            	    derivedChannel = "Self";
 
             	} else {
 
-            	    derivedChannel = "Other Sources";
+            	    derivedChannel = "Others";
             	}
-                
 
-            	if (!channel.equalsIgnoreCase(
-            	        derivedChannel)) {
+
+            	// Match requested channel
+            	if (!channel.equalsIgnoreCase(derivedChannel)) {
             	    continue;
             	}
 
@@ -744,19 +1013,30 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "patientId",
                                         ""));
 
-                Response paymentResponse =
-                        PhysiotherapyFeignClient
-                                .getPayment(
-                                        bookingId);
-
-                if (paymentResponse == null
-                        || paymentResponse.getData() == null) {
-                    continue;
-                }
-
                 Map<String, Object> payment =
-                        (Map<String, Object>)
-                                paymentResponse.getData();
+                        new HashMap<>();
+
+                try {
+
+                    Response paymentResponse =
+                            PhysiotherapyFeignClient
+                                    .getPayment(
+                                            bookingId);
+
+                    if (paymentResponse != null
+                            && paymentResponse.getData() != null) {
+
+                        payment =
+                                (Map<String, Object>)
+                                        paymentResponse.getData();
+                    }
+
+                } catch (Exception e) {
+
+                    System.out.println(
+                            "Payment not found for bookingId: "
+                                    + bookingId);
+                }
 
                 String patientName = "";
                 String contactNumber = "";
@@ -901,6 +1181,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             long totalReferrals = 0;
             long doctorReferrals = 0;
+            long selfReferrals = 0;
             long otherChannelsReferrals = 0;
 
             Map<String, Long> doctorCountMap =
@@ -969,7 +1250,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     continue;
                 }
 
-                totalReferrals++;
+               
 
                 String referralId =
                         String.valueOf(
@@ -977,20 +1258,82 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                         "referredDoctorId",
                                         "")).trim();
 
-                if (!referralId.isBlank()
-                        && !"null".equalsIgnoreCase(
-                                referralId)) {
+                String doctorRefCode =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "doctorRefCode",
+                                        "")).trim();
+
+                String referredByType =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "referredByType",
+                                        "")).trim();
+
+                String referredByName =
+                        String.valueOf(
+                                booking.getOrDefault(
+                                        "referredByName",
+                                        "")).trim();
+
+             // ================= VALIDATION =================
+
+                boolean hasReferralId =
+                        !referralId.isBlank()
+                        && !"null".equalsIgnoreCase(referralId);
+
+                boolean hasDoctorRefCode =
+                        !doctorRefCode.isBlank()
+                        && !"null".equalsIgnoreCase(doctorRefCode);
+
+                boolean hasReferredByType =
+                        !referredByType.isBlank()
+                        && !"null".equalsIgnoreCase(referredByType);
+
+                boolean hasReferredByName =
+                        !referredByName.isBlank()
+                        && !"null".equalsIgnoreCase(referredByName);
+
+
+             // ================= DOCTOR REFERRAL =================
+
+                if (hasReferralId) {
 
                     doctorReferrals++;
+                    totalReferrals++;
 
                     doctorCountMap.merge(
                             referralId,
                             1L,
                             Long::sum);
 
+
+                // ================= EXPLICIT SELF =================
+
+                } else if ("Self".equalsIgnoreCase(doctorRefCode)) {
+
+                    selfReferrals++;
+                    totalReferrals++;
+
+
+                // ================= ALL EMPTY = SELF =================
+
+                } else if (!hasDoctorRefCode
+                        && !hasReferredByType
+                        && !hasReferredByName) {
+
+                    selfReferrals++;
+                    totalReferrals++;
+
+
+                // ================= OTHER CHANNELS =================
+
                 } else {
 
+                    // Friend, Facebook, Instagram,
+                    // Google, Website, etc.
                     otherChannelsReferrals++;
+                    totalReferrals++;
                 }
             }
 
@@ -1000,11 +1343,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                             : (doctorReferrals * 100.0)
                                     / totalReferrals;
 
+            // ================= SELF PERCENTAGE =================
+
+            double selfPercentage =
+                    totalReferrals == 0
+                            ? 0
+                            : (selfReferrals * 100.0)
+                                    / totalReferrals;
+
+            // ================= OTHER CHANNEL PERCENTAGE =================
+
             double otherPercentage =
                     totalReferrals == 0
                             ? 0
-                            : (otherChannelsReferrals
-                                    * 100.0)
+                            : (otherChannelsReferrals * 100.0)
                                     / totalReferrals;
 
             String topDoctorName = "N/A";
@@ -1049,7 +1401,26 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             dto.setDoctorReferrals(
                     doctorReferrals);
+         // ================= SELF =================
 
+            dto.setSelfReferrals(
+                    selfReferrals);
+
+            dto.setSelfReferralsPercentage(
+                    Math.round(
+                            selfPercentage * 100.0)
+                            / 100.0);
+
+
+            // ================= OTHER CHANNELS =================
+
+            dto.setOtherChannelsReferrals(
+                    otherChannelsReferrals);
+
+            dto.setOtherChannelsReferralsPercentage(
+                    Math.round(
+                            otherPercentage * 100.0)
+                            / 100.0);
             dto.setDoctorReferralsPercentage(
                     Math.round(
                             doctorPercentage * 100.0)

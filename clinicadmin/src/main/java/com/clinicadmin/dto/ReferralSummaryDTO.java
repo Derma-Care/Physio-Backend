@@ -14,6 +14,10 @@ public class ReferralSummaryDTO {
     private Long otherChannelsReferrals;
 
     private Double otherChannelsReferralsPercentage;
+    
+    private long selfReferrals;
+    
+    private double selfReferralsPercentage;
 
     private TopReferringDoctorDTO topReferringDoctor;
 }

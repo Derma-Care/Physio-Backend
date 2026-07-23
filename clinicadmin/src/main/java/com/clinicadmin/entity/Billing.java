@@ -33,7 +33,14 @@ public class Billing {
 
     private List<ServiceItem> services;
 
-    private Payment payment;
+    // Latest/current transaction
+    private Transaction newTransaction;
+
+    // Complete payment transaction history
+    private List<Transaction> transactions;
+
+    // Billing/payment totals
+    private PaymentSummary paymentSummary;
 
     private AdditionalDetails additionalDetails;
 
@@ -41,8 +48,4 @@ public class Billing {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-
-
-   
 }

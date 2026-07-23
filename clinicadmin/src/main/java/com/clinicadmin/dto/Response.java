@@ -26,7 +26,8 @@ public class Response {
 	private String branchId;
     private String branchName;
     private String loginType;
-    private boolean mainBranch;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Boolean mainBranch;
 	private String role;
 	private Map<String, List<String>> permissions;
 	private String fcmToken;
