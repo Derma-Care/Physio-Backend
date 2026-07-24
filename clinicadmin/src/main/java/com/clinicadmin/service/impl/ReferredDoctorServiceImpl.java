@@ -24,20 +24,36 @@ public class ReferredDoctorServiceImpl implements ReferredDoctorService {
         try {
             // ✅ Check if doctor with the same mobile number already exists
             if (repository.existsByMobileNumber(dto.getMobileNumber())) {
-                return Response.builder()
-                        .success(false)
-                        .message("Doctor with this mobile number already exists")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .build();
-            }
+            	// ✅ Check duplicate mobile number ONLY if mobile number is entered
+            	if (dto.getMobileNumber() != null 
+            	        && !dto.getMobileNumber().trim().isEmpty()) {
+            	}
+            	    String mobileNumber = dto.getMobileNumber().trim();
+
+            	    if (repository.existsByMobileNumber(mobileNumber)) {
+            	        return Response.builder()
+            	                .success(false)
+            	                .message("Doctor with this mobile number already exists")
+            	                .status(HttpStatus.BAD_REQUEST.value())
+            	                .build();
+            	    }
+            	}
 
             // ✅ Map DTO to Entity
             ReferredDoctor doctor = ReferredDoctorMapper.dtoToEntity(dto);
 
             // ✅ Generate Referral ID
-            String last4Mobile = doctor.getMobileNumber().length() >= 4
-                    ? doctor.getMobileNumber().substring(doctor.getMobileNumber().length() - 4)
-                    : doctor.getMobileNumber();
+            String last4Mobile = "";
+
+            if (doctor.getMobileNumber() != null 
+                    && !doctor.getMobileNumber().trim().isEmpty()) {
+
+                String mobileNumber = doctor.getMobileNumber().trim();
+
+                last4Mobile = mobileNumber.length() >= 4
+                        ? mobileNumber.substring(mobileNumber.length() - 4)
+                        : mobileNumber;
+            }
 
             String cleanName = doctor.getFullName().replaceAll("\\s+", "").replace(".", "");
 
