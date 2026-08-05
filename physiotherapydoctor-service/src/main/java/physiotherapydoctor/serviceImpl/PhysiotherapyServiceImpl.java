@@ -3,7 +3,15 @@ package physiotherapydoctor.serviceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +36,8 @@ import physiotherapydoctor.dto.DoctorLoginDTO;
 import physiotherapydoctor.dto.DoctorsDTO;
 import physiotherapydoctor.dto.Exercise;
 import physiotherapydoctor.dto.ExerciseCalculations;
+import physiotherapydoctor.dto.ExercisePlan;
+import physiotherapydoctor.dto.HomeExercise;
 import physiotherapydoctor.dto.Investigation;
 import physiotherapydoctor.dto.PackageCalculation;
 import physiotherapydoctor.dto.PatientHistoryResponse;
@@ -41,7 +51,6 @@ import physiotherapydoctor.dto.ResponseStructure;
 import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.SessionForBooking;
 import physiotherapydoctor.dto.TheraphyInfo;
-import physiotherapydoctor.dto.TherapistAssignmentDTO;
 import physiotherapydoctor.dto.TherapistRecordDetails;
 import physiotherapydoctor.dto.TherapyCalculations;
 import physiotherapydoctor.dto.TherapyData;
@@ -2356,5 +2365,176 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			return null;
 		}
 
+	}
+	
+
+
+	// =========================================================
+	// ✅ 2) UPDATE "HOME" EXERCISE PLAN BY RECORD ID
+	// append = true  -> merge new sessions into existing home exercises
+	// append = false -> full replace
+	// =========================================================
+	// =========================================================
+	// ✅ UPDATE "HOME" EXERCISE PLAN BY RECORD ID
+	// append = true  -> update matching exercises (by id) + add new ones, keep others untouched
+	// append = false -> full replace of exercisePlan
+	// =========================================================
+	@Override
+	public Response updateHomeExercisePlanByRecordId(String therapistRecordId, ExercisePlan exercisePlanDto, boolean append) {
+
+	    Response response = new Response();
+
+	    if (therapistRecordId == null || therapistRecordId.isBlank()) {
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("therapistRecordId is required");
+	        response.setStatus(400);
+	        return response;
+	    }
+
+	    if (exercisePlanDto == null) {
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Home exercise plan payload is null");
+	        response.setStatus(400);
+	        return response;
+	    }
+
+	    Optional<PhysiotherapyRecord> optional = repository.findById(therapistRecordId);
+
+	    if (optional.isEmpty()) {
+	        response.setSuccess(false);
+	        response.setData(null);
+	        response.setMessage("Record not found");
+	        response.setStatus(404);
+	        return response;
+	    }
+
+	    PhysiotherapyRecord existing = optional.get();
+
+	    if (!append || existing.getExercisePlan() == null) {
+
+	        existing.setExercisePlan(exercisePlanDto);
+
+	    } else {
+
+	        ExercisePlan currentPlan = existing.getExercisePlan();
+
+	        List<HomeExercise> currentExercises =
+	                currentPlan.getHomeExercises() != null
+	                        ? currentPlan.getHomeExercises()
+	                        : new ArrayList<>();
+
+	        List<HomeExercise> incomingExercises =
+	                exercisePlanDto.getHomeExercises() != null
+	                        ? exercisePlanDto.getHomeExercises()
+	                        : new ArrayList<>();
+
+	        Map<String, HomeExercise> byId = new LinkedHashMap<>();
+
+	        for (HomeExercise ex : currentExercises) {
+	            if (ex.getId() != null) {
+	                byId.put(ex.getId(), ex);
+	            }
+	        }
+
+	        for (HomeExercise incoming : incomingExercises) {
+
+	            if (incoming.getId() != null && byId.containsKey(incoming.getId())) {
+
+	                HomeExercise existingEx = byId.get(incoming.getId());
+
+	                if (incoming.getName() != null)
+	                    existingEx.setName(incoming.getName());
+
+	                if (incoming.getSets() != null)
+	                    existingEx.setSets(incoming.getSets());
+
+	                if (incoming.getReps() != null)
+	                    existingEx.setReps(incoming.getReps());
+
+	                if (incoming.getDuration() != null)
+	                    existingEx.setDuration(incoming.getDuration());
+
+	                if (incoming.getFrequency() != null)
+	                    existingEx.setFrequency(incoming.getFrequency());
+
+	                if (incoming.getInstructions() != null)
+	                    existingEx.setInstructions(incoming.getInstructions());
+
+	                if (incoming.getVideoUrl() != null)
+	                    existingEx.setVideoUrl(incoming.getVideoUrl());
+
+	                if (incoming.getThumbnail() != null)
+	                    existingEx.setThumbnail(incoming.getThumbnail());
+
+	                if (incoming.getSession() != null)
+	                    existingEx.setSession(incoming.getSession());
+
+	            } else {
+
+	                currentExercises.add(incoming);
+
+	                if (incoming.getId() != null) {
+	                    byId.put(incoming.getId(), incoming);
+	                }
+	            }
+	        }
+
+	        currentPlan.setHomeExercises(currentExercises);
+
+	        if (exercisePlanDto.getHomeAdvice() != null) {
+	            currentPlan.setHomeAdvice(exercisePlanDto.getHomeAdvice());
+	        }
+
+	        existing.setExercisePlan(currentPlan);
+	    }
+
+	    existing.setUpdatedAt(
+	            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+
+	    PhysiotherapyRecord updated = repository.save(existing);
+
+	    // -------- Build Response Without id --------
+	    Map<String, Object> data = new LinkedHashMap<>();
+	    data.put("homeAdvice",
+	            updated.getExercisePlan().getHomeAdvice() == null
+	                    ? ""
+	                    : updated.getExercisePlan().getHomeAdvice());
+
+	    List<Map<String, Object>> exercises = new ArrayList<>();
+
+	    if (updated.getExercisePlan().getHomeExercises() != null) {
+
+	        for (HomeExercise ex : updated.getExercisePlan().getHomeExercises()) {
+
+	            Map<String, Object> map = new LinkedHashMap<>();
+
+	            // id intentionally omitted
+
+	            map.put("name", ex.getName() == null ? "" : ex.getName());
+	            map.put("sets", ex.getSets() == null ? "" : ex.getSets());
+	            map.put("reps", ex.getReps() == null ? "" : ex.getReps());
+	            map.put("duration", ex.getDuration() == null ? "" : ex.getDuration());
+	            map.put("frequency", ex.getFrequency() == null ? "" : ex.getFrequency());
+	            map.put("instructions", ex.getInstructions() == null ? "" : ex.getInstructions());
+	            map.put("videoUrl", ex.getVideoUrl() == null ? "" : ex.getVideoUrl());
+	            map.put("thumbnail", ex.getThumbnail() == null ? "" : ex.getThumbnail());
+	            map.put("session", ex.getSession() == null ? "" : ex.getSession());
+
+	            exercises.add(map);
+	        }
+	    }
+
+	    data.put("homeExercises", exercises);
+
+	    response.setSuccess(true);
+	    response.setData(data);
+	    response.setMessage(append
+	            ? "Home exercise plan merged successfully"
+	            : "Home exercise plan replaced successfully");
+	    response.setStatus(200);
+
+	    return response;
 	}
 }

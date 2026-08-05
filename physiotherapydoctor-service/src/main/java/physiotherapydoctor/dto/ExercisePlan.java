@@ -9,4 +9,5 @@ public class ExercisePlan {
 
     private String homeAdvice;
     private List<HomeExercise> homeExercises;
+	
 }

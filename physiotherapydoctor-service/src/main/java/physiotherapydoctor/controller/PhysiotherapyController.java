@@ -12,16 +12,18 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import physiotherapydoctor.dto.FirstVisitHistoryRequest;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
+import physiotherapydoctor.dto.ExercisePlan;
+import physiotherapydoctor.dto.FirstVisitHistoryRequest;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.SessionForBooking;
+import physiotherapydoctor.dto.TherapySession;
 import physiotherapydoctor.dto.VisitHistoryRequest;
 import physiotherapydoctor.service.PhysiotherapyService;
 
@@ -287,5 +289,23 @@ public class PhysiotherapyController {
 		return service.getPhysioRecordsByTodayDate(clinicId,branchId,date);
 
 	}
+	
+	
 
+	// =========================================================
+	// ✅ UPDATE HOME EXERCISE PLAN BY RECORD ID
+	// append = true  -> update matching exercises by id + add new ones
+	// append = false -> full replace
+	// =========================================================
+	@PutMapping("/home-exercise-plan/{therapistRecordId}/{append}")
+	public ResponseEntity<Response> updateHomeExercisePlan(
+	        @PathVariable String therapistRecordId,
+	        @PathVariable boolean append,
+	        @RequestBody ExercisePlan exercisePlanDto) {
+
+	    Response response = service.updateHomeExercisePlanByRecordId(
+	            therapistRecordId, exercisePlanDto, append);
+
+	    return ResponseEntity.status(response.getStatus()).body(response);
+	}
 }

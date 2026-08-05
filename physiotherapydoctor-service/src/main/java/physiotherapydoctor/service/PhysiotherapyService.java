@@ -9,10 +9,12 @@ import physiotherapydoctor.dto.AssignTherapistRequest;
 import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
 import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
 import physiotherapydoctor.dto.DoctorLoginDTO;
+import physiotherapydoctor.dto.ExercisePlan;
 import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
 import physiotherapydoctor.dto.Response;
 import physiotherapydoctor.dto.Session;
 import physiotherapydoctor.dto.SessionForBooking;
+import physiotherapydoctor.dto.TherapySession;
 import physiotherapydoctor.entity.PhysiotherapyRecord;
 
 public interface PhysiotherapyService {
@@ -95,6 +97,9 @@ public interface PhysiotherapyService {
 			String clinicId,
 			String branchId,
 			String date);
+
+
+	Response updateHomeExercisePlanByRecordId(String therapistRecordId, ExercisePlan exercisePlanDto, boolean append);
 
 
 //	Response getTherapistDashboard(String clinicId, String branchId, String therapistId);

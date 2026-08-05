@@ -10,4 +10,6 @@ public class SessionDTO {
     private String sessionId;
     private String status;
     private String paymentStatus;
+    private String bookingStatus;
+	private String slot;
 }
