@@ -128,4 +128,6 @@ public interface DoctorService {
 
 	Response deleteSlotsByDateForProvider(String providerId, String branchId, String date);
 
+	boolean updateTherapistSlotBooking(String therapistId, String branchId, String date, String slot);
+
 }

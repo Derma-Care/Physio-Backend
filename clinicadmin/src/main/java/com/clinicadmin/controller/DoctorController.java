@@ -569,4 +569,10 @@ public class DoctorController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
+	@PutMapping("/updateTherapistSlotWhileBooking/{therapistId}/{branchId}/{date}/{slot}")
+	public boolean updateTherapistSlotWhileBooking(@PathVariable String therapistId, @PathVariable String branchId,
+			@PathVariable String date, @PathVariable String slot) {
+		return doctorService.updateTherapistSlotBooking(therapistId, branchId, date, slot);
+	}
+
 }
