@@ -119,4 +119,13 @@ public interface DoctorService {
 
 	Response changePasswordWithRole(ClinicStaffUpdatedPassword updateDTO);
 
+//--------------------------slots for therapist and doctor--------------------------------------------
+	Response saveSlotForProvider(String hospitalId, String branchId, String providerId, DoctorSlotDTO dto);
+
+	Response getSlotsForProvider(String hospitalId, String branchId, String providerId);
+
+	Response deleteSlotForProvider(String providerId, String branchId, String date, String slot);
+
+	Response deleteSlotsByDateForProvider(String providerId, String branchId, String date);
+
 }

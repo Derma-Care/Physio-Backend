@@ -55,6 +55,8 @@ import com.clinicadmin.entity.DoctorAndStaffLoginCredentials;
 import com.clinicadmin.entity.DoctorCounter;
 import com.clinicadmin.entity.DoctorSlot;
 import com.clinicadmin.entity.Doctors;
+import com.clinicadmin.entity.Therapist;
+import com.clinicadmin.entity.TherapistSlot;
 import com.clinicadmin.feignclient.AdminServiceClient;
 import com.clinicadmin.feignclient.BookingFeign;
 import com.clinicadmin.feignclient.NotificationFeign;
@@ -62,6 +64,8 @@ import com.clinicadmin.feignclient.NotificationFeign;
 import com.clinicadmin.repository.DoctorLoginCredentialsRepository;
 import com.clinicadmin.repository.DoctorSlotRepository;
 import com.clinicadmin.repository.DoctorsRepository;
+import com.clinicadmin.repository.TherapistRepository;
+import com.clinicadmin.repository.TherapistSlotRepository;
 import com.clinicadmin.service.DoctorService;
 import com.clinicadmin.service.EmailService;
 import com.clinicadmin.service.S3Service;
@@ -77,6 +81,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class DoctorServiceImpl implements DoctorService {
+	@Autowired
+	private TherapistRepository therapistRepository;
+
+	@Autowired
+	private TherapistSlotRepository therapistSlotRepository;
+
 	@Autowired
 	private DoctorsRepository doctorsRepository;
 
@@ -3939,4 +3949,311 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 	}
 
+//------------------------slots for thearpist or doctor-------------------------------------
+	@Override
+	public Response saveSlotForProvider(String hospitalId, String branchId, String providerId, DoctorSlotDTO dto) {
+
+		log.info("saveSlotForProvider called | hospitalId={}, branchId={}, providerId={}", hospitalId, branchId,
+				providerId);
+
+		Response response = new Response();
+
+		if (dto == null || dto.getAvailableSlots() == null || dto.getAvailableSlots().isEmpty()) {
+			response.setSuccess(false);
+			response.setMessage("Invalid slot details provided");
+			response.setStatus(HttpStatus.BAD_REQUEST.value());
+			return response;
+		}
+
+		// 1️⃣ Check if it's a doctor
+		Optional<Doctors> doctorOpt = doctorsRepository.findByDoctorId(providerId);
+		if (doctorOpt.isPresent()) {
+			log.info("providerId={} resolved as DOCTOR", providerId);
+			dto.setDoctorId(providerId);
+			return saveDoctorSlot(hospitalId, branchId, providerId, dto); // existing, unchanged logic
+		}
+
+		// 2️⃣ Check if it's a therapist
+		Optional<Therapist> therapistOpt = therapistRepository.findByTherapistId(providerId);
+		if (therapistOpt.isPresent()) {
+			log.info("providerId={} resolved as THERAPIST", providerId);
+			return saveTherapistSlot(hospitalId, branchId, providerId, dto);
+		}
+
+		// 3️⃣ Neither found
+		log.warn("providerId={} not found as doctor or therapist", providerId);
+		response.setSuccess(false);
+		response.setMessage("No doctor or therapist found with ID: " + providerId);
+		response.setStatus(HttpStatus.NOT_FOUND.value());
+		return response;
+	}
+
+	private Response saveTherapistSlot(String hospitalId, String branchId, String therapistId, DoctorSlotDTO dto) {
+
+		Response response = new Response();
+
+		try {
+			List<TherapistSlot> slotsOnDate = therapistSlotRepository.findAllByTherapistIdAndDate(therapistId,
+					dto.getDate());
+
+			List<DoctorAvailableSlotDTO> slotsWithAvailability = dto.getAvailableSlots().stream().map(incomingSlot -> {
+
+				Optional<TherapistSlot> conflictingSlot = slotsOnDate.stream().filter(slot -> slot.getAvailableSlots()
+						.stream().anyMatch(s -> s.getSlot().equals(incomingSlot.getSlot()))).findFirst();
+
+				if (conflictingSlot.isPresent()) {
+					incomingSlot.setAvailable(false);
+					incomingSlot.setReason("Already exists in " + conflictingSlot.get().getBranchName() + " Branch");
+				} else {
+					incomingSlot.setAvailable(true);
+					incomingSlot.setReason(null);
+				}
+				return incomingSlot;
+			}).toList();
+
+			List<DoctorAvailableSlotDTO> slotsToSave = slotsWithAvailability.stream()
+					.filter(DoctorAvailableSlotDTO::isAvailable).toList();
+
+			TherapistSlot savedSlot = null;
+
+			if (!slotsToSave.isEmpty()) {
+				TherapistSlot existingSlot = therapistSlotRepository.findByTherapistIdAndBranchIdAndDate(therapistId,
+						branchId, dto.getDate());
+
+				if (existingSlot != null) {
+					List<DoctorAvailableSlotDTO> currentSlots = existingSlot.getAvailableSlots();
+					List<DoctorAvailableSlotDTO> newUnique = slotsToSave.stream().filter(incoming -> currentSlots
+							.stream().noneMatch(existing -> existing.getSlot().equals(incoming.getSlot()))).toList();
+					currentSlots.addAll(newUnique);
+					existingSlot.setAvailableSlots(currentSlots);
+					savedSlot = therapistSlotRepository.save(existingSlot);
+				} else {
+					TherapistSlot newSlot = new TherapistSlot();
+					newSlot.setTherapistId(therapistId);
+					newSlot.setClinicId(hospitalId);
+					newSlot.setBranchId(branchId);
+					newSlot.setDate(dto.getDate());
+
+					ResponseEntity<Response> branchResponse = adminServiceClient.getBranchById(branchId);
+					Branch branchDetails = objectMapper.convertValue(branchResponse.getBody().getData(), Branch.class);
+					if (branchDetails != null) {
+						newSlot.setBranchName(branchDetails.getBranchName());
+					}
+
+					newSlot.setAvailableSlots(slotsToSave);
+					savedSlot = therapistSlotRepository.save(newSlot);
+				}
+			}
+
+			response.setSuccess(true);
+			response.setData(slotsWithAvailability);
+			response.setMessage(
+					"Slots processed successfully for therapist. Unavailable slots are flagged with branch info.");
+			response.setStatus(HttpStatus.OK.value());
+
+		} catch (Exception e) {
+			log.error("Exception while saving therapist slots | therapistId={}, error={}", therapistId, e.getMessage(),
+					e);
+			response.setSuccess(false);
+			response.setMessage("An error occurred while saving therapist slots: " + e.getMessage());
+			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
+
+		return response;
+	}
+
+	// ---------- GET ----------
+	@Override
+	public Response getSlotsForProvider(String hospitalId, String branchId, String providerId) {
+
+		log.info("getSlotsForProvider | hospitalId={}, branchId={}, providerId={}", hospitalId, branchId, providerId);
+		Response response = new Response();
+
+		if (doctorsRepository.findByDoctorId(providerId).isPresent()) {
+			return getDoctorSlots(hospitalId, branchId, providerId); // existing method, untouched
+		}
+
+		if (therapistRepository.findByTherapistId(providerId).isPresent()) {
+			return getTherapistSlots(hospitalId, branchId, providerId);
+		}
+
+		response.setSuccess(false);
+		response.setMessage("No doctor or therapist found with ID: " + providerId);
+		response.setStatus(HttpStatus.NOT_FOUND.value());
+		return response;
+	}
+
+	private Response getTherapistSlots(String hospitalId, String branchId, String therapistId) {
+
+		Response response = new Response();
+		List<TherapistSlot> slots = therapistSlotRepository.findByClinicIdAndBranchIdAndTherapistId(hospitalId,
+				branchId, therapistId);
+
+		if (slots == null || slots.isEmpty()) {
+			response.setSuccess(true);
+			response.setData(null);
+			response.setMessage("Slots Not Found");
+			response.setStatus(HttpStatus.OK.value());
+			return response;
+		}
+
+		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+		LocalDate today = ZonedDateTime.now(zoneId).toLocalDate();
+		LocalTime now = ZonedDateTime.now(zoneId).toLocalTime();
+		DateTimeFormatter formatter = new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("h:mm a")
+				.toFormatter(Locale.ENGLISH);
+
+		for (TherapistSlot slotEntity : slots) {
+			LocalDate slotDate = LocalDate.parse(slotEntity.getDate());
+			for (DoctorAvailableSlotDTO slot : slotEntity.getAvailableSlots()) {
+				LocalTime slotTime = LocalTime.parse(normalizeTime(slot.getSlot()), formatter);
+
+				if (slot.isSlotbooked()) {
+					slot.setAvailable(false);
+					slot.setReason("Already booked");
+				} else if (slotDate.isBefore(today)) {
+					slot.setAvailable(false);
+					slot.setReason("Date already passed");
+				} else if (slotDate.equals(today) && slotTime.isBefore(now)) {
+					slot.setAvailable(false);
+					slot.setReason("Time already passed");
+				} else {
+					slot.setAvailable(true);
+					slot.setReason(null);
+				}
+			}
+		}
+
+		response.setSuccess(true);
+		response.setData(slots);
+		response.setMessage("Slots fetched successfully");
+		response.setStatus(HttpStatus.OK.value());
+		return response;
+	}
+
+	// ---------- DELETE single slot ----------
+	@Override
+	public Response deleteSlotForProvider(String providerId, String branchId, String date, String slot) {
+
+		if (doctorsRepository.findByDoctorId(providerId).isPresent()) {
+			return deleteDoctorSlot(providerId, branchId, date, slot); // existing method, untouched
+		}
+
+		if (therapistRepository.findByTherapistId(providerId).isPresent()) {
+			return deleteTherapistSlot(providerId, branchId, date, slot);
+		}
+
+		Response response = new Response();
+		response.setSuccess(false);
+		response.setMessage("No doctor or therapist found with ID: " + providerId);
+		response.setStatus(HttpStatus.NOT_FOUND.value());
+		return response;
+	}
+
+	private Response deleteTherapistSlot(String therapistId, String branchId, String date, String slotToDelete) {
+
+		Response response = new Response();
+		try {
+			TherapistSlot therapistSlot = therapistSlotRepository.findByTherapistIdAndBranchIdAndDate(therapistId,
+					branchId, date);
+
+			if (therapistSlot == null) {
+				response.setSuccess(false);
+				response.setMessage("No slot found for the therapist in this branch on the given date");
+				response.setStatus(HttpStatus.NOT_FOUND.value());
+				return response;
+			}
+
+			boolean slotExists = therapistSlot.getAvailableSlots().stream()
+					.anyMatch(s -> slotToDelete.equals(s.getSlot()) && !s.isSlotbooked());
+
+			if (!slotExists) {
+				response.setSuccess(false);
+				response.setMessage("Slot not found or already booked");
+				response.setStatus(HttpStatus.BAD_REQUEST.value());
+				return response;
+			}
+
+			List<DoctorAvailableSlotDTO> updatedSlots = therapistSlot.getAvailableSlots().stream()
+					.filter(s -> !(slotToDelete.equals(s.getSlot()) && !s.isSlotbooked())).collect(Collectors.toList());
+
+			therapistSlot.setAvailableSlots(updatedSlots);
+			therapistSlotRepository.save(therapistSlot);
+
+			response.setSuccess(true);
+			response.setData(therapistSlot);
+			response.setMessage("Slot deleted successfully for the given branch");
+			response.setStatus(HttpStatus.OK.value());
+
+		} catch (Exception e) {
+			log.error("Exception while deleting therapist slot | therapistId={}, branchId={}, date={}", therapistId,
+					branchId, date, e);
+			response.setSuccess(false);
+			response.setMessage("Internal server error occurred: " + e.getMessage());
+			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
+		return response;
+	}
+
+	// ---------- DELETE all slots by date ----------
+	@Override
+	public Response deleteSlotsByDateForProvider(String providerId, String branchId, String date) {
+
+		if (doctorsRepository.findByDoctorId(providerId).isPresent()) {
+			return deleteDoctorSlotbyDate(providerId, branchId, date); // existing method, untouched
+		}
+
+		if (therapistRepository.findByTherapistId(providerId).isPresent()) {
+			return deleteTherapistSlotByDate(providerId, branchId, date);
+		}
+
+		Response response = new Response();
+		response.setSuccess(false);
+		response.setMessage("No doctor or therapist found with ID: " + providerId);
+		response.setStatus(HttpStatus.NOT_FOUND.value());
+		return response;
+	}
+
+	private Response deleteTherapistSlotByDate(String therapistId, String branchId, String date) {
+
+		Response response = new Response();
+		try {
+			TherapistSlot therapistSlot = therapistSlotRepository.findByTherapistIdAndBranchIdAndDate(therapistId,
+					branchId, date);
+
+			if (therapistSlot == null) {
+				response.setSuccess(false);
+				response.setMessage("No slots found for the therapist in this branch on the given date");
+				response.setStatus(HttpStatus.NOT_FOUND.value());
+				return response;
+			}
+
+			List<DoctorAvailableSlotDTO> bookedSlots = therapistSlot.getAvailableSlots().stream()
+					.filter(DoctorAvailableSlotDTO::isSlotbooked).collect(Collectors.toList());
+
+			if (bookedSlots.isEmpty()) {
+				therapistSlotRepository.delete(therapistSlot);
+				response.setSuccess(true);
+				response.setMessage("All unbooked slots deleted successfully (no booked slots found).");
+				response.setStatus(HttpStatus.OK.value());
+				return response;
+			}
+
+			therapistSlot.setAvailableSlots(bookedSlots);
+			therapistSlotRepository.save(therapistSlot);
+
+			response.setSuccess(true);
+			response.setData(bookedSlots);
+			response.setMessage("Unbooked slots deleted successfully, booked slots retained.");
+			response.setStatus(HttpStatus.OK.value());
+
+		} catch (Exception e) {
+			log.error("Exception while deleting therapist slots by date | therapistId={}, branchId={}, date={}",
+					therapistId, branchId, date, e);
+			response.setSuccess(false);
+			response.setMessage("Internal server error occurred: " + e.getMessage());
+			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
+		return response;
+	}
 }
