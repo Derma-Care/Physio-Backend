@@ -164,4 +164,9 @@ public interface ClinicAdminFeign {
 	public ResponseEntity<Response> resetPassword(@PathVariable("role") String role,
 			@PathVariable("mobileNumber") String mobileNumber, @RequestBody ResetPasswordDTO dto);
 
+	@PutMapping("/clinic-admin/updateTherapistSlotWhileBooking/{therapistId}/{branchId}/{date}/{slot}")
+	boolean updateTherapistSlotWhileBooking(@PathVariable("therapistId") String therapistId,
+			@PathVariable("branchId") String branchId, @PathVariable("date") String date,
+			@PathVariable("slot") String slot);
+
 }

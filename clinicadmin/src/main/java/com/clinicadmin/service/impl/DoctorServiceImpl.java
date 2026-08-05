@@ -4256,4 +4256,54 @@ public class DoctorServiceImpl implements DoctorService {
 		}
 		return response;
 	}
+	// ------------------------ Book a therapist slot (mark slotbooked=true) ------------------------
+	@Override
+	public boolean updateTherapistSlotBooking(String therapistId, String branchId, String date, String slot) {
+
+	    log.info("Book therapist slot request | therapistId={}, branchId={}, date={}, slot={}", therapistId, branchId,
+	            date, slot);
+
+	    if (therapistId == null || branchId == null || date == null || slot == null) {
+	        log.warn("Invalid input received while booking therapist slot");
+	        return false;
+	    }
+
+	    try {
+	        TherapistSlot therapistSlot = therapistSlotRepository.findByTherapistIdAndBranchIdAndDate(therapistId,
+	                branchId, date);
+
+	        if (therapistSlot == null || therapistSlot.getAvailableSlots() == null
+	                || therapistSlot.getAvailableSlots().isEmpty()) {
+	            log.warn("No slots found for therapistId={}, branchId={}, date={}", therapistId, branchId, date);
+	            return false;
+	        }
+
+	        Optional<DoctorAvailableSlotDTO> matchingSlotOpt = therapistSlot.getAvailableSlots().stream()
+	                .filter(s -> slot.equalsIgnoreCase(s.getSlot())).findFirst();
+
+	        if (matchingSlotOpt.isEmpty()) {
+	            log.warn("Requested slot not found | therapistId={}, date={}, slot={}", therapistId, date, slot);
+	            return false;
+	        }
+
+	        DoctorAvailableSlotDTO matchingSlot = matchingSlotOpt.get();
+
+	        if (matchingSlot.isSlotbooked()) {
+	            log.info("Slot already booked | therapistId={}, date={}, slot={}", therapistId, date, slot);
+	            return true; // already booked, treat as success (idempotent)
+	        }
+
+	        matchingSlot.setSlotbooked(true);
+	        therapistSlotRepository.save(therapistSlot);
+
+	        log.info("Therapist slot successfully booked | therapistId={}, branchId={}, date={}, slot={}", therapistId,
+	                branchId, date, slot);
+	        return true;
+
+	    } catch (Exception e) {
+	        log.error("Exception while booking therapist slot | therapistId={}, branchId={}, date={}, slot={}",
+	                therapistId, branchId, date, slot, e);
+	        return false;
+	    }
+	}
 }
