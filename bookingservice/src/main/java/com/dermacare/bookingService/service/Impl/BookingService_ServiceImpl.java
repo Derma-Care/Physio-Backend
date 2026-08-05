@@ -454,18 +454,6 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		return String.valueOf(sixDigitNumber);
 	}
 
-	// ✅ FIX (root cause of "Error fetching today bookings : null"):
-	// Previously this returned Collections.emptyList() for the empty/null
-	// case. Collections.emptyList() is IMMUTABLE. Several callers
-	// (getTodayAllBookings, getBookingByCustomRange, etc.) do
-	// `responses.addAll(...)` on the result of this method after checking
-	// for follow-up bookings. When today's own bookings were empty but
-	// follow-ups existed, that .addAll() call threw
-	// UnsupportedOperationException — and that exception's getMessage() is
-	// null by default, which is exactly why the API returned:
-	//   {"success":false,"message":"Error fetching today bookings : null","status":500}
-	// Returning a plain mutable ArrayList here fixes every call site at once,
-	// with zero behavior change for callers that only read the list.
 	private List<BookingResponse> toResponses(List<Booking> bookings) {
 	    if (bookings == null || bookings.isEmpty()) {
 	        return new ArrayList<>();
@@ -1014,8 +1002,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				BookingResponse res = toResponse(entity);
 				List<Session> lst = new ArrayList<>();
 				try {
+                    if(entity.getStatus() != null || !entity.getStatus().isEmpty()){
 					lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate()).getBody();
-					res.setSession(lst);
+                    lst = lst.stream().filter(n->n.getSlot() != null).toList();
+					res.setSession(lst);}
 				} catch (Exception e) {
 				}
 				return res;
@@ -2484,20 +2474,20 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			// Session details
 			for (BookingResponse booking : responses) {
 				try {
+                    if(booking.getStatus() != null){
 					ResponseEntity<List<Session>> sessionResponse = physioDoctorFeign
 							.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
 
 					List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
-
+                    sessions = sessions.stream().filter(n->n.getSlot() != null).toList();
 					if (sessions != null && !sessions.isEmpty()) {
-
 						booking.setSession(sessions);
 						booking.setVisitType("session");
 
 					} else {
 
 						booking.setSession(null);
-					}
+					}}
 
 				} catch (Exception ex) {
 
@@ -2734,11 +2724,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					startDate.format(FORMATTER), endDate.format(FORMATTER));
 			List<BookingResponse> res = toResponses(bookings);
 			try {
-				res = res.stream().map(n -> {
+				res = res.stream().map(n -> {if(n.getStatus() != null){
 
 					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 							.getBody();
-
+                    lst = lst.stream().filter(p->p.getSlot()!= null).toList();
 					if (lst != null && !lst.isEmpty()) {
 
 						n.setSession(lst);
@@ -2748,7 +2738,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					} else {
 
 						n.setSession(null);
-					}
+					}}
 
 					return n;
 
@@ -2825,15 +2815,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			List<BookingResponse> res = toResponses(bookings);
 
 			try {
-				res = res.stream().map(n -> {
+				res = res.stream().map(n -> { if(n.getStatus() != null){
 					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 							.getBody();
+                    lst = lst.stream().filter(p->p.getSlot()!= null).toList();
 					if (lst != null) {
 						n.setSession(lst);
 						n.setVisitType("session");
 					} else {
 						n.setSession(null);
-					}
+					}}
 					return n;
 				}).toList();
 
@@ -2906,10 +2897,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			// Populate session details
 			responses = responses.stream()
-					.map(response -> {
-
+					.map(response -> { if(response.getStatus()!=null){
 						try {
-
 							ResponseEntity<List<Session>> sessionResponse =
 									physioDoctorFeign.getPhysioByBookingId(
 											response.getBookingId(),
@@ -2919,7 +2908,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									sessionResponse != null
 											? sessionResponse.getBody()
 											: null;
-
+                            sessions = sessions.stream().filter(n->n.getSlot()!=null).toList();
 							if (sessions != null && !sessions.isEmpty()) {
 								response.setSession(sessions);
 								response.setVisitType("session");
@@ -2931,7 +2920,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									"Error fetching sessions for bookingId: {}",
 									response.getBookingId(),
 									ex);
-						}
+						}}
 
 						return response;
 
@@ -3110,9 +3099,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 								BookingResponse.class);
 						List<Session> lst = new ArrayList<>();
 						try {
+                            if(booking.get().getStatus()!= null){
 							lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate())
 									.getBody();
-							res.setSession(lst);
+                                lst = 	lst.stream().filter(n->n.getSlot()!= null).toList();
+							res.setSession(lst);}
 						} catch (Exception e) {
 						}
 					}

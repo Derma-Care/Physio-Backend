@@ -34,6 +34,8 @@ public class PaymentRecordResponse {
 
 	private String sessionStartDate;
 	private String sessionEndDate;
+    private String notificationTriggerDate;
+
 	private int totalSessionCount;
 	private int noOfSessionCompletedCount;
 	private boolean noOfSessionCompletedStatus;

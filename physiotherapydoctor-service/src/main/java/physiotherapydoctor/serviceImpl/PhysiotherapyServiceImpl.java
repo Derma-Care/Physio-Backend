@@ -1730,6 +1730,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					bookingSession.setStatus(session.getStatus());
 					bookingSession.setPaymentStatus(session.getPaymentStatus());
 
+                    bookingSession.setSlot(session.getSlot());
+                    bookingSession.setBookingStatus(session.getBookingStatus());
 					// from parent exercise
 					bookingSession.setExerciseId(ex.getExerciseId());
 					bookingSession.setExerciseName(ex.getExerciseName());

@@ -16,4 +16,8 @@ public class SessionForBooking {
 	private String paymentStatus;
 	private String exerciseId;
     private String exerciseName;
+
+    private String bookingStatus;
+    private String slot;
+
 }

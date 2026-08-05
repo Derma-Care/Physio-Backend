@@ -132,6 +132,10 @@ public class PaymentServiceImpl implements PaymentService {
 		record.setSessionTableCreatedStatus(created);
 		// ✅ Set session end date
 		record.setSessionEndDate(getLastSessionDate(req.getTherapyWithSessions()));
+        try{
+            LocalDate date = LocalDate.parse(record.getSessionEndDate(),DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH));
+            record.setNotificationTriggerDate(date.plusDays(16).toString());
+        }catch (Exception e){}
 
 		// ✅ STEP 2: Set normalized data on record BEFORE distribute/status calls
 		record.setTherapyWithSessions(req.getTherapyWithSessions());

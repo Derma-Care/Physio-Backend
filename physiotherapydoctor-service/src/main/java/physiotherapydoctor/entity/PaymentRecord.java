@@ -2,6 +2,7 @@ package physiotherapydoctor.entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -16,6 +17,7 @@ import physiotherapydoctor.dto.TherapyWithSessions;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PaymentRecord {
 
 	@Id
@@ -49,8 +51,9 @@ public class PaymentRecord {
 	// 📅 SESSION
 	private String sessionStartDate;
 	private String sessionEndDate;
+    private String notificationTriggerDate;
 
-	private int totalSessionCount;
+    private int totalSessionCount;
 
 	private int noOfSessionCompletedCount;
 	private boolean noOfSessionCompletedStatus;
