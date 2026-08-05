@@ -9,14 +9,18 @@ import physiotherapydoctor.entity.PaymentRecord;
 
 public interface PaymentRepository extends MongoRepository<PaymentRecord, String> {
 
-    Optional<PaymentRecord> findByBookingId(String bookingId);
+	Optional<PaymentRecord> findByBookingId(String bookingId);
 
 	List<PaymentRecord> findByTherapistRecordId(String therapistRecordId);
 
-	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(String clinicId,
-			String branchId, String bookingId, String patientId,String therapistId, String therapistRecordId);
+	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(
+			String clinicId, String branchId, String bookingId, String patientId, String therapistId,
+			String therapistRecordId);
 
 	List<PaymentRecord> findByClinicIdAndBranchId(String clinicId, String branchId);
 
 	List<PaymentRecord> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
+
+	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientId(String clinicId, String branchId,
+			String bookingId, String patientId);
 }

@@ -1174,10 +1174,24 @@ public class PaymentServiceImpl implements PaymentService {
 	// ========================================================
 	// BUILD SESSION HELPER
 	// ========================================================
+//	private Session buildSession(String exerciseId, int sessionNo, LocalDate date) {
+//		String uniqueSessionId = exerciseId + "_" + sessionNo + "_"
+//				+ UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+//		return new Session(uniqueSessionId, Integer.valueOf(sessionNo), date.toString(), "Pending", "Unpaid");
+//	}
 	private Session buildSession(String exerciseId, int sessionNo, LocalDate date) {
-		String uniqueSessionId = exerciseId + "_" + sessionNo + "_"
-				+ UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-		return new Session(uniqueSessionId, Integer.valueOf(sessionNo), date.toString(), "Pending", "Unpaid");
+	    String uniqueSessionId = exerciseId + "_" + sessionNo + "_"
+	            + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+	    return new Session(
+	            uniqueSessionId,
+	            Integer.valueOf(sessionNo),
+	            date.toString(),
+	            "Pending",      // status
+	            "Unpaid",       // paymentStatus
+	            "NA",           // bookingStatus - not known yet at creation time
+	            "NA"            // slot - not known yet at creation time
+	    );
 	}
 
 	// ========================================================
@@ -1762,5 +1776,84 @@ public class PaymentServiceImpl implements PaymentService {
 				.message("Revenue summary fetched successfully").status(HttpStatus.OK.value()).build();
 
 		return ResponseEntity.ok(response);
+	}
+	// ========================================================
+	// UPDATE SESSION DATE / SLOT / BOOKING STATUS
+	// ========================================================
+	@Override
+	public Response updateSessionBookingDetails(UpdateSessionBookingDTO dto) {
+
+	    Response response = new Response();
+
+	    try {
+
+	        if (dto.getSessionId() == null || dto.getSessionId().trim().isEmpty()) {
+	            response.setSuccess(false);
+	            response.setStatus(400);
+	            response.setMessage("sessionId is required");
+	            return response;
+	        }
+
+	        PaymentRecord record = repo
+	                .findByClinicIdAndBranchIdAndBookingIdAndPatientId(dto.getClinicId(), dto.getBranchId(),
+	                        dto.getBookingId(), dto.getPatientId())
+	                .orElseThrow(() -> new RuntimeException("Payment record not found for given clinicId, branchId, bookingId, patientId"));
+
+	        boolean found = false;
+
+	        outer:
+	        for (var pkg : record.getTherapyWithSessions()) {
+	            if (pkg.getPrograms() == null) continue;
+	            for (var prog : pkg.getPrograms()) {
+	                if (prog.getTherapyData() == null) continue;
+	                for (var therapy : prog.getTherapyData()) {
+	                    if (therapy.getExercises() == null) continue;
+	                    for (var ex : therapy.getExercises()) {
+	                        if (ex.getSessions() == null) continue;
+	                        for (var session : ex.getSessions()) {
+	                            if (dto.getSessionId().equals(session.getSessionId())) {
+
+	                                if (dto.getDate() != null && !dto.getDate().isBlank()) {
+	                                    session.setDate(dto.getDate());
+	                                }
+	                                if (dto.getSlot() != null && !dto.getSlot().isBlank()) {
+	                                    session.setSlot(dto.getSlot());
+	                                }
+	                                if (dto.getBookingStatus() != null && !dto.getBookingStatus().isBlank()) {
+	                                    session.setBookingStatus(dto.getBookingStatus());
+	                                }
+
+	                                found = true;
+	                                break outer;
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
+
+	        if (!found) {
+	            response.setSuccess(false);
+	            response.setStatus(404);
+	            response.setMessage("Session not found with ID: " + dto.getSessionId());
+	            return response;
+	        }
+
+	        repo.save(record);
+
+	        response.setSuccess(true);
+	        response.setStatus(200);
+	        response.setMessage("Session date/slot/bookingStatus updated successfully");
+	        response.setData(dto);
+
+	    } catch (Exception e) {
+	        log.error("Error updating session booking details | sessionId={} | error={}", dto.getSessionId(),
+	                e.getMessage(), e);
+	        response.setSuccess(false);
+	        response.setStatus(400);
+	        response.setMessage(e.getMessage());
+	    }
+
+	    return response;
 	}
 }

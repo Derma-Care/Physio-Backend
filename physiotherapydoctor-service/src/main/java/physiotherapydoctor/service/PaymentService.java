@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
+import physiotherapydoctor.dto.UpdateSessionBookingDTO;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.util.RevenueResponse;
 
@@ -55,6 +56,8 @@ public interface PaymentService {
 	ResponseEntity<Response> getRevenueSummary(
 			String clinicId,
 			String branchId);
+
+	Response updateSessionBookingDetails(UpdateSessionBookingDTO dto);
 }
 
 

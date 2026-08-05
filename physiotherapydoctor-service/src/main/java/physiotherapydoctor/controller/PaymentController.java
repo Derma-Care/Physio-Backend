@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import physiotherapydoctor.dto.PaymentRequest;
 import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.dto.RevenueManagementDTO;
+import physiotherapydoctor.dto.UpdateSessionBookingDTO;
 import physiotherapydoctor.dto.response.PaymentRecordResponse;
 import physiotherapydoctor.service.PaymentService;
 import physiotherapydoctor.util.RevenueResponse;
@@ -249,5 +249,12 @@ public class PaymentController {
 		int response = service.getTodaySessionCount(clinicId, branchId, therapistId);
 
 		return response;
+	}
+	// ================= UPDATE SESSION DATE/SLOT/BOOKING STATUS =================
+	@PutMapping("/session/update-booking")
+	public ResponseEntity<Response> updateSessionBookingDetails(@RequestBody UpdateSessionBookingDTO dto) {
+
+	    Response response = service.updateSessionBookingDetails(dto);
+	    return ResponseEntity.status(response.getStatus()).body(response);
 	}
 }
