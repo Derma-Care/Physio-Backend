@@ -131,10 +131,6 @@ public class PaymentServiceImpl implements PaymentService {
 		record.setSessionTableCreatedStatus(created);
 		// ✅ Set session end date
 		record.setSessionEndDate(getLastSessionDate(req.getTherapyWithSessions()));
-        try{
-            LocalDate date = LocalDate.parse(record.getSessionEndDate(),DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH));
-            record.setNotificationTriggerDate(date.plusDays(16).toString());
-        }catch (Exception e){}
 
 		// ✅ STEP 2: Set normalized data on record BEFORE distribute/status calls
 		record.setTherapyWithSessions(req.getTherapyWithSessions());
@@ -1780,6 +1776,9 @@ public class PaymentServiceImpl implements PaymentService {
 	// ========================================================
 	// UPDATE SESSION DATE / SLOT / BOOKING STATUS
 	// ========================================================
+	// ========================================================
+	// UPDATE SESSION DATE / SLOT / BOOKING STATUS
+	// ========================================================
 	@Override
 	public Response updateSessionBookingDetails(UpdateSessionBookingDTO dto) {
 
@@ -1797,13 +1796,14 @@ public class PaymentServiceImpl implements PaymentService {
 	        PaymentRecord record = repo
 	                .findByClinicIdAndBranchIdAndBookingIdAndPatientId(dto.getClinicId(), dto.getBranchId(),
 	                        dto.getBookingId(), dto.getPatientId())
-	                .orElseThrow(() -> new RuntimeException("Payment record not found for given clinicId, branchId, bookingId, patientId"));
+	                .orElseThrow(() -> new RuntimeException(
+	                        "Payment record not found for given clinicId, branchId, bookingId, patientId"));
 
 	        boolean found = false;
 	        String oldDate = null;
 	        String oldSlot = null;
 
-//	        outer:
+	        outer:
 	        for (var pkg : record.getTherapyWithSessions()) {
 	            if (pkg.getPrograms() == null) continue;
 	            for (var prog : pkg.getPrograms()) {
@@ -1815,7 +1815,6 @@ public class PaymentServiceImpl implements PaymentService {
 	                        for (var session : ex.getSessions()) {
 	                            if (dto.getSessionId().equals(session.getSessionId())) {
 
-	                                // ✅ capture old values BEFORE overwriting
 	                                oldDate = session.getDate();
 	                                oldSlot = session.getSlot();
 
@@ -1860,7 +1859,6 @@ public class PaymentServiceImpl implements PaymentService {
 	            boolean isRescheduled = "Rescheduled".equalsIgnoreCase(status);
 	            boolean isCancelled = "Cancelled".equalsIgnoreCase(status);
 
-	            // Release the OLD slot for both Rescheduled and Cancelled
 	            if ((isRescheduled || isCancelled) && oldDate != null && !oldDate.isBlank()
 	                    && oldSlot != null && !oldSlot.isBlank()) {
 	                try {
@@ -1874,7 +1872,6 @@ public class PaymentServiceImpl implements PaymentService {
 	                }
 	            }
 
-	            // Book the NEW slot only if Rescheduled (Cancelled has no new slot to book)
 	            if (isRescheduled && dto.getDate() != null && !dto.getDate().isBlank()
 	                    && dto.getSlot() != null && !dto.getSlot().isBlank()) {
 	                try {
@@ -1888,7 +1885,6 @@ public class PaymentServiceImpl implements PaymentService {
 	                }
 	            }
 
-	            // For any other status (e.g. "Confirmed"), just book the current slot as before
 	            if (!isRescheduled && !isCancelled && dto.getSlot() != null && !dto.getSlot().isBlank()
 	                    && dto.getDate() != null && !dto.getDate().isBlank()) {
 	                try {
