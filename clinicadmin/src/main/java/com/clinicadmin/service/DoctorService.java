@@ -130,4 +130,6 @@ public interface DoctorService {
 
 	boolean updateTherapistSlotBooking(String therapistId, String branchId, String date, String slot);
 
+	boolean releaseTherapistSlotBooking(String therapistId, String branchId, String date, String slot);
+
 }

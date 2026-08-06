@@ -168,5 +168,10 @@ public interface ClinicAdminFeign {
 	boolean updateTherapistSlotWhileBooking(@PathVariable("therapistId") String therapistId,
 			@PathVariable("branchId") String branchId, @PathVariable("date") String date,
 			@PathVariable("slot") String slot);
+	
+	@PutMapping("/clinic-admin/releaseTherapistSlotWhileBooking/{therapistId}/{branchId}/{date}/{slot}")
+	boolean releaseTherapistSlotWhileBooking(@PathVariable("therapistId") String therapistId,
+	        @PathVariable("branchId") String branchId, @PathVariable("date") String date,
+	        @PathVariable("slot") String slot);
 
 }

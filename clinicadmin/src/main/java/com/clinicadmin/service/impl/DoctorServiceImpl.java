@@ -4306,4 +4306,56 @@ public class DoctorServiceImpl implements DoctorService {
 	        return false;
 	    }
 	}
+	
+//	-------------------------Release therapist slot----------------------------------
+	// ------------------------ Release a therapist slot (mark slotbooked=false) ------------------------
+	@Override
+	public boolean releaseTherapistSlotBooking(String therapistId, String branchId, String date, String slot) {
+
+	    log.info("Release therapist slot request | therapistId={}, branchId={}, date={}, slot={}", therapistId,
+	            branchId, date, slot);
+
+	    if (therapistId == null || branchId == null || date == null || slot == null) {
+	        log.warn("Invalid input received while releasing therapist slot");
+	        return false;
+	    }
+
+	    try {
+	        TherapistSlot therapistSlot = therapistSlotRepository.findByTherapistIdAndBranchIdAndDate(therapistId,
+	                branchId, date);
+
+	        if (therapistSlot == null || therapistSlot.getAvailableSlots() == null
+	                || therapistSlot.getAvailableSlots().isEmpty()) {
+	            log.warn("No slots found to release | therapistId={}, branchId={}, date={}", therapistId, branchId, date);
+	            return false;
+	        }
+
+	        Optional<DoctorAvailableSlotDTO> matchingSlotOpt = therapistSlot.getAvailableSlots().stream()
+	                .filter(s -> slot.equalsIgnoreCase(s.getSlot())).findFirst();
+
+	        if (matchingSlotOpt.isEmpty()) {
+	            log.warn("Requested slot not found for release | therapistId={}, date={}, slot={}", therapistId, date,
+	                    slot);
+	            return false;
+	        }
+
+	        DoctorAvailableSlotDTO matchingSlot = matchingSlotOpt.get();
+
+	        if (matchingSlot.isSlotbooked()) {
+	            matchingSlot.setSlotbooked(false);
+	            therapistSlotRepository.save(therapistSlot);
+	            log.info("Therapist slot released successfully | therapistId={}, branchId={}, date={}, slot={}",
+	                    therapistId, branchId, date, slot);
+	        } else {
+	            log.info("Slot already unbooked | therapistId={}, date={}, slot={}", therapistId, date, slot);
+	        }
+
+	        return true;
+
+	    } catch (Exception e) {
+	        log.error("Exception while releasing therapist slot | therapistId={}, branchId={}, date={}, slot={}",
+	                therapistId, branchId, date, slot, e);
+	        return false;
+	    }
+	}
 }

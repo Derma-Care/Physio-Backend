@@ -574,5 +574,11 @@ public class DoctorController {
 			@PathVariable String date, @PathVariable String slot) {
 		return doctorService.updateTherapistSlotBooking(therapistId, branchId, date, slot);
 	}
+	
+	@PutMapping("/releaseTherapistSlotWhileBooking/{therapistId}/{branchId}/{date}/{slot}")
+	public boolean releaseTherapistSlotWhileBooking(@PathVariable String therapistId, @PathVariable String branchId,
+	        @PathVariable String date, @PathVariable String slot) {
+	    return doctorService.releaseTherapistSlotBooking(therapistId, branchId, date, slot);
+	}
 
 }

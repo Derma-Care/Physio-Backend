@@ -1783,98 +1783,139 @@ public class PaymentServiceImpl implements PaymentService {
 	@Override
 	public Response updateSessionBookingDetails(UpdateSessionBookingDTO dto) {
 
-		Response response = new Response();
+	    Response response = new Response();
 
-		try {
+	    try {
 
-			if (dto.getSessionId() == null || dto.getSessionId().trim().isEmpty()) {
-				response.setSuccess(false);
-				response.setStatus(400);
-				response.setMessage("sessionId is required");
-				return response;
-			}
+	        if (dto.getSessionId() == null || dto.getSessionId().trim().isEmpty()) {
+	            response.setSuccess(false);
+	            response.setStatus(400);
+	            response.setMessage("sessionId is required");
+	            return response;
+	        }
 
-			PaymentRecord record = repo
-					.findByClinicIdAndBranchIdAndBookingIdAndPatientId(dto.getClinicId(), dto.getBranchId(),
-							dto.getBookingId(), dto.getPatientId())
-					.orElseThrow(() -> new RuntimeException(
-							"Payment record not found for given clinicId, branchId, bookingId, patientId"));
+	        PaymentRecord record = repo
+	                .findByClinicIdAndBranchIdAndBookingIdAndPatientId(dto.getClinicId(), dto.getBranchId(),
+	                        dto.getBookingId(), dto.getPatientId())
+	                .orElseThrow(() -> new RuntimeException("Payment record not found for given clinicId, branchId, bookingId, patientId"));
 
-			boolean found = false;
+	        boolean found = false;
+	        String oldDate = null;
+	        String oldSlot = null;
 
-			outer: for (var pkg : record.getTherapyWithSessions()) {
-				if (pkg.getPrograms() == null)
-					continue;
-				for (var prog : pkg.getPrograms()) {
-					if (prog.getTherapyData() == null)
-						continue;
-					for (var therapy : prog.getTherapyData()) {
-						if (therapy.getExercises() == null)
-							continue;
-						for (var ex : therapy.getExercises()) {
-							if (ex.getSessions() == null)
-								continue;
-							for (var session : ex.getSessions()) {
-								if (dto.getSessionId().equals(session.getSessionId())) {
+//	        outer:
+	        for (var pkg : record.getTherapyWithSessions()) {
+	            if (pkg.getPrograms() == null) continue;
+	            for (var prog : pkg.getPrograms()) {
+	                if (prog.getTherapyData() == null) continue;
+	                for (var therapy : prog.getTherapyData()) {
+	                    if (therapy.getExercises() == null) continue;
+	                    for (var ex : therapy.getExercises()) {
+	                        if (ex.getSessions() == null) continue;
+	                        for (var session : ex.getSessions()) {
+	                            if (dto.getSessionId().equals(session.getSessionId())) {
 
-									if (dto.getDate() != null && !dto.getDate().isBlank()) {
-										session.setDate(dto.getDate());
-									}
-									if (dto.getSlot() != null && !dto.getSlot().isBlank()) {
-										session.setSlot(dto.getSlot());
-									}
-									if (dto.getBookingStatus() != null && !dto.getBookingStatus().isBlank()) {
-										session.setBookingStatus(dto.getBookingStatus());
-									}
+	                                // ✅ capture old values BEFORE overwriting
+	                                oldDate = session.getDate();
+	                                oldSlot = session.getSlot();
 
-									found = true;
-									break outer;
-								}
-							}
-						}
-					}
-				}
-			}
+	                                if (dto.getDate() != null && !dto.getDate().isBlank()) {
+	                                    session.setDate(dto.getDate());
+	                                }
+	                                if (dto.getSlot() != null && !dto.getSlot().isBlank()) {
+	                                    session.setSlot(dto.getSlot());
+	                                }
+	                                if (dto.getBookingStatus() != null && !dto.getBookingStatus().isBlank()) {
+	                                    session.setBookingStatus(dto.getBookingStatus());
+	                                }
 
-			if (!found) {
-				response.setSuccess(false);
-				response.setStatus(404);
-				response.setMessage("Session not found with ID: " + dto.getSessionId());
-				return response;
-			}
+	                                found = true;
+	                                break outer;
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
 
-			repo.save(record);
+	        if (!found) {
+	            response.setSuccess(false);
+	            response.setStatus(404);
+	            response.setMessage("Session not found with ID: " + dto.getSessionId());
+	            return response;
+	        }
 
-			// =====================================================
-			// ✅ Mark the corresponding therapist slot as booked
-			// Fire-and-forget: never let this fail the main update
-			// =====================================================
-			if (record.getTherapistId() != null && dto.getSlot() != null && !dto.getSlot().isBlank()
-					&& dto.getDate() != null && !dto.getDate().isBlank() && dto.getBranchId() != null) {
-				try {
-					boolean booked = clinicAdminFeign.updateTherapistSlotWhileBooking(record.getTherapistId(),
-							dto.getBranchId(), dto.getDate(), dto.getSlot());
-					log.info("Therapist slot booking sync | therapistId={}, date={}, slot={}, result={}",
-							record.getTherapistId(), dto.getDate(), dto.getSlot(), booked);
-				} catch (Exception e) {
-					log.warn("Failed to sync therapist slot booking | therapistId={}, date={}, slot={} | error={}",
-							record.getTherapistId(), dto.getDate(), dto.getSlot(), e.getMessage());
-				}
-			}
+	        repo.save(record);
 
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Session date/slot/bookingStatus updated successfully");
-			response.setData(dto);
+	        // =====================================================
+	        // ✅ Sync therapist slot booking status
+	        // Fire-and-forget: never let this fail the main update
+	        // =====================================================
+	        String status = dto.getBookingStatus() != null ? dto.getBookingStatus().trim() : "";
+	        String therapistId = record.getTherapistId();
+	        String branchId = dto.getBranchId();
 
-		} catch (Exception e) {
-			log.error("Error updating session booking details | sessionId={} | error={}", dto.getSessionId(),
-					e.getMessage(), e);
-			response.setSuccess(false);
-			response.setStatus(400);
-			response.setMessage(e.getMessage());
-		}
+	        if (therapistId != null && branchId != null) {
 
-		return response;
+	            boolean isRescheduled = "Rescheduled".equalsIgnoreCase(status);
+	            boolean isCancelled = "Cancelled".equalsIgnoreCase(status);
+
+	            // Release the OLD slot for both Rescheduled and Cancelled
+	            if ((isRescheduled || isCancelled) && oldDate != null && !oldDate.isBlank()
+	                    && oldSlot != null && !oldSlot.isBlank()) {
+	                try {
+	                    boolean released = clinicAdminFeign.releaseTherapistSlotWhileBooking(therapistId, branchId,
+	                            oldDate, oldSlot);
+	                    log.info("Released old therapist slot | therapistId={}, date={}, slot={}, result={}",
+	                            therapistId, oldDate, oldSlot, released);
+	                } catch (Exception e) {
+	                    log.warn("Failed to release old therapist slot | therapistId={}, date={}, slot={} | error={}",
+	                            therapistId, oldDate, oldSlot, e.getMessage());
+	                }
+	            }
+
+	            // Book the NEW slot only if Rescheduled (Cancelled has no new slot to book)
+	            if (isRescheduled && dto.getDate() != null && !dto.getDate().isBlank()
+	                    && dto.getSlot() != null && !dto.getSlot().isBlank()) {
+	                try {
+	                    boolean booked = clinicAdminFeign.updateTherapistSlotWhileBooking(therapistId, branchId,
+	                            dto.getDate(), dto.getSlot());
+	                    log.info("Booked new therapist slot | therapistId={}, date={}, slot={}, result={}", therapistId,
+	                            dto.getDate(), dto.getSlot(), booked);
+	                } catch (Exception e) {
+	                    log.warn("Failed to book new therapist slot | therapistId={}, date={}, slot={} | error={}",
+	                            therapistId, dto.getDate(), dto.getSlot(), e.getMessage());
+	                }
+	            }
+
+	            // For any other status (e.g. "Confirmed"), just book the current slot as before
+	            if (!isRescheduled && !isCancelled && dto.getSlot() != null && !dto.getSlot().isBlank()
+	                    && dto.getDate() != null && !dto.getDate().isBlank()) {
+	                try {
+	                    boolean booked = clinicAdminFeign.updateTherapistSlotWhileBooking(therapistId, branchId,
+	                            dto.getDate(), dto.getSlot());
+	                    log.info("Therapist slot booking sync | therapistId={}, date={}, slot={}, result={}",
+	                            therapistId, dto.getDate(), dto.getSlot(), booked);
+	                } catch (Exception e) {
+	                    log.warn("Failed to sync therapist slot booking | therapistId={}, date={}, slot={} | error={}",
+	                            therapistId, dto.getDate(), dto.getSlot(), e.getMessage());
+	                }
+	            }
+	        }
+
+	        response.setSuccess(true);
+	        response.setStatus(200);
+	        response.setMessage("Session date/slot/bookingStatus updated successfully");
+	        response.setData(dto);
+
+	    } catch (Exception e) {
+	        log.error("Error updating session booking details | sessionId={} | error={}", dto.getSessionId(),
+	                e.getMessage(), e);
+	        response.setSuccess(false);
+	        response.setStatus(400);
+	        response.setMessage(e.getMessage());
+	    }
+
+	    return response;
 	}
 }
