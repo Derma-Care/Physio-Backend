@@ -1,8 +1,10 @@
 package com.dermacare.bookingService.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BranchDTO {
 
     private String clinicId;
@@ -12,7 +14,6 @@ public class BranchDTO {
     private String address;
     private String contactNumber; // WhatsApp
     private String email;
-
     private String latitude;
     private String longitude;
     private String location;

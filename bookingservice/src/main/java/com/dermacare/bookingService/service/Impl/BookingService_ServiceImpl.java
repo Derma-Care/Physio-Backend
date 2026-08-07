@@ -2510,49 +2510,49 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						followUpBookings != null ? followUpBookings.size() : 0);
 
 				if (followUpBookings != null && !followUpBookings.isEmpty()) {
-					followUpBookings.forEach(booking -> {
+                try{
+                    followUpBookings.forEach(booking -> {
 
-						String value =	bookingIds.stream().filter(f->f.containsKey(booking.getBookingId()))
-								.map(n->n.get(booking.getBookingId())).findFirst().orElse(null);
+                        String value = bookingIds.stream().filter(f -> f.containsKey(booking.getBookingId()))
+                                .map(n -> n.get(booking.getBookingId())).findFirst().orElse(null);
 
-						booking.setStatus("follow-up Pending");
-						booking.setFollowupDate(value);
+                        booking.setStatus("follow-up Pending");
+                        booking.setFollowupDate(value);
 
-						List<Status> statusList =
-								booking.getCurrentStatus() == null
-										? new ArrayList<>()
-										: new ArrayList<>(booking.getCurrentStatus());
+                        List<Status> statusList =
+                                booking.getCurrentStatus() == null
+                                        ? new ArrayList<>()
+                                        : new ArrayList<>(booking.getCurrentStatus());
 
-						boolean alreadyExists =
-								statusList.stream()
-										.anyMatch(status ->
-												"follow-up Pending".equalsIgnoreCase(
-														status.getStatus()));
+                        boolean alreadyExists =
+                                statusList.stream()
+                                        .anyMatch(status ->
+                                                "follow-up Pending".equalsIgnoreCase(
+                                                        status.getStatus()));
 
-						if (!alreadyExists) {
-							Status status = new Status();
-							status.setDATE_TIME(
-									LocalDateTime.now(
-											ZoneId.of("Asia/Kolkata")));
-							status.setStatus("follow-up Pending");
+                        if (!alreadyExists) {
+                            Status status = new Status();
+                            status.setDATE_TIME(
+                                    LocalDateTime.now(
+                                            ZoneId.of("Asia/Kolkata")));
+                            status.setStatus("follow-up Pending");
 
-							statusList.add(status);
-						}
+                            statusList.add(status);
+                        }
 
-						booking.setCurrentStatus(statusList);
-					});
+                        booking.setCurrentStatus(statusList);
+                    });
 
-					repository.saveAll(followUpBookings);
+                    repository.saveAll(followUpBookings);
 
-					// ✅ Safe now: toResponses() returns a mutable ArrayList
-					// even for the empty-input case, so this addAll() can no
-					// longer throw UnsupportedOperationException.
-					responses.addAll(
-							followUpBookings.stream()
-									.map(this::toResponse)
-									.collect(Collectors.toList()));
-				}
-			}
+                    // ✅ Safe now: toResponses() returns a mutable ArrayList
+                    // even for the empty-input case, so this addAll() can no
+                    // longer throw UnsupportedOperationException.
+                    responses.addAll(
+                            followUpBookings.stream()
+                                    .map(this::toResponse)
+                                    .collect(Collectors.toList()));
+                }catch(Exception e){}}}
 			// Session details
 			for (BookingResponse booking : responses) {
 				try {
@@ -2953,8 +2953,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			log.info("Fetching bookings for clinicId: {}, branchId: {}, start: {}, end: {}",
 					clinicId, branchId, start, end);
 
-			LocalDate startDate = LocalDate.parse(start);
-			LocalDate endDate = LocalDate.parse(end);
+			LocalDate startDate = LocalDate.parse(start,FORMATTER);
+			LocalDate endDate = LocalDate.parse(end,FORMATTER);
 
 			String fromDate = startDate.minusDays(1).format(FORMATTER);
 			String toDate = endDate.plusDays(1).format(FORMATTER);
