@@ -29,7 +29,7 @@ public class DoctorsDTO {
 
 	private String deviceId;
 
-	@NotBlank(message = "DoctorEmail is required", groups = RequiredChecks.class)
+	////@NotBlank(message = "DoctorEmail is required", groups = RequiredChecks.class)
 	private String doctorEmail;
 
 	@NotBlank(message = "Clinic id is required", groups = RequiredChecks.class)
@@ -43,8 +43,8 @@ public class DoctorsDTO {
 	@Size(max = 100, message = "Doctor licence number should not exceed 100 characters", groups = FormatChecks.class)
 	private String doctorLicence;
 
-	@NotBlank(message = "Mobile number is required", groups = RequiredChecks.class)
-	@Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid Indian mobile number", groups = FormatChecks.class)
+	////@NotBlank(message = "Mobile number is required", groups = RequiredChecks.class)
+	////@Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid Indian mobile number", groups = FormatChecks.class)
 	private String doctorMobileNumber;
 
 	@NotBlank(message = "Doctor name is required", groups = RequiredChecks.class)
