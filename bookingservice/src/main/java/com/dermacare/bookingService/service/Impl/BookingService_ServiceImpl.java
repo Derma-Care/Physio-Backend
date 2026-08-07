@@ -1976,7 +1976,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 		try {
 
-			Booking entity = repository.findByBookingId(dto.getBookingId())
+			Booking entity = repository.findByBookingIdIgnoreCase(dto.getBookingId())
 					.orElseThrow(() -> new RuntimeException("Invalid Booking Id"));
 
 			// -------- BASIC --------
