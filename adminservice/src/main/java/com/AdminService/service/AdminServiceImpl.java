@@ -205,1199 +205,1320 @@ public class AdminServiceImpl implements AdminService {
 		return response;
 	}
 
-	@Override
-	public Response createClinic(ClinicDTO clinic) {
-
-		Response response = new Response();
-
-		try {
-			// ---------------- Duplicate checks ----------------
-			if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
-				response.setMessage("ContactNumber already exists");
-				response.setSuccess(false);
-				response.setStatus(409);
-				return response;
-			}
-
-			if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
-				response.setMessage("LicenseNumber already exists");
-				response.setSuccess(false);
-				response.setStatus(409);
-				return response;
-			}
-
-			if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
-				response.setMessage("EmailAddress already exists");
-				response.setSuccess(false);
-				response.setStatus(409);
-				return response;
-			}
-
-			// ---------------- Save clinic ----------------
-			Clinic savedClinic = new Clinic();
-			savedClinic.setName(clinic.getName());
-			savedClinic.setHospitalId(generateHospitalId());
-			savedClinic.setBranch(clinic.getBranch());
-			savedClinic.setAddress(clinic.getAddress());
-			savedClinic.setCity(clinic.getCity());
-			savedClinic.setContactNumber(clinic.getContactNumber());
-			savedClinic.setOpeningTime(clinic.getOpeningTime());
-			savedClinic.setClosingTime(clinic.getClosingTime());
-			savedClinic.setEmailAddress(clinic.getEmailAddress());
-			savedClinic.setWebsite(clinic.getWebsite());
-			savedClinic.setLicenseNumber(clinic.getLicenseNumber());
-			savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
-			savedClinic.setRecommended(clinic.isRecommended());
-			savedClinic.setClinicType(clinic.getClinicType());
-			savedClinic.setHospitalOverallRating(0.0);
-			savedClinic.setSubscription(clinic.getSubscription());
-			savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
-			savedClinic.setLatitude(clinic.getLatitude());
-			savedClinic.setLongitude(clinic.getLongitude());
-			savedClinic.setWalkthrough(clinic.getWalkthrough());
-			savedClinic.setNabhScore(clinic.getNabhScore());
-
-			// ---------------- NGK CORE ----------------
-			savedClinic.setStatus("PENDING");
-			savedClinic.setRole("ADMIN");
-			savedClinic.setPermissions(PermissionsUtil.getAdminPermissions());
-			savedClinic.setCreatedAt(String.valueOf(Instant.now())); // FIXED
-
-			// ❌ Credentials are NOT created here
-
-			decodeBase64Documents(clinic, savedClinic);
-
-			if (clinic.getConsultationExpiration() == null || clinic.getConsultationExpiration().isBlank()) {
-				throw new IllegalArgumentException("Consultation expiration is required");
-			}
-			savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
-
-			savedClinic.setInstagramHandle(clinic.getInstagramHandle());
-			savedClinic.setTwitterHandle(clinic.getTwitterHandle());
-			savedClinic.setFacebookHandle(clinic.getFacebookHandle());
-
-			Clinic saved = clinicRep.save(savedClinic);
-
-			// ---------------- Create default branch ----------------
-			BranchCounter counter = mongoOperations.findAndModify(
-					Query.query(Criteria.where("_id").is(saved.getHospitalId())), new Update().inc("seq", 1),
-					FindAndModifyOptions.options().returnNew(true).upsert(true), BranchCounter.class);
-
-			String branchId = String.format("%04d%02d", Integer.parseInt(saved.getHospitalId()), counter.getSeq());
-
-			Branch branch = new Branch();
-			branch.setClinicId(saved.getHospitalId());
-			branch.setHospitalName(saved.getName());
-			branch.setBranchId(branchId);
-			branch.setBranchName(clinic.getBranch() != null && !clinic.getBranch().isEmpty() ? clinic.getBranch()
-					: saved.getName() + " Main Branch");
-			branch.setAddress(saved.getAddress());
-			branch.setCity(saved.getCity());
-			branch.setContactNumber(saved.getContactNumber());
-			branch.setEmail(saved.getEmailAddress());
-			branch.setRole("ADMIN");
-			branch.setLatitude(String.valueOf(saved.getLatitude()));
-			branch.setLongitude(String.valueOf(saved.getLongitude()));
-			branch.setPermissions(PermissionsUtil.getAdminPermissions());
-
-			Branch savedBranch = branchRepository.save(branch);
-
-			saved.setBranches(List.of(savedBranch));
-			clinicRep.save(saved);
-
-			// ---------------- Email acknowledgement ----------------
-			Map<String, String> mailData = new HashMap<>();
-			mailData.put("subject", "Clinic Registration Pending");
-			mailData.put("message", "Your clinic registration has been received successfully.\n"
-					+ "Our team will verify your details and update you shortly.");
-			emailService.sendEmail(saved.getEmailAddress(), mailData);
+    @Override
+    public Response createClinic(ClinicDTO clinic) {
+
+        Response response = new Response();
+
+        try {
+            // ---------------- Duplicate checks ----------------
+            if (clinic.getContactNumber() != null && !clinic.getContactNumber().isBlank()) {
+                if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
+                    response.setMessage("ContactNumber already exists");
+                    response.setSuccess(false);
+                    response.setStatus(409);
+                    return response;
+                }
+            }
+
+            if (clinic.getLicenseNumber() != null && !clinic.getLicenseNumber().isBlank()) {
+                if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
+                    response.setMessage("LicenseNumber already exists");
+                    response.setSuccess(false);
+                    response.setStatus(409);
+                    return response;
+                }
+            }
+
+            if (clinic.getEmailAddress() != null && !clinic.getEmailAddress().isBlank()) {
+                if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
+                    response.setMessage("EmailAddress already exists");
+                    response.setSuccess(false);
+                    response.setStatus(409);
+                    return response;
+                }
+            }
+
+            // ---------------- Save clinic ----------------
+            Clinic savedClinic = new Clinic();
+            savedClinic.setName(clinic.getName());
+            savedClinic.setHospitalId(generateHospitalId());
+            savedClinic.setBranch(clinic.getBranch());
+            savedClinic.setAddress(clinic.getAddress());
+            savedClinic.setCity(clinic.getCity());
+            savedClinic.setContactNumber(clinic.getContactNumber());
+            savedClinic.setOpeningTime(clinic.getOpeningTime());
+            savedClinic.setClosingTime(clinic.getClosingTime());
+            savedClinic.setEmailAddress(clinic.getEmailAddress());
+            savedClinic.setWebsite(clinic.getWebsite());
+            savedClinic.setLicenseNumber(clinic.getLicenseNumber());
+            savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
+            savedClinic.setRecommended(clinic.isRecommended());
+            savedClinic.setClinicType(clinic.getClinicType());
+            savedClinic.setHospitalOverallRating(0.0);
+            savedClinic.setSubscription(clinic.getSubscription());
+            savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
+            savedClinic.setLatitude(clinic.getLatitude());
+            savedClinic.setLongitude(clinic.getLongitude());
+            savedClinic.setWalkthrough(clinic.getWalkthrough());
+            savedClinic.setNabhScore(clinic.getNabhScore());
+           /// savedClinic.setLoyaltyPoints(clinic.getLoyaltyPoints());
+            savedClinic.setLocation(clinic.getLocation());
+            // ---------------- NGK CORE ----------------
+            savedClinic.setStatus("PENDING");
+            savedClinic.setRole("ADMIN");
+            savedClinic.setPermissions(clinic.getPermissions());
+            savedClinic.setCreatedAt(String.valueOf(Instant.now())); // FIXED
+
+            // ❌ Credentials are NOT created here
+
+            decodeBase64Documents(clinic, savedClinic);
+
+            if (clinic.getConsultationExpiration() == null || clinic.getConsultationExpiration().isBlank()) {
+                throw new IllegalArgumentException("Consultation expiration is required");
+            }
+            savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
+
+            savedClinic.setInstagramHandle(clinic.getInstagramHandle());
+            savedClinic.setTwitterHandle(clinic.getTwitterHandle());
+            savedClinic.setFacebookHandle(clinic.getFacebookHandle());
+
+            Clinic saved = clinicRep.save(savedClinic);
+
+            // ---------------- Create default branch ----------------
+            BranchCounter counter = mongoOperations.findAndModify(
+                    Query.query(Criteria.where("_id").is(saved.getHospitalId())), new Update().inc("seq", 1),
+                    FindAndModifyOptions.options().returnNew(true).upsert(true), BranchCounter.class);
+
+            String branchId = String.format("%04d%02d", Integer.parseInt(saved.getHospitalId()), counter.getSeq());
+
+            Branch branch = new Branch();
+            branch.setClinicId(saved.getHospitalId());
+            branch.setHospitalName(saved.getName());
+            branch.setBranchId(branchId);
+            branch.setBranchName(clinic.getBranch() != null && !clinic.getBranch().isEmpty() ? clinic.getBranch()
+                    : saved.getName() + " Main Branch");
+            branch.setAddress(saved.getAddress());
+            branch.setCity(saved.getCity());
+            branch.setContactNumber(saved.getContactNumber());
+            branch.setEmail(saved.getEmailAddress());
+            branch.setRole("ADMIN");
+            branch.setLatitude(String.valueOf(saved.getLatitude()));
+            branch.setLongitude(String.valueOf(saved.getLongitude()));
+            branch.setPermissions(clinic.getPermissions());
+           /// branch.setLoyaltyPoints(saved.getLoyaltyPoints());
+            branch.setLocation(saved.getLocation());
+            Branch savedBranch = branchRepository.save(branch);
 
-			// ---------------- Prepare response ----------------
-			Map<String, Object> data = new HashMap<>();
-			data.put("clinicId", saved.getHospitalId());
-			data.put("branchId", savedBranch.getBranchId());
-			data.put("status", saved.getStatus());
+            saved.setBranches(List.of(savedBranch));
+            clinicRep.save(saved);
 
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Clinic registered successfully. Verification pending.");
-			response.setData(data);
+            // ---------------- Email acknowledgement ----------------
+            Map<String, String> mailData = new HashMap<>();
+            mailData.put("clinicName", saved.getName());
+            mailData.put("subject", "Clinic Registration Pending");
+            mailData.put("message", "Your clinic registration has been received successfully.\n"
+                    + "Our team will verify your details and update you shortly.");
+            emailService.sendEmail(saved.getEmailAddress(), mailData);
 
-			return response;
+            // ---------------- Prepare response ----------------
+            Map<String, Object> data = new HashMap<>();
+            data.put("clinicId", saved.getHospitalId());
+            data.put("branchId", savedBranch.getBranchId());
+            data.put("status", saved.getStatus());
 
-		} catch (Exception e) {
-			Response error = new Response();
-			error.setMessage("Error occurred while creating clinic: " + e.getMessage());
-			error.setSuccess(false);
-			error.setStatus(500);
-			return error;
-		}
-	}
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage("Clinic registered successfully. Verification pending.");
+            response.setData(data);
 
-	private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
+            return response;
 
-		if (clinic.getHospitalLogo() != null && !clinic.getHospitalLogo().isEmpty()) {
+        } catch (Exception e) {
+            Response error = new Response();
+            error.setMessage("Error occurred while creating clinic: " + e.getMessage());
+            error.setSuccess(false);
+            error.setStatus(500);
+            return error;
+        }
+    }
 
-			savedClinic.setHospitalLogo(Base64.getDecoder().decode(clinic.getHospitalLogo()));
-		}
+    private void decodeBase64Documents(ClinicDTO clinic, Clinic savedClinic) {
 
-		if (clinic.getContractorDocuments() != null && !clinic.getContractorDocuments().isEmpty()) {
+        if (clinic.getHospitalLogo() != null && !clinic.getHospitalLogo().isEmpty()) {
 
-			savedClinic.setContractorDocuments(Base64.getDecoder().decode(clinic.getContractorDocuments()));
-		}
+            savedClinic.setHospitalLogo(Base64.getDecoder().decode(clinic.getHospitalLogo()));
+        }
 
-		if (clinic.getHospitalDocuments() != null && !clinic.getHospitalDocuments().isEmpty()) {
+        if (clinic.getContractorDocuments() != null && !clinic.getContractorDocuments().isEmpty()) {
 
-			savedClinic.setHospitalDocuments(Base64.getDecoder().decode(clinic.getHospitalDocuments()));
-		}
+            savedClinic.setContractorDocuments(Base64.getDecoder().decode(clinic.getContractorDocuments()));
+        }
 
-		if (clinic.getClinicalEstablishmentCertificate() != null
-				&& !clinic.getClinicalEstablishmentCertificate().isEmpty()) {
+        if (clinic.getHospitalDocuments() != null && !clinic.getHospitalDocuments().isEmpty()) {
 
-			savedClinic.setClinicalEstablishmentCertificate(
-					Base64.getDecoder().decode(clinic.getClinicalEstablishmentCertificate()));
-		}
+            savedClinic.setHospitalDocuments(Base64.getDecoder().decode(clinic.getHospitalDocuments()));
+        }
 
-		if (clinic.getBusinessRegistrationCertificate() != null
-				&& !clinic.getBusinessRegistrationCertificate().isEmpty()) {
+        if (clinic.getClinicalEstablishmentCertificate() != null
+                && !clinic.getClinicalEstablishmentCertificate().isEmpty()) {
 
-			savedClinic.setBusinessRegistrationCertificate(
-					Base64.getDecoder().decode(clinic.getBusinessRegistrationCertificate()));
-		}
+            savedClinic.setClinicalEstablishmentCertificate(
+                    Base64.getDecoder().decode(clinic.getClinicalEstablishmentCertificate()));
+        }
 
-		if (clinic.getDrugLicenseCertificate() != null && !clinic.getDrugLicenseCertificate().isEmpty()) {
+        if (clinic.getBusinessRegistrationCertificate() != null
+                && !clinic.getBusinessRegistrationCertificate().isEmpty()) {
 
-			savedClinic.setDrugLicenseCertificate(Base64.getDecoder().decode(clinic.getDrugLicenseCertificate()));
-		}
+            savedClinic.setBusinessRegistrationCertificate(
+                    Base64.getDecoder().decode(clinic.getBusinessRegistrationCertificate()));
+        }
 
-		if (clinic.getDrugLicenseFormType() != null && !clinic.getDrugLicenseFormType().isEmpty()) {
+        if (clinic.getDrugLicenseCertificate() != null && !clinic.getDrugLicenseCertificate().isEmpty()) {
 
-			savedClinic.setDrugLicenseFormType(Base64.getDecoder().decode(clinic.getDrugLicenseFormType()));
-		}
+            savedClinic.setDrugLicenseCertificate(Base64.getDecoder().decode(clinic.getDrugLicenseCertificate()));
+        }
 
-		if (clinic.getPharmacistCertificate() != null && !clinic.getPharmacistCertificate().isEmpty()) {
+        if (clinic.getDrugLicenseFormType() != null && !clinic.getDrugLicenseFormType().isEmpty()) {
 
-			savedClinic.setPharmacistCertificate(Base64.getDecoder().decode(clinic.getPharmacistCertificate()));
-		}
+            savedClinic.setDrugLicenseFormType(Base64.getDecoder().decode(clinic.getDrugLicenseFormType()));
+        }
 
-		if (clinic.getBiomedicalWasteManagementAuth() != null && !clinic.getBiomedicalWasteManagementAuth().isEmpty()) {
+        if (clinic.getPharmacistCertificate() != null && !clinic.getPharmacistCertificate().isEmpty()) {
 
-			savedClinic.setBiomedicalWasteManagementAuth(
-					Base64.getDecoder().decode(clinic.getBiomedicalWasteManagementAuth()));
-		}
+            savedClinic.setPharmacistCertificate(Base64.getDecoder().decode(clinic.getPharmacistCertificate()));
+        }
 
-		if (clinic.getTradeLicense() != null && !clinic.getTradeLicense().isEmpty()) {
+        if (clinic.getBiomedicalWasteManagementAuth() != null && !clinic.getBiomedicalWasteManagementAuth().isEmpty()) {
 
-			savedClinic.setTradeLicense(Base64.getDecoder().decode(clinic.getTradeLicense()));
-		}
+            savedClinic.setBiomedicalWasteManagementAuth(
+                    Base64.getDecoder().decode(clinic.getBiomedicalWasteManagementAuth()));
+        }
 
-		if (clinic.getFireSafetyCertificate() != null && !clinic.getFireSafetyCertificate().isEmpty()) {
+        if (clinic.getTradeLicense() != null && !clinic.getTradeLicense().isEmpty()) {
 
-			savedClinic.setFireSafetyCertificate(Base64.getDecoder().decode(clinic.getFireSafetyCertificate()));
-		}
+            savedClinic.setTradeLicense(Base64.getDecoder().decode(clinic.getTradeLicense()));
+        }
 
-		if (clinic.getProfessionalIndemnityInsurance() != null
-				&& !clinic.getProfessionalIndemnityInsurance().isEmpty()) {
+        if (clinic.getFireSafetyCertificate() != null && !clinic.getFireSafetyCertificate().isEmpty()) {
 
-			savedClinic.setProfessionalIndemnityInsurance(
-					Base64.getDecoder().decode(clinic.getProfessionalIndemnityInsurance()));
-		}
+            savedClinic.setFireSafetyCertificate(Base64.getDecoder().decode(clinic.getFireSafetyCertificate()));
+        }
 
-		if (clinic.getGstRegistrationCertificate() != null && !clinic.getGstRegistrationCertificate().isEmpty()) {
+        if (clinic.getProfessionalIndemnityInsurance() != null
+                && !clinic.getProfessionalIndemnityInsurance().isEmpty()) {
 
-			savedClinic
-					.setGstRegistrationCertificate(Base64.getDecoder().decode(clinic.getGstRegistrationCertificate()));
-		}
-	}
+            savedClinic.setProfessionalIndemnityInsurance(
+                    Base64.getDecoder().decode(clinic.getProfessionalIndemnityInsurance()));
+        }
 
-	@Override
-	public Response startVerificationProcess(String clinicId) {
+        if (clinic.getGstRegistrationCertificate() != null && !clinic.getGstRegistrationCertificate().isEmpty()) {
 
-		Response response = new Response();
+            savedClinic
+                    .setGstRegistrationCertificate(Base64.getDecoder().decode(clinic.getGstRegistrationCertificate()));
+        }
+    }
 
-		try {
-			Clinic clinic = findClinic(clinicId);
+    @Override
+    public Response startVerificationProcess(String clinicId) {
 
-			if (!"PENDING".equals(clinic.getStatus())) {
-				response.setSuccess(false);
-				response.setStatus(400);
-				response.setMessage("Clinic is not in PENDING state");
-				return response;
-			}
+        Response response = new Response();
 
-			clinic.setStatus("VERIFICATION_IN_PROGRESS");
-			clinicRep.save(clinic);
+        try {
+            Clinic clinic = findClinic(clinicId);
 
-			// Email notification
-			Map<String, String> mailData = new HashMap<>();
-			mailData.put("subject", "Clinic Verification Started");
-			mailData.put("message", "Your clinic verification process has started.\n"
-					+ "Our team is reviewing your submitted documents.");
-			emailService.sendEmail(clinic.getEmailAddress(), mailData);
+            if (!"PENDING".equals(clinic.getStatus())) {
+                response.setSuccess(false);
+                response.setStatus(400);
+                response.setMessage("Clinic is not in PENDING state");
+                return response;
+            }
 
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Verification started successfully");
-			response.setHospitalId(clinic.getHospitalId());
-			response.setHospitalName(clinic.getName());
+            clinic.setStatus("VERIFICATION_IN_PROGRESS");
+            clinicRep.save(clinic);
 
-			return response;
+            // Email notification
+            Map<String, String> mailData = new HashMap<>();
+            mailData.put("clinicName", clinic.getName());
+            mailData.put("subject", "Clinic Verification Started");
+            mailData.put("message", "Your clinic verification process has started.\n"
+                    + "Our team is reviewing your submitted documents.");
+            emailService.sendEmail(clinic.getEmailAddress(), mailData);
 
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setStatus(500);
-			response.setMessage("Failed to start verification: " + e.getMessage());
-			return response;
-		}
-	}
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage("Verification started successfully");
+            response.setHospitalId(clinic.getHospitalId());
+            response.setHospitalName(clinic.getName());
+
+            return response;
 
-	@Override
-	public Response verifyClinic(String clinicId) {
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage("Failed to start verification: " + e.getMessage());
+            return response;
+        }
+    }
 
-		Response response = new Response();
+    @Override
+    public Response verifyClinic(String clinicId) {
+
+        Response response = new Response();
 
-		try {
-			Clinic clinic = clinicRep.findByHospitalId(clinicId);
+        try {
+            Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
-			if (clinic == null) {
-				response.setSuccess(false);
-				response.setStatus(404);
-				response.setMessage("Clinic not found");
-				return response;
-			}
+            if (clinic == null) {
+                response.setSuccess(false);
+                response.setStatus(404);
+                response.setMessage("Clinic not found");
+                return response;
+            }
+
+            if (!"VERIFICATION_IN_PROGRESS".equals(clinic.getStatus())) {
+                response.setSuccess(false);
+                response.setStatus(400);
+                response.setMessage("Clinic is not under verification");
+                return response;
+            }
+
+            // 🔐 Generate secure password (YOUR METHOD)
+            String tempPassword = generatePassword(9);
+            // 🔐 Save clinic credentials
+            ClinicCredentials credentials = new ClinicCredentials();
+            credentials.setHospitalName(clinic.getName());
+            credentials.setUserName(clinic.getHospitalId());
+            credentials.setPassword(tempPassword);
+            credentials.setEmail(clinic.getEmailAddress());
 
-			if (!"VERIFICATION_IN_PROGRESS".equals(clinic.getStatus())) {
-				response.setSuccess(false);
-				response.setStatus(400);
-				response.setMessage("Clinic is not under verification");
-				return response;
-			}
+            credentials.setMobilenumber(clinic.getContactNumber());
+            credentials.setRole("ADMIN");
 
-			// 🔐 Generate secure password (YOUR METHOD)
-			String tempPassword = generatePassword(9);
-			// 🔐 Save clinic credentials
-			ClinicCredentials credentials = new ClinicCredentials();
-			credentials.setHospitalName(clinic.getName());
-			credentials.setUserName(clinic.getHospitalId());
-			credentials.setPassword(tempPassword);
-			credentials.setEmail(clinic.getEmailAddress());
-			credentials.setMobilenumber(clinic.getContactNumber());
-			credentials.setRole("ADMIN");
+            // 🔧 FIX: permissions type mismatch
+            Map<String, Map<String, List<String>>> permissions = new HashMap<>();
+            permissions.put("ADMIN", clinic.getPermissions());
 
-			// 🔧 FIX: permissions type mismatch
-			Map<String, Map<String, List<String>>> permissionWrapper = new HashMap<>();
-			permissionWrapper.put("ADMIN", PermissionsUtil.getAdminPermissions());
-			credentials.setPermissions(permissionWrapper);
+            credentials.setPermissions(permissions);
+            clinicCredentialsRepository.save(credentials);
 
-			clinicCredentialsRepository.save(credentials);
+            // ✅ Update clinic status
+            clinic.setStatus("VERIFIED");
+            clinicRep.save(clinic);
 
-			// ✅ Update clinic status
-			clinic.setStatus("VERIFIED");
-			clinicRep.save(clinic);
+            // 📧 Send email
+            Map<String, String> mailData = new HashMap<>();
+            mailData.put("clinicName", clinic.getName());
+            mailData.put("subject", "Clinic Verified Successfully");
+            mailData.put("message", "Congratulations! Your clinic has been verified successfully.");
+            mailData.put("username", credentials.getUserName());
+            mailData.put("password", tempPassword);
 
-			// 📧 Send email
-			Map<String, String> mailData = new HashMap<>();
-			mailData.put("subject", "Clinic Verified Successfully");
-			mailData.put("message", "Congratulations! Your clinic has been verified successfully.");
-			mailData.put("username", credentials.getUserName());
-			mailData.put("password", tempPassword);
+            emailService.sendEmail(clinic.getEmailAddress(), mailData);
 
-			emailService.sendEmail(clinic.getEmailAddress(), mailData);
+            // ✅ Response
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage("Clinic verified successfully");
+            response.setHospitalId(clinic.getHospitalId());
+            response.setRole("ADMIN");
+            response.setPermissions(clinic.getPermissions());
+            return response;
 
-			// ✅ Response
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Clinic verified successfully");
-			response.setHospitalId(clinic.getHospitalId());
-			response.setRole("ADMIN");
-			response.setPermissions(PermissionsUtil.getAdminPermissions());
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage("Failed to verify clinic: " + e.getMessage());
+            return response;
+        }
+    }
 
-			return response;
+    @Override
+    public Response rejectClinic(String clinicId, String reason) {
 
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setStatus(500);
-			response.setMessage("Failed to verify clinic: " + e.getMessage());
-			return response;
-		}
-	}
+        Response response = new Response();
 
-	@Override
-	public Response rejectClinic(String clinicId, String reason) {
+        try {
+            Clinic clinic = findClinic(clinicId);
 
-		Response response = new Response();
+            if ("VERIFIED".equals(clinic.getStatus())) {
+                response.setSuccess(false);
+                response.setStatus(400);
+                response.setMessage("Verified clinic cannot be rejected");
+                return response;
+            }
 
-		try {
-			Clinic clinic = findClinic(clinicId);
+            clinic.setStatus("REJECTED");
+            clinicRep.save(clinic);
 
-			if ("VERIFIED".equals(clinic.getStatus())) {
-				response.setSuccess(false);
-				response.setStatus(400);
-				response.setMessage("Verified clinic cannot be rejected");
-				return response;
-			}
+            // Rejection email
+            Map<String, String> mailData = new HashMap<>();
+            mailData.put("clinicName", clinic.getName());
+            mailData.put("subject", "Clinic Registration Rejected");
+            mailData.put("message", "Unfortunately, your clinic registration has been rejected.");
+            mailData.put("reason", reason);
 
-			clinic.setStatus("REJECTED");
-			clinicRep.save(clinic);
+            emailService.sendEmail(clinic.getEmailAddress(), mailData);
 
-			// Rejection email
-			Map<String, String> mailData = new HashMap<>();
-			mailData.put("subject", "Clinic Registration Rejected");
-			mailData.put("message", "Unfortunately, your clinic registration has been rejected.");
-			mailData.put("reason", reason);
+            response.setSuccess(true);
+            response.setStatus(200);
+            response.setMessage("Clinic rejected successfully");
+            response.setHospitalId(clinic.getHospitalId());
 
-			emailService.sendEmail(clinic.getEmailAddress(), mailData);
+            return response;
 
-			response.setSuccess(true);
-			response.setStatus(200);
-			response.setMessage("Clinic rejected successfully");
-			response.setHospitalId(clinic.getHospitalId());
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setStatus(500);
+            response.setMessage("Failed to reject clinic: " + e.getMessage());
+            return response;
+        }
+    }
 
-			return response;
+    private Clinic findClinic(String clinicId) {
 
-		} catch (Exception e) {
-			response.setSuccess(false);
-			response.setStatus(500);
-			response.setMessage("Failed to reject clinic: " + e.getMessage());
-			return response;
-		}
-	}
+        Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
-	private Clinic findClinic(String clinicId) {
+        if (clinic == null) {
+            throw new RuntimeException("Clinic not found with id: " + clinicId);
+        }
 
-		Clinic clinic = clinicRep.findByHospitalId(clinicId);
+        return clinic;
+    }
 
-		if (clinic == null) {
-			throw new RuntimeException("Clinic not found with id: " + clinicId);
-		}
+    @Override
+    public Response getClinicById(String clinicId) {
 
-		return clinic;
-	}
+        Response response = new Response();
 
-	@Override
-	public Response getClinicById(String clinicId) {
+        try {
 
-		Response response = new Response();
+            Clinic clinic = clinicRep.findByHospitalId(clinicId);
 
-		try {
+            if (clinic != null) {
 
-			Clinic clinic = clinicRep.findByHospitalId(clinicId);
+                ClinicDTO clnc = new ClinicDTO();
 
-			if (clinic != null) {
+                clnc.setAddress(clinic.getAddress() != null ? clinic.getAddress() : "");
 
-				ClinicDTO clnc = new ClinicDTO();
+                clnc.setCity(clinic.getCity() != null ? clinic.getCity() : "");
 
-				clnc.setAddress(clinic.getAddress() != null ? clinic.getAddress() : "");
+                clnc.setHospitalId(clinic.getHospitalId() != null ? clinic.getHospitalId() : "");
 
-				clnc.setCity(clinic.getCity() != null ? clinic.getCity() : "");
+                clnc.setName(clinic.getName() != null ? clinic.getName() : "");
 
-				clnc.setHospitalId(clinic.getHospitalId() != null ? clinic.getHospitalId() : "");
+                clnc.setEmailAddress(clinic.getEmailAddress() != null ? clinic.getEmailAddress() : "");
 
-				clnc.setName(clinic.getName() != null ? clinic.getName() : "");
+                clnc.setWebsite(clinic.getWebsite() != null ? clinic.getWebsite() : "");
 
-				clnc.setEmailAddress(clinic.getEmailAddress() != null ? clinic.getEmailAddress() : "");
+                clnc.setLicenseNumber(clinic.getLicenseNumber() != null ? clinic.getLicenseNumber() : "");
 
-				clnc.setWebsite(clinic.getWebsite() != null ? clinic.getWebsite() : "");
+                clnc.setIssuingAuthority(clinic.getIssuingAuthority() != null ? clinic.getIssuingAuthority() : "");
 
-				clnc.setLicenseNumber(clinic.getLicenseNumber() != null ? clinic.getLicenseNumber() : "");
+                clnc.setClosingTime(clinic.getClosingTime() != null ? clinic.getClosingTime() : "");
 
-				clnc.setIssuingAuthority(clinic.getIssuingAuthority() != null ? clinic.getIssuingAuthority() : "");
+                clnc.setOpeningTime(clinic.getOpeningTime() != null ? clinic.getOpeningTime() : "");
 
-				clnc.setClosingTime(clinic.getClosingTime() != null ? clinic.getClosingTime() : "");
+                clnc.setContactNumber(clinic.getContactNumber() != null ? clinic.getContactNumber() : "");
+               // clnc.setLoyaltyPoints(clinic.getLoyaltyPoints());
+                clnc.setRecommended(clinic.isRecommended());
+                clnc.setSubscription(clinic.getSubscription());
+                clnc.setHospitalOverallRating(clinic.getHospitalOverallRating());
+                clnc.setFreeFollowUps(clinic.getFreeFollowUps());
+                clnc.setLocation(clinic.getLocation());
+                clnc.setLatitude(clinic.getLatitude());
+                clnc.setLongitude(clinic.getLongitude());
+                clnc.setWalkthrough(clinic.getWalkthrough());
+                clnc.setNabhScore(clinic.getNabhScore());
+                clnc.setBranch(clinic.getBranch());
+                clnc.setRole(clinic.getRole());
+                clnc.setPermissions(clinic.getPermissions());
+               /// clnc.setLoyaltyPoints(clinic.getLoyaltyPoints());
 
-				clnc.setOpeningTime(clinic.getOpeningTime() != null ? clinic.getOpeningTime() : "");
+                clnc.setBranches(clinic.getBranches());
 
-				clnc.setContactNumber(clinic.getContactNumber() != null ? clinic.getContactNumber() : "");
+                // Hospital Logo
 
-				clnc.setRecommended(clinic.isRecommended());
-				clnc.setSubscription(clinic.getSubscription());
-				clnc.setHospitalOverallRating(clinic.getHospitalOverallRating());
-				clnc.setFreeFollowUps(clinic.getFreeFollowUps());
+                clnc.setHospitalLogo(
 
-				clnc.setLatitude(clinic.getLatitude());
-				clnc.setLongitude(clinic.getLongitude());
-				clnc.setWalkthrough(clinic.getWalkthrough());
-				clnc.setNabhScore(clinic.getNabhScore());
-				clnc.setBranch(clinic.getBranch());
-				clnc.setRole(clinic.getRole());
-				clnc.setPermissions(clinic.getPermissions());
+                        clinic.getHospitalLogo() != null ? Base64.getEncoder().encodeToString(clinic.getHospitalLogo())
+                                : ""
 
-				clnc.setBranches(clinic.getBranches());
+                );
 
-				// Hospital Logo
+                // Hospital Documents (single)
 
-				clnc.setHospitalLogo(
+                clnc.setHospitalDocuments(
 
-						clinic.getHospitalLogo() != null ? Base64.getEncoder().encodeToString(clinic.getHospitalLogo())
-								: ""
+                        clinic.getHospitalDocuments() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getHospitalDocuments())
+                                : ""
 
-				);
+                );
 
-				// Hospital Documents (single)
+                // Contractor Documents (single)
 
-				clnc.setHospitalDocuments(
+                clnc.setContractorDocuments(
 
-						clinic.getHospitalDocuments() != null
-								? Base64.getEncoder().encodeToString(clinic.getHospitalDocuments())
-								: ""
+                        clinic.getContractorDocuments() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getContractorDocuments())
+                                : ""
 
-				);
+                );
 
-				// Contractor Documents (single)
+                // Pharmacist Info
 
-				clnc.setContractorDocuments(
+                clnc.setHasPharmacist(clinic.getHasPharmacist() != null ? clinic.getHasPharmacist() : "");
 
-						clinic.getContractorDocuments() != null
-								? Base64.getEncoder().encodeToString(clinic.getContractorDocuments())
-								: ""
+                clnc.setPharmacistCertificate(
 
-				);
+                        clinic.getPharmacistCertificate() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getPharmacistCertificate())
+                                : ""
 
-				// Pharmacist Info
+                );
 
-				clnc.setHasPharmacist(clinic.getHasPharmacist() != null ? clinic.getHasPharmacist() : "");
+                // Medicines Handling
 
-				clnc.setPharmacistCertificate(
+                clnc.setMedicinesSoldOnSite(
+                        clinic.getMedicinesSoldOnSite() != null ? clinic.getMedicinesSoldOnSite() : "");
 
-						clinic.getPharmacistCertificate() != null
-								? Base64.getEncoder().encodeToString(clinic.getPharmacistCertificate())
-								: ""
+                clnc.setDrugLicenseCertificate(
 
-				);
+                        clinic.getDrugLicenseCertificate() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseCertificate())
+                                : ""
 
-				// Medicines Handling
+                );
 
-				clnc.setMedicinesSoldOnSite(
-						clinic.getMedicinesSoldOnSite() != null ? clinic.getMedicinesSoldOnSite() : "");
+                clnc.setDrugLicenseFormType(
 
-				clnc.setDrugLicenseCertificate(
+                        clinic.getDrugLicenseFormType() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseFormType())
+                                : ""
 
-						clinic.getDrugLicenseCertificate() != null
-								? Base64.getEncoder().encodeToString(clinic.getDrugLicenseCertificate())
-								: ""
+                );
 
-				);
+                // Extended Certifications (single files)
 
-				clnc.setDrugLicenseFormType(
+                clnc.setClinicType(clinic.getClinicType() != null ? clinic.getClinicType() : "");
 
-						clinic.getDrugLicenseFormType() != null
-								? Base64.getEncoder().encodeToString(clinic.getDrugLicenseFormType())
-								: ""
+                clnc.setClinicalEstablishmentCertificate(
 
-				);
+                        clinic.getClinicalEstablishmentCertificate() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getClinicalEstablishmentCertificate())
+                                : ""
 
-				// Extended Certifications (single files)
+                );
 
-				clnc.setClinicType(clinic.getClinicType() != null ? clinic.getClinicType() : "");
+                clnc.setBusinessRegistrationCertificate(
 
-				clnc.setClinicalEstablishmentCertificate(
+                        clinic.getBusinessRegistrationCertificate() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getBusinessRegistrationCertificate())
+                                : ""
 
-						clinic.getClinicalEstablishmentCertificate() != null
-								? Base64.getEncoder().encodeToString(clinic.getClinicalEstablishmentCertificate())
-								: ""
+                );
 
-				);
+                clnc.setBiomedicalWasteManagementAuth(
 
-				clnc.setBusinessRegistrationCertificate(
+                        clinic.getBiomedicalWasteManagementAuth() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getBiomedicalWasteManagementAuth())
+                                : ""
 
-						clinic.getBusinessRegistrationCertificate() != null
-								? Base64.getEncoder().encodeToString(clinic.getBusinessRegistrationCertificate())
-								: ""
+                );
 
-				);
+                clnc.setTradeLicense(
 
-				clnc.setBiomedicalWasteManagementAuth(
+                        clinic.getTradeLicense() != null ? Base64.getEncoder().encodeToString(clinic.getTradeLicense())
+                                : ""
 
-						clinic.getBiomedicalWasteManagementAuth() != null
-								? Base64.getEncoder().encodeToString(clinic.getBiomedicalWasteManagementAuth())
-								: ""
+                );
 
-				);
+                clnc.setFireSafetyCertificate(
 
-				clnc.setTradeLicense(
+                        clinic.getFireSafetyCertificate() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getFireSafetyCertificate())
+                                : ""
 
-						clinic.getTradeLicense() != null ? Base64.getEncoder().encodeToString(clinic.getTradeLicense())
-								: ""
+                );
 
-				);
+                clnc.setProfessionalIndemnityInsurance(
 
-				clnc.setFireSafetyCertificate(
+                        clinic.getProfessionalIndemnityInsurance() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getProfessionalIndemnityInsurance())
+                                : ""
 
-						clinic.getFireSafetyCertificate() != null
-								? Base64.getEncoder().encodeToString(clinic.getFireSafetyCertificate())
-								: ""
+                );
 
-				);
+                clnc.setGstRegistrationCertificate(
 
-				clnc.setProfessionalIndemnityInsurance(
+                        clinic.getGstRegistrationCertificate() != null
+                                ? Base64.getEncoder().encodeToString(clinic.getGstRegistrationCertificate())
+                                : ""
 
-						clinic.getProfessionalIndemnityInsurance() != null
-								? Base64.getEncoder().encodeToString(clinic.getProfessionalIndemnityInsurance())
-								: ""
+                );
 
-				);
+                // Others – list of base64 strings
 
-				clnc.setGstRegistrationCertificate(
+                List<String> othersEncoded = new ArrayList<>();
 
-						clinic.getGstRegistrationCertificate() != null
-								? Base64.getEncoder().encodeToString(clinic.getGstRegistrationCertificate())
-								: ""
+                if (clinic.getOthers() != null) {
 
-				);
+                    for (byte[] file : clinic.getOthers()) {
 
-				// Others – list of base64 strings
+                        if (file != null) {
 
-				List<String> othersEncoded = new ArrayList<>();
+                            othersEncoded.add(Base64.getEncoder().encodeToString(file));
 
-				if (clinic.getOthers() != null) {
+                        }
 
-					for (byte[] file : clinic.getOthers()) {
+                    }
 
-						if (file != null) {
+                }
 
-							othersEncoded.add(Base64.getEncoder().encodeToString(file));
+                clnc.setOthers(othersEncoded);
 
-						}
+                // Consultation Expiration
 
-					}
+                clnc.setConsultationExpiration(
+                        clinic.getConsultationExpiration() != null ? clinic.getConsultationExpiration() : "");
 
-				}
+                // Social Media Handles
 
-				clnc.setOthers(othersEncoded);
+                clnc.setInstagramHandle(clinic.getInstagramHandle() != null ? clinic.getInstagramHandle() : "");
 
-				// Consultation Expiration
+                clnc.setTwitterHandle(clinic.getTwitterHandle() != null ? clinic.getTwitterHandle() : "");
 
-				clnc.setConsultationExpiration(
-						clinic.getConsultationExpiration() != null ? clinic.getConsultationExpiration() : "");
+                clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
 
-				// Social Media Handles
+                clnc.setBranches(clinic.getBranches());
 
-				clnc.setInstagramHandle(clinic.getInstagramHandle() != null ? clinic.getInstagramHandle() : "");
+                response.setMessage("Clinic fetched successfully");
 
-				clnc.setTwitterHandle(clinic.getTwitterHandle() != null ? clinic.getTwitterHandle() : "");
+                response.setSuccess(true);
 
-				clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
+                response.setStatus(200);
 
-				// ================= FCM TOKEN =================
-				ClinicCredentials clinicCredentials = clinicCredentialsRepository.findByUserName(clinicId);
+                response.setData(clnc);
 
-				clnc.setFcmToken(clinicCredentials != null && clinicCredentials.getFcmToken() != null
-						&& !clinicCredentials.getFcmToken().isEmpty() ? clinicCredentials.getFcmToken().get(0) : "");
+                return response;
 
-				response.setMessage("Clinic fetched successfully");
+            } else {
 
-				response.setSuccess(true);
+                response.setMessage("Clinic not found");
 
-				response.setStatus(200);
+                response.setSuccess(false);
 
-				response.setData(clnc);
+                response.setStatus(404);
 
-				return response;
+                return response;
 
-			} else {
+            }
 
-				response.setMessage("Clinic not found");
+        } catch (Exception e) {
 
-				response.setSuccess(false);
+            response.setMessage("Error occurred while fetching clinic: " + e.getMessage());
 
-				response.setStatus(404);
+            response.setSuccess(false);
 
-				return response;
+            response.setStatus(500);
 
-			}
+            return response;
 
-		} catch (Exception e) {
+        }
 
-			response.setMessage("Error occurred while fetching clinic: " + e.getMessage());
+    }
 
-			response.setSuccess(false);
+    @Override
+    public Response getAllClinics() {
 
-			response.setStatus(500);
+        Response response = new Response();
 
-			return response;
+        try {
 
-		}
+            List<Clinic> clinics = clinicRep.findAll();
 
-	}
+            List<ClinicDTO> list = new ArrayList<>();
 
-	@Override
-	public Response getAllClinics() {
+            if (!clinics.isEmpty()) {
 
-		Response response = new Response();
+                for (Clinic clinic : clinics) {
 
-		try {
+                    ClinicDTO clnc = new ClinicDTO();
 
-			List<Clinic> clinics = clinicRep.findAll();
+                    // Simple fields
 
-			List<ClinicDTO> list = new ArrayList<>();
+                    clnc.setAddress(clinic.getAddress() != null ? clinic.getAddress() : "");
 
-			if (!clinics.isEmpty()) {
+                    clnc.setCity(clinic.getCity() != null ? clinic.getCity() : "");
 
-				for (Clinic clinic : clinics) {
+                    clnc.setHospitalId(clinic.getHospitalId() != null ? clinic.getHospitalId() : "");
 
-					ClinicDTO clnc = new ClinicDTO();
+                    clnc.setEmailAddress(clinic.getEmailAddress() != null ? clinic.getEmailAddress() : "");
 
-					// Simple fields
+                    clnc.setWebsite(clinic.getWebsite() != null ? clinic.getWebsite() : "");
 
-					clnc.setAddress(clinic.getAddress() != null ? clinic.getAddress() : "");
+                    clnc.setLicenseNumber(clinic.getLicenseNumber() != null ? clinic.getLicenseNumber() : "");
 
-					clnc.setCity(clinic.getCity() != null ? clinic.getCity() : "");
+                    clnc.setIssuingAuthority(clinic.getIssuingAuthority() != null ? clinic.getIssuingAuthority() : "");
 
-					clnc.setHospitalId(clinic.getHospitalId() != null ? clinic.getHospitalId() : "");
+                    clnc.setClosingTime(clinic.getClosingTime() != null ? clinic.getClosingTime() : "");
 
-					clnc.setEmailAddress(clinic.getEmailAddress() != null ? clinic.getEmailAddress() : "");
+                    clnc.setContactNumber(clinic.getContactNumber() != null ? clinic.getContactNumber() : "");
 
-					clnc.setWebsite(clinic.getWebsite() != null ? clinic.getWebsite() : "");
+                    clnc.setName(clinic.getName() != null ? clinic.getName() : "");
 
-					clnc.setLicenseNumber(clinic.getLicenseNumber() != null ? clinic.getLicenseNumber() : "");
+                    clnc.setOpeningTime(clinic.getOpeningTime() != null ? clinic.getOpeningTime() : "");
 
-					clnc.setIssuingAuthority(clinic.getIssuingAuthority() != null ? clinic.getIssuingAuthority() : "");
+                    clnc.setRecommended(clinic.isRecommended());
+                    clnc.setSubscription(clinic.getSubscription());
 
-					clnc.setClosingTime(clinic.getClosingTime() != null ? clinic.getClosingTime() : "");
+                    clnc.setHospitalOverallRating(clinic.getHospitalOverallRating());
+                    clnc.setFreeFollowUps(clinic.getFreeFollowUps());
+                  ///  clnc.setLoyaltyPoints(clinic.getLoyaltyPoints());
+                    clnc.setLatitude(clinic.getLatitude());
+                    clnc.setLongitude(clinic.getLongitude());
+                    clnc.setWalkthrough(clinic.getWalkthrough());
+                    clnc.setNabhScore(clinic.getNabhScore());
+                    clnc.setBranch(clinic.getBranch());
+                    clnc.setRole(clinic.getRole());
+                    clnc.setPermissions(clinic.getPermissions());
+                    clnc.setStatus(clinic.getStatus());
+                    clnc.setBranches(clinic.getBranches());
+                    clnc.setLocation(clinic.getLocation());
+                    clnc.setHospitalLogo(
 
-					clnc.setContactNumber(clinic.getContactNumber() != null ? clinic.getContactNumber() : "");
+                            clinic.getHospitalLogo() != null
 
-					clnc.setName(clinic.getName() != null ? clinic.getName() : "");
+                                    ? Base64.getEncoder().encodeToString(clinic.getHospitalLogo())
 
-					clnc.setOpeningTime(clinic.getOpeningTime() != null ? clinic.getOpeningTime() : "");
+                                    : ""
 
-					clnc.setRecommended(clinic.isRecommended());
-					clnc.setSubscription(clinic.getSubscription());
+                    );
 
-					clnc.setHospitalOverallRating(clinic.getHospitalOverallRating());
-					clnc.setFreeFollowUps(clinic.getFreeFollowUps());
+                    // Hospital Documents
 
-					clnc.setLatitude(clinic.getLatitude());
-					clnc.setLongitude(clinic.getLongitude());
-					clnc.setWalkthrough(clinic.getWalkthrough());
-					clnc.setNabhScore(clinic.getNabhScore());
-					clnc.setBranch(clinic.getBranch());
-					clnc.setRole(clinic.getRole());
-					clnc.setPermissions(clinic.getPermissions());
-					clnc.setStatus(clinic.getStatus());
-					clnc.setBranches(clinic.getBranches());
+                    clnc.setHospitalDocuments(
 
-					clnc.setHospitalLogo(
+                            clinic.getHospitalDocuments() != null
 
-							clinic.getHospitalLogo() != null
+                                    ? Base64.getEncoder().encodeToString(clinic.getHospitalDocuments())
 
-									? Base64.getEncoder().encodeToString(clinic.getHospitalLogo())
+                                    : ""
 
-									: ""
+                    );
 
-					);
+                    // Contractor Documents
 
-					// Hospital Documents
+                    clnc.setContractorDocuments(
 
-					clnc.setHospitalDocuments(
+                            clinic.getContractorDocuments() != null
 
-							clinic.getHospitalDocuments() != null
+                                    ? Base64.getEncoder().encodeToString(clinic.getContractorDocuments())
 
-									? Base64.getEncoder().encodeToString(clinic.getHospitalDocuments())
+                                    : ""
 
-									: ""
+                    );
 
-					);
+                    // Medicines Sold On Site
 
-					// Contractor Documents
+                    clnc.setMedicinesSoldOnSite(
+                            clinic.getMedicinesSoldOnSite() != null ? clinic.getMedicinesSoldOnSite() : "");
 
-					clnc.setContractorDocuments(
+                    if ("Yes".equalsIgnoreCase(clinic.getMedicinesSoldOnSite())) {
 
-							clinic.getContractorDocuments() != null
+                        clnc.setDrugLicenseCertificate(
 
-									? Base64.getEncoder().encodeToString(clinic.getContractorDocuments())
+                                clinic.getDrugLicenseCertificate() != null
 
-									: ""
+                                        ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseCertificate())
 
-					);
+                                        : ""
 
-					// Medicines Sold On Site
+                        );
 
-					clnc.setMedicinesSoldOnSite(
-							clinic.getMedicinesSoldOnSite() != null ? clinic.getMedicinesSoldOnSite() : "");
+                        clnc.setDrugLicenseFormType(
 
-					if ("Yes".equalsIgnoreCase(clinic.getMedicinesSoldOnSite())) {
+                                clinic.getDrugLicenseFormType() != null
 
-						clnc.setDrugLicenseCertificate(
+                                        ? Base64.getEncoder().encodeToString(clinic.getDrugLicenseFormType())
 
-								clinic.getDrugLicenseCertificate() != null
+                                        : ""
 
-										? Base64.getEncoder().encodeToString(clinic.getDrugLicenseCertificate())
+                        );
 
-										: ""
+                    } else {
 
-						);
+                        clnc.setDrugLicenseCertificate("");
 
-						clnc.setDrugLicenseFormType(
+                        clnc.setDrugLicenseFormType("");
 
-								clinic.getDrugLicenseFormType() != null
+                    }
 
-										? Base64.getEncoder().encodeToString(clinic.getDrugLicenseFormType())
+                    // Pharmacist Certificate
 
-										: ""
+                    clnc.setHasPharmacist(clinic.getHasPharmacist() != null ? clinic.getHasPharmacist() : "");
 
-						);
+                    clnc.setPharmacistCertificate(
 
-					} else {
+                            "Yes".equalsIgnoreCase(clinic.getHasPharmacist())
+                                    && clinic.getPharmacistCertificate() != null
 
-						clnc.setDrugLicenseCertificate("");
+                                    ? Base64.getEncoder().encodeToString(clinic.getPharmacistCertificate())
 
-						clnc.setDrugLicenseFormType("");
+                                    : ""
 
-					}
+                    );
+                    // Extended Certifications
 
-					// Pharmacist Certificate
+                    clnc.setClinicType(clinic.getClinicType() != null ? clinic.getClinicType() : "");
 
-					clnc.setHasPharmacist(clinic.getHasPharmacist() != null ? clinic.getHasPharmacist() : "");
+                    clnc.setClinicalEstablishmentCertificate(
 
-					clnc.setPharmacistCertificate(
+                            clinic.getClinicalEstablishmentCertificate() != null
 
-							"Yes".equalsIgnoreCase(clinic.getHasPharmacist())
-									&& clinic.getPharmacistCertificate() != null
+                                    ? Base64.getEncoder().encodeToString(clinic.getClinicalEstablishmentCertificate())
 
-											? Base64.getEncoder().encodeToString(clinic.getPharmacistCertificate())
+                                    : ""
 
-											: ""
+                    );
 
-					);
-					// Extended Certifications
+                    clnc.setBusinessRegistrationCertificate(
 
-					clnc.setClinicType(clinic.getClinicType() != null ? clinic.getClinicType() : "");
+                            clinic.getBusinessRegistrationCertificate() != null
 
-					clnc.setClinicalEstablishmentCertificate(
+                                    ? Base64.getEncoder().encodeToString(clinic.getBusinessRegistrationCertificate())
 
-							clinic.getClinicalEstablishmentCertificate() != null
+                                    : ""
 
-									? Base64.getEncoder().encodeToString(clinic.getClinicalEstablishmentCertificate())
+                    );
 
-									: ""
+                    clnc.setBiomedicalWasteManagementAuth(
 
-					);
+                            clinic.getBiomedicalWasteManagementAuth() != null
 
-					clnc.setBusinessRegistrationCertificate(
+                                    ? Base64.getEncoder().encodeToString(clinic.getBiomedicalWasteManagementAuth())
 
-							clinic.getBusinessRegistrationCertificate() != null
+                                    : ""
 
-									? Base64.getEncoder().encodeToString(clinic.getBusinessRegistrationCertificate())
+                    );
 
-									: ""
+                    clnc.setTradeLicense(
 
-					);
+                            clinic.getTradeLicense() != null
 
-					clnc.setBiomedicalWasteManagementAuth(
+                                    ? Base64.getEncoder().encodeToString(clinic.getTradeLicense())
 
-							clinic.getBiomedicalWasteManagementAuth() != null
+                                    : ""
 
-									? Base64.getEncoder().encodeToString(clinic.getBiomedicalWasteManagementAuth())
+                    );
 
-									: ""
+                    clnc.setFireSafetyCertificate(
 
-					);
+                            clinic.getFireSafetyCertificate() != null
 
-					clnc.setTradeLicense(
+                                    ? Base64.getEncoder().encodeToString(clinic.getFireSafetyCertificate())
 
-							clinic.getTradeLicense() != null
+                                    : ""
 
-									? Base64.getEncoder().encodeToString(clinic.getTradeLicense())
+                    );
 
-									: ""
+                    clnc.setProfessionalIndemnityInsurance(
 
-					);
+                            clinic.getProfessionalIndemnityInsurance() != null
 
-					clnc.setFireSafetyCertificate(
+                                    ? Base64.getEncoder().encodeToString(clinic.getProfessionalIndemnityInsurance())
 
-							clinic.getFireSafetyCertificate() != null
+                                    : "");
+                    clnc.setGstRegistrationCertificate(
 
-									? Base64.getEncoder().encodeToString(clinic.getFireSafetyCertificate())
+                            clinic.getGstRegistrationCertificate() != null
 
-									: ""
+                                    ? Base64.getEncoder().encodeToString(clinic.getGstRegistrationCertificate())
 
-					);
+                                    : ""
 
-					clnc.setProfessionalIndemnityInsurance(
+                    );
 
-							clinic.getProfessionalIndemnityInsurance() != null
+                    // Others – list of documents
 
-									? Base64.getEncoder().encodeToString(clinic.getProfessionalIndemnityInsurance())
+                    List<String> othersList = new ArrayList<>();
 
-									: "");
-					clnc.setGstRegistrationCertificate(
+                    if (clinic.getOthers() != null) {
 
-							clinic.getGstRegistrationCertificate() != null
+                        for (byte[] doc : clinic.getOthers()) {
 
-									? Base64.getEncoder().encodeToString(clinic.getGstRegistrationCertificate())
+                            if (doc != null) {
 
-									: ""
+                                othersList.add(Base64.getEncoder().encodeToString(doc));
 
-					);
+                            }
 
-					// Others – list of documents
+                        }
 
-					List<String> othersList = new ArrayList<>();
+                    }
 
-					if (clinic.getOthers() != null) {
+                    clnc.setOthers(othersList);
 
-						for (byte[] doc : clinic.getOthers()) {
+                    // Consultation Expiration
 
-							if (doc != null) {
+                    clnc.setConsultationExpiration(
 
-								othersList.add(Base64.getEncoder().encodeToString(doc));
+                            clinic.getConsultationExpiration() != null ? clinic.getConsultationExpiration() : ""
 
-							}
+                    );
 
-						}
+                    // Social Media
 
-					}
+                    clnc.setInstagramHandle(clinic.getInstagramHandle() != null ? clinic.getInstagramHandle() : "");
 
-					clnc.setOthers(othersList);
+                    clnc.setTwitterHandle(clinic.getTwitterHandle() != null ? clinic.getTwitterHandle() : "");
 
-					// Consultation Expiration
+                    clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
 
-					clnc.setConsultationExpiration(
+                    list.add(clnc);
 
-							clinic.getConsultationExpiration() != null ? clinic.getConsultationExpiration() : ""
+                }
+                response.setData(list);
 
-					);
+                response.setMessage("Clinics fetched successfully");
 
-					// Social Media
+                response.setSuccess(true);
 
-					clnc.setInstagramHandle(clinic.getInstagramHandle() != null ? clinic.getInstagramHandle() : "");
+                response.setStatus(200);
 
-					clnc.setTwitterHandle(clinic.getTwitterHandle() != null ? clinic.getTwitterHandle() : "");
+            } else {
 
-					clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
+                response.setData(null);
 
-					list.add(clnc);
+                response.setMessage("Clinics Not Found");
 
-				}
-				response.setData(list);
+                response.setSuccess(true); // Still success, but no data
 
-				response.setMessage("Clinics fetched successfully");
+                response.setStatus(200);
 
-				response.setSuccess(true);
+            }
 
-				response.setStatus(200);
+        } catch (Exception e) {
 
-			} else {
+            response.setData(null);
 
-				response.setData(null);
+            response.setMessage("Error: " + e.getMessage());
 
-				response.setMessage("Clinics Not Found");
+            response.setSuccess(false);
 
-				response.setSuccess(true); // Still success, but no data
+            response.setStatus(500);
 
-				response.setStatus(200);
+        }
 
-			}
+        return response;
 
-		} catch (Exception e) {
+    }
 
-			response.setData(null);
+    @Override
+    public Response updateClinic(String clinicId, ClinicDTO clinic) {
 
-			response.setMessage("Error: " + e.getMessage());
+        Response response = new Response();
 
-			response.setSuccess(false);
+        try {
 
-			response.setStatus(500);
+            Clinic savedClinic = clinicRep.findByHospitalId(clinicId);
 
-		}
+            if (savedClinic != null) {
+                if (!savedClinic.getContactNumber().equalsIgnoreCase(clinic.getContactNumber())) {
+                    if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
+                        response.setMessage("ContactNumber already exists");
+                        response.setSuccess(false);
+                        response.setStatus(409);
+                        return response;
+                    }
+                }
 
-		return response;
+                if (!savedClinic.getLicenseNumber().equalsIgnoreCase(clinic.getLicenseNumber())) {
+                    if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
+                        response.setMessage("LicenseNumber already exists");
+                        response.setSuccess(false);
+                        response.setStatus(409);
+                        return response;
+                    }
+                }
 
-	}
+                if (!savedClinic.getEmailAddress().equalsIgnoreCase(clinic.getEmailAddress())) {
+                    if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
+                        response.setMessage("EmailAddress already exists");
+                        response.setSuccess(false);
+                        response.setStatus(409);
+                        return response;
+                    }
+                }
 
-	@Override
-	public Response updateClinic(String clinicId, ClinicDTO clinic) {
+                if (clinic.getAddress() != null)
+                    savedClinic.setAddress(clinic.getAddress());
 
-		Response response = new Response();
+                if (clinic.getCity() != null)
+                    savedClinic.setCity(clinic.getCity());
 
-		try {
+                if (clinic.getName() != null) {
 
-			Clinic savedClinic = clinicRep.findByHospitalId(clinicId);
+                    savedClinic.setName(clinic.getName());
 
-			if (savedClinic != null) {
-				if (!savedClinic.getContactNumber().equalsIgnoreCase(clinic.getContactNumber())) {
-					if (clinicRep.findByContactNumber(clinic.getContactNumber()) != null) {
-						response.setMessage("ContactNumber already exists");
-						response.setSuccess(false);
-						response.setStatus(409);
-						return response;
-					}
-				}
+                    // Update hospital name in credentials
 
-				if (!savedClinic.getLicenseNumber().equalsIgnoreCase(clinic.getLicenseNumber())) {
-					if (clinicRep.findByLicenseNumber(clinic.getLicenseNumber()) != null) {
-						response.setMessage("LicenseNumber already exists");
-						response.setSuccess(false);
-						response.setStatus(409);
-						return response;
-					}
-				}
+                    List<ClinicCredentials> credsList = clinicCredentialsRepository
+                            .findAllByUserName(savedClinic.getHospitalId());
 
-				if (!savedClinic.getEmailAddress().equalsIgnoreCase(clinic.getEmailAddress())) {
-					if (clinicRep.findByEmailAddress(clinic.getEmailAddress()) != null) {
-						response.setMessage("EmailAddress already exists");
-						response.setSuccess(false);
-						response.setStatus(409);
-						return response;
-					}
-				}
+                    for (ClinicCredentials creds : credsList) {
 
-				if (clinic.getAddress() != null)
-					savedClinic.setAddress(clinic.getAddress());
+                        creds.setHospitalName(clinic.getName());
 
-				if (clinic.getCity() != null)
-					savedClinic.setCity(clinic.getCity());
+                        clinicCredentialsRepository.save(creds);
 
-				if (clinic.getName() != null) {
+                    }
 
-					savedClinic.setName(clinic.getName());
+                }
+                try{
+                    if (savedClinic.getBranches() != null && !savedClinic.getBranches().isEmpty()) {
+                        Branch br = savedClinic.getBranches().get(0);
 
-					// Update hospital name in credentials
+                        // Map fields with if-else checks
+                        if (clinic.getHospitalId() != null) {
+                            br.setClinicId(clinic.getHospitalId());
+                        } else {
+                            br.setClinicId(br.getClinicId()); // keep existing
+                        }
 
-					List<ClinicCredentials> credsList = clinicCredentialsRepository
-							.findAllByUserName(savedClinic.getHospitalId());
+                        if (clinic.getName()!= null) {
+                            br.setHospitalName(clinic.getName());
+                        } else {
+                            br.setHospitalName(br.getHospitalName());
+                        }
 
-					for (ClinicCredentials creds : credsList) {
+                        if (clinic.getAddress() != null) {
+                            br.setAddress(clinic.getAddress());
+                        } else {
+                            br.setAddress(br.getAddress());
+                        }
 
-						creds.setHospitalName(clinic.getName());
+                        if (clinic.getCity() != null) {
+                            br.setCity(clinic.getCity());
+                        } else {
+                            br.setCity(br.getCity());
+                        }
 
-						clinicCredentialsRepository.save(creds);
+                        if (clinic.getContactNumber() != null) {
+                            br.setContactNumber(clinic.getContactNumber());
+                        } else {
+                            br.setContactNumber(br.getContactNumber());
+                        }
 
-					}
+                        if (clinic.getEmailAddress() != null) {
+                            br.setEmail(clinic.getEmailAddress());
+                        } else {
+                            br.setEmail(br.getEmail());
+                        }
 
-				}
+                        if (clinic.getLatitude() != 0.0) {
+                            br.setLatitude(String.valueOf(clinic.getLatitude()));
+                        } else {
+                            br.setLatitude(br.getLatitude());
+                        }
 
-				// Hospital Logo
+                        if (clinic.getLongitude() != 0.0) {
+                            br.setLongitude(String.valueOf(clinic.getLongitude()));
+                        } else {
+                            br.setLongitude(br.getLongitude());
+                        }
 
-				if (clinic.getHospitalLogo() != null && !clinic.getHospitalLogo().isEmpty()) {
+                        if (clinic.getRole() != null) {
+                            br.setRole(clinic.getRole());
+                        } else {
+                            br.setRole(br.getRole());
+                        }
 
-					savedClinic.setHospitalLogo(Base64.getDecoder().decode(clinic.getHospitalLogo()));
+                        if (clinic.getPermissions() != null) {
+                            br.setPermissions(clinic.getPermissions());
+                        } else {
+                            br.setPermissions(br.getPermissions());
+                        }
 
-				}
+                        if (clinic.getStatus() != null) {
+                            br.setStatus(clinic.getStatus());
+                        } else {
+                            br.setStatus(br.getStatus());
+                        }
 
-				// Hospital Documents
+//                        if (clinic.getLoyaltyPoints() != null) {
+//                            br.setLoyaltyPoints(clinic.getLoyaltyPoints());
+//                        } else {
+//                            br.setLoyaltyPoints(br.getLoyaltyPoints());
+//                        }
 
-				if (clinic.getHospitalDocuments() != null && !clinic.getHospitalDocuments().isEmpty()) {
+                        if (clinic.getLocation()!= null || clinic.getLocation().isEmpty()) {
+                            br.setLocation(clinic.getLocation());}
 
-					savedClinic.setHospitalDocuments(Base64.getDecoder().decode(clinic.getHospitalDocuments()));
+                        if (clinic.getWalkthrough()!= null || clinic.getWalkthrough().isEmpty()) {
+                            br.setVirtualClinicTour(clinic.getWalkthrough());}
 
-				}
+                        savedClinic.getBranches().add(br);
+                        branchRepository.save(br);
+                    }}catch (Exception e){}
 
-				// Contractor Documents
+                // Hospital Logo
 
-				if (clinic.getContractorDocuments() != null && !clinic.getContractorDocuments().isEmpty()) {
+                if (clinic.getHospitalLogo() != null && !clinic.getHospitalLogo().isEmpty()) {
 
-					savedClinic.setContractorDocuments(Base64.getDecoder().decode(clinic.getContractorDocuments()));
+                    savedClinic.setHospitalLogo(Base64.getDecoder().decode(clinic.getHospitalLogo()));
 
-				}
+                }
 
-				if (clinic.getHospitalOverallRating() != 0.0) {
+                // Hospital Documents
 
-					savedClinic.setHospitalOverallRating(clinic.getHospitalOverallRating());
+                if (clinic.getHospitalDocuments() != null && !clinic.getHospitalDocuments().isEmpty()) {
 
-				}
+                    savedClinic.setHospitalDocuments(Base64.getDecoder().decode(clinic.getHospitalDocuments()));
 
-				if (clinic.getClosingTime() != null)
-					savedClinic.setClosingTime(clinic.getClosingTime());
+                }
 
-				if (clinic.getOpeningTime() != null)
-					savedClinic.setOpeningTime(clinic.getOpeningTime());
+//                if (clinic.getLoyaltyPoints() != null && !clinic.getLoyaltyPoints().isBlank()) {
+//                    savedClinic.setLoyaltyPoints(clinic.getLoyaltyPoints());
+//                }
+                // Contractor Documents
 
-				if (clinic.getContactNumber() != null)
-					savedClinic.setContactNumber(clinic.getContactNumber());
+                if (clinic.getContractorDocuments() != null && !clinic.getContractorDocuments().isEmpty()) {
 
-				if (clinic.getEmailAddress() != null)
-					savedClinic.setEmailAddress(clinic.getEmailAddress());
+                    savedClinic.setContractorDocuments(Base64.getDecoder().decode(clinic.getContractorDocuments()));
 
-				if (clinic.getWebsite() != null)
-					savedClinic.setWebsite(clinic.getWebsite());
+                }
 
-				if (clinic.getLicenseNumber() != null)
-					savedClinic.setLicenseNumber(clinic.getLicenseNumber());
+                if (clinic.getHospitalOverallRating() != 0.0) {
 
-				if (clinic.getIssuingAuthority() != null)
-					savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
+                    savedClinic.setHospitalOverallRating(clinic.getHospitalOverallRating());
 
-				// Optional hospital ID update (not recommended usually)
+                }
 
-				if (clinic.getHospitalId() != null && !clinic.getHospitalId().equals(clinicId)) {
+                if (clinic.getClosingTime() != null)
+                    savedClinic.setClosingTime(clinic.getClosingTime());
 
-					savedClinic.setHospitalId(clinic.getHospitalId());
+                if (clinic.getOpeningTime() != null)
+                    savedClinic.setOpeningTime(clinic.getOpeningTime());
 
-				}
+                if (clinic.getContactNumber() != null)
+                    savedClinic.setContactNumber(clinic.getContactNumber());
 
-				// Medicines Sold On Site
+                if (clinic.getEmailAddress() != null)
+                    savedClinic.setEmailAddress(clinic.getEmailAddress());
 
-				savedClinic.setMedicinesSoldOnSite(clinic.getMedicinesSoldOnSite());
+                if (clinic.getWebsite() != null)
+                    savedClinic.setWebsite(clinic.getWebsite());
 
-				if ("Yes".equalsIgnoreCase(clinic.getMedicinesSoldOnSite())) {
+                if (clinic.getLicenseNumber() != null)
+                    savedClinic.setLicenseNumber(clinic.getLicenseNumber());
 
-					if (clinic.getDrugLicenseCertificate() != null && !clinic.getDrugLicenseCertificate().isEmpty()) {
 
-						savedClinic.setDrugLicenseCertificate(
-								Base64.getDecoder().decode(clinic.getDrugLicenseCertificate()));
+                if (clinic.getIssuingAuthority() != null)
+                    savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
 
-					}
+                // Optional hospital ID update (not recommended usually)
 
-					if (clinic.getDrugLicenseFormType() != null && !clinic.getDrugLicenseFormType().isEmpty()) {
+                if (clinic.getHospitalId() != null && !clinic.getHospitalId().equals(clinicId)) {
 
-						savedClinic.setDrugLicenseFormType(Base64.getDecoder().decode(clinic.getDrugLicenseFormType()));
+                    savedClinic.setHospitalId(clinic.getHospitalId());
 
-					}
+                }
 
-				} else {
+                if (clinic.getLocation() != null || clinic.getLocation().isEmpty()){
+                    savedClinic.setLocation(clinic.getLocation());}
 
-					savedClinic.setDrugLicenseCertificate(null);
 
-					savedClinic.setDrugLicenseFormType(null);
+                // Medicines Sold On Site
 
-				}
+                savedClinic.setMedicinesSoldOnSite(clinic.getMedicinesSoldOnSite());
 
-				// Pharmacist Section
+                if ("Yes".equalsIgnoreCase(clinic.getMedicinesSoldOnSite())) {
 
-				savedClinic.setHasPharmacist(clinic.getHasPharmacist());
+                    if (clinic.getDrugLicenseCertificate() != null && !clinic.getDrugLicenseCertificate().isEmpty()) {
 
-				if ("Yes".equalsIgnoreCase(clinic.getHasPharmacist())) {
+                        savedClinic.setDrugLicenseCertificate(
+                                Base64.getDecoder().decode(clinic.getDrugLicenseCertificate()));
 
-					if (clinic.getPharmacistCertificate() != null && !clinic.getPharmacistCertificate().isEmpty()) {
+                    }
 
-						savedClinic.setPharmacistCertificate(
-								Base64.getDecoder().decode(clinic.getPharmacistCertificate()));
+                    if (clinic.getDrugLicenseFormType() != null && !clinic.getDrugLicenseFormType().isEmpty()) {
 
-					}
+                        savedClinic.setDrugLicenseFormType(Base64.getDecoder().decode(clinic.getDrugLicenseFormType()));
 
-				} else {
+                    }
 
-					savedClinic.setPharmacistCertificate(null);
+                } else {
 
-				}
+                    savedClinic.setDrugLicenseCertificate(null);
 
-				// Other Certificates
+                    savedClinic.setDrugLicenseFormType(null);
 
-				if (clinic.getClinicType() != null)
-					savedClinic.setClinicType(clinic.getClinicType());
+                }
 
-				if (clinic.getClinicalEstablishmentCertificate() != null
-						&& !clinic.getClinicalEstablishmentCertificate().isEmpty())
+                // Pharmacist Section
 
-					savedClinic.setClinicalEstablishmentCertificate(
-							Base64.getDecoder().decode(clinic.getClinicalEstablishmentCertificate()));
+                savedClinic.setHasPharmacist(clinic.getHasPharmacist());
 
-				if (clinic.getBusinessRegistrationCertificate() != null
-						&& !clinic.getBusinessRegistrationCertificate().isEmpty())
+                if ("Yes".equalsIgnoreCase(clinic.getHasPharmacist())) {
 
-					savedClinic.setBusinessRegistrationCertificate(
-							Base64.getDecoder().decode(clinic.getBusinessRegistrationCertificate()));
+                    if (clinic.getPharmacistCertificate() != null && !clinic.getPharmacistCertificate().isEmpty()) {
 
-				if (clinic.getBiomedicalWasteManagementAuth() != null
-						&& !clinic.getBiomedicalWasteManagementAuth().isEmpty())
+                        savedClinic.setPharmacistCertificate(
+                                Base64.getDecoder().decode(clinic.getPharmacistCertificate()));
 
-					savedClinic.setBiomedicalWasteManagementAuth(
-							Base64.getDecoder().decode(clinic.getBiomedicalWasteManagementAuth()));
+                    }
 
-				if (clinic.getTradeLicense() != null && !clinic.getTradeLicense().isEmpty())
+                } else {
 
-					savedClinic.setTradeLicense(Base64.getDecoder().decode(clinic.getTradeLicense()));
+                    savedClinic.setPharmacistCertificate(null);
 
-				if (clinic.getFireSafetyCertificate() != null && !clinic.getFireSafetyCertificate().isEmpty())
+                }
 
-					savedClinic.setFireSafetyCertificate(Base64.getDecoder().decode(clinic.getFireSafetyCertificate()));
+                // Other Certificates
 
-				if (clinic.getProfessionalIndemnityInsurance() != null
-						&& !clinic.getProfessionalIndemnityInsurance().isEmpty())
+                if (clinic.getClinicType() != null)
+                    savedClinic.setClinicType(clinic.getClinicType());
 
-					savedClinic.setProfessionalIndemnityInsurance(
-							Base64.getDecoder().decode(clinic.getProfessionalIndemnityInsurance()));
+                if (clinic.getClinicalEstablishmentCertificate() != null
+                        && !clinic.getClinicalEstablishmentCertificate().isEmpty())
 
-				if (clinic.getGstRegistrationCertificate() != null && !clinic.getGstRegistrationCertificate().isEmpty())
+                    savedClinic.setClinicalEstablishmentCertificate(
+                            Base64.getDecoder().decode(clinic.getClinicalEstablishmentCertificate()));
 
-					savedClinic.setGstRegistrationCertificate(
-							Base64.getDecoder().decode(clinic.getGstRegistrationCertificate()));
+                if (clinic.getBusinessRegistrationCertificate() != null
+                        && !clinic.getBusinessRegistrationCertificate().isEmpty())
 
-				// Others - List<byte[]>
+                    savedClinic.setBusinessRegistrationCertificate(
+                            Base64.getDecoder().decode(clinic.getBusinessRegistrationCertificate()));
 
-				if (clinic.getOthers() != null) {
+                if (clinic.getBiomedicalWasteManagementAuth() != null
+                        && !clinic.getBiomedicalWasteManagementAuth().isEmpty())
 
-					List<byte[]> othersList = new ArrayList<>();
+                    savedClinic.setBiomedicalWasteManagementAuth(
+                            Base64.getDecoder().decode(clinic.getBiomedicalWasteManagementAuth()));
 
-					for (String base64File : clinic.getOthers()) {
+                if (clinic.getTradeLicense() != null && !clinic.getTradeLicense().isEmpty())
 
-						if (base64File != null && !base64File.isEmpty()) {
+                    savedClinic.setTradeLicense(Base64.getDecoder().decode(clinic.getTradeLicense()));
 
-							othersList.add(Base64.getDecoder().decode(base64File));
+                if (clinic.getFireSafetyCertificate() != null && !clinic.getFireSafetyCertificate().isEmpty())
 
-						}
+                    savedClinic.setFireSafetyCertificate(Base64.getDecoder().decode(clinic.getFireSafetyCertificate()));
 
-					}
+                if (clinic.getProfessionalIndemnityInsurance() != null
+                        && !clinic.getProfessionalIndemnityInsurance().isEmpty())
 
-					savedClinic.setOthers(othersList);
+                    savedClinic.setProfessionalIndemnityInsurance(
+                            Base64.getDecoder().decode(clinic.getProfessionalIndemnityInsurance()));
 
-				}
+                if (clinic.getGstRegistrationCertificate() != null && !clinic.getGstRegistrationCertificate().isEmpty())
 
-				savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
-				savedClinic.setLatitude(clinic.getLatitude());
-				savedClinic.setLongitude(clinic.getLongitude());
-				if (clinic.getWalkthrough() != null)
-					savedClinic.setWalkthrough(clinic.getWalkthrough());
-				savedClinic.setNabhScore(clinic.getNabhScore());
-				savedClinic.setBranch(clinic.getBranch());
-				savedClinic.setBranches(clinic.getBranches());
+                    savedClinic.setGstRegistrationCertificate(
+                            Base64.getDecoder().decode(clinic.getGstRegistrationCertificate()));
 
-				// Consultation Expiration
+                // Others - List<byte[]>
 
-				if (clinic.getConsultationExpiration() != null && !clinic.getConsultationExpiration().isEmpty()) {
+                if (clinic.getOthers() != null) {
 
-					savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
+                    List<byte[]> othersList = new ArrayList<>();
 
-				}
+                    for (String base64File : clinic.getOthers()) {
 
-				// Social Media
+                        if (base64File != null && !base64File.isEmpty()) {
 
-				if (clinic.getInstagramHandle() != null)
-					savedClinic.setInstagramHandle(clinic.getInstagramHandle());
+                            othersList.add(Base64.getDecoder().decode(base64File));
+                        }}
+                    savedClinic.setOthers(othersList);}
+                if (clinic.getFreeFollowUps() != 0) {
+                    savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
+                }
 
-				if (clinic.getTwitterHandle() != null)
-					savedClinic.setTwitterHandle(clinic.getTwitterHandle());
 
-				if (clinic.getFacebookHandle() != null)
-					savedClinic.setFacebookHandle(clinic.getFacebookHandle());
+                if (clinic.getLatitude() != 0.0) {
+                    savedClinic.setLatitude(clinic.getLatitude());
+                }
 
-				// Recommended
-				savedClinic.setRecommended(clinic.isRecommended());
-				// Save updates
+                if (clinic.getLongitude() != 0.0) {
+                    savedClinic.setLongitude(clinic.getLongitude());
+                }
 
-				clinicRep.save(savedClinic);
+                if (clinic.getWalkthrough() != null || clinic.getWalkthrough().isEmpty()) {
+                    savedClinic.setWalkthrough(clinic.getWalkthrough()); // "" will be stored if client sends empty string
+                }
 
-				response.setMessage("Clinic updated successfully");
+                if (clinic.getNabhScore() != 0) {
+                    savedClinic.setNabhScore(clinic.getNabhScore());
+                }
 
-				response.setSuccess(true);
+                if (clinic.getBranch() != null) {
+                    savedClinic.setBranch(clinic.getBranch());
+                }
 
-				response.setStatus(200);
+                if (clinic.getBranches() != null) {
+                    savedClinic.setBranches(clinic.getBranches());
+                }
 
-			} else {
 
-				response.setMessage("Clinic not found for update");
+                // Consultation Expiration
 
-				response.setSuccess(false);
+                if (clinic.getConsultationExpiration() != null && !clinic.getConsultationExpiration().isEmpty()) {
 
-				response.setStatus(404);
+                    savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
 
-			}
+                }
 
-		} catch (Exception e) {
+                // Social Media
 
-			response.setMessage("Error occurred while updating the clinic: " + e.getMessage());
+                if (clinic.getInstagramHandle() != null)
+                    savedClinic.setInstagramHandle(clinic.getInstagramHandle());
 
-			response.setSuccess(false);
+                if (clinic.getTwitterHandle() != null)
+                    savedClinic.setTwitterHandle(clinic.getTwitterHandle());
 
-			response.setStatus(500);
+                if (clinic.getFacebookHandle() != null)
+                    savedClinic.setFacebookHandle(clinic.getFacebookHandle());
 
-		}
+                // Recommended
+                savedClinic.setRecommended(clinic.isRecommended());
 
-		return response;
 
-	}
+
+                // Save updates
+
+                clinicRep.save(savedClinic);
+
+                response.setMessage("Clinic updated successfully");
+
+                response.setSuccess(true);
+
+                response.setStatus(200);
+
+            } else {
+
+                response.setMessage("Clinic not found for update");
+
+                response.setSuccess(false);
+
+                response.setStatus(404);
+
+            }
+
+        } catch (Exception e) {
+
+            response.setMessage("Error occurred while updating the clinic: " + e.getMessage());
+
+            response.setSuccess(false);
+
+            response.setStatus(500);
+
+        }
+
+        return response;
+
+    }
+
 
 	@Override
 	public Response deleteClinic(String clinicId) {

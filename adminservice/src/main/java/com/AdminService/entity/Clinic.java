@@ -110,5 +110,6 @@ public class Clinic {
     private String facebookHandle;
 	private String status ;
 	private String createdAt;
+    private String location;
 	   
 }

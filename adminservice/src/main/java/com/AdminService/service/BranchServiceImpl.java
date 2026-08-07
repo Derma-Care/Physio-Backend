@@ -406,6 +406,14 @@ public class BranchServiceImpl implements BranchService {
                     branch.setBranchName(branchDto.getBranchName());
                 }
 
+                if (branchDto.getLocation() != null || branchDto.getLocation().isEmpty()) {
+                    branch.setLocation(branchDto.getLocation());
+                }
+
+                if (branchDto.getVirtualClinicTour() != null || branchDto.getVirtualClinicTour().isEmpty()) {
+                    branch.setVirtualClinicTour(branchDto.getVirtualClinicTour());
+                }
+
                 if (branchDto.getAddress() != null && !branchDto.getAddress().isBlank()) {
                     branch.setAddress(branchDto.getAddress());
                 }
@@ -429,6 +437,10 @@ public class BranchServiceImpl implements BranchService {
                 if (branchDto.getLongitude() != null && !branchDto.getLongitude().isBlank()) {
                     branch.setLongitude(branchDto.getLongitude());
                 }
+
+//                if (branchDto.getLoyaltyPoints() != null && !branchDto.getLoyaltyPoints().isBlank()) {
+//                    branch.setLoyaltyPoints(branchDto.getLoyaltyPoints());
+//                }
 
                 if (branchDto.getVirtualClinicTour() != null
                         && !branchDto.getVirtualClinicTour().isBlank()) {
@@ -464,7 +476,7 @@ public class BranchServiceImpl implements BranchService {
                             b.setLongitude(updatedBranch.getLongitude());
                             b.setVirtualClinicTour(updatedBranch.getVirtualClinicTour());
                             b.setBranchOverallRating(updatedBranch.getBranchOverallRating());
-
+                            b.setLocation(updatedBranch.getLocation());
                             break;
                         }
                     }
@@ -594,6 +606,7 @@ public class BranchServiceImpl implements BranchService {
         if (dto == null) return null;
         Branch branch = new Branch();
         branch.setClinicId(dto.getClinicId());
+        branch.setLocation(dto.getLocation());
         branch.setHospitalName(dto.getHospitalName());
         branch.setBranchId(generatedBranchId); // Always numeric branch ID
         branch.setBranchName(dto.getBranchName());
@@ -606,6 +619,7 @@ public class BranchServiceImpl implements BranchService {
         branch.setVirtualClinicTour(dto.getVirtualClinicTour());
         branch.setRole(dto.getRole());
         branch.setPermissions(dto.getPermissions());
+       //// branch.setLoyaltyPoints(dto.getLoyaltyPoints());
         return branch;
     }
 
@@ -613,6 +627,7 @@ public class BranchServiceImpl implements BranchService {
         if (branch == null) return null;
         BranchDTO dto = new BranchDTO();
         dto.setClinicId(branch.getClinicId());
+        dto.setLocation(branch.getLocation());
         dto.setHospitalName(branch.getHospitalName());
         dto.setBranchId(branch.getBranchId());
         dto.setBranchName(branch.getBranchName());
@@ -626,6 +641,7 @@ public class BranchServiceImpl implements BranchService {
         dto.setRole(branch.getRole());
         dto.setPermissions(branch.getPermissions());
         dto.setBranchOverallRating(branch.getBranchOverallRating());
+       /// dto.setLoyaltyPoints(branch.getLoyaltyPoints());
         return dto;
     }
 

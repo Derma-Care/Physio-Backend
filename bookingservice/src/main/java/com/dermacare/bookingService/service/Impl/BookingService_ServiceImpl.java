@@ -19,6 +19,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.dermacare.bookingService.dto.*;
+import com.dermacare.bookingService.feign.AdminServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -32,17 +34,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.dermacare.bookingService.dto.BookingRequset;
-import com.dermacare.bookingService.dto.BookingResponse;
-import com.dermacare.bookingService.dto.ConsultationFeesDTO;
-import com.dermacare.bookingService.dto.DoctorPushNotificationDTO;
-import com.dermacare.bookingService.dto.DoctorSaveDetailsDTO;
-import com.dermacare.bookingService.dto.PatientAndPriceInfo;
-import com.dermacare.bookingService.dto.PatientInfo;
-import com.dermacare.bookingService.dto.RelationInfoDTO;
-import com.dermacare.bookingService.dto.ReportsDTO;
-import com.dermacare.bookingService.dto.ReportsDtoList;
-import com.dermacare.bookingService.dto.Session;
 import com.dermacare.bookingService.entity.Booking;
 import com.dermacare.bookingService.entity.ConsultationFees;
 import com.dermacare.bookingService.entity.FollowupBooking;
@@ -78,7 +69,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private ClinicAdminFeign clinnicfeign;
 
-	@Autowired
+    @Autowired
+    private AdminServiceClient adminServiceClient;
+
+    @Autowired
 	private NotificationFeign notificationFeign;
 
 	@Autowired
@@ -104,14 +98,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	public ResponseEntity<?> addService(BookingResponse request) {
-	    ResponseStructure<Booking> response = new ResponseStructure<>();
-
+	    ResponseStructure<Map<String,String>> response = new ResponseStructure<>();
 	    try {
-	        // ✅ Attempt to update for follow-up booking
 	        Booking updatedBooking = updateForFollowup(request);
-
 	        if (updatedBooking != null) {
-
 	            try {
 	                DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
 	                dto.setDoctorId(updatedBooking.getDoctorId());
@@ -126,37 +116,82 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	            } catch (Exception ex) {
 	                log.error("Failed to send follow-up notification for booking {} : {}", updatedBooking.getBookingId(), ex.getMessage());
 	            }
+                Map<String,String> map = new LinkedHashMap<>();
+                try {
+                    boolean slotupdate =
+                            clinnicfeign.updateDoctorSlotWhileBooking(
+                                    request.getDoctorId(),
+                                    request.getBranchId(),
+                                    request.getServiceDate(),
+                                    request.getServicetime()
+                            );
+                    if(slotupdate) {
+                        response.setMessage("Appointment Booked Successfully and slot blocked and");
+                        map.put("slotStatus","200");
+                    }else {
+                        map.put("slotStatus","500");
+                        response.setMessage("Appointment Booked Successfully and slot not blocked and");
+                    }}catch(Exception e) {}
+                BranchDTO branch = null;
+                try {
+                    ResponseEntity<ResponseStructure<BranchDTO>> branchResponse =
+                            adminServiceClient.getBranchById(updatedBooking.getBranchId());
 
-	            // ✅ Build success response
-	            response = ResponseStructure.buildResponse(
-	                    updatedBooking,
-	                    "Last follow-up booking retrieved successfully",
-	                    HttpStatus.CREATED,
-	                    HttpStatus.CREATED.value()
-	            );
-	        } else {
-	            log.warn("No follow-up bookings found for request with bookingId={}", request.getBookingId());
-	            response = ResponseStructure.buildResponse(
-	                    null,
-	                    "No follow-up bookings found",
-	                    HttpStatus.BAD_REQUEST,
-	                    HttpStatus.BAD_REQUEST.value()
-	            );
-	        }
+                    if (branchResponse != null
+                            && branchResponse.getBody() != null
+                            && branchResponse.getBody().getData() != null) {
+                        branch = branchResponse.getBody().getData();
+                    }
 
-	        return ResponseEntity.status(response.getHttpStatus().value()).body(response);
+                } catch (Exception e) {
+                    log.error("Branch fetch failed: {}", e.getMessage(), e);
+                }
+                map.put("Doctor",updatedBooking.getDoctorName());
+                map.put("Date",updatedBooking.getServiceDate());
+                map.put("Time",updatedBooking.getServicetime());
+                map.put("Booking ID",updatedBooking.getBookingId());
+                map.put("Branch",updatedBooking.getBranchname());
+                map.put("Email",branch.getEmail());
 
-	    } catch (Exception e) {
-	        log.error("Exception occurred while processing addService: {}", e.getMessage(), e);
-	        response = ResponseStructure.buildResponse(
-	                null,
-	                "Internal error: " + e.getMessage(),
-	                HttpStatus.INTERNAL_SERVER_ERROR,
-	                HttpStatus.INTERNAL_SERVER_ERROR.value()
-	        );
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-	    }
-	}
+                if(branch.getLocation() != null){
+                    map.put("Location",branch.getLocation());}
+                else{
+                    String locationUrl =
+                            "https://www.google.com/maps/search/?api=1&query="
+                                    + branch.getLatitude()
+                                    + ","
+                                    + branch.getLongitude();
+                    map.put("Location",locationUrl);
+                }
+                map.put("mobilenumber",branch.getContactNumber());
+                map.put("patientmobilenumber",updatedBooking.getPatientMobileNumber());
+                map.put("patientId",updatedBooking.getPatientId());
+                map.put("patientname",updatedBooking.getName());
+                response.setData(map);
+                return ResponseEntity.ok(response);
+            }else{
+            log.warn("No follow-up bookings found for request with bookingId={}", request.getBookingId());
+            response = ResponseStructure.buildResponse(
+                    null,
+                    "No follow-up bookings found",
+                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST.value()
+            );
+        }
+
+        return ResponseEntity.status(response.getHttpStatus().value()).body(response);
+
+    } catch (Exception e) {
+        log.error("Exception occurred while processing addService: {}", e.getMessage(), e);
+        response = ResponseStructure.buildResponse(
+                null,
+                "Internal error: " + e.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+}
 
 
 	/**
@@ -632,13 +667,65 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        // =========================
 	        res.setStatus(200);
 	        res.setSuccess(true);
-	        if (notificationStatus == 200) {
-	            res.setMessage("Appointment Booked Successfully and notification sent");
-	        } else {
-	            res.setMessage("Appointment Booked Successfully but Notification not sent");
-	        }
-	        return ResponseEntity.ok(res);
+            Map<String,String> map = new LinkedHashMap<>();
+            try {
+                boolean slotupdate =
+                        clinnicfeign.updateDoctorSlotWhileBooking(
+                                request.getDoctorId(),
+                                request.getBranchId(),
+                                request.getServiceDate(),
+                                request.getServicetime()
+                        );
+                if(slotupdate) {
+                    res.setMessage("Appointment Booked Successfully and slot blocked and");
+                    map.put("slotStatus","200");
+                }else {
+                    map.put("slotStatus","500");
+                    res.setMessage("Appointment Booked Successfully and slot not blocked and");
+                }
+                if (notificationStatus == 200 ) {
+                    res.setMessage(res.getMessage()+" notification sent");
+                } else {
+                    res.setMessage(res.getMessage()+" Notification not sent");
+                }}catch(Exception e) {}
+            BranchDTO branch = null;
+            try {
+                ResponseEntity<ResponseStructure<BranchDTO>> response =
+                        adminServiceClient.getBranchById(updatedBooking.getBranchId());
 
+                if (response != null
+                        && response.getBody() != null
+                        && response.getBody().getData() != null) {
+                    branch = response.getBody().getData();
+                }
+
+            } catch (Exception e) {
+                log.error("Branch fetch failed: {}", e.getMessage(), e);
+            }
+            map.put("Doctor",updatedBooking.getDoctorName());
+            map.put("Date",updatedBooking.getServiceDate());
+            map.put("Time",updatedBooking.getServicetime());
+            map.put("Booking ID",updatedBooking.getBookingId());
+            map.put("Branch",updatedBooking.getBranchname());
+            map.put("Email",branch.getEmail());
+            if(branch.getLocation() != null){
+                map.put("Location",branch.getLocation());}
+            else{
+                String locationUrl =
+                        "https://www.google.com/maps/search/?api=1&query="
+                                + branch.getLatitude()
+                                + ","
+                                + branch.getLongitude();
+                map.put("Location",locationUrl);
+            }
+            map.put("mobilenumber",branch.getContactNumber());
+            map.put("patientmobilenumber",updatedBooking.getPatientMobileNumber());
+            map.put("patientId",updatedBooking.getPatientId());
+            map.put("patientname",updatedBooking.getName());
+            res.setData(map);
+
+
+            return ResponseEntity.ok(res);
 	    } catch (ResponseStatusException e) {
 	        log.error("Validation failed: {}", e.getReason());
 	        res.setStatus(e.getStatusCode().value());

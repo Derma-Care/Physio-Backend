@@ -120,6 +120,7 @@ public class ClinicDTO {
 	private String facebookHandle;
 	private String status;
 	private String fcmToken;
+    private String location;
 		
 	
 }

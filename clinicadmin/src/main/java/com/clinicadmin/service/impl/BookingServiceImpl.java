@@ -159,28 +159,19 @@ public class BookingServiceImpl implements BookingService {
 		public Response bookService(BookingResponse req) throws JsonProcessingException {
 			Response response = new Response();
 			try {
-				ResponseEntity<ResponseStructure<BookingResponse>> res = bookingFeign.bookService(req);
-				BookingResponse bookingResponse = res.getBody().getData();
+				ResponseEntity<ResponseStructure<Map<String,String>>> res = bookingFeign.bookService(req);
+                Map<String,String> bookingResponse = res.getBody().getData();
 				if (bookingResponse != null) {
-					 doctorServiceImpl.updateSlot(         
-							 bookingResponse.getDoctorId(),
-							 bookingResponse.getBranchId(),
-							 bookingResponse.getServiceDate(),
-							 bookingResponse.getServicetime());
 					response.setData(bookingResponse);
 					response.setMessage("follow up appointment found");
 					response.setSuccess(true);
 					response.setStatus(res.getBody().getStatusCode());
-					
 					try {
 						messagingTemplate.convertAndSend(
 								"/topic/bookings",
 								response
 						);
-					} catch (Exception e) {
-						
-					}
-
+					} catch (Exception e) {}
 				} else {				
 					response.setMessage("follow up appointment not found");
 					response.setSuccess(false);

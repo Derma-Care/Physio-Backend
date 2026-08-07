@@ -24,6 +24,7 @@ public class BranchDTO {
 	private String role; 
 	private double branchOverallRating;
 	private Map<String, List<String>> permissions;
+    private String location;
   
 
 }

@@ -7,6 +7,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.dermacare.bookingService.dto.CustomerOnbordingDTO;
@@ -56,6 +57,15 @@ public interface ClinicAdminFeign {
 	    // ─────────────────────────────────────────────────────────────────
 	    @GetMapping("/clinic-admin/api/s3/signed-url")
 	    String getSignedUrl(@RequestParam("fileKey") String fileKey);
-	    
+
+    @PutMapping("/clinic-admin/makingFalseDoctorSlot/{doctorId}/{branchId}/{date}/{time}")
+    public boolean makingFalseDoctorSlot(@PathVariable String doctorId, @PathVariable String branchId,
+                                         @PathVariable String date, @PathVariable String time);
+
+    @PutMapping("/clinic-admin/updateDoctorSlotWhileBooking/{doctorId}/{branchId}/{date}/{time}")
+    public boolean updateDoctorSlotWhileBooking(@PathVariable String doctorId, @PathVariable String branchId,
+                                                @PathVariable String date, @PathVariable String time);
+
+
 
 }

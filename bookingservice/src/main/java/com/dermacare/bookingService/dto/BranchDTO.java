@@ -15,4 +15,5 @@ public class BranchDTO {
 
     private String latitude;
     private String longitude;
+    private String location;
 }

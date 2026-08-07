@@ -36,6 +36,7 @@ public class Branch {
 	private String role;            
 	private Map<String, List<String>> permissions;
 	private String Status;
+    private String location;
 
 
 
