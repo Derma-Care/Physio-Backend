@@ -70,13 +70,7 @@ public class DoctorMapper {
 		if (dto.getDoctorFees() != null) {
 			doctor.setDoctorFees(mapDoctorFeeDTOtoEntity(dto.getDoctorFees()));
 		}
-//		if (dto.getConsultation() != null) {
-//			ConsultationType consultation = new ConsultationType();
-//			consultation.setServiceAndTreatments(dto.getConsultation().getServiceAndTreatments());
-//			consultation.setInClinic(dto.getConsultation().getInClinic());
-//			consultation.setVideoOrOnline(dto.getConsultation().getVideoOrOnline());
-//			doctor.setConsultation(consultation);
-//		}
+
 		if (dto.getBankAccountDetails() != null) {
 
 		    BankAccountDetails bankDetails = new BankAccountDetails();
@@ -127,9 +121,6 @@ public class DoctorMapper {
 		dto.setDoctorMobileNumber(doctor.getDoctorMobileNumber());
 		dto.setDoctorName(doctor.getDoctorName());
 		dto.setDoctorEmail(doctor.getDoctorEmail());
-//		dto.setCategory(doctor.getCategory());
-//		dto.setService(doctor.getService());
-//		dto.setSubServices(doctor.getSubServices());
 		dto.setSpecialization(doctor.getSpecialization());
 		dto.setGender(doctor.getGender());
 		dto.setExperience(doctor.getExperience());

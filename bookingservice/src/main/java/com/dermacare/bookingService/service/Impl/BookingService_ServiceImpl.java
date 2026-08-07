@@ -151,19 +151,21 @@ public class BookingService_ServiceImpl implements BookingService_Service {
                 map.put("Time",updatedBooking.getServicetime());
                 map.put("Booking ID",updatedBooking.getBookingId());
                 map.put("Branch",updatedBooking.getBranchname());
-                map.put("Email",branch.getEmail());
-
-                if(branch.getLocation() != null){
+                if(branch != null && branch.getEmail()!=null ){
+                    map.put("Email",branch.getEmail());}
+                if(branch != null && branch.getLocation()!= null){
                     map.put("Location",branch.getLocation());}
                 else{
+                    if(branch != null){
                     String locationUrl =
                             "https://www.google.com/maps/search/?api=1&query="
                                     + branch.getLatitude()
                                     + ","
                                     + branch.getLongitude();
-                    map.put("Location",locationUrl);
+                    map.put("Location",locationUrl);}
                 }
-                map.put("mobilenumber",branch.getContactNumber());
+                if(branch != null && branch.getContactNumber()!=null){
+                map.put("mobilenumber",branch.getContactNumber());}
                 map.put("patientmobilenumber",updatedBooking.getPatientMobileNumber());
                 map.put("patientId",updatedBooking.getPatientId());
                 map.put("patientname",updatedBooking.getName());
@@ -707,24 +709,25 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             map.put("Time",updatedBooking.getServicetime());
             map.put("Booking ID",updatedBooking.getBookingId());
             map.put("Branch",updatedBooking.getBranchname());
-            map.put("Email",branch.getEmail());
-            if(branch.getLocation() != null){
+            if(branch != null && branch.getEmail()!=null ){
+                map.put("Email",branch.getEmail());}
+            if(branch != null && branch.getLocation()!= null){
                 map.put("Location",branch.getLocation());}
             else{
-                String locationUrl =
-                        "https://www.google.com/maps/search/?api=1&query="
-                                + branch.getLatitude()
-                                + ","
-                                + branch.getLongitude();
-                map.put("Location",locationUrl);
+                if(branch != null){
+                    String locationUrl =
+                            "https://www.google.com/maps/search/?api=1&query="
+                                    + branch.getLatitude()
+                                    + ","
+                                    + branch.getLongitude();
+                    map.put("Location",locationUrl);}
             }
-            map.put("mobilenumber",branch.getContactNumber());
+            if(branch != null && branch.getContactNumber()!=null){
+                map.put("mobilenumber",branch.getContactNumber());}
             map.put("patientmobilenumber",updatedBooking.getPatientMobileNumber());
             map.put("patientId",updatedBooking.getPatientId());
             map.put("patientname",updatedBooking.getName());
             res.setData(map);
-
-
             return ResponseEntity.ok(res);
 	    } catch (ResponseStatusException e) {
 	        log.error("Validation failed: {}", e.getReason());

@@ -51,20 +51,6 @@ public class DoctorsDTO {
 	@Size(min = 3, max = 50, message = "Doctor name must be between 3 and 50 characters", groups = FormatChecks.class)
 	private String doctorName;
 
-//	@Valid
-//	@NotNull(message = "Category list cannot be null", groups = RequiredChecks.class)
-//	@Size(min = 1, message = "At least one Category is required", groups = FormatChecks.class)
-//	private List<@Valid DoctorCategoryDTO> category;
-//	@Valid
-//	@NotNull(message = "Services list cannot be null", groups = RequiredChecks.class)
-//	@Size(min = 1, message = "At least one service is required", groups = FormatChecks.class)
-//	private List<@Valid DoctorServicesDTO> service;
-
-//	@Valid
-//	@NotNull(message = "Sub-services list cannot be null", groups = RequiredChecks.class)
-//	@Size(min = 1, message = "At least one sub-service is required", groups = FormatChecks.class)
-//	private List<@Valid DoctorSubServiceDTO> subServices;
-
 	@NotBlank(message = "Specialization is required", groups = RequiredChecks.class)
 	private String specialization;
 
@@ -134,8 +120,6 @@ public class DoctorsDTO {
 	private String updatedDate;
 	
 	private BankAccountDetails bankAccountDetails;
-	
-	
 
 	public void trimAllDoctorFields() {
 		id = trim(id);
