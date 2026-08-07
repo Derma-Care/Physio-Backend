@@ -2337,8 +2337,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		List<Map<String,String>> map = new LinkedList<>();
 		try {
 
-			LocalDate start = LocalDate.parse(date);
-			LocalDate nextDate = start.plusDays(1);
+			LocalDate start = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			//LocalDate nextDate = start.plusDays(1);
 			List<PhysiotherapyRecord> records =
 					repository.findByClinicIdAndBranchId(
 							clinicId,
@@ -2350,10 +2350,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 							&& !record.getFollowUp().getNextVisitDate().isBlank())
 					.filter(record -> {
 						LocalDate nextVisitDate =
-								LocalDate.parse(record.getFollowUp().getNextVisitDate());
+								LocalDate.parse(record.getFollowUp().getNextVisitDate(),DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-						return !nextVisitDate.isBefore(start)
-								&& !nextVisitDate.isAfter(nextDate);
+						return nextVisitDate.equals(start);
 					})
 					.toList();
 			filteredRecords.forEach(n->{

@@ -93,15 +93,9 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private WhatsAppService whatsAppService;
 
-	// ✅ CHANGE 1: single shared ObjectMapper instead of "new ObjectMapper()" in
-	// ~20 different methods. Jackson's ObjectMapper is thread-safe and expensive
-	// to construct (rebuilds serializer/deserializer caches each time), so reusing
-	// one injected instance removes a large amount of avoidable allocation churn.
 	@Autowired
 	private ObjectMapper mapper;
 
-	// ✅ CHANGE 2: needed for the rewritten scheduled aggregation (see
-	// autoCalculatePatientCompletedAppointments below).
 	@Autowired
 	private MongoTemplate mongoTemplate;
 
@@ -117,9 +111,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	        Booking updatedBooking = updateForFollowup(request);
 
 	        if (updatedBooking != null) {
-	            // =========================
-	            // Doctor Push Notification
-	            // =========================
+
 	            try {
 	                DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
 	                dto.setDoctorId(updatedBooking.getDoctorId());
