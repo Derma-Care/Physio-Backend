@@ -994,10 +994,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 				BookingResponse res = toResponse(entity);
 				List<Session> lst = new ArrayList<>();
 				try {
-                    if(entity.getStatus() != null || !entity.getStatus().isEmpty()){
+                   /// if(entity.getStatus() != null || !entity.getStatus().isEmpty()){
 					lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate()).getBody();
-                    lst = lst.stream().filter(n->n.getSlot() != null).toList();
-					res.setSession(lst);}
+                   ///// lst = lst.stream().filter(n->n.getSlot() != null).toList();
+					res.setSession(lst);
 				} catch (Exception e) {
 				}
 				return res;
@@ -2466,20 +2466,17 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			// Session details
 			for (BookingResponse booking : responses) {
 				try {
-                    if(booking.getStatus() != null){
 					ResponseEntity<List<Session>> sessionResponse = physioDoctorFeign
 							.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
 
 					List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
-                    sessions = sessions.stream().filter(n->n.getSlot() != null).toList();
+                   //// sessions = sessions.stream().filter(n->n.getSlot() != null).toList();
 					if (sessions != null && !sessions.isEmpty()) {
 						booking.setSession(sessions);
 						booking.setVisitType("session");
-
 					} else {
-
 						booking.setSession(null);
-					}}
+					}
 
 				} catch (Exception ex) {
 
@@ -2716,11 +2713,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					startDate.format(FORMATTER), endDate.format(FORMATTER));
 			List<BookingResponse> res = toResponses(bookings);
 			try {
-				res = res.stream().map(n -> {if(n.getStatus() != null){
+				res = res.stream().map(n -> {
 
 					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 							.getBody();
-                    lst = lst.stream().filter(p->p.getSlot()!= null).toList();
+                  ///  lst = lst.stream().filter(p->p.getSlot()!= null).toList();
 					if (lst != null && !lst.isEmpty()) {
 
 						n.setSession(lst);
@@ -2730,7 +2727,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					} else {
 
 						n.setSession(null);
-					}}
+					}
 
 					return n;
 
@@ -2807,16 +2804,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			List<BookingResponse> res = toResponses(bookings);
 
 			try {
-				res = res.stream().map(n -> { if(n.getStatus() != null){
+				res = res.stream().map(n -> {
 					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
 							.getBody();
-                    lst = lst.stream().filter(p->p.getSlot()!= null).toList();
+                   //// lst = lst.stream().filter(p->p.getSlot()!= null).toList();
 					if (lst != null) {
 						n.setSession(lst);
 						n.setVisitType("session");
 					} else {
 						n.setSession(null);
-					}}
+					}
 					return n;
 				}).toList();
 
@@ -2889,7 +2886,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 			// Populate session details
 			responses = responses.stream()
-					.map(response -> { if(response.getStatus()!=null){
+					.map(response -> {
 						try {
 							ResponseEntity<List<Session>> sessionResponse =
 									physioDoctorFeign.getPhysioByBookingId(
@@ -2900,7 +2897,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									sessionResponse != null
 											? sessionResponse.getBody()
 											: null;
-                            sessions = sessions.stream().filter(n->n.getSlot()!=null).toList();
+                            ////sessions = sessions.stream().filter(n->n.getSlot()!=null).toList();
 							if (sessions != null && !sessions.isEmpty()) {
 								response.setSession(sessions);
 								response.setVisitType("session");
@@ -2912,7 +2909,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									"Error fetching sessions for bookingId: {}",
 									response.getBookingId(),
 									ex);
-						}}
+						}
 
 						return response;
 
@@ -3091,11 +3088,10 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 								BookingResponse.class);
 						List<Session> lst = new ArrayList<>();
 						try {
-                            if(booking.get().getStatus()!= null){
 							lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate())
 									.getBody();
-                                lst = 	lst.stream().filter(n->n.getSlot()!= null).toList();
-							res.setSession(lst);}
+                               //// lst = 	lst.stream().filter(n->n.getSlot()!= null).toList();
+							res.setSession(lst);
 						} catch (Exception e) {
 						}
 					}

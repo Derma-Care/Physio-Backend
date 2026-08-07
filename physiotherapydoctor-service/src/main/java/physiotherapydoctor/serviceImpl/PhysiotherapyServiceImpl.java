@@ -1729,7 +1729,9 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 			for (Session session : ex.getSessions()) {
 
-				if (date.equals(session.getDate())) {
+                if (session.getDate() != null && !session.getDate().isEmpty()
+                        && session.getSlot() != null && !session.getSlot().isEmpty()
+                        && date.equals(session.getDate())) {
 
 					SessionForBooking bookingSession = new SessionForBooking();
 

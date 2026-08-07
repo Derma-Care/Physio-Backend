@@ -1914,4 +1914,30 @@ public class PaymentServiceImpl implements PaymentService {
 
 	    return response;
 	}
+
+//    public List<String> getTodaySessionsInfo(String clinicId, String branchId) {
+//        String date = LocalDate.now().toString();
+//        List<String> list = new ArrayList<>();
+//
+//        try {
+//            List<PaymentRecord> payments = repo.findByClinicIdAndBranchId(clinicId, branchId);
+//
+//            for (PaymentRecord n : payments) {
+//                for (TherapyWithSessions tws : n.getTherapyWithSessions()) {
+//                        for (TherapyExercise e : tws.getExercises()) {
+//                            for (Session s : e.getSessions()) {
+//                                if (date.equals(s.getDate())) {
+//                                    list.add(n.getBookingId());
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//        } catch (Exception e) {
+//            e.printStackTrace(); // log the error
+//            return Collections.emptyList(); // safer than returning null
+//        }
+//
+//        return list;
+//    }
 }
