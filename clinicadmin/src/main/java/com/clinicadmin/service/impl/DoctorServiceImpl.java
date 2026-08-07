@@ -148,20 +148,20 @@ public class DoctorServiceImpl implements DoctorService {
 			log.debug("Doctor DTO fields trimmed successfully");
 
 			// -------------------- Check duplicate mobile --------------------
-			if (doctorsRepository.existsByDoctorMobileNumber(dto.getDoctorMobileNumber())) {
-				log.warn("Duplicate doctor mobile number detected, mobileNumber = {}", dto.getDoctorMobileNumber());
-				response.setSuccess(false);
-				response.setMessage("Doctor with this mobile number already exists");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
-			if (credentialsRepository.existsByUsername(dto.getDoctorMobileNumber())) {
-				log.warn("Login credentials already exist for this mobile number :{}", dto.getDoctorMobileNumber());
-				response.setSuccess(false);
-				response.setMessage("Login credentials already exist for this mobile number");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
+//			if (doctorsRepository.existsByDoctorMobileNumber(dto.getDoctorMobileNumber())) {
+//				log.warn("Duplicate doctor mobile number detected, mobileNumber = {}", dto.getDoctorMobileNumber());
+//				response.setSuccess(false);
+//				response.setMessage("Doctor with this mobile number already exists");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
+//			if (credentialsRepository.existsByUsername(dto.getDoctorMobileNumber())) {
+//				log.warn("Login credentials already exist for this mobile number :{}", dto.getDoctorMobileNumber());
+//				response.setSuccess(false);
+//				response.setMessage("Login credentials already exist for this mobile number");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
 
 			// -------------------- Validate clinic --------------------
 			log.debug("Validating clinicId :{}", dto.getHospitalId());

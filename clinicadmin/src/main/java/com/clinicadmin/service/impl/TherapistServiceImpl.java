@@ -117,19 +117,19 @@ public class TherapistServiceImpl implements TherapistService {
 			String contact = dto.getContactNumber().trim();
 
 			// -------------------- Duplicate check --------------------
-			if (repository.existsByContactNumber(contact)) {
-				response.setSuccess(false);
-				response.setMessage("Therapist already exists with this mobile number");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
-
-			if (credentialsRepository.existsByUsername(contact)) {
-				response.setSuccess(false);
-				response.setMessage("Login credentials already exist for this mobile number");
-				response.setStatus(HttpStatus.BAD_REQUEST.value());
-				return response;
-			}
+//			if (repository.existsByContactNumber(contact)) {
+//				response.setSuccess(false);
+//				response.setMessage("Therapist already exists with this mobile number");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
+//
+//			if (credentialsRepository.existsByUsername(contact)) {
+//				response.setSuccess(false);
+//				response.setMessage("Login credentials already exist for this mobile number");
+//				response.setStatus(HttpStatus.BAD_REQUEST.value());
+//				return response;
+//			}
 
 			// -------------------- Fetch branch --------------------
 			ResponseEntity<Response> res = adminServiceClient.getBranchById(dto.getBranchId());
