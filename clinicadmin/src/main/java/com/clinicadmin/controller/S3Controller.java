@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.clinicadmin.dto.PdfShareResponseDTO;
+import com.clinicadmin.service.PdfShareService;
 import com.clinicadmin.service.S3Service;
 
 @RestController
@@ -21,6 +23,9 @@ public class S3Controller {
 
     @Autowired
     private S3Service s3Service;
+    
+    @Autowired
+    private PdfShareService pdfShareService;
 
     // ─────────────────────────────────────────────
     // File size limits (in bytes)
@@ -144,6 +149,14 @@ public class S3Controller {
             
             case "patientPdf" -> new FieldConfig(
                     "patient-pdfs",
+                    MAX_PDF_SIZE,
+                    "10 MB",
+                    DOC_EXTS,
+                    DOC_MIMES
+            );
+            
+            case "whatsappSharePdf" -> new FieldConfig(
+                    "whatsapp-shares",
                     MAX_PDF_SIZE,
                     "10 MB",
                     DOC_EXTS,
@@ -369,5 +382,15 @@ public class S3Controller {
 
         String signedUrl = s3Service.generateSignedUrl(fileKey);
         return ResponseEntity.ok(signedUrl);
+    }
+    
+    @GetMapping("/api/s3/share-url")
+    public ResponseEntity<PdfShareResponseDTO> getShareUrl(
+            @RequestParam String fileKey) {
+
+        PdfShareResponseDTO response =
+                pdfShareService.generateShareUrl(fileKey);
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -209,4 +209,57 @@ public class S3Service {
             default            -> "application/octet-stream";
         };
     }
+    // ─────────────────────────────────────────────
+    // Small wrapper so callers outside this class can validate an
+    // extension before doing expensive work that would fail later anyway.
+    // ─────────────────────────────────────────────
+    public boolean isExtensionAllowed(String extension) {
+        return extension != null && ALLOWED_EXTENSIONS.contains(extension.toLowerCase().trim());
+    }
+
+    // ─────────────────────────────────────────────
+    // USED BY: delete flows that need to remove an object from S3
+    // once its DB record is deleted.
+    // ─────────────────────────────────────────────
+    public void deleteFile(String fileKey) {
+        if (fileKey == null || fileKey.isBlank()) {
+            return;
+        }
+        s3Client.deleteObject(
+                software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(fileKey)
+                        .build());
+    }
+    
+   
+    
+ // ─────────────────────────────────────────────
+    // NEW: Download file bytes directly from S3 (server-side)
+    // Used by PdfShareController to proxy files without
+    // ever exposing the underlying S3 URL to the client.
+    // ─────────────────────────────────────────────
+    public byte[] downloadFile(String fileKey) {
+
+        if (fileKey == null || fileKey.isBlank()) {
+            throw new IllegalArgumentException("File key must not be null or blank");
+        }
+
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileKey)
+                    .build();
+
+            return s3Client.getObject(getObjectRequest,
+                    software.amazon.awssdk.core.sync.ResponseTransformer.toBytes())
+                    .asByteArray();
+
+        } catch (NoSuchKeyException e) {
+            throw new RuntimeException("File not found in S3 for key: " + fileKey, e);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to download file from S3 for key: " + fileKey, e);
+        }
+    }
 }
