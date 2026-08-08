@@ -1688,7 +1688,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (TherapyWithSessions therapy : record.getTherapyWithSessions()) {
 				handlePrograms(therapy.getPrograms(), date, matchedSessions);
 			}
-
+////System.out.println(matchedSessions);
 			return matchedSessions.isEmpty() ? ResponseEntity.ok(null) : ResponseEntity.ok(matchedSessions);
 
 		} catch (Exception e) {

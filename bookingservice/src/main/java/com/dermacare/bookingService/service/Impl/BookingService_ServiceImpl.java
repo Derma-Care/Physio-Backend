@@ -118,7 +118,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
                                     updatedBooking.getServiceDate(),
                                     updatedBooking.getServicetime()
                             );
-                        }catch (Exception e){}
+                           /// System.out.println(slotupdate);
+                        }catch (Exception e){System.out.println(e.getMessage());}
 
                         if (slotupdate) {
                             response.setMessage("Appointment Booked Successfully and slot blocked");
@@ -1084,30 +1085,46 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 	}
 
-	public BookingResponse getBookedService(String bookingId) {
-		try {
-			Booking entity = repository.findByBookingId(bookingId).get();
-			if (entity != null) {
-				BookingResponse res = toResponse(entity);
-				List<Session> lst = new ArrayList<>();
-				try {
-                   /// if(entity.getStatus() != null || !entity.getStatus().isEmpty()){
-					lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate()).getBody();
-                   ///// lst = lst.stream().filter(n->n.getSlot() != null).toList();
-					res.setSession(lst);
-				} catch (Exception e) {
-				}
-				return res;
-			} else {
-				return null;
-			}
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			return null;
-		}
-	}
+    @Override
+    public BookingResponse getBookedService(String bookingId) {
+        try {
+            Optional<Booking> optionalBooking = repository.findByBookingId(bookingId);
 
-	public void deleteBookedServiceReports(String bookingId, String index) {
+            if (optionalBooking.isPresent()) {
+                Booking entity = optionalBooking.get();
+                BookingResponse res = toResponse(entity);
+
+                // ✅ Fetch sessions safely
+                try {
+                    ResponseEntity<List<Session>> sessionResponse =
+                            physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate());
+
+                    List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
+
+                    if (sessions != null && !sessions.isEmpty()) {
+                        // If you want to filter out null slots:
+                        // sessions = sessions.stream().filter(s -> s.getSlot() != null).toList();
+                        res.setSession(sessions);
+                        res.setVisitType("session");
+                    } else {
+                        res.setSession(null);
+                    }
+                } catch (Exception e) {
+                    log.error("Error fetching sessions for bookingId {}: {}", bookingId, e.getMessage());
+                }
+
+                return res;
+            } else {
+                log.warn("No booking found for bookingId {}", bookingId);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Error fetching booked service for bookingId {}: {}", bookingId, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    public void deleteBookedServiceReports(String bookingId, String index) {
 		try {
 			Booking entity = repository.findByBookingId(bookingId).get();
 			if (entity != null && index.equalsIgnoreCase("null")) {
@@ -2485,171 +2502,161 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	}
 
 
-	@Override
-	public ResponseEntity<Response> getCustomDateBookings(String clinicId, String branchId, String date) {
-		try {
+    @Override
+    public ResponseEntity<Response> getCustomDateBookings(String clinicId, String branchId, String date) {
+        try {
+            LocalDate localDate = LocalDate.parse(date, FORMATTER);
+            String today = localDate.toString();
 
-			LocalDate localDate = LocalDate.parse(date,FORMATTER);
-            String today = localDate.toString() ;
+            List<Map<String, Object>> responseList = new ArrayList<>();
 
-			List<Map<String, Object>> responseList = new ArrayList<>();
+            // ✅ Today's bookings
+            List<Booking> data = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId, today);
+            List<BookingResponse> responses = toResponses(data);
 
-			// Today's bookings for logged-in clinic & branch
-			List<Booking> data = repository.findByClinicIdAndBranchIdAndServiceDate(clinicId, branchId, today);
-			List<BookingResponse> responses =  toResponses(data);
-			// Follow-up booking IDs
-			List<Map<String,String>> bookingIds =
-					physioDoctorFeign.getPhysioRecordsByTodayDate(clinicId,branchId,today);
+            // ✅ Follow-up booking IDs
+            List<Map<String, String>> bookingIds = new ArrayList<>();
+            try {
+                bookingIds = physioDoctorFeign.getPhysioRecordsByTodayDate(clinicId, branchId, today);
+            } catch (Exception e) {
+                log.error("Error fetching follow-up booking IDs: {}", e.getMessage());
+            }
 
-			log.info("Found {} follow-up booking ids",
-					bookingIds != null ? bookingIds.size() : 0);
+            log.info("Found {} follow-up booking ids", bookingIds != null ? bookingIds.size() : 0);
 
-			if (bookingIds != null && !bookingIds.isEmpty()) {
+            if (bookingIds != null && !bookingIds.isEmpty()) {
+                final List<Map<String, String>> finalBookingIds = bookingIds; // make final
 
-				List<String> keys = bookingIds.stream()
-						.flatMap(map -> map.keySet().stream())
-						.collect(Collectors.toList());
+                List<String> keys = finalBookingIds.stream()
+                        .flatMap(map -> map.keySet().stream())
+                        .collect(Collectors.toList());
 
-				List<Booking> followUpBookings =
-						repository.findByBookingIdIn(keys);
+                List<Booking> followUpBookings = repository.findByBookingIdIn(keys);
+                log.info("Found {} follow-up bookings", followUpBookings != null ? followUpBookings.size() : 0);
 
-				log.info("Found {} follow-up bookings",
-						followUpBookings != null ? followUpBookings.size() : 0);
+                if (followUpBookings != null && !followUpBookings.isEmpty()) {
+                    try {
+                        followUpBookings.forEach(booking -> {
+                            String value = finalBookingIds.stream()
+                                    .filter(f -> f.containsKey(booking.getBookingId()))
+                                    .map(n -> n.get(booking.getBookingId()))
+                                    .findFirst()
+                                    .orElse(null);
 
-				if (followUpBookings != null && !followUpBookings.isEmpty()) {
-                try{
-                    followUpBookings.forEach(booking -> {
+                            booking.setStatus("follow-up Pending");
+                            booking.setFollowupDate(value);
 
-                        String value = bookingIds.stream().filter(f -> f.containsKey(booking.getBookingId()))
-                                .map(n -> n.get(booking.getBookingId())).findFirst().orElse(null);
+                            List<Status> statusList = booking.getCurrentStatus() == null
+                                    ? new ArrayList<>()
+                                    : new ArrayList<>(booking.getCurrentStatus());
 
-                        booking.setStatus("follow-up Pending");
-                        booking.setFollowupDate(value);
+                            boolean alreadyExists = statusList.stream()
+                                    .anyMatch(status -> "follow-up Pending".equalsIgnoreCase(status.getStatus()));
 
-                        List<Status> statusList =
-                                booking.getCurrentStatus() == null
-                                        ? new ArrayList<>()
-                                        : new ArrayList<>(booking.getCurrentStatus());
+                            if (!alreadyExists) {
+                                Status status = new Status();
+                                status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+                                status.setStatus("follow-up Pending");
+                                statusList.add(status);
+                            }
 
-                        boolean alreadyExists =
-                                statusList.stream()
-                                        .anyMatch(status ->
-                                                "follow-up Pending".equalsIgnoreCase(
-                                                        status.getStatus()));
+                            booking.setCurrentStatus(statusList);
+                        });
 
-                        if (!alreadyExists) {
-                            Status status = new Status();
-                            status.setDATE_TIME(
-                                    LocalDateTime.now(
-                                            ZoneId.of("Asia/Kolkata")));
-                            status.setStatus("follow-up Pending");
+                        repository.saveAll(followUpBookings);
 
-                            statusList.add(status);
-                        }
+                        responses.addAll(
+                                followUpBookings.stream()
+                                        .map(this::toResponse)
+                                        .collect(Collectors.toList()));
+                    } catch (Exception e) {
+                        log.error("Error processing follow-up bookings: {}", e.getMessage());
+                    }
+                }
+            }
 
-                        booking.setCurrentStatus(statusList);
-                    });
+            // ✅ Session details (try/catch per Feign call)
+            for (BookingResponse booking : responses) {
+                try {
+                    ResponseEntity<List<Session>> sessionResponse =
+                            physioDoctorFeign.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
 
-                    repository.saveAll(followUpBookings);
+                    List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
+                    if (sessions != null && !sessions.isEmpty()) {
+                        booking.setSession(sessions);
+                        booking.setVisitType("session");
+                    } else {
+                        booking.setSession(null);
+                    }
+                } catch (Exception ex) {
+                    System.out.println(ex.getMessage());
+                    log.error("Session fetch failed for BookingId {}: {}", booking.getBookingId(), ex.getMessage());
+                }
+            }
 
-                    // ✅ Safe now: toResponses() returns a mutable ArrayList
-                    // even for the empty-input case, so this addAll() can no
-                    // longer throw UnsupportedOperationException.
-                    responses.addAll(
-                            followUpBookings.stream()
-                                    .map(this::toResponse)
-                                    .collect(Collectors.toList()));
-                }catch(Exception e){}}}
-			// Session details
-			for (BookingResponse booking : responses) {
-				try {
-					ResponseEntity<List<Session>> sessionResponse = physioDoctorFeign
-							.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
+            // ✅ Build response list
+            for (BookingResponse n : responses) {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("bookingId", n.getBookingId());
+                map.put("serviceDate", n.getServiceDate());
+                map.put("servicetime", n.getServicetime());
+                map.put("name", n.getName());
+                map.put("mobileNumber",
+                        n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
+                                ? n.getPatientMobileNumber()
+                                : n.getMobileNumber());
+                map.put("doctorId", n.getDoctorId());
+                map.put("doctorName", n.getDoctorName());
+                map.put("paymentType", n.getPaymentType());
+                map.put("visitType", n.getVisitType());
+                map.put("status", n.getStatus());
+                map.put("followupStatus", n.getFollowupStatus());
+                map.put("patientId", n.getPatientId());
+                map.put("clinicId", n.getClinicId());
+                map.put("customerId", n.getCustomerId());
+                map.put("branchId", n.getBranchId());
+                map.put("session", n.getSession());
+                map.put("problem", n.getProblem());
 
-					List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
-                   //// sessions = sessions.stream().filter(n->n.getSlot() != null).toList();
-					if (sessions != null && !sessions.isEmpty()) {
-						booking.setSession(sessions);
-						booking.setVisitType("session");
-					} else {
-						booking.setSession(null);
-					}
+                responseList.add(map);
+            }
 
-				} catch (Exception ex) {
+            // ✅ Summary counts
+            long totalCount = responses.size();
+            long pendingCount = responses.stream()
+                    .filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+                    .count();
+            long confirmedCount = responses.stream()
+                    .filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+                    .count();
+            long inProgressCount = responses.stream()
+                    .filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+                    .count();
 
-					System.out.println("Session fetch failed for BookingId : " + booking.getBookingId() + " Error : "
-							+ ex.getMessage());
-				}
-			}
-			// Build response list
-			for (BookingResponse n : responses) {
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("totalAppointments", totalCount);
+            summary.put("pending", pendingCount);
+            summary.put("confirmed", confirmedCount);
+            summary.put("inProgress", inProgressCount);
 
-				Map<String, Object> map = new LinkedHashMap<>();
+            if (responses.isEmpty()) {
+                return ResponseEntity.ok(
+                        new Response(true, Collections.emptyList(), summary, "No bookings found", 200, null, null));
+            }
+            return ResponseEntity.ok(
+                    new Response(true, responseList, summary, "Today bookings fetched", 200, null, null));
 
-				map.put("bookingId", n.getBookingId());
-				map.put("serviceDate", n.getServiceDate());
-				map.put("servicetime", n.getServicetime());
-				map.put("name", n.getName());
+        } catch (Exception e) {
+            log.error("Error fetching today bookings: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new Response(false, null, null,
+                            "Error fetching today bookings : " + e.getMessage(), 500, null, null));
+        }
+    }
 
-				map.put("mobileNumber",
-						n.getPatientMobileNumber() != null && !n.getPatientMobileNumber().isEmpty()
-								? n.getPatientMobileNumber()
-								: n.getMobileNumber());
 
-				map.put("doctorId", n.getDoctorId());
-				map.put("doctorName", n.getDoctorName());
-				map.put("paymentType", n.getPaymentType());
-				map.put("visitType", n.getVisitType());
-				map.put("status", n.getStatus());
-				map.put("followupStatus", n.getFollowupStatus());
-				map.put("patientId", n.getPatientId());
-				map.put("clinicId", n.getClinicId());
-				map.put("customerId", n.getCustomerId());
-				map.put("branchId", n.getBranchId());
-				map.put("session", n.getSession());
-				map.put("problem", n.getProblem());
 
-				responseList.add(map);
-			}
-			// Summary counts
-			long totalCount = responses.size();
-
-			long pendingCount = responses.stream()
-					.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
-					.count();
-
-			long confirmedCount = responses.stream()
-					.filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
-					.count();
-
-			long inProgressCount = responses.stream()
-					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
-					.count();
-
-			Map<String, Object> summary = new HashMap<>();
-			summary.put("totalAppointments", totalCount);
-			summary.put("pending", pendingCount);
-			summary.put("confirmed", confirmedCount);
-			summary.put("inProgress", inProgressCount);
-
-			if (responses.isEmpty()) {
-				return ResponseEntity
-						.ok(new Response(true, Collections.emptyList(), summary, "No bookings found", 200, null, null));
-			}
-			return ResponseEntity
-					.ok(new Response(true, responseList, summary, "Today bookings fetched", 200, null, null));
-
-		} catch (Exception e) {
-			e.printStackTrace();
-
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Response(false, null, null,
-					"Error fetching today bookings : " + e.getMessage(), 500, null, null));
-		}
-
-	}
-	
-	
-	@Override
+    @Override
 	public ResponseEntity<Response> getFilteredBookingsByStatus(
 	        String clinicId,
 	        String branchId) {
@@ -2788,127 +2795,130 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	    }
 	}
 
-	@Override
-	public ResponseEntity<Response> getUpcomingBookings(String clinicId, String branchId, int option) {
-
-		List<Map<String, Object>> list = new ArrayList<>();
+    @Override
+    public ResponseEntity<Response> getUpcomingBookings(String clinicId, String branchId, int option) {
+        List<Map<String, Object>> list = new ArrayList<>();
         LocalDate today = LocalDate.now();
-        LocalDate startDate ;
+        LocalDate startDate;
         LocalDate endDate;
-        try{
-        switch (option) {
-            case 1: // today
-                startDate = today;
-                endDate = today;
-                break;
 
-            case 2: // this week (Monday to Sunday of current week)
-                startDate = today.with(java.time.DayOfWeek.MONDAY);
-                endDate = today.with(java.time.DayOfWeek.SUNDAY);
-                break;
+        try {
+            // ✅ Date range selection
+            switch (option) {
+                case 1: // today
+                    startDate = today;
+                    endDate = today;
+                    break;
+                case 2: // this week (Monday to Sunday)
+                    startDate = today.with(java.time.DayOfWeek.MONDAY);
+                    endDate = today.with(java.time.DayOfWeek.SUNDAY);
+                    break;
+                case 3: // this month
+                    startDate = today.withDayOfMonth(1);
+                    endDate = today.withDayOfMonth(today.lengthOfMonth());
+                    break;
+                case 4: // this year
+                    startDate = today.withDayOfYear(1);
+                    endDate = today.withDayOfYear(today.lengthOfYear());
+                    break;
+                default:
+                    return ResponseEntity.badRequest().body(
+                            Response.builder()
+                                    .success(false)
+                                    .status(400)
+                                    .message("Invalid filter value")
+                                    .hospitalId(clinicId)
+                                    .build()
+                    );
+            }
 
-            case 3: // this month (1st to last day of current month)
-                startDate = today.withDayOfMonth(1);
-                endDate = today.withDayOfMonth(today.lengthOfMonth());
-                break;
+            // ✅ Fetch bookings
+            List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateBetween(
+                    clinicId,
+                    branchId,
+                    startDate.format(FORMATTER),
+                    endDate.format(FORMATTER)
+            );
 
-            case 4: // this year (Jan 1st to Dec 31st of current year)
-                startDate = today.withDayOfYear(1);
-                endDate = today.withDayOfYear(today.lengthOfYear());
-                break;
+            List<BookingResponse> responses = toResponses(bookings);
 
-            default:
-                return ResponseEntity.badRequest().body(
-                        Response.builder()
-                                .success(false)
-                                .status(400)
-                                .message("Invalid filter value")
-                                .hospitalId(clinicId)
-                                .build()
-                );}
+            // ✅ Fetch sessions per booking (try/catch per Feign call)
+            for (BookingResponse booking : responses) {
+                try {
+                    ResponseEntity<List<Session>> sessionResponse =
+                            physioDoctorFeign.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
 
-			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateBetween(clinicId, branchId,
-					startDate.format(FORMATTER), endDate.format(FORMATTER));
-			List<BookingResponse> res = toResponses(bookings);
-			try {
-				res = res.stream().map(n -> {
+                    List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
 
-					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
-							.getBody();
-                  ///  lst = lst.stream().filter(p->p.getSlot()!= null).toList();
-					if (lst != null && !lst.isEmpty()) {
+                    if (sessions != null && !sessions.isEmpty()) {
+                        booking.setSession(sessions);
+                        booking.setVisitType("session");
+                    } else {
+                        booking.setSession(null);
+                    }
+                } catch (Exception e) {
+                    log.error("Error fetching session details for BookingId {}: {}", booking.getBookingId(), e.getMessage());
+                }
 
-						n.setSession(lst);
+                // ✅ Build response map
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("bookingId", booking.getBookingId());
+                map.put("serviceDate", booking.getServiceDate());
+                map.put("servicetime", booking.getServicetime());
+                map.put("name", booking.getName());
+                map.put("mobileNumber",
+                        booking.getPatientMobileNumber() != null && !booking.getPatientMobileNumber().isEmpty()
+                                ? booking.getPatientMobileNumber()
+                                : booking.getMobileNumber());
+                map.put("doctorId", booking.getDoctorId());
+                map.put("doctorName", booking.getDoctorName());
+                map.put("paymentType", booking.getPaymentType());
+                map.put("visitType", booking.getVisitType());
+                map.put("status", booking.getStatus());
+                map.put("followupStatus", booking.getFollowupStatus());
+                map.put("patientId", booking.getPatientId());
+                map.put("clinicId", booking.getClinicId());
+                map.put("customerId", booking.getCustomerId());
+                map.put("branchId", booking.getBranchId());
+                map.put("age", booking.getAge());
+                map.put("gender", booking.getGender());
+                map.put("branchName", booking.getBranchname());
+                map.put("session", booking.getSession());
+                map.put("problem", booking.getProblem());
 
-						n.setVisitType("session");
+                list.add(map);
+            }
 
-					} else {
+            // ✅ Summary counts
+            long totalCount = bookings.size();
+            long pendingCount = bookings.stream()
+                    .filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+                    .count();
+            long confirmedCount = bookings.stream()
+                    .filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+                    .count();
+            long inProgressCount = bookings.stream()
+                    .filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
+                    .count();
 
-						n.setSession(null);
-					}
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("totalAppointments", totalCount);
+            summary.put("pending", pendingCount);
+            summary.put("confirmed", confirmedCount);
+            summary.put("inProgress", inProgressCount);
+            summary.put("startDate", startDate.toString());
+            summary.put("endDate", endDate.toString());
 
-					return n;
+            return ResponseEntity.ok(new Response(true, list, summary, "Upcoming bookings fetched", 200, null, null));
 
-				}).toList();
-				res.stream().map(n -> {
-					Map<String, Object> map = new LinkedHashMap<>();
-					map.put("bookingId", n.getBookingId());
-					map.put("serviceDate", n.getServiceDate());
-					map.put("servicetime", n.getServicetime());
-					map.put("name", n.getName());
-					map.put("mobileNumber",
-							!n.getPatientMobileNumber().isEmpty() ? n.getPatientMobileNumber() : n.getMobileNumber());
-					map.put("doctorId", n.getDoctorId());
-					map.put("doctorName", n.getDoctorName());
-					map.put("paymentType", n.getPaymentType());
-					map.put("visitType", n.getVisitType());
-					map.put("status", n.getStatus());
-					map.put("followupStatus", n.getFollowupStatus());
-					map.put("patientId", n.getPatientId());
-					map.put("clinicId", n.getClinicId());
-					map.put("customerId", n.getCustomerId());
-					map.put("branchId", n.getBranchId());
-					map.put("age", n.getAge());
-					map.put("gender", n.getGender());
-					map.put("branchName", n.getBranchname());
-					map.put("session", n.getSession());
-					map.put("problem", n.getProblem());
+        } catch (Exception e) {
+            log.error("Error fetching upcoming bookings: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new Response(false, null, null,
+                            "Error fetching upcoming bookings: " + e.getMessage(), 500, null, null));
+        }
+    }
 
-					list.add(map);
-					return n;
-				}).toList();
-			} catch (Exception e) {
-				System.out.println("Error while fetching session details: " + e.getMessage());
-			}
-			long totalCount = bookings.size();
-
-			long pendingCount = bookings.stream()
-					.filter(b -> "PENDING".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
-					.count();
-
-			long confirmedCount = bookings.stream()
-					.filter(b -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
-					.count();
-
-			long inProgressCount = bookings.stream()
-					.filter(b -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(b.getFollowupStatus()).orElse("")))
-					.count();
-
-			Map<String, Object> summary = new HashMap<>();
-			summary.put("totalAppointments", totalCount);
-			summary.put("pending", pendingCount);
-			summary.put("confirmed", confirmedCount);
-			summary.put("inProgress", inProgressCount);
-			summary.put("startDate", startDate.toString());
-			summary.put("endDate", endDate.toString());
-
-			return ResponseEntity.ok(new Response(true, list, summary, "Upcoming bookings fetched", 200, null, null));
-
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Response(false, null, null,
-					"Error fetching upcoming bookings: " + e.getMessage(), 500, null, null));
-		}
-	}
 
 	@Override
 	public ResponseEntity<Response> getBookingByDate(String clinicId, String branchId, String date) {
@@ -2967,233 +2977,171 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 	}
 
-	@Override
-	public ResponseEntity<Response> getBookingByCustomRange(
-			String clinicId,
-			String branchId,
-			String start,
-			String end) {
+    @Override
+    public ResponseEntity<Response> getBookingByCustomRange(
+            String clinicId,
+            String branchId,
+            String start,
+            String end) {
 
-		List<Map<String, Object>> list = new ArrayList<>();
+        List<Map<String, Object>> list = new ArrayList<>();
 
-		try {
+        try {
+            log.info("Fetching bookings for clinicId: {}, branchId: {}, start: {}, end: {}",
+                    clinicId, branchId, start, end);
 
-			log.info("Fetching bookings for clinicId: {}, branchId: {}, start: {}, end: {}",
-					clinicId, branchId, start, end);
+            LocalDate startDate = LocalDate.parse(start, FORMATTER);
+            LocalDate endDate = LocalDate.parse(end, FORMATTER);
 
-			LocalDate startDate = LocalDate.parse(start,FORMATTER);
-			LocalDate endDate = LocalDate.parse(end,FORMATTER);
+            String fromDate = startDate.minusDays(1).format(FORMATTER);
+            String toDate = endDate.plusDays(1).format(FORMATTER);
 
-			String fromDate = startDate.minusDays(1).format(FORMATTER);
-			String toDate = endDate.plusDays(1).format(FORMATTER);
+            // ✅ Fetch bookings
+            List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateBetween(
+                    clinicId, branchId, fromDate, toDate);
 
-			List<Booking> bookings =
-					repository.findByClinicIdAndBranchIdAndServiceDateBetween(
-							clinicId,
-							branchId,
-							fromDate,
-							toDate);
+            log.info("Found {} bookings", bookings != null ? bookings.size() : 0);
 
-			log.info("Found {} bookings", bookings != null ? bookings.size() : 0);
+            List<BookingResponse> responses = new ArrayList<>();
+            if (bookings != null && !bookings.isEmpty()) {
+                responses.addAll(toResponses(bookings));
+            }
 
-			List<BookingResponse> responses = new ArrayList<>();
+            // ✅ Populate session details (try/catch per Feign call)
+            for (BookingResponse response : responses) {
+                try {
+                    ResponseEntity<List<Session>> sessionResponse =
+                            physioDoctorFeign.getPhysioByBookingId(response.getBookingId(), response.getServiceDate());
 
-			if (bookings != null && !bookings.isEmpty()) {
-				responses.addAll(toResponses(bookings));
-			}
+                    List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
 
-			// Populate session details
-			responses = responses.stream()
-					.map(response -> {
-						try {
-							ResponseEntity<List<Session>> sessionResponse =
-									physioDoctorFeign.getPhysioByBookingId(
-											response.getBookingId(),
-											response.getServiceDate());
+                    if (sessions != null && !sessions.isEmpty()) {
+                        response.setSession(sessions);
+                        response.setVisitType("session");
+                    }
+                } catch (Exception ex) {
+                    log.error("Error fetching sessions for bookingId: {}", response.getBookingId(), ex);
+                }
+            }
 
-							List<Session> sessions =
-									sessionResponse != null
-											? sessionResponse.getBody()
-											: null;
-                            ////sessions = sessions.stream().filter(n->n.getSlot()!=null).toList();
-							if (sessions != null && !sessions.isEmpty()) {
-								response.setSession(sessions);
-								response.setVisitType("session");
-							}
+            // ✅ Fetch follow-up booking IDs
+            List<Map<String, String>> bookingIds = new ArrayList<>();
+            try {
+                bookingIds = physioDoctorFeign.getPhysioRecordsByFollowUpDateRange(clinicId, branchId, start, end);
+            } catch (Exception ex) {
+                log.error("Error fetching follow-up booking IDs: {}", ex.getMessage());
+            }
 
-						} catch (Exception ex) {
+            log.info("Found {} follow-up booking ids", bookingIds != null ? bookingIds.size() : 0);
 
-							log.error(
-									"Error fetching sessions for bookingId: {}",
-									response.getBookingId(),
-									ex);
-						}
+            if (bookingIds != null && !bookingIds.isEmpty()) {
+                final List<Map<String, String>> finalBookingIds = bookingIds;
 
-						return response;
+                List<String> keys = finalBookingIds.stream()
+                        .flatMap(map -> map.keySet().stream())
+                        .collect(Collectors.toList());
 
-					})
-					.collect(Collectors.toCollection(ArrayList::new));
+                List<Booking> followUpBookings = repository.findByBookingIdIn(keys);
+                log.info("Found {} follow-up bookings", followUpBookings != null ? followUpBookings.size() : 0);
 
-			// Fetch follow-up booking ids
-			List<Map<String,String>> bookingIds =
-					physioDoctorFeign.getPhysioRecordsByFollowUpDateRange(
-							clinicId,
-							branchId,
-							start,
-							end);
+                if (followUpBookings != null && !followUpBookings.isEmpty()) {
+                    followUpBookings.forEach(booking -> {
+                        String value = finalBookingIds.stream()
+                                .filter(f -> f.containsKey(booking.getBookingId()))
+                                .map(n -> n.get(booking.getBookingId()))
+                                .findFirst()
+                                .orElse(null);
 
-			log.info("Found {} follow-up booking ids",
-					bookingIds != null ? bookingIds.size() : 0);
+                        booking.setStatus("follow-up Pending");
+                        booking.setFollowupDate(value);
 
-			if (bookingIds != null && !bookingIds.isEmpty()) {
+                        List<Status> statusList = booking.getCurrentStatus() == null
+                                ? new ArrayList<>()
+                                : new ArrayList<>(booking.getCurrentStatus());
 
-				List<String> keys = list.stream()
-						.flatMap(map -> map.keySet().stream())
-						.collect(Collectors.toList());
+                        boolean alreadyExists = statusList.stream()
+                                .anyMatch(status -> "follow-up Pending".equalsIgnoreCase(status.getStatus()));
 
-				List<Booking> followUpBookings =
-						repository.findByBookingIdIn(keys);
+                        if (!alreadyExists) {
+                            Status status = new Status();
+                            status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+                            status.setStatus("follow-up Pending");
+                            statusList.add(status);
+                        }
 
-				log.info("Found {} follow-up bookings",
-						followUpBookings != null ? followUpBookings.size() : 0);
-				if (followUpBookings != null && !followUpBookings.isEmpty()) {
-					followUpBookings.forEach(booking -> {
+                        booking.setCurrentStatus(statusList);
+                    });
 
-					String value =	bookingIds.stream().filter(f->f.containsKey(booking.getBookingId()))
-								.map(n->n.get(booking.getBookingId())).findFirst().orElse(null);
+                    repository.saveAll(followUpBookings);
 
-						booking.setStatus("follow-up Pending");
-						booking.setFollowupDate(value);
+                    responses.addAll(followUpBookings.stream()
+                            .map(this::toResponse)
+                            .collect(Collectors.toList()));
+                }
+            }
 
-					List<Status> statusList =
-								booking.getCurrentStatus() == null
-										? new ArrayList<>()
-										: new ArrayList<>(booking.getCurrentStatus());
+            // ✅ Build response payload
+            for (BookingResponse response : responses) {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("bookingId", response.getBookingId());
+                map.put("serviceDate", response.getServiceDate());
+                map.put("servicetime", response.getServicetime());
+                map.put("name", response.getName());
+                map.put("mobileNumber",
+                        response.getPatientMobileNumber() != null && !response.getPatientMobileNumber().isBlank()
+                                ? response.getPatientMobileNumber()
+                                : response.getMobileNumber());
+                map.put("doctorId", response.getDoctorId());
+                map.put("doctorName", response.getDoctorName());
+                map.put("paymentType", response.getPaymentType());
+                map.put("visitType", response.getVisitType());
+                map.put("status", response.getStatus());
+                map.put("followupStatus", response.getFollowupStatus());
+                map.put("patientId", response.getPatientId());
+                map.put("clinicId", response.getClinicId());
+                map.put("customerId", response.getCustomerId());
+                map.put("branchId", response.getBranchId());
+                map.put("age", response.getAge());
+                map.put("gender", response.getGender());
+                map.put("branchName", response.getBranchname());
+                map.put("session", response.getSession());
+                map.put("problem", response.getProblem());
 
-						boolean alreadyExists =
-								statusList.stream()
-										.anyMatch(status ->
-												"follow-up Pending".equalsIgnoreCase(
-														status.getStatus()));
+                list.add(map);
+            }
 
-						if (!alreadyExists) {
+            // ✅ Summary counts
+            long totalCount = responses.size();
+            long pendingCount = responses.stream()
+                    .filter(r -> "PENDING".equalsIgnoreCase(Optional.ofNullable(r.getFollowupStatus()).orElse("")))
+                    .count();
+            long confirmedCount = responses.stream()
+                    .filter(r -> "CONFIRMED".equalsIgnoreCase(Optional.ofNullable(r.getFollowupStatus()).orElse("")))
+                    .count();
+            long inProgressCount = responses.stream()
+                    .filter(r -> "IN-PROGRESS".equalsIgnoreCase(Optional.ofNullable(r.getFollowupStatus()).orElse("")))
+                    .count();
 
-							Status status = new Status();
-							status.setDATE_TIME(
-									LocalDateTime.now(
-											ZoneId.of("Asia/Kolkata")));
-							status.setStatus("follow-up Pending");
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("totalAppointments", totalCount);
+            summary.put("pending", pendingCount);
+            summary.put("confirmed", confirmedCount);
+            summary.put("inProgress", inProgressCount);
 
-							statusList.add(status);
-						}
+            log.info("Custom range bookings fetched successfully. Total appointments: {}", totalCount);
 
-						booking.setCurrentStatus(statusList);
-					});
+            return ResponseEntity.ok(new Response(true, list, summary,
+                    "Custom range bookings fetched", 200, null, null));
 
-					repository.saveAll(followUpBookings);
+        } catch (Exception e) {
+            log.error("Error fetching custom range bookings for clinicId: {}, branchId: {}", clinicId, branchId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new Response(false, null, null,
+                            "Error fetching custom range bookings: " + e.getMessage(), 500, null, null));
+        }
+    }
 
-					responses.addAll(
-							followUpBookings.stream()
-									.map(this::toResponse)
-									.collect(Collectors.toList()));
-				}
-			}
-
-			// Build response payload
-			for (BookingResponse response : responses) {
-
-				Map<String, Object> map = new LinkedHashMap<>();
-
-				map.put("bookingId", response.getBookingId());
-				map.put("serviceDate", response.getServiceDate());
-				map.put("servicetime", response.getServicetime());
-				map.put("name", response.getName());
-
-				map.put(
-						"mobileNumber",
-						response.getPatientMobileNumber() != null
-								&& !response.getPatientMobileNumber().isBlank()
-								? response.getPatientMobileNumber()
-								: response.getMobileNumber());
-
-				map.put("doctorId", response.getDoctorId());
-				map.put("doctorName", response.getDoctorName());
-				map.put("paymentType", response.getPaymentType());
-				map.put("visitType", response.getVisitType());
-				map.put("status", response.getStatus());
-				map.put("followupStatus", response.getFollowupStatus());
-				map.put("patientId", response.getPatientId());
-				map.put("clinicId", response.getClinicId());
-				map.put("customerId", response.getCustomerId());
-				map.put("branchId", response.getBranchId());
-				map.put("age", response.getAge());
-				map.put("gender", response.getGender());
-				map.put("branchName", response.getBranchname());
-				map.put("session", response.getSession());
-				map.put("problem", response.getProblem());
-
-				list.add(map);
-			}
-
-			// Summary counts
-			long totalCount = responses.size();
-
-			long pendingCount = responses.stream()
-					.filter(r ->
-							"PENDING".equalsIgnoreCase(r.getFollowupStatus()))
-					.count();
-
-			long confirmedCount = responses.stream()
-					.filter(r ->
-							"CONFIRMED".equalsIgnoreCase(r.getFollowupStatus()))
-					.count();
-
-			long inProgressCount = responses.stream()
-					.filter(r ->
-							"IN-PROGRESS".equalsIgnoreCase(r.getFollowupStatus()))
-					.count();
-
-			Map<String, Object> summary = new HashMap<>();
-			summary.put("totalAppointments", totalCount);
-			summary.put("pending", pendingCount);
-			summary.put("confirmed", confirmedCount);
-			summary.put("inProgress", inProgressCount);
-
-			log.info(
-					"Custom range bookings fetched successfully. Total appointments: {}",
-					totalCount);
-
-			return ResponseEntity.ok(
-					new Response(
-							true,
-							list,
-							summary,
-							"Custom range bookings fetched",
-							200,
-							null,
-							null));
-
-		} catch (Exception e) {
-
-			log.error(
-					"Error fetching custom range bookings for clinicId: {}, branchId: {}",
-					clinicId,
-					branchId,
-					e);
-
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(
-							new Response(
-									false,
-									null,
-									null,
-									e.getMessage(),
-									500,
-									null,
-									null));
-		}
-	}
-	public ResponseEntity<Response> getBookingById(String bookingId) {
+    public ResponseEntity<Response> getBookingById(String bookingId) {
 		try {
 			Optional<Booking> booking = repository.findByBookingId(bookingId);
 			if (booking.isPresent()) {
