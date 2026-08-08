@@ -154,39 +154,40 @@ public class BookingServiceImpl implements BookingService {
 
 	}
 
-		// BOOKING MANAGEMENT
-		@Override
-		public Response bookService(BookingResponse req) throws JsonProcessingException {
-			Response response = new Response();
-			try {
-				ResponseEntity<ResponseStructure<Map<String,String>>> res = bookingFeign.bookService(req);
-                Map<String,String> bookingResponse = res.getBody().getData();
-				if (bookingResponse != null) {
-					response.setData(bookingResponse);
-					response.setMessage("follow up appointment found");
-					response.setSuccess(true);
-					response.setStatus(res.getBody().getStatusCode());
-					try {
-						messagingTemplate.convertAndSend(
-								"/topic/bookings",
-								response
-						);
-					} catch (Exception e) {}
-				} else {				
-					response.setMessage("follow up appointment not found");
-					response.setSuccess(false);
-					response.setStatus(res.getStatusCode().value());
-				}
-			} catch (FeignException e) {
-				response.setStatus(e.status());
-				response.setMessage( ExtractFeignMessage.clearMessage(e));
-				response.setSuccess(false);
-			}
-			return response;
-		}
-	
+    // BOOKING MANAGEMENT
+    @Override
+    public Response bookService(BookingResponse req) throws JsonProcessingException {
+        Response response = new Response();
+        try {
+            ResponseEntity<Response> res = bookingFeign.bookService(req);
+            Object bookingResponse = res.getBody();
+            if (bookingResponse != null) {
+                response.setData(bookingResponse);
+                response.setMessage("follow up appointment found");
+                response.setSuccess(true);
+                response.setStatus(res.getBody().getStatus());
+                try {
+                    messagingTemplate.convertAndSend(
+                            "/topic/bookings",
+                            response
+                    );
+                } catch (Exception e) {}
+            } else {
+                response.setMessage("follow up appointment not found");
+                response.setSuccess(false);
+                response.setStatus(res.getStatusCode().value());
+            }
+        } catch (FeignException e) {
+            response.setStatus(e.status());
+            response.setMessage( ExtractFeignMessage.clearMessage(e));
+            response.setSuccess(false);
+        }
+        return response;
+    }
 
-@Override
+
+
+    @Override
 public ResponseEntity<?> getInprogressBookingsByPatientId(String patientId) {
     ResponseStructure<List<BookingResponse>> res = new ResponseStructure<>();
     try {

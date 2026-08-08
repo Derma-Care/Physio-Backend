@@ -96,104 +96,105 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	// Cap for unbounded list endpoints (see CHANGE 3 / getAllBookedServices)
 	private static final int MAX_UNPAGED_RESULTS = 500;
 
-	@Override
-	public ResponseEntity<?> addService(BookingResponse request) {
-	    ResponseStructure<Map<String,String>> response = new ResponseStructure<>();
-	    try {
-	        Booking updatedBooking = updateForFollowup(request);
-	        if (updatedBooking != null) {
-	            try {
-	                DoctorPushNotificationDTO dto = new DoctorPushNotificationDTO();
-	                dto.setDoctorId(updatedBooking.getDoctorId());
-	                dto.setBookingId(updatedBooking.getBookingId());
-	                dto.setPatientName(updatedBooking.getName());
-	                dto.setAppointmentDate(updatedBooking.getServiceDate());
-	                dto.setAppointmentTime(updatedBooking.getServicetime());
-	                dto.setAppointmentType(updatedBooking.getVisitType());
+    @Override
+    public ResponseEntity<Response> addService(BookingResponse request) {
+        Response response = new Response();
 
-	                notificationFeign.sendDoctorPushNotification(dto);
-	                log.info("Follow-up notification sent for booking {}", updatedBooking.getBookingId());
-	            } catch (Exception ex) {
-	                log.error("Failed to send follow-up notification for booking {} : {}", updatedBooking.getBookingId(), ex.getMessage());
-	            }
-                Map<String,String> map = new LinkedHashMap<>();
-                try {
-                    boolean slotupdate =
-                            clinnicfeign.updateDoctorSlotWhileBooking(
-                                    request.getDoctorId(),
-                                    request.getBranchId(),
-                                    request.getServiceDate(),
-                                    request.getServicetime()
-                            );
-                    if(slotupdate) {
-                        response.setMessage("Appointment Booked Successfully and slot blocked and");
-                        map.put("slotStatus","200");
-                    }else {
-                        map.put("slotStatus","500");
-                        response.setMessage("Appointment Booked Successfully and slot not blocked and");
-                    }}catch(Exception e) {}
-                BranchDTO branch = null;
-                try {
-                    ResponseEntity<ResponseStructure<BranchDTO>> branchResponse =
-                            adminServiceClient.getBranchById(updatedBooking.getBranchId());
+        try {
+            Booking updatedBooking = updateForFollowup(request);
 
-                    if (branchResponse != null
-                            && branchResponse.getBody() != null
-                            && branchResponse.getBody().getData() != null) {
-                        branch = branchResponse.getBody().getData();
+            if (updatedBooking != null) {
+                try {
+                    Map<String, Object> map = new LinkedHashMap<>();
+
+                    try {
+                        boolean slotupdate = clinnicfeign.updateDoctorSlotWhileBooking(
+                                request.getDoctorId(),
+                                request.getBranchId(),
+                                request.getServiceDate(),
+                                request.getServicetime()
+                        );
+                        if (slotupdate) {
+                            response.setMessage("Appointment Booked Successfully and slot blocked");
+                            map.put("slotStatus", "200");
+                        } else {
+                            response.setMessage("Appointment Booked Successfully but slot not blocked");
+                            map.put("slotStatus", "500");
+                        }
+                    } catch (Exception e) {
+                        log.error("Slot update failed: {}", e.getMessage(), e);
                     }
 
-                } catch (Exception e) {
-                    log.error("Branch fetch failed: {}", e.getMessage(), e);
+                    BranchDTO branch = null;
+                    try {
+                        ResponseEntity<ResponseStructure<BranchDTO>> branchResponse =
+                                adminServiceClient.getBranchById(updatedBooking.getBranchId());
+
+                        if (branchResponse != null
+                                && branchResponse.getBody() != null
+                                && branchResponse.getBody().getData() != null) {
+                            branch = branchResponse.getBody().getData();
+                        }
+                    } catch (Exception e) {
+                        log.error("Branch fetch failed: {}", e.getMessage(), e);
+                    }
+
+                    // Populate booking details
+                    map.put("Doctor", updatedBooking.getDoctorName());
+                    map.put("Date", updatedBooking.getServiceDate());
+                    map.put("Time", updatedBooking.getServicetime());
+                    map.put("Booking ID", updatedBooking.getBookingId());
+                    map.put("Branch", updatedBooking.getBranchname());
+
+                    if (branch != null) {
+                        if (branch.getEmail() != null) {
+                            map.put("Email", branch.getEmail());
+                        }
+                        if (branch.getLocation() != null) {
+                            map.put("Location", branch.getLocation());
+                        } else {
+                            String locationUrl = "https://www.google.com/maps/search/?api=1&query="
+                                    + branch.getLatitude() + "," + branch.getLongitude();
+                            map.put("Location", locationUrl);
+                        }
+                        if (branch.getContactNumber() != null) {
+                            map.put("mobilenumber", branch.getContactNumber());
+                        }
+                    }
+
+                    map.put("patientmobilenumber", updatedBooking.getPatientMobileNumber());
+                    map.put("patientId", updatedBooking.getPatientId());
+                    map.put("patientname", updatedBooking.getName());
+
+                    response.setSuccess(true);
+                    response.setStatus(HttpStatus.OK.value());
+                    response.setData(map);
+
+                    return ResponseEntity.ok(response);
+
+                } catch (Exception ex) {
+                    log.error("Failed to process follow-up booking {} : {}", updatedBooking.getBookingId(), ex.getMessage());
+                    response.setSuccess(false);
+                    response.setMessage("Failed to process follow-up booking");
+                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
                 }
-                map.put("Doctor",updatedBooking.getDoctorName());
-                map.put("Date",updatedBooking.getServiceDate());
-                map.put("Time",updatedBooking.getServicetime());
-                map.put("Booking ID",updatedBooking.getBookingId());
-                map.put("Branch",updatedBooking.getBranchname());
-                if(branch != null && branch.getEmail()!=null ){
-                    map.put("Email",branch.getEmail());}
-                if(branch != null && branch.getLocation()!= null){
-                    map.put("Location",branch.getLocation());}
-                else{
-                    if(branch != null){
-                    String locationUrl =
-                            "https://www.google.com/maps/search/?api=1&query="
-                                    + branch.getLatitude()
-                                    + ","
-                                    + branch.getLongitude();
-                    map.put("Location",locationUrl);}
-                }
-                if(branch != null && branch.getContactNumber()!=null){
-                map.put("mobilenumber",branch.getContactNumber());}
-                map.put("patientmobilenumber",updatedBooking.getPatientMobileNumber());
-                map.put("patientId",updatedBooking.getPatientId());
-                map.put("patientname",updatedBooking.getName());
-                response.setData(map);
-                return ResponseEntity.ok(response);
-            }else{
-            log.warn("No follow-up bookings found for request with bookingId={}", request.getBookingId());
-            response = ResponseStructure.buildResponse(
-                    null,
-                    "No follow-up bookings found",
-                    HttpStatus.BAD_REQUEST,
-                    HttpStatus.BAD_REQUEST.value()
-            );
+            } else {
+                log.warn("No follow-up bookings found for request with bookingId={}", request.getBookingId());
+                response.setSuccess(false);
+                response.setMessage("No follow-up bookings found");
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+        } catch (Exception e) {
+            log.error("Exception occurred while processing addService: {}", e.getMessage(), e);
+            response.setSuccess(false);
+            response.setMessage("Internal error: " + e.getMessage());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
-        return ResponseEntity.status(response.getHttpStatus().value()).body(response);
-
-    } catch (Exception e) {
-        log.error("Exception occurred while processing addService: {}", e.getMessage(), e);
-        response = ResponseStructure.buildResponse(
-                null,
-                "Internal error: " + e.getMessage(),
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
-}
 
 
 	/**
