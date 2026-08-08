@@ -176,12 +176,6 @@ public class BookingServiceController {
 	            @PathVariable String branchId,
 	            @PathVariable int option) {
 
-	        // ✅ Optional validation (recommended)
-	        if (option != 1 && option != 2) {
-	            return ResponseEntity.badRequest()
-	                    .body("Option must be 1 (3 days) or 2 (7 days)");
-	        }
-
 	        return bookingService.getUpcomingBookings(clinicId, branchId, option);
 	    }
 	    
