@@ -374,12 +374,13 @@ public class BookingServiceController {
 		
 		
 		  // ✅ API 1
-	    @GetMapping("/today/{clinicId}/{branchId}")
-	    public ResponseEntity<Response> getTodayPhysioBookings(
+	    @GetMapping("/customDate/{clinicId}/{branchId}/{date}")
+	    public ResponseEntity<Response> getCustomDateBookings(
 	            @PathVariable String clinicId,
-	            @PathVariable String branchId) {
+	            @PathVariable String branchId,
+                @PathVariable String date) {
 
-	        return service.getTodayAllBookings(clinicId, branchId);
+	        return service.getCustomDateBookings(clinicId, branchId, date);
 	    }
 
 	    // ✅ API 1

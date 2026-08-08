@@ -1730,7 +1730,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			for (Session session : ex.getSessions()) {
 
                 if (session.getDate() != null && !session.getDate().isEmpty()
-                        && session.getSlot() != null && !session.getSlot().isEmpty()
+                        && session.getSlot() != null && !session.getSlot().equalsIgnoreCase("NA")
                         && date.equals(session.getDate())) {
 
 					SessionForBooking bookingSession = new SessionForBooking();

@@ -52,7 +52,7 @@ public interface BookingService_Service {
 
 public List<Map<String,Object>> getTodayBookings(String cId,String bId);
 public ResponseEntity<?> physioAppointment(BookingRequset request);
-public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId);
+public ResponseEntity<Response> getCustomDateBookings(String clinicId, String branchId, String date);
 
 public ResponseEntity<Response> getUpcomingBookings(String clinicId,
         String branchId,

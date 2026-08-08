@@ -117,12 +117,13 @@ public class BookingServiceController {
 	       return bookingService.getReprts(clinicId, branchId, number, startDate, endDate);
 	   }
 	   
-	   @GetMapping("/today/{clinicId}/{branchId}")
-	    public ResponseEntity<?> getTodayPhysioBookings(
+	   @GetMapping("/customDate/{clinicId}/{branchId}/{date}")
+	    public ResponseEntity<?> getCustomBookings(
 	            @PathVariable String clinicId,
-	            @PathVariable String branchId) {
+	            @PathVariable String branchId,
+                @PathVariable String date ) {
 
-	        return bookingService.getTodayPhysioBookings(clinicId, branchId);
+	        return bookingService.getCustomBookings(clinicId, branchId,date);
 	    }
 
 	   

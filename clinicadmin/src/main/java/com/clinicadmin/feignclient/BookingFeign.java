@@ -110,11 +110,12 @@ public interface BookingFeign {
 	
 	@PostMapping("/api/v1/bookPhysioAppointment")
 	public  ResponseEntity<Response> bookPhysioAppointment(@RequestBody BookingRequset req);
-	
-	  @GetMapping("/api/v1/today/{clinicId}/{branchId}")
-	    public ResponseEntity<Response> getTodayPhysioBookings(
-	            @PathVariable String clinicId,
-	            @PathVariable String branchId);
+
+    @GetMapping("/api/v1/customDate/{clinicId}/{branchId}/{date}")
+    public ResponseEntity<Response> getCustomDateBookings(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String date) ;
 	  
 	  @GetMapping("/api/v1/upcoming/{clinicId}/{branchId}/{option}")
 	    public ResponseEntity<Response> getUpcomingBookings(

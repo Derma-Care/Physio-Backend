@@ -96,6 +96,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	// Cap for unbounded list endpoints (see CHANGE 3 / getAllBookedServices)
 	private static final int MAX_UNPAGED_RESULTS = 500;
 
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     @Override
     public ResponseEntity<Response> addService(BookingResponse request) {
         Response response = new Response();
@@ -108,12 +110,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
                     Map<String, Object> map = new LinkedHashMap<>();
 
                     try {
-                        boolean slotupdate = clinnicfeign.updateDoctorSlotWhileBooking(
-                                request.getDoctorId(),
-                                request.getBranchId(),
-                                request.getServiceDate(),
-                                request.getServicetime()
-                        );
+                        boolean slotupdate = false;
+                        try {
+                            slotupdate = clinnicfeign.updateDoctorSlotWhileBooking(
+                                    updatedBooking.getDoctorId(),
+                                    updatedBooking.getBranchId(),
+                                    updatedBooking.getServiceDate(),
+                                    updatedBooking.getServicetime()
+                            );
+                        }catch (Exception e){}
+
                         if (slotupdate) {
                             response.setMessage("Appointment Booked Successfully and slot blocked");
                             map.put("slotStatus", "200");
@@ -2478,13 +2484,13 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 	}
 
-	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
 	@Override
-	public ResponseEntity<Response> getTodayAllBookings(String clinicId, String branchId) {
+	public ResponseEntity<Response> getCustomDateBookings(String clinicId, String branchId, String date) {
 		try {
 
-			String today = LocalDate.now().format(FORMATTER);
+			LocalDate localDate = LocalDate.parse(date,FORMATTER);
+            String today = localDate.toString() ;
 
 			List<Map<String, Object>> responseList = new ArrayList<>();
 
@@ -2784,21 +2790,42 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 	@Override
 	public ResponseEntity<Response> getUpcomingBookings(String clinicId, String branchId, int option) {
+
 		List<Map<String, Object>> list = new ArrayList<>();
-		try {
-			int days;
+        LocalDate today = LocalDate.now();
+        LocalDate startDate ;
+        LocalDate endDate;
+        try{
+        switch (option) {
+            case 1: // today
+                startDate = today;
+                endDate = today;
+                break;
 
-			if (option == 1) {
-				days = 3;
-			} else if (option == 2) {
-				days = 7;
-			} else {
-				return ResponseEntity.badRequest()
-						.body(new Response(false, null, null, "Invalid option (1=3days, 2=7days)", 400, null, null));
-			}
+            case 2: // this week (Monday to Sunday of current week)
+                startDate = today.with(java.time.DayOfWeek.MONDAY);
+                endDate = today.with(java.time.DayOfWeek.SUNDAY);
+                break;
 
-			LocalDate startDate = LocalDate.now().minusDays(1);
-			LocalDate endDate = startDate.plusDays(days + 1);
+            case 3: // this month (1st to last day of current month)
+                startDate = today.withDayOfMonth(1);
+                endDate = today.withDayOfMonth(today.lengthOfMonth());
+                break;
+
+            case 4: // this year (Jan 1st to Dec 31st of current year)
+                startDate = today.withDayOfYear(1);
+                endDate = today.withDayOfYear(today.lengthOfYear());
+                break;
+
+            default:
+                return ResponseEntity.badRequest().body(
+                        Response.builder()
+                                .success(false)
+                                .status(400)
+                                .message("Invalid filter value")
+                                .hospitalId(clinicId)
+                                .build()
+                );}
 
 			List<Booking> bookings = repository.findByClinicIdAndBranchIdAndServiceDateBetween(clinicId, branchId,
 					startDate.format(FORMATTER), endDate.format(FORMATTER));

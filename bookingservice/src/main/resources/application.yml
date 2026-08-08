@@ -1,11 +1,20 @@
 spring:
   application:
     name: bookingservice
+#  config:
+#    import: optional:application-secrets.yml
+
 
   data:
     mongodb:
-      uri: mongodb://localhost:27017/customerAppointments?connectTimeoutMS=30000&socketTimeoutMS=60000
+      uri: mongodb://localhost:27017/customerAppointments
       auto-index-creation: false
+
+    redis:
+      host: localhost
+      port: 6379
+  #      password: your-password
+
 
   cloud:
     openfeign:
@@ -14,71 +23,208 @@ spring:
           default:
             connectTimeout: 30000
             readTimeout: 60000
-            loggerLevel: FULL   # detailed logs for debugging
+
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
 server:
+
   port: 9900
+
   servlet:
     context-path: /api
+
   shutdown: graceful
+
+  compression:
+    enabled: true
+    mime-types:
+      - application/json
+      - text/html
+      - text/plain
 
 spring.lifecycle:
   timeout-per-shutdown-phase: 30s
 
 # =========================================================
-# WHATSAPP (dummy values for local dev)
+# WHATSAPP
 # =========================================================
 whatsapp:
-  base-url: http://localhost:8080/mock-whatsapp
-  auth-key: dummy-key
-  phone-number-id: test-id
-  booking-confirmation-template-id: test-template
+  base-url:
+  auth-key:
+  phone-number-id:
+  booking-confirmation-template-id:
 
 # =========================================================
-# AWS S3 (test bucket for local dev)
+# AWS S3
 # =========================================================
+
 aws:
-  accessKeyId: local-access
-  secretAccessKey: local-secret
+
+  accessKeyId:
+  secretAccessKey:
   region: ap-south-1
   s3:
-    bucket: physiocare-dev-storage
+    bucket: physiocare-prod-storage
 
 # =========================================================
-# EUREKA (local discovery)
+# EUREKA
 # =========================================================
+
 eureka:
+
   client:
     register-with-eureka: true
     fetch-registry: true
+
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
   instance:
     prefer-ip-address: true
-    lease-renewal-interval-in-seconds: 30
-    lease-expiration-duration-in-seconds: 90
 
 # =========================================================
-# RESILIENCE4J (local testing thresholds)
+# RESILIENCE4J
 # =========================================================
+
 resilience4j:
   circuitbreaker:
     instances:
-      bookingService:
+
+      adminService:
         register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
         sliding-window-size: 10
         minimum-number-of-calls: 5
         permitted-number-of-calls-in-half-open-state: 3
         wait-duration-in-open-state: 10s
         failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+      clinicAdminService:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+      notificationService:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+      physioDoctorService:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        automatic-transition-from-open-to-half-open-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+        ignore-exceptions:
+
+      keyclaok:
+        failure-rate-threshold: 50
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        permitted-number-of-calls-in-half-open-state: 4
+        wait-duration-in-open-state: 1m
+        record-exceptions:
+          - java.lang.Exception
+          - feign.FeignException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+          - org.springframework.web.bind.MethodArgumentNotValidException
+          - org.springframework.web.server.ResponseStatusException
+
+  retry:
+    instances:
+
+      adminService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      clinicAdminService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      notificationService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      physioDoctorService:
+        max-attempts: 3
+        wait-duration: 2s
+
+      keyclaok:
+        max-attempts: 3
+        wait-duration: 2s
+
   timelimiter:
     instances:
+
       bookingService:
         timeout-duration: 60s
 
+      clinicAdminService:
+        timeout-duration: 60s
+
+      notificationService:
+        timeout-duration: 60s
+
+      physioDoctorService:
+        timeout-duration: 60s
+
+  # =========================================================
+  # RATE LIMIT CONFIG
+  # =========================================================
+  ratelimiter:
+    instances:
+      bookingService:
+        limit-for-period: 50
+        limit-refresh-period: 1m
+        timeout-duration: 1s
+      keyclaok:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 2s
+
 # =========================================================
-# ACTUATOR (local monitoring)
+# ACTUATOR
 # =========================================================
+
 management:
   server:
     base-path: /
@@ -86,6 +232,7 @@ management:
     web:
       exposure:
         include: health,info,metrics
+
   endpoint:
     health:
       show-details: always
@@ -95,17 +242,19 @@ management:
 # =========================================================
 # INFO
 # =========================================================
+
 info:
+
   app:
     name: bookingservice
-    description: Service responsible for booking appointments (local profile)
+    description: Service responsible for booking appointments
     version: 1.0.0
 
 # =========================================================
-# LOGGING (verbose for dev)
+# LOGGING
 # =========================================================
+
 logging:
   level:
     root: INFO
-    org.springframework.web: DEBUG
-    com.dermaCare.bookingService: DEBUG
+

@@ -237,11 +237,11 @@ public ResponseEntity<?> getReprts(String clinicId,
 
 
 @Override
-public ResponseEntity<?> getTodayPhysioBookings(String clinicId,
-		String branchId) {
+public ResponseEntity<?> getCustomBookings(String clinicId,
+		String branchId,String date) {
 	Response response = new Response();
     try {
-        return bookingFeign.getTodayPhysioBookings(clinicId, branchId);
+        return bookingFeign.getCustomDateBookings(clinicId, branchId,date);
     } catch (FeignException e) {
     	response.setStatus(e.status());
 		response.setMessage( ExtractFeignMessage.clearMessage(e));
