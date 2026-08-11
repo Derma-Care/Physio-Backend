@@ -12,10 +12,10 @@ import com.dermacare.bookingService.dto.Session;
 
 @FeignClient(value = "physiotherapydoctor-service")
 public interface PhysioDoctorFeign {
-	
-	@GetMapping("/api/physiotherapy-doctor/getPhysioByBookingId/{bookingId}/{date}")
-	public ResponseEntity<List<Session>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String date);		
-	
+
+	@GetMapping("/api/physiotherapy-doctor/getPhysioByBookingId/{bookingId}/{startdate}/{endDate}")
+	public ResponseEntity<List<Session>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String startdate,@PathVariable String endDate);
+
 	 @GetMapping("/api/physiotherapy-doctor/followups/today/booking-ids")
 	 public List<String> getTodayFollowUpBookingIds();
 

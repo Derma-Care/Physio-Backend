@@ -60,7 +60,7 @@ public ResponseEntity<Response> getUpcomingBookings(String clinicId,
 
 public ResponseEntity<Response> getBookingByDate(String clinicId, String branchId,String date);
 public ResponseEntity<Response> getBookingByCustomRange(String clinicId, String branchId,String start,String end);
-public ResponseEntity<Response> getBookingById(String bookingId);
+//public ResponseEntity<Response> getBookingById(String bookingId);
 public List<BookingResponse> bookingByPatientIdAndBookingId(String patientId,String bookingId);
 public List<ReportsDTO> getReportsByPatientId(String patientId);
 public void deleteBookedServiceReports(String bookingId,String index);

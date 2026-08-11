@@ -1073,11 +1073,13 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             if (optionalBooking.isPresent()) {
                 Booking entity = optionalBooking.get();
                 BookingResponse res = toResponse(entity);
-
+               LocalDate date =  LocalDate.parse(res.getServiceDate());
+			   String start = date.minusDays(1).toString();
+				String end = date.plusDays(1).toString();
                 // ✅ Fetch sessions safely
                 try {
                     ResponseEntity<List<Session>> sessionResponse =
-                            physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate());
+                            physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), start, end);
 
                     List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
 
@@ -2556,8 +2558,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
             // ✅ Session details (try/catch per Feign call)
             for (BookingResponse booking : responses) {
                 try {
+					LocalDate dte =  LocalDate.parse(booking.getServiceDate());
+					String start = dte.minusDays(1).toString();
+					String end = dte.plusDays(1).toString();
                     ResponseEntity<List<Session>> sessionResponse =
-                            physioDoctorFeign.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
+                            physioDoctorFeign.getPhysioByBookingId(booking.getBookingId(),start,end);
 
                     List<Session> sessions = sessionResponse != null ? sessionResponse.getBody() : null;
                     if (sessions != null && !sessions.isEmpty()) {
@@ -2826,7 +2831,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			for (BookingResponse booking : responses) {
 				try {
 					ResponseEntity<List<Session>> sessionResponse =
-							physioDoctorFeign.getPhysioByBookingId(booking.getBookingId(), booking.getServiceDate());
+							physioDoctorFeign.getPhysioByBookingId(booking.getBookingId(), startDate.toString(),endDate.toString());
 
 					List<Session> sessions = (sessionResponse != null) ? sessionResponse.getBody() : null;
 
@@ -2926,10 +2931,11 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					dte.format(FORMATTER));
 
 			List<BookingResponse> res = toResponses(bookings);
-
 			try {
-				res = res.stream().map(n -> {
-					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), n.getServiceDate())
+				res = res.stream().map(n ->  { LocalDate localDate =  LocalDate.parse(n.getServiceDate());
+					String start = localDate.minusDays(1).toString();
+					String end = localDate.plusDays(1).toString();
+					List<Session> lst = physioDoctorFeign.getPhysioByBookingId(n.getBookingId(), start,end)
 							.getBody();
                    //// lst = lst.stream().filter(p->p.getSlot()!= null).toList();
 					if (lst != null) {
@@ -3055,16 +3061,16 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			// ---------------------------------------------------------
 			for (BookingResponse response : responses) {
 
+
 				if (response == null || response.getBookingId() == null) {
 					continue;
 				}
-
 				try {
 
 					ResponseEntity<List<Session>> sessionResponse =
 							physioDoctorFeign.getPhysioByBookingId(
 									response.getBookingId(),
-									response.getServiceDate()
+									start,end
 							);
 
 					if (sessionResponse != null
@@ -3374,44 +3380,47 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 		}
 	}
 
-    public ResponseEntity<Response> getBookingById(String bookingId) {
-		try {
-			Optional<Booking> booking = repository.findByBookingId(bookingId);
-			if (booking.isPresent()) {
-				if (!booking.get().getFollwupBookings().isEmpty()) {
-					BookingResponse res = null;
-					if (booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size() - 1)
-							.getStatus().equalsIgnoreCase("in-progress")) {
-						res = mapper.convertValue(
-								booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size() - 1),
-								BookingResponse.class);
-						List<Session> lst = new ArrayList<>();
-						try {
-							lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), res.getServiceDate())
-									.getBody();
-                               //// lst = 	lst.stream().filter(n->n.getSlot()!= null).toList();
-							res.setSession(lst);
-						} catch (Exception e) {
-						}
-					}
-					return ResponseEntity.ok(new Response(true, // success
-							res, null, // data
-							"Booking fetched successfully", // message
-							200, null, null // status
-					));
-				} else {
-					return ResponseEntity.status(HttpStatus.NOT_FOUND)
-							.body(new Response(false, null, null, "follow up appoiintment not found", 404, null, null));
-				}
-			} else {
-				return ResponseEntity.status(HttpStatus.OK)
-						.body(new Response(false, null, null, "Booking not found", 200, null, null));
-			}
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(new Response(false, null, null, e.getMessage(), 500, null, null));
-		}
-	}
+//    public ResponseEntity<Response> getBookingById(String bookingId) {
+//		try {
+//			Optional<Booking> booking = repository.findByBookingId(bookingId);
+//			if (booking.isPresent()) {
+//				if (!booking.get().getFollwupBookings().isEmpty()) {
+//					BookingResponse res = null;
+//					if (booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size() - 1)
+//							.getStatus().equalsIgnoreCase("in-progress")) {
+//						res = mapper.convertValue(
+//								booking.get().getFollwupBookings().get(booking.get().getFollwupBookings().size() - 1),
+//								BookingResponse.class);
+//						List<Session> lst = new ArrayList<>();
+//						try {
+//							LocalDate localDate =  LocalDate.parse(res.getServiceDate());
+//							String start = localDate.minusDays(1).toString();
+//							String end = localDate.plusDays(1).toString();
+//							lst = physioDoctorFeign.getPhysioByBookingId(res.getBookingId(), start,end)
+//									.getBody();
+//                               //// lst = 	lst.stream().filter(n->n.getSlot()!= null).toList();
+//							res.setSession(lst);
+//						} catch (Exception e) {
+//						}
+//					}
+//					return ResponseEntity.ok(new Response(true, // success
+//							res, null, // data
+//							"Booking fetched successfully", // message
+//							200, null, null // status
+//					));
+//				} else {
+//					return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//							.body(new Response(false, null, null, "follow up appoiintment not found", 404, null, null));
+//				}
+//			} else {
+//				return ResponseEntity.status(HttpStatus.OK)
+//						.body(new Response(false, null, null, "Booking not found", 200, null, null));
+//			}
+//		} catch (Exception e) {
+//			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//					.body(new Response(false, null, null, e.getMessage(), 500, null, null));
+//		}
+//	}
 
 	private Booking updateForFollowup(BookingResponse dto) {
 		try {

@@ -1668,7 +1668,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 	}
 
 	@Override
-	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String date) {
+	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String startdate,String endDate) {
 
 		try {
 			Optional<PaymentRecord> optional = paymentRepository.findByBookingId(bookingId);
@@ -1686,7 +1686,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 			}
 
 			for (TherapyWithSessions therapy : record.getTherapyWithSessions()) {
-				handlePrograms(therapy.getPrograms(), date, matchedSessions);
+				handlePrograms(therapy.getPrograms(),startdate,endDate, matchedSessions);
 			}
 ////System.out.println(matchedSessions);
 			return matchedSessions.isEmpty() ? ResponseEntity.ok(null) : ResponseEntity.ok(matchedSessions);
@@ -1697,28 +1697,29 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 		}
 	}
 
-	private void handlePrograms(List<Program> programs, String date, List<SessionForBooking> result) {
+	private void handlePrograms(List<Program> programs,  String startdate,String endDate, List<SessionForBooking> result) {
 
 		if (programs == null)
 			return;
 
 		for (Program program : programs) {
-			handleTherapyData(program.getTherapyData(), date, result);
+			handleTherapyData(program.getTherapyData(),startdate,endDate, result);
 		}
 	}
 
-	private void handleTherapyData(List<TherapyData> therapyDataList, String date, List<SessionForBooking> result) {
+	private void handleTherapyData(List<TherapyData> therapyDataList,  String startdate,String endDate, List<SessionForBooking> result) {
 
 		if (therapyDataList == null)
 			return;
 
 		for (TherapyData td : therapyDataList) {
-			handleExercises(td.getExercises(), date, result);
+			handleExercises(td.getExercises(),startdate,endDate, result);
 		}
 	}
 
-	private void handleExercises(List<TherapyExercise> exercises, String date, List<SessionForBooking> result) {
-
+	private void handleExercises(List<TherapyExercise> exercises,  String startdate, String eDate, List<SessionForBooking> result) {
+    LocalDate startDate = LocalDate.parse(startdate);
+	LocalDate endDate = LocalDate.parse(eDate);
 		if (exercises == null)
 			return;
 
@@ -1731,8 +1732,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
                 if (session.getDate() != null && !session.getDate().isEmpty()
                         && session.getSlot() != null && !session.getSlot().equalsIgnoreCase("NA")
-                        && date.equals(session.getDate())) {
-
+                     ) {  LocalDate date = LocalDate.parse(session.getDate(),DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                     if(!date.isBefore(startDate) && !date.isAfter(endDate)){
 					SessionForBooking bookingSession = new SessionForBooking();
 
 					bookingSession.setSessionId(session.getSessionId());
@@ -1748,7 +1749,7 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 					bookingSession.setExerciseName(ex.getExerciseName());
 
 					result.add(bookingSession);
-				}
+				}}
 			}
 		}
 	}

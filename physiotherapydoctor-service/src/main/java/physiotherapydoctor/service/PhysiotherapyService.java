@@ -47,7 +47,7 @@ public interface PhysiotherapyService {
 	Response getAssignedPatients(String clinicId, String branchId, String therapistId, Integer overallStatus);
 	public ResponseEntity<Response> getCalculations(String clinicId, String branchId, String patientId, String bookingId);
 
-	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId, String date);
+	public ResponseEntity<List<SessionForBooking>> getSessionsByBookingIdAndDate(String bookingId,String startdate,String endDate);
 
 	Response getByClinicBranchAndBooking(String clinicId, String branchId, String bookingId);
 

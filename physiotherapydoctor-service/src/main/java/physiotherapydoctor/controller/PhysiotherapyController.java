@@ -88,9 +88,10 @@ public class PhysiotherapyController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 	
-	@GetMapping("/getPhysioByBookingId/{bookingId}/{date}")
-	public ResponseEntity<List<SessionForBooking>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String date) {		
-		return service.getSessionsByBookingIdAndDate(bookingId, date);
+	@GetMapping("/getPhysioByBookingId/{bookingId}/{startdate}/{endDate}")
+	public ResponseEntity<List<SessionForBooking>> getPhysioByBookingId(@PathVariable String bookingId,@PathVariable String startdate,@PathVariable String endDate
+	) {
+		return service.getSessionsByBookingIdAndDate(bookingId,startdate,endDate);
 	}
 	
 	@GetMapping("/get-record/{clinicId}/{branchId}/{patientId}/{bookingId}/{therapistRecordId}")

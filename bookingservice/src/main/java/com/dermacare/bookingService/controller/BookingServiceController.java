@@ -421,10 +421,10 @@ public class BookingServiceController {
 	        return service.getBookingByCustomRange(clinicId, branchId,start, end);
 	    }
 	    
-	    @GetMapping("/getBookingById/{bookingId}")
-	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId) {
-	        return service.getBookingById(bookingId);
-	    }
+//	    @GetMapping("/getBookingById/{bookingId}")
+//	    public ResponseEntity<Response> getBookingById(@PathVariable String bookingId) {
+//	        return service.getBookingById(bookingId);
+//	    }
 	    
 	    @GetMapping("/deleteReport/{bookingId}/{index}")
 	    public void deleteReport(@PathVariable String bookingId,@PathVariable String index) {
