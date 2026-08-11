@@ -44,4 +44,6 @@ public interface CustomerOnboardingService {
 //	Response resetPassword(ChangeDoctorPasswordDTO dto);
 
 	public String retrievePatientName(String patientId);
+
+	public Response getCustomersByHospitalId(String clinicId, String branchId, String searchInput);
 }

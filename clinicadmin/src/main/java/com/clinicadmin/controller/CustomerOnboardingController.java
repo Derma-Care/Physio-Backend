@@ -169,7 +169,18 @@ public class CustomerOnboardingController {
 				return new ResponseEntity<>(ResponseStructure.buildResponse(response,
 						"Booking fetched sucessfully on clinicId" + input, HttpStatus.OK, HttpStatus.OK.value()),
 						HttpStatus.OK);}
-		
-			
-    
+
+
+
+    // Example: GET /api/customers/search?clinicId=C001&branchId=B001&searchInput=rakesh
+    @GetMapping("/customer/searchInput/{clinicId}/{branchId}/{searchInput}")
+    public ResponseEntity<Response> getCustomersByHospitalId(
+            @PathVariable String clinicId,
+            @PathVariable String branchId,
+            @PathVariable String searchInput) {
+
+        Response response = customerOnboardingService.getCustomersByHospitalId(clinicId, branchId, searchInput);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
 }

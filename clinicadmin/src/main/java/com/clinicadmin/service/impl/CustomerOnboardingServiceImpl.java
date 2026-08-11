@@ -321,27 +321,6 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		return response;
 	}
 
-	@Override
-	public Response getCustomersByHospitalId(String hospitalId,String branchId) {
-	    Response response = new Response();
-	    try {
-	        List<CustomerOnbordingDTO> customers = onboardingRepository.findByHospitalIdAndBranchId(hospitalId, branchId)
-	                .stream()
-	                .map(this::convertToDTO)
-	                .collect(Collectors.toList());
-
-	        response.setSuccess(true);
-	        response.setMessage(customers.isEmpty() ? "No customers found for hospitalId: " + hospitalId : "Customers retrieved successfully");
-	        response.setData(customers);
-	        response.setStatus(200);
-	    } catch (Exception e) {
-	        response.setSuccess(false);
-	        response.setMessage("Error fetching customers: " + e.getMessage());
-	        response.setStatus(500);
-	    }
-	    return response;
-	}
-
 	
 	@Override
 	public Response getCustomersByPatientId(String patientId,String clinicId) {
@@ -712,4 +691,86 @@ public class CustomerOnboardingServiceImpl implements CustomerOnboardingService 
 		}
 		return name;
 	}
+
+
+	@Override
+	public Response getCustomersByHospitalId(String hospitalId, String branchId) {
+		Response response = new Response();
+		try {
+			List<CustomerOnbordingDTO> customers = onboardingRepository
+					.findByHospitalIdAndBranchId(hospitalId, branchId)
+					.stream()
+					.map(this::convertToDTO)
+					.collect(Collectors.toList());
+
+			// ✅ Keep only the last 10
+			if (customers.size() > 10) {
+				customers = customers.subList(customers.size() - 10, customers.size());
+			}
+
+			response.setSuccess(true);
+			response.setMessage(customers.isEmpty()
+					? "No customers found for hospitalId: " + hospitalId
+					: "Last " + customers.size() + " customers retrieved successfully");
+			response.setData(customers);
+			response.setStatus(200);
+		} catch (Exception e) {
+			response.setSuccess(false);
+			response.setMessage("Error fetching customers: " + e.getMessage());
+			response.setStatus(500);
+		}
+		return response;
+	}
+
+
+	@Override
+	public Response getCustomersByHospitalId(String clinicId, String branchId, String searchInput) {
+		Response response = new Response();
+		try {
+			// Fetch all customers for clinic + branch
+			List<CustomerOnbordingDTO> customers = onboardingRepository
+					.findByHospitalIdAndBranchId(clinicId, branchId)
+					.stream()
+					.map(this::convertToDTO)
+					.collect(Collectors.toList());
+
+			// ✅ Detect input type and filter
+			if (searchInput != null && !searchInput.isBlank()) {
+				String lowerSearch = searchInput.toLowerCase();
+
+				if (searchInput.matches("\\d+")) {
+					// Input is numeric → treat as mobile number
+					customers = customers.stream()
+							.filter(c -> c.getMobileNumber() != null && c.getMobileNumber().contains(searchInput))
+							.collect(Collectors.toList());
+
+				} else if (searchInput.matches("\\d+_PT_\\d+")) {
+					// Input matches patientId format (e.g. 000201_PT_00004)
+					customers = customers.stream()
+							.filter(c -> c.getPatientId() != null && c.getPatientId().equalsIgnoreCase(searchInput))
+							.collect(Collectors.toList());
+
+				} else {
+					// Otherwise treat as name (ignore case)
+					customers = customers.stream()
+							.filter(c -> c.getFullName()!= null && c.getFullName().toLowerCase().contains(lowerSearch))
+							.collect(Collectors.toList());
+				}
+			}
+
+			response.setSuccess(true);
+			response.setMessage(customers.isEmpty()
+					? "No customers found for clinicId: " + clinicId + " and branchId: " + branchId
+					: "Customers retrieved successfully");
+			response.setData(customers);
+			response.setStatus(200);
+
+		} catch (Exception e) {
+			response.setSuccess(false);
+			response.setMessage("Error fetching customers: " + e.getMessage());
+			response.setStatus(500);
+		}
+		return response;
+	}
+
 }
