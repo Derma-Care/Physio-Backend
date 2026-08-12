@@ -94,4 +94,6 @@ public interface AdminService {
 	Response verifyForgotPasswordOtp(String mobileNumber, String otp, String role);
 
 	Response updateClinicCredentialsWithUserNameAndRole(UpdateClinicCredentialsWithUserNameAndRole credentials);
+
+	public int getFreeFollowUpsByHospitalId(String hospitalId);
 }

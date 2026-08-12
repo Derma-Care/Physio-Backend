@@ -14,4 +14,8 @@ public interface AdminServiceClient {
 	  @GetMapping("/admin/getBranchById/{branchId}")
 	    ResponseEntity<ResponseStructure<BranchDTO>> getBranchById(
 	            @PathVariable("branchId") String branchId);
-}
+
+	@GetMapping("/admin/freeFollowUps/{id}")
+	public int getFreeFollowUps(@PathVariable("id") String hospitalId) ;
+
+	}

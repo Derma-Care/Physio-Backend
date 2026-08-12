@@ -66,9 +66,4 @@ public interface PhysiotherapyFeignClient {
 			@PathVariable String clinicId,
 			@PathVariable String branchId);
 
-
-    
-    
-
-
 }

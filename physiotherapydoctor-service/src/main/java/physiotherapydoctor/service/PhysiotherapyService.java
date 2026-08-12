@@ -1,7 +1,9 @@
 package physiotherapydoctor.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.http.ResponseEntity;
 
@@ -87,16 +89,12 @@ public interface PhysiotherapyService {
 	 public Response getInvestigations(String bookingId, String patientId);
 
 
-	public List<Map<String,String>> getPhysioRecordsByFollowUpDateRange(
+	public Map<String, List<Session>> getPaymentSessionsDetails(
 			String clinicId,
 			String branchId,
-			String startDate,
-			String endDate);
-
-	public List<Map<String,String>> getPhysioRecordsByTodayDate(
-			String clinicId,
-			String branchId,
-			String date);
+			String initialDay,
+			String finalDay,
+			List<String> bookingSet);
 
 
 	Response updateHomeExercisePlanByRecordId(String therapistRecordId, ExercisePlan exercisePlanDto, boolean append);

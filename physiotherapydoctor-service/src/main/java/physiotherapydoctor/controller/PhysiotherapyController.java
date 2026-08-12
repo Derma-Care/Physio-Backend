@@ -1,7 +1,9 @@
 package physiotherapydoctor.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,16 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import physiotherapydoctor.dto.ChangeDoctorPasswordDTO;
-import physiotherapydoctor.dto.DoctorAvailabilityStatusDTO;
-import physiotherapydoctor.dto.DoctorLoginDTO;
-import physiotherapydoctor.dto.ExercisePlan;
-import physiotherapydoctor.dto.FirstVisitHistoryRequest;
-import physiotherapydoctor.dto.PhysiotherapyRecordDTO;
-import physiotherapydoctor.dto.Response;
-import physiotherapydoctor.dto.SessionForBooking;
-import physiotherapydoctor.dto.TherapySession;
-import physiotherapydoctor.dto.VisitHistoryRequest;
+import physiotherapydoctor.dto.*;
 import physiotherapydoctor.service.PhysiotherapyService;
 
 @RestController
@@ -273,22 +266,15 @@ public class PhysiotherapyController {
 	        return ResponseEntity.status(response.getStatus()).body(response);
 	    }
 
-	@GetMapping("/followUpDateRange/clinicId/{clinicId}/branchId/{branchId}/startDate/{startDate}/endDate/{endDate}")
-	public List<Map<String,String>> getPhysioRecordsByFollowUpDateRange(
-			@PathVariable String clinicId,
-			@PathVariable String branchId,
-			@PathVariable String startDate,
-			@PathVariable String endDate){
-		return service.getPhysioRecordsByFollowUpDateRange(clinicId,branchId,startDate,endDate);
-	}
 
-	@GetMapping("/today/clinicId/{clinicId}/branchId/{branchId}/date/{date}")
-	public List<Map<String,String>> getPhysioRecordsByTodayDate(
+	@PostMapping("/sessionInfo/clinicId/{clinicId}/branchId/{branchId}/dates/{startDate}/{endDate}")
+	public Map<String, List<Session>> getSessionInfo(
 			@PathVariable	String clinicId,
 			@PathVariable String branchId,
-			@PathVariable String date){
-		return service.getPhysioRecordsByTodayDate(clinicId,branchId,date);
-
+			@PathVariable String startDate,
+			@PathVariable String endDate,
+			@RequestBody List<String> list){
+		return service.getPaymentSessionsDetails(clinicId,branchId,startDate,endDate,list);
 	}
 	
 	

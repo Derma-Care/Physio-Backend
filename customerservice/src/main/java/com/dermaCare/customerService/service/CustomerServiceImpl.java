@@ -778,88 +778,17 @@ public class CustomerServiceImpl implements CustomerService {
 
     // BOOKING MANAGEMENT
 
-    public Response bookService(BookingRequset req) throws JsonProcessingException {
-
-        log.info("BOOK_SERVICE :: START :: customerMobile={}, serviceId={}, doctorId={}", req.getMobileNumber(),
-                req.getSubServiceId(), req.getDoctorId());
-
+    @Override
+    public  ResponseEntity<?> bookService(BookingResponse req){
         Response response = new Response();
-        BookingResponse bookingResponse = null;
-        ResponseEntity<ResponseStructure<BookingResponse>> res = null;
         try {
-            log.debug("BOOK_SERVICE :: CALLING_BOOKING_SERVICE");
-
-            if (req.getTheraphyAnswers() != null && !req.getTheraphyAnswers().isEmpty()) {
-
-                Map<String, List<TheraphyAnswersDTO>> map = req.getTheraphyAnswers();
-
-                for (Map.Entry<String, List<TheraphyAnswersDTO>> entry : map.entrySet()) {
-
-                    String key = entry.getKey(); // e.g., "back"
-                    List<TheraphyAnswersDTO> answersList = entry.getValue();
-                    QuestionsByPartEntity entity = null;
-                    try {
-                        entity = getByKey.getByKey(key);
-                    } catch (Exception e) {
-                        log.warn("BOOK_SERVICE :: FAILED_TO_RESOLVE_QUESTIONS_FOR_KEY :: key={}", key, e);
-                    }
-                    if (entity == null || entity.getQuestionsByPart() == null) {
-                        continue;
-                    }
-
-                    List<QuestionsEntity> questionsList = entity.getQuestionsByPart().get(key);
-
-                    if (questionsList == null || questionsList.isEmpty()) {
-                        continue;
-                    }
-
-                    for (TheraphyAnswersDTO dto : answersList) {
-                        for (QuestionsEntity q : questionsList) {
-                            if (q.getQuestionId() == dto.getQuestionId()) {
-                                dto.setQuestion(q.getQuestion());
-                                break;
-                            }
-                        }
-                    }
-                }
-                res = bookingFeign.bookService(req);
-                bookingResponse = res.getBody().getData();
-            } else {
-                res = bookingFeign.bookService(req);
-                bookingResponse = res.getBody().getData();
-            }
-
-            if (bookingResponse != null) {
-
-                log.info("BOOK_SERVICE :: BOOKING_SUCCESS :: bookingId={}", bookingResponse.getBookingId());
-
-                log.debug("BOOK_SERVICE :: UPDATING_DOCTOR_SLOT :: doctorId={}, branchId={}",
-                        bookingResponse.getDoctorId(), bookingResponse.getBranchId());
-
-                clinicAdminFeign.updateDoctorSlotWhileBooking(bookingResponse.getDoctorId(),
-                        bookingResponse.getBranchId(), bookingResponse.getServiceDate(),
-                        bookingResponse.getServicetime());
-
-                response.setData(res.getBody());
-                response.setStatus(res.getBody().getStatusCode());
-
-            } else {
-                log.warn("BOOK_SERVICE :: BOOKING_FAILED :: NULL_RESPONSE");
-
-                response.setStatus(res.getBody().getHttpStatus().value());
-                response.setData(res.getBody());
-            }
-
+            return bookingFeign.bookService(req);
         } catch (FeignException e) {
-            log.error("BOOK_SERVICE :: FEIGN_ERROR :: status={}", e.status(), e);
-
             response.setStatus(e.status());
-            response.setMessage(e.getMessage());
+            response.setMessage( ExtractFeignMessage.clearMessage(e));
             response.setSuccess(false);
-        }
-
-        return response;
-    }
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }}
 
     public Response deleteBookedService(String id) {
 

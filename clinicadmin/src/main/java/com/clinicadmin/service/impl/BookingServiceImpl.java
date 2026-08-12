@@ -156,34 +156,16 @@ public class BookingServiceImpl implements BookingService {
 
     // BOOKING MANAGEMENT
     @Override
-    public Response bookService(BookingResponse req) throws JsonProcessingException {
+    public  ResponseEntity<Response> bookService(BookingResponse req){
         Response response = new Response();
         try {
-            ResponseEntity<Response> res = bookingFeign.bookService(req);
-            Object bookingResponse = res.getBody();
-            if (bookingResponse != null) {
-                response.setData(bookingResponse);
-                response.setMessage("follow up appointment found");
-                response.setSuccess(true);
-                response.setStatus(res.getBody().getStatus());
-                try {
-                    messagingTemplate.convertAndSend(
-                            "/topic/bookings",
-                            response
-                    );
-                } catch (Exception e) {}
-            } else {
-                response.setMessage("follow up appointment not found");
-                response.setSuccess(false);
-                response.setStatus(res.getStatusCode().value());
-            }
+            return bookingFeign.bookService(req);
         } catch (FeignException e) {
             response.setStatus(e.status());
             response.setMessage( ExtractFeignMessage.clearMessage(e));
             response.setSuccess(false);
-        }
-        return response;
-    }
+			return ResponseEntity.status(response.getStatus()).body(response);
+        }}
 
 
 

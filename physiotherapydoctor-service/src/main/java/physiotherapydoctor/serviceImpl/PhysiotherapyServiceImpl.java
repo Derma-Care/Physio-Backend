@@ -2286,91 +2286,80 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 
 
 	@Override
-	public List<Map<String,String>> getPhysioRecordsByFollowUpDateRange(
+	public Map<String, List<Session>> getPaymentSessionsDetails(
 			String clinicId,
 			String branchId,
-			String startDate,
-			String endDate) {
-		Response response = new Response();
-		List<Map<String,String>> map = new LinkedList<>();
+			String initialDay,
+			String finalDay,
+			List<String> bookingSet) {
+		///System.out.println(bookingSet);
+		Map<String, List<Session>> result = new LinkedHashMap<>();
+		LocalDate startDate = LocalDate.parse(initialDay);
+		LocalDate endDate = LocalDate.parse(finalDay);
 		try {
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+			// Fetch payment records for clinic and branch
+			List<PaymentRecord> paymentRecords =
+					paymentRepository.findByClinicIdAndBranchId(clinicId, branchId);
+			// Iterate over payment records
+			for (PaymentRecord record : paymentRecords) {
+				String bookingId = record.getBookingId();
 
-			LocalDate start = LocalDate.parse(startDate);
-			LocalDate end = LocalDate.parse(endDate);
+				// Only proceed if bookingId is in the provided set
+				if (bookingId != null && !bookingSet.contains(bookingId)) {
+					List<Session> todaySessions = new ArrayList<>();
 
-			List<PhysiotherapyRecord> records =
-					repository.findByClinicIdAndBranchId(
-							clinicId,
-							branchId);
+					// Traverse nested structure: TherapyWithSessions → Program → TherapyData → Exercises → Sessions
+					if (record.getTherapyWithSessions() != null) {
+						for (TherapyWithSessions tws : record.getTherapyWithSessions()) {
+							if (tws.getPrograms() != null) {
+								for (Program program : tws.getPrograms()) {
+									if (program.getTherapyData() != null) {
+										for (TherapyData therapyData : program.getTherapyData()) {
+											if (therapyData.getExercises() != null) {
+												for (TherapyExercise exercise : therapyData.getExercises()) {
+													if (exercise.getSessions() != null) {
+														for (Session session : exercise.getSessions()) {
+															if (session.getDate() != null && session.getSlot() != null) {
+																LocalDate sessionDate = null;
+																try {
+																	sessionDate = LocalDate.parse(session.getDate(), formatter);
+																}catch (Exception e){}
+																if(sessionDate != null){
+																if(startDate.equals(endDate) && sessionDate.equals(startDate)) {
+																	todaySessions.add(session);
+																 }else{
+																	if(!sessionDate.isBefore(startDate) && !sessionDate.isAfter(endDate)){
+																	todaySessions.add(session);
+																}}}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
 
-			List<PhysiotherapyRecord> filteredRecords = records.stream()
-					.filter(record -> record.getFollowUp() != null
-							&& record.getFollowUp().getNextVisitDate() != null
-							&& !record.getFollowUp().getNextVisitDate().isBlank())
-					.filter(record -> {
-						LocalDate nextVisitDate =
-								LocalDate.parse(record.getFollowUp().getNextVisitDate());
-
-						return !nextVisitDate.isBefore(start)
-								&& !nextVisitDate.isAfter(end);
-					})
-					.toList();
-
-			filteredRecords.forEach(n->{
-				Map<String,String> values = new LinkedHashMap<>();
-				values.put(n.getBookingId(),n.getFollowUp().getNextVisitDate());
-				map.add(values);
-			});
-            return map;
+					// If we found sessions for today, add to result
+					if (!todaySessions.isEmpty()) {
+						result.put(bookingId, todaySessions);
+					}
+				}
+			}
+			///System.out.println(result);
+			return result;
 		} catch (Exception e) {
-
-			return null;
+			////System.out.println(e.getMessage());
+			e.printStackTrace();
+			return Collections.emptyMap();
 		}
-
 	}
 
 
-	@Override
-	public List<Map<String,String>> getPhysioRecordsByTodayDate(
-			String clinicId,
-			String branchId,
-			String date) {
-
-		Response response = new Response();
-		List<Map<String,String>> map = new LinkedList<>();
-		try {
-
-			LocalDate start = LocalDate.parse(date,DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-			//LocalDate nextDate = start.plusDays(1);
-			List<PhysiotherapyRecord> records =
-					repository.findByClinicIdAndBranchId(
-							clinicId,
-							branchId);
-
-			List<PhysiotherapyRecord> filteredRecords = records.stream()
-					.filter(record -> record.getFollowUp() != null
-							&& record.getFollowUp().getNextVisitDate() != null
-							&& !record.getFollowUp().getNextVisitDate().isBlank())
-					.filter(record -> {
-						LocalDate nextVisitDate =
-								LocalDate.parse(record.getFollowUp().getNextVisitDate(),DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-						return nextVisitDate.equals(start);
-					})
-					.toList();
-			filteredRecords.forEach(n->{
-				Map<String,String> values = new LinkedHashMap<>();
-				values.put(n.getBookingId(),n.getFollowUp().getNextVisitDate());
-				map.add(values);
-			});
-			return map;
-		} catch (Exception e) {
-
-			return null;
-		}
-
-	}
-	
 
 
 	// =========================================================

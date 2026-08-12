@@ -480,4 +480,9 @@ public class AdminController {
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
+	@GetMapping("/freeFollowUps/{id}")
+	public int getFreeFollowUps(@PathVariable("id") String hospitalId) {
+		return serviceImpl.getFreeFollowUpsByHospitalId(hospitalId);
+	}
+
 }

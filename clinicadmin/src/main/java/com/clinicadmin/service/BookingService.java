@@ -27,7 +27,7 @@ public interface BookingService {
 
 	ResponseEntity<?> retrieveAppointnmentsByPatientId(String patientId);
 
-	Response bookService(BookingResponse req) throws JsonProcessingException;
+	ResponseEntity<Response> bookService(BookingResponse req);
 
 	ResponseEntity<?> getInprogressBookingsByPatientId(String patientId);
 	

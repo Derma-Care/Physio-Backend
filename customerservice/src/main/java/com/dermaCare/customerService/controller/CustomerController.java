@@ -257,16 +257,10 @@ public class CustomerController {
 // BOOKING APIS
 
 @PostMapping("/bookService")
-public ResponseEntity<Object> bookService(@RequestBody BookingRequset req)throws JsonProcessingException  {
-	Response response = customerService.bookService(req);
-	if(response != null && response.getData() == null) {
-		 return ResponseEntity.status(response.getStatus()).body(response);
-	 }else if(response != null && response.getData() != null) {
-		 return ResponseEntity.status(response.getStatus()).body(response.getData());}
-		 else {
-			 return null;
-		 }
-	}
+public ResponseEntity<?> bookService(@RequestBody BookingResponse req) {
+	return customerService.bookService(req); }
+
+
 
 @DeleteMapping("/deleteService/{id}")
 public ResponseEntity<Object> deleteBookedService(@PathVariable String id){

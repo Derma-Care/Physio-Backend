@@ -26,8 +26,8 @@ public interface BookingFeign {
             @RequestBody BookingResponse bookingResponse);
 
     @PostMapping("/api/v1/bookService")
-    ResponseEntity<ResponseStructure<BookingResponse>> bookService(
-            @RequestBody BookingRequset request);
+    public  ResponseEntity<?> bookService(@RequestBody BookingResponse req);
+
 
     @DeleteMapping("/api/v1/deleteService/{id}")
     ResponseEntity<ResponseStructure<BookingResponse>> deleteBookedService(

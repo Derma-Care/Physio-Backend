@@ -23,7 +23,7 @@ import java.util.List;
 public class BookingServiceController {
 
 	@Autowired
-	BookingService bookingService; 
+	private BookingService bookingService;
 	
 	@GetMapping("/getAllbookingsDetailsByBranchId/{branchId}")
 	public ResponseEntity<Response> getAllbookingsDetailsByBranchId(@PathVariable String branchId) {
@@ -77,15 +77,8 @@ public class BookingServiceController {
 
 
 	   @PostMapping("/bookService")
-	   public ResponseEntity<Object> bookService(@RequestBody BookingResponse req)throws JsonProcessingException  {
-	   	Response response = bookingService.bookService(req);
-	   	if(response != null && response.getData() == null) {
-	   		 return ResponseEntity.status(response.getStatus()).body(response);
-	   	 }else if(response != null && response.getData() != null) {
-	   		 return ResponseEntity.status(response.getStatus()).body(response.getData());}
-	   		 else {
-	   			 return null;
-	   		 }
+	   public ResponseEntity<Response> bookService(@RequestBody BookingResponse req) {
+	   return bookingService.bookService(req);
 	   	}
 	   
 	   @GetMapping("/bookings/Inprogress/patientId/{patientId}")

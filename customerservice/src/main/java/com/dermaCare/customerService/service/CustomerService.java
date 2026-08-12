@@ -55,7 +55,7 @@ public interface CustomerService {
     //BOOKING MANAGENET
     
    // public Response bookService(BookingRequset req) throws JsonProcessingException ;
-   public Response bookService(BookingRequset req) throws JsonProcessingException ;
+   public  ResponseEntity<?> bookService(BookingResponse req);
     
     public Response deleteBookedService(String id);
     

@@ -2944,4 +2944,10 @@ public class AdminServiceImpl implements AdminService {
 		emailService.sendForgotPasswordOtp(email, otp, accountName);
 	}
 
-}
+    public int getFreeFollowUpsByHospitalId(String hospitalId) {
+        Clinic clinic = clinicRep.findByHospitalId(hospitalId);
+        if (clinic == null) {
+          return 0;
+        }
+        return clinic.getFreeFollowUps();
+}}
