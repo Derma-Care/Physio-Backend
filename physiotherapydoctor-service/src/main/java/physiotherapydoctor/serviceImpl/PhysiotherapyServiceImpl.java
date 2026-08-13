@@ -1733,10 +1733,12 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
                 if (session.getDate() != null && !session.getDate().isEmpty()
                         && session.getSlot() != null && !session.getSlot().equalsIgnoreCase("NA")
                      ) {  LocalDate date = LocalDate.parse(session.getDate(),DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                     if(!date.isBefore(startDate) && !date.isAfter(endDate)){
+                     if((!date.isBefore(startDate) && !date.isAfter(endDate)) ||
+							 (date.equals(startDate) || date.equals(endDate))) {
+
 					SessionForBooking bookingSession = new SessionForBooking();
 
-					bookingSession.setSessionId(session.getSessionId());
+						 bookingSession.setSessionId(session.getSessionId());
 					bookingSession.setSessionNo(session.getSessionNo());
 					bookingSession.setDate(session.getDate());
 					bookingSession.setStatus(session.getStatus());
@@ -2329,7 +2331,8 @@ public class PhysiotherapyServiceImpl implements PhysiotherapyService {
 																if(startDate.equals(endDate) && sessionDate.equals(startDate)) {
 																	todaySessions.add(session);
 																 }else{
-																	if(!sessionDate.isBefore(startDate) && !sessionDate.isAfter(endDate)){
+																	if((!sessionDate.isBefore(startDate) && !sessionDate.isAfter(endDate)) ||
+																			(sessionDate.equals(startDate) || sessionDate.equals(endDate))){
 																	todaySessions.add(session);
 																}}}
 															}

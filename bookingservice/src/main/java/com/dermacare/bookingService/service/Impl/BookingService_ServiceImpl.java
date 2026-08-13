@@ -2781,7 +2781,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 			// ✅ Date range selection
 			switch (option) {
 				case 1: // today
-					startDate = today;
+					startDate = today.minusDays(1);
 					endDate = today.plusDays(1);
 					break;
 				case 2: // this week (Monday to Sunday)
@@ -3693,23 +3693,23 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					entity.setIsFollowupStatus(false);
 				}
 
-				if(dto.getPaymentType().equalsIgnoreCase("foc") && today.isAfter(expiryDate)){
+				if(dto.getFoc().equalsIgnoreCase("foc") && today.isAfter(expiryDate)){
 					entity.setFreeFollowUps(0);
 					entity.setFreeFollowUpsLeft(0);
-				}
-				if(entity.getFreeFollowUpsLeft() == 0){
-					entity.setFreeFollowUps(0);
-				}
-
-				if(dto.getPaymentType().equalsIgnoreCase("paid")){
-				int followups =	adminServiceClient.getFreeFollowUps(entity.getClinicId());
-					entity.setFreeFollowUps(followups);
 				}
 
 			} catch (Exception e) {
 				entity.setIsFollowupStatus(false);
 			}
 
+			if(entity.getFreeFollowUpsLeft() == 0){
+				entity.setFreeFollowUps(0);
+			}
+
+			if(dto.getFoc().equalsIgnoreCase("paid")){
+				int followups =	adminServiceClient.getFreeFollowUps(entity.getClinicId());
+				entity.setFreeFollowUps(followups);
+			}
 
 			if (dto.getFoc() != null && dto.getPaymentType() != null) {
 				if ("paid".equalsIgnoreCase(dto.getFoc()) && "not paid".equalsIgnoreCase(dto.getPaymentType())) {
