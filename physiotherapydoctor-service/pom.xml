@@ -9,11 +9,14 @@
 		<version>3.5.13</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>physiotherapydoctor</groupId>
+	<groupId>com.chiselon</groupId>
 	<artifactId>physiotherapydoctor-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>physiotherapydoctor-service</name>
-	<description />
+	<description>physiotherapy doctor is a spring boot microservices application which is designed to streamline
+	physio therapist doctor operations. it provides functionalitys for add sittings and select treatment plan.
+		it ensures seamless operations to therapist.
+	</description>
 	<url />
 	<licenses>
 		<license />

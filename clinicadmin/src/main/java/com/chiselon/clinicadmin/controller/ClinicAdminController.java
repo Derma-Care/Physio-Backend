@@ -1,0 +1,84 @@
+package com.chiselon.clinicadmin.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.chiselon.clinicadmin.dto.ClinicDTO;
+import com.chiselon.clinicadmin.dto.Response;
+import com.chiselon.clinicadmin.dto.UpdateClinicLoginCredentialsDTO;
+import com.chiselon.clinicadmin.feignclient.AdminServiceClient;
+import com.chiselon.clinicadmin.service.ClinicAdminService;
+
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/clinic-admin")
+//@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
+public class ClinicAdminController {
+
+	@Autowired
+	ClinicAdminService clinicAdminService;
+
+	@Autowired
+	AdminServiceClient adminServiceClient;
+
+
+//------------------------------Update Clinic --------------------------------------------------------------------
+	@PutMapping("/updatePassword/{userName}")
+	public ResponseEntity<Response> updateClinicPassword(
+			@RequestBody UpdateClinicLoginCredentialsDTO updateClinicLoginCredentialsDTO,
+			@PathVariable String userName) {
+		Response response = clinicAdminService.updateClinicCredentials(updateClinicLoginCredentialsDTO, userName);
+		return ResponseEntity.status(response.getStatus()).body(response);
+
+	}
+//------------------------------Get Clinic By ID---------------------------------------------------------------------
+
+	@GetMapping("/getClinic/{hospitalId}")
+	public ResponseEntity<Response> getClincById(@PathVariable String hospitalId) {
+		Response response = clinicAdminService.getClinicById(hospitalId);
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+
+// ----------------------Update Clinic By Hospital id----------------------------------------------------------------
+	@PutMapping("/updateClinic/{hospitalId}")
+	public ResponseEntity<Response> updateClinic(@PathVariable String hospitalId, @Valid @RequestBody ClinicDTO dto) {
+		Response response = clinicAdminService.updateClinic(hospitalId, dto);
+		return ResponseEntity.status(response.getStatus()).body(response);
+	}
+
+// ----------------------Delele Clinic By Hospital id----------------------------------------------------------------
+//	@DeleteMapping("/deleteClinic/{hospitalId}")
+//	public ResponseEntity<Response> deleteClinic(@PathVariable String hospitalId) {
+//		Response response = clinicAdminService.deleteClinic(hospitalId);
+//		return ResponseEntity.status(response.getStatus()).body(response);
+//	}
+
+	@GetMapping("/getBranchesByClinicId/{clinicId}")
+	public ResponseEntity<?> getBranchesByClinicId(@PathVariable String clinicId) {
+		return clinicAdminService.getBranchesByClinicId(clinicId);
+	}
+	
+	@GetMapping("/staff-info/{hospitalId}/{branchId}")
+	public ResponseEntity<Response> getStaffInfo(
+	        @PathVariable String hospitalId,
+	        @PathVariable String branchId) {
+
+	    Response response = clinicAdminService.getStaffInfo(hospitalId, branchId);
+
+	    return ResponseEntity
+	            .status(response.getStatus())
+	            .body(response);
+	}
+	
+	@GetMapping("/deviceId/{clinicId}/{branchId}")
+	public String getDeviceId(@PathVariable String clinicId,@PathVariable String branchId) {
+		return clinicAdminService.getDeviceId(clinicId, branchId);}
+
+}

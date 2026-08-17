@@ -1,0 +1,15 @@
+package com.chiselon.physiotherapydoctor.entity;
+
+import lombok.*;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class PrescriptionDetails {
+
+	private List<Medicines> medicines;
+
+}

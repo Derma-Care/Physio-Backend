@@ -8,11 +8,17 @@
 		<version>3.4.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.dermacare</groupId>
+	<groupId>com.chiselon</groupId>
 	<artifactId>eureka-server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>eureka-server</name>
-	<description>Demo project for Spring Boot</description>
+	<description>
+		Eureka Server acts as the service registry for the PhysioElite microservices ecosystem.
+		It enables dynamic service discovery, allowing microservices such as ClinicAdmin, Booking,
+		adminservice and API Gateway to register and locate each other seamlessly.
+		By centralizing service metadata, Eureka ensures high availability, scalability,
+		and efficient communication across distributed clinic management services.
+	</description>
 	<url/>
 	<licenses>
 		<license/>

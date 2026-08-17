@@ -51,10 +51,10 @@ spring.lifecycle:
 # WHATSAPP
 # =========================================================
 whatsapp:
-  base-url: 
-  auth-key: 
-  phone-number-id: 
-  booking-confirmation-template-id: 
+  base-url:
+  auth-key:
+  phone-number-id: 987654321098765
+  booking-confirmation-template-id: payment_confirmation
 
 # =========================================================
 # AWS S3

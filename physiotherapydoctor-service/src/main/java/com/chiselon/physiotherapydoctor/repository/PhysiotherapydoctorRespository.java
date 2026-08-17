@@ -1,0 +1,67 @@
+package com.chiselon.physiotherapydoctor.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import com.chiselon.physiotherapydoctor.entity.PhysiotherapyRecord;
+
+@Repository
+public interface PhysiotherapydoctorRespository extends MongoRepository<PhysiotherapyRecord, String> {
+//	List<PhysiotherapyRecord> findByTreatmentPlanTheraphyId(String theraphyId);
+//	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlanTheraphyId(
+//	        String clinicId,
+//	        String branchId,
+//	        String therapistId
+//	);
+
+
+	Optional<PhysiotherapyRecord> findByTherapistRecordId(String therapistRecordId);
+	
+	   Optional<PhysiotherapyRecord> 
+	    findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingIdAndTherapistRecordId(
+	        String clinicId,
+	        String branchId,
+	        String patientId,
+	        String bookingId,
+	        String therapistRecordId
+	    );
+
+	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndPatientInfoPatientIdAndBookingId(String clinicId,
+			String branchId, String patientId, String bookingId);
+
+//	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlan_TherapistId(String clinicId, String branchId,
+//			String therapistId);
+
+		List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndTreatmentPlanTherapistId(
+		        String clinicId,
+		        String branchId,
+		        String therapistId);
+
+
+	Optional<PhysiotherapyRecord> findByBookingId(String bookingId);
+
+	List<PhysiotherapyRecord> findByClinicIdAndBranchIdAndBookingId(
+		    String clinicId, String branchId, String bookingId);
+
+	List<PhysiotherapyRecord> findByPatientInfoPatientIdAndBookingId(String patientId, String bookingId);
+
+
+	long countByBookingIdAndPatientInfoPatientId(String bookingId, String patientId);
+
+	List<PhysiotherapyRecord> findByPatientInfoPatientId(String patientId);
+
+	List<PhysiotherapyRecord> findByFollowUpNextVisitDate(String todayDate);
+
+	List<PhysiotherapyRecord> findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdAndClinicIdAndBranchId(
+			String doctorId, String patientId, String bookingId, String clinicId, String branchId);
+
+	List<PhysiotherapyRecord> findByTreatmentPlanDoctorIdAndPatientInfoPatientIdAndBookingIdOrderByCreatedAtAsc(
+			String doctorId, String patientId, String bookingId);
+
+	List<PhysiotherapyRecord> findByBookingIdAndPatientInfoPatientId(String bookingId, String patientId);
+
+	List<PhysiotherapyRecord> findByClinicIdAndBranchId(String clinicId, String branchId);
+}

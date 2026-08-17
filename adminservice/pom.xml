@@ -8,11 +8,16 @@
 		<version>3.4.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.AdminService</groupId>
+	<groupId>com.chiselon</groupId>
 	<artifactId>adminservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>adminservice</name>
-	<description>Demo project for Spring Boot</description>
+	<description>
+		Main Admin Service is a Spring Boot microservice designed to manage core clinic administration tasks.
+		It provides functionality for onboarding clinics and branches, configuring clinic timings,
+		and maintaining essential operational data. This service acts as the central hub for
+		clinic setup and administration, ensuring consistency and scalability across the PhysioElite ecosystem.
+	</description>
 	<url/>
 	<licenses>
 		<license/>

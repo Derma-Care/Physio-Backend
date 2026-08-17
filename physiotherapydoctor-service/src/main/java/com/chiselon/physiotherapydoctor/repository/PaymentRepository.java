@@ -1,0 +1,22 @@
+package com.chiselon.physiotherapydoctor.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+import com.chiselon.physiotherapydoctor.entity.PaymentRecord;
+
+public interface PaymentRepository extends MongoRepository<PaymentRecord, String> {
+
+    Optional<PaymentRecord> findByBookingId(String bookingId);
+
+	List<PaymentRecord> findByTherapistRecordId(String therapistRecordId);
+
+	Optional<PaymentRecord> findByClinicIdAndBranchIdAndBookingIdAndPatientIdAndTherapistIdAndTherapistRecordId(String clinicId,
+			String branchId, String bookingId, String patientId,String therapistId, String therapistRecordId);
+
+	List<PaymentRecord> findByClinicIdAndBranchId(String clinicId, String branchId);
+
+	List<PaymentRecord> findByClinicIdAndBranchIdAndTherapistId(String clinicId, String branchId, String therapistId);
+}

@@ -1,0 +1,26 @@
+package com.chiselon.clinicadmin.utils;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Component;
+
+import com.chiselon.clinicadmin.dto.DoctorLoginDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Component
+public class ClinicRelatedInfo {
+	
+	private List<String> roles;	
+	private Map<String, Map<String, List<String>>> permissions;
+	private DoctorLoginDTO doctorLoginDTO;
+	private String hospitalId;
+	private String branchId;
+
+}

@@ -8,11 +8,12 @@
 		<version>3.4.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.dermacare</groupId>
+	<groupId>com.chiselon</groupId>
 	<artifactId>bookingservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>bookingservice</name>
-	<description>Maintains the Booking of the customers</description>
+	<description>booking service is a spring boot microservice application. it provides fuctionality
+	to book appointents. booking service architechture ensuress scalability and modulerability.</description>
 	<url/>
 	<licenses>
 		<license/>

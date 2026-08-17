@@ -8,11 +8,12 @@
 		<version>3.4.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.sureCare.CustomerService</groupId>
+	<groupId>com.chiselon</groupId>
 	<artifactId>customerservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>customerservice</name>
-	<description>Demo project for Spring Boot</description>
+	<description>customerservice is a spring boot microservice application.
+	it designed to streamline of operations to customers. it ensures fast and smooth operations to customers. </description>
 	<url/>
 	<licenses>
 		<license/>

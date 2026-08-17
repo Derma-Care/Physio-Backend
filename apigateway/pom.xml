@@ -12,11 +12,18 @@
     <relativePath/> 
   </parent>
 
-  <groupId>com.dermacare</groupId>
+  <groupId>com.chiselon</groupId>
   <artifactId>apigateway</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>apigateway</name>
-  <description>Demo project for Spring Boot</description>
+    <description>
+        API Gateway Service acts as the unified entry point for all PhysioElite microservices.
+        It manages client requests by routing them to the appropriate backend services,
+        handling authentication and authorization, applying security policies,
+        and providing centralized logging and monitoring.
+        This gateway ensures scalability, secure communication, and efficient traffic management
+        across the clinic administration ecosystem.
+    </description>
 
   <properties>
     <java.version>17</java.version>

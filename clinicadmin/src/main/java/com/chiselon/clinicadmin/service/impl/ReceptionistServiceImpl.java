@@ -1,0 +1,620 @@
+package com.chiselon.clinicadmin.service.impl;
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.chiselon.clinicadmin.dto.Branch;
+import com.chiselon.clinicadmin.dto.DashboardRequest;
+import com.chiselon.clinicadmin.dto.ReceptionistRequestDTO;
+import com.chiselon.clinicadmin.dto.Response;
+import com.chiselon.clinicadmin.dto.ResponseStructure;
+import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.ReceptionistEntity;
+import com.chiselon.clinicadmin.feignclient.AdminServiceClient;
+import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.ReceptionistRepository;
+import com.chiselon.clinicadmin.service.ReceptionistService;
+import com.chiselon.clinicadmin.utils.FeignImpl;
+import com.chiselon.clinicadmin.utils.KeyCloakTokenStore;
+import com.chiselon.clinicadmin.utils.ReceptionistMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
+@Service
+public class ReceptionistServiceImpl implements ReceptionistService {
+	private static final Logger log = LoggerFactory.getLogger(ReceptionistServiceImpl.class);
+
+	@Autowired
+	private ReceptionistRepository repository;
+
+	@Autowired
+	private DoctorLoginCredentialsRepository credentialsRepository;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
+	@Autowired
+	AdminServiceClient adminServiceClient;
+	
+	@Autowired
+	private FeignImpl bookingFeign;
+
+	@Autowired
+	ObjectMapper objectMapper;
+	
+	 @Autowired	
+     public KeyCloakTokenStore keyCloakTokenStore;
+	
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "createReceptionistFallback")
+	public ResponseStructure<ReceptionistRequestDTO> createReceptionist(ReceptionistRequestDTO dto) {
+		log.info("Create Receptionist request | contactNumber={}, branchId={}",
+				dto.getContactNumber(), dto.getBranchId());
+
+		if (repository.existsByContactNumber(dto.getContactNumber())) {
+			log.warn("Receptionist already exists with contactNumber={}", dto.getContactNumber());
+
+			return ResponseStructure.buildResponse(null, "Receptionist with this contact number already exists",
+					HttpStatus.CONFLICT, HttpStatus.CONFLICT.value());
+		}
+		if (credentialsRepository.existsByUsername(dto.getContactNumber())) {
+			log.warn("Login credentials already exist | username={}", dto.getContactNumber());
+
+			return ResponseStructure.buildResponse(null, "Login credentials already exist for this mobile number",
+					HttpStatus.CONFLICT, HttpStatus.CONFLICT.value());
+		}
+		log.info("Fetching branch details via Admin Service | branchId={}", dto.getBranchId());
+
+		ResponseEntity<Response> res = adminServiceClient.getBranchById(keyCloakTokenStore.getAccess_token(),dto.getBranchId());
+		Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
+
+		ReceptionistEntity entity = ReceptionistMapper.toEntity(dto);
+		entity.setId(generateReceptionistId());
+		entity.setBranchName(br.getBranchName());
+
+		ReceptionistEntity saved = repository.save(entity);
+		log.info("Receptionist saved | receptionistId={}", saved.getId());
+
+		String username = dto.getContactNumber();
+		String rawPassword = generateStructuredPassword();
+		String encodedPassword = passwordEncoder.encode(rawPassword);
+
+		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getId())
+				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
+				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
+				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
+		credentialsRepository.save(credentials);
+		log.info("Login credentials created | receptionistId={}", saved.getId());
+
+		ReceptionistRequestDTO responseDTO = ReceptionistMapper.toDTO(saved);
+		responseDTO.setBranchName(saved.getBranchName());
+		responseDTO.setUserName(username);
+		responseDTO.setPassword(rawPassword); // expose only on create
+
+		return ResponseStructure.buildResponse(responseDTO, "Receptionist created successfully", HttpStatus.CREATED,
+				HttpStatus.CREATED.value());
+	}
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistByIdFallback")
+	public ResponseStructure<ReceptionistRequestDTO> getReceptionistById(String id) {
+		log.info("Fetching Receptionist by id={}", id);
+
+		Optional<ReceptionistEntity> optional = repository.findById(id);
+		if (optional.isEmpty()) {
+			log.warn("Receptionist not found | id={}", id);
+
+			return ResponseStructure.buildResponse(null, "Receptionist not found", HttpStatus.NOT_FOUND,
+					HttpStatus.NOT_FOUND.value());
+		}
+		log.info("Receptionist found | id={}", id);
+
+		return ResponseStructure.buildResponse(ReceptionistMapper.toDTO(optional.get()),
+				"Receptionist retrieved successfully", HttpStatus.OK, HttpStatus.OK.value());
+	}
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getAllReceptionistsFallback")
+	public ResponseStructure<List<ReceptionistRequestDTO>> getAllReceptionists() {
+		log.info("Fetching all Receptionists");
+
+		List<ReceptionistEntity> entities = repository.findAll();
+		List<ReceptionistRequestDTO> dtos = entities.stream().map(ReceptionistMapper::toDTO)
+				.collect(Collectors.toList());
+		log.info("Receptionists fetch completed | count={}", dtos.size());
+
+		return ResponseStructure.buildResponse(dtos,
+				dtos.isEmpty() ? "No Receptionists found" : "Receptionists retrieved successfully", HttpStatus.OK,
+				HttpStatus.OK.value());
+	}
+
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateReceptionistFallback")
+	public ResponseStructure<ReceptionistRequestDTO> updateReceptionist(String id, ReceptionistRequestDTO dto) {
+		log.info("Update Receptionist request | receptionistId={}", id);
+
+		Optional<ReceptionistEntity> optional = repository.findById(id);
+	    if (optional.isEmpty()) {
+			log.warn("Receptionist not found for update | receptionistId={}", id);
+
+	        return ResponseStructure.buildResponse(
+	            null,
+	            "Receptionist not found",
+	            HttpStatus.NOT_FOUND,
+	            HttpStatus.NOT_FOUND.value()
+	        );
+	    }
+
+	    ReceptionistEntity existing = optional.get();
+
+	    // 🔹 Update normal fields
+	    if (dto.getFullName() != null)
+	        existing.setFullName(dto.getFullName());
+	    if (dto.getHospitalName() != null)
+	        existing.setHospitalName(dto.getHospitalName());
+	    if (dto.getRole() != null)
+	        existing.setRole(dto.getRole());
+	    if (dto.getBranchId() != null)
+	        existing.setBranchId(dto.getBranchId());
+	    if (dto.getDateOfBirth() != null)
+	        existing.setDateOfBirth(dto.getDateOfBirth());
+	    if (dto.getContactNumber() != null)
+	        existing.setContactNumber(dto.getContactNumber());
+	    if (dto.getQualification() != null)
+	        existing.setQualification(dto.getQualification());
+	    if (dto.getGovernmentId() != null)
+	        existing.setGovernmentId(dto.getGovernmentId());
+	    if (dto.getDateOfJoining() != null)
+	        existing.setDateOfJoining(dto.getDateOfJoining());
+	    if (dto.getDepartment() != null)
+	        existing.setDepartment(dto.getDepartment());
+	    if (dto.getAddress() != null)
+	        existing.setAddress(dto.getAddress());
+	    if (dto.getEmergencyContact() != null)
+	        existing.setEmergencyContact(dto.getEmergencyContact());
+	    if (dto.getPermissions() != null)
+	        existing.setPermissions(dto.getPermissions());
+	    if (dto.getBankAccountDetails() != null)
+	        existing.setBankAccountDetails(dto.getBankAccountDetails());
+	    if (dto.getEmailId() != null)
+	        existing.setEmailId(dto.getEmailId());
+	    if (dto.getPreviousEmploymentHistory() != null)
+	        existing.setPreviousEmploymentHistory(dto.getPreviousEmploymentHistory());
+	    if (dto.getShiftTimingsOrAvailability() != null)
+	        existing.setShiftTimingsOrAvailability(dto.getShiftTimingsOrAvailability());
+
+	    // 🔹 Update Base64 fields (PDF/Image)
+	    if (dto.getProfilePicture() != null)
+	        existing.setProfilePicture(encodeIfNotBase64(dto.getProfilePicture()));
+	    if (dto.getGraduationCertificate() != null)
+	        existing.setGraduationCertificate(encodeIfNotBase64(dto.getGraduationCertificate()));
+	    if (dto.getComputerSkillsProof() != null)
+	        existing.setComputerSkillsProof(encodeIfNotBase64(dto.getComputerSkillsProof()));
+	    existing.setUpdatedDate(LocalDate.now().toString());
+	    // 🔹 Save receptionist entity
+	    ReceptionistEntity updated = repository.save(existing);
+		log.info("Receptionist updated successfully | receptionistId={}", updated.getId());
+
+	    // 🔹 Sync with DoctorLoginCredentials using receptionist.id
+	    Optional<DoctorLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getId());
+	    if (credsOpt.isPresent()) {
+			log.info("Syncing login credentials | receptionistId={}", updated.getId());
+
+	        DoctorLoginCredentials creds = credsOpt.get();
+
+	        creds.setStaffName(updated.getFullName());
+	        creds.setBranchId(updated.getBranchId());
+	        creds.setBranchName(updated.getBranchName());
+	        creds.setHospitalId(updated.getClinicId());
+	        creds.setHospitalName(updated.getHospitalName());
+	        creds.setRole(updated.getRole());
+	        creds.setPermissions(updated.getPermissions()); // ✅ sync new permissions
+	        creds.setUsername(updated.getContactNumber()); // optional
+	        credentialsRepository.save(creds);
+	    }
+
+	    return ResponseStructure.buildResponse(
+	        ReceptionistMapper.toDTO(updated),
+	        "Receptionist updated successfully",
+	        HttpStatus.OK,
+	        HttpStatus.OK.value()
+	    );
+	}
+
+
+
+	/**
+	 * Utility method to encode string to Base64 only if not already encoded.
+	 */
+	private String encodeIfNotBase64(String input) {
+		try {
+			Base64.getDecoder().decode(input); // already Base64
+			return input;
+		} catch (IllegalArgumentException e) {
+			return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
+		}
+	}
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "deleteReceptionistFallback")
+	public ResponseStructure<String> deleteReceptionist(String id) {
+		log.info("Delete Receptionist request | receptionistId={}", id);
+
+		try {
+	        Optional<ReceptionistEntity> optional = repository.findById(id);
+	        if (optional.isEmpty()) {
+				log.warn("Receptionist not found for delete | receptionistId={}", id);
+
+	            return ResponseStructure.buildResponse(
+	                null,
+	                "Receptionist not found",
+	                HttpStatus.NOT_FOUND,
+	                HttpStatus.NOT_FOUND.value()
+	            );
+	        }
+
+	        // ✅ Delete receptionist record
+	        repository.deleteById(id);
+			log.info("Receptionist deleted | receptionistId={}", id);
+
+	        // ✅ Delete corresponding login credentials (if any)
+	        Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+	        if (credentials.isPresent()) {
+	            credentialsRepository.deleteById(credentials.get().getId());
+				log.info("Login credentials deleted | receptionistId={}", id);
+
+	        }
+
+	        return ResponseStructure.buildResponse(
+	            id,
+	            "Receptionist and credentials deleted successfully",
+	            HttpStatus.OK,
+	            HttpStatus.OK.value()
+	        );
+
+	    } catch (Exception e) {
+			log.error("Error deleting receptionist | receptionistId={}", id, e);
+
+	        return ResponseStructure.buildResponse(
+	            null,
+	            "Error deleting receptionist: " + e.getMessage(),
+	            HttpStatus.INTERNAL_SERVER_ERROR,
+	            HttpStatus.INTERNAL_SERVER_ERROR.value()
+	        );
+	    }
+	}
+
+
+	// ----------------- Helper methods -------------------
+	private String generateReceptionistId() {
+		return "REC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+	}
+
+	private String generateStructuredPassword() {
+		String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
+		SecureRandom random = new SecureRandom();
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < 10; i++) {
+			sb.append(chars.charAt(random.nextInt(chars.length())));
+		}
+		return sb.toString();
+	}
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistsByClinicFallback")
+	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinic(String clinicId) {
+		log.info("Fetching Receptionists by clinicId={}", clinicId);
+
+		List<ReceptionistEntity> entities = repository.findByClinicId(clinicId);
+		List<ReceptionistRequestDTO> dtos = entities.stream().map(ReceptionistMapper::toDTO)
+				.collect(Collectors.toList());
+		log.info("Receptionists fetched | clinicId={}, count={}", clinicId, dtos.size());
+
+		return ResponseStructure.buildResponse(dtos, dtos.isEmpty() ? "No receptionists found for clinic " + clinicId
+				: "Receptionists retrieved successfully", HttpStatus.OK, HttpStatus.OK.value());
+	}
+
+	@Override
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistByClinicAndIdFallback")
+	public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndId(String clinicId,
+			String receptionistId) {
+		log.info("Fetching Receptionist | clinicId={}, receptionistId={}",
+				clinicId, receptionistId);
+		
+		ReceptionistEntity entity = repository.findByClinicIdAndId(clinicId, receptionistId)
+				.orElseThrow(() -> new RuntimeException("Receptionist not found with clinicId: " + clinicId
+						+ " and receptionistId: " + receptionistId));
+
+	    log.debug("Receptionist entity fetched successfully | receptionistId={}",
+	            receptionistId);
+	    
+		ReceptionistRequestDTO dto = ReceptionistMapper.toDTO(entity);
+
+		  log.info("Receptionist fetched successfully | clinicId={}, receptionistId={}",
+		            clinicId, receptionistId);
+		  
+		return ResponseStructure.<ReceptionistRequestDTO>builder().statusCode(200)
+				.message("Receptionist data fetched successfully").data(dto).build();
+	}
+	
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "getReceptionistsByClinicAndBranchFallback")
+	public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranch(String clinicId, String branchId) {
+		log.info("Fetching Receptionists | clinicId={}, branchId={}", clinicId, branchId);
+
+		// Fetch receptionist entities from repository by clinicId and branchId
+	    List<ReceptionistEntity> entities = repository.findByClinicIdAndBranchId(clinicId, branchId);
+
+	    // Map entities to DTOs
+	    List<ReceptionistRequestDTO> dtos = entities.stream()
+	            .map(ReceptionistMapper::toDTO)
+	            .collect(Collectors.toList());
+	    log.info("Receptionists fetched | clinicId={}, branchId={}, count={}",
+				clinicId, branchId, dtos.size());
+	    
+	    // Build response
+	    String message = dtos.isEmpty() 
+	            ? "No receptionists found for clinic " + clinicId + " and branch " + branchId 
+	            : "Receptionists retrieved successfully";
+
+	    return ResponseStructure.buildResponse(dtos, message, HttpStatus.OK, HttpStatus.OK.value());
+	}
+	
+
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "receptionistService", fallbackMethod = "getReceptionistDashboardFallback")
+	public ResponseEntity<Response> getReceptionistDashboard(
+	        String clinicId,
+	        String branchId,
+	        String role) {
+
+	    // Fetch receptionist
+	    log.info("Fetching receptionist dashboard clinicId={} branchId={} role={}", clinicId, branchId, role);
+
+	    log.info("Updating receptionist dashboard clinicId={} branchId={} role={}", clinicId, branchId, role);
+
+	    ReceptionistEntity receptionist = repository
+	            .findByClinicIdAndBranchIdAndRoleIgnoreCase(
+	                    clinicId,
+	                    branchId,
+	                    role)
+	            .orElseThrow(() ->
+	                    new RuntimeException("Receptionist not found"));
+
+	    		log.debug("Calling booking service for today physio bookings");
+
+	    Response res = 
+	            bookingFeign.getTodayPhysioBookings(keyCloakTokenStore.getAccess_token(),clinicId, branchId).getBody();
+
+	    List<Map<String, Object>> bookings = new ObjectMapper().convertValue(res.getData(), new TypeReference<List<Map<String, Object>>>() {});
+
+	    long pending = 0;
+	    long confirmed = 0;
+	    long followupNeeded = 0;
+	    long followupDue = 0;
+	    long dueForInvestigation = 0;
+	    long investigationDone = 0;
+
+	    if (bookings != null) {
+
+	        for (Map<String, Object> booking : bookings) {
+
+	            String bookingStatus = booking.get("status") != null
+	                    ? booking.get("status").toString().trim()
+	                    : "";
+
+	            String followupStatus = booking.get("followupStatus") != null
+	                    ? booking.get("followupStatus").toString().trim()
+	                    : "";
+
+	            if ("pending".equalsIgnoreCase(bookingStatus))
+	                pending++;
+
+	            if ("confirmed".equalsIgnoreCase(bookingStatus))
+	                confirmed++;
+
+	            if ("Follow-up Needed".equalsIgnoreCase(followupStatus))
+	                followupNeeded++;
+
+	            if ("Follow-up".equalsIgnoreCase(bookingStatus))
+	                followupDue++;
+
+	            if ("Due for Investigation".equalsIgnoreCase(bookingStatus))
+	                dueForInvestigation++;
+
+	            if ("Investigation Done".equalsIgnoreCase(bookingStatus))
+	                investigationDone++;
+	        }
+	    }
+
+	    log.info("Dashboard metrics calculated pending={} confirmed={}", pending, confirmed);
+
+	    Map<String, Object> dashboard = new LinkedHashMap<>();
+
+	    dashboard.put("clinicId", clinicId);
+	    dashboard.put("branchId", branchId);
+	    dashboard.put("role", role);
+
+	    // This comes from Receptionist entity
+	    dashboard.put("status", receptionist.getDashboardStatus());
+
+	    dashboard.put("pending", pending);
+	    dashboard.put("confirmed", confirmed);
+	    dashboard.put("followupNeeded", followupNeeded);
+	    dashboard.put("followupDue", followupDue);
+	    dashboard.put("dueForInvestigation", dueForInvestigation);
+	    dashboard.put("investigationDone", investigationDone);
+
+	    Response respnse = new Response();
+	    respnse.setSuccess(true);
+	    respnse.setData(dashboard);
+	    respnse.setMessage("Dashboard data fetched successfully");
+	    respnse.setStatus(HttpStatus.OK.value());
+
+	    return ResponseEntity.ok(res);
+	}
+	
+	@Override
+	@Secured("ROLE_CLINICADMIN")
+	@RateLimiter(name = "clinicAdminService", fallbackMethod = "updateReceptionistDashboardFallback")
+	public Response updateReceptionistDashboard(
+	        String clinicId,
+	        String branchId,
+	        String role,
+	        DashboardRequest request) {
+
+	    ReceptionistEntity receptionist =
+	            repository.findByClinicIdAndBranchIdAndRoleIgnoreCase(
+	                    clinicId,
+	                    branchId,
+	                    role)
+	            .orElseThrow(() ->
+	                    new RuntimeException("Receptionist not found"));
+
+	    receptionist.setDashboardStatus(request.getStatus());
+
+	    repository.save(receptionist);
+
+	    Map<String, Object> dashboard = new LinkedHashMap<>();
+
+	    dashboard.put("clinicId", clinicId);
+	    dashboard.put("branchId", branchId);
+	    dashboard.put("role", role);
+	    dashboard.put("status", receptionist.getDashboardStatus());
+
+	    Response res = new Response();
+	    res.setSuccess(true);
+	    res.setData(dashboard);
+	    res.setMessage("Dashboard updated successfully");
+	    res.setStatus(HttpStatus.OK.value());
+
+	    return res;
+	}
+
+
+    // ================= RATE LIMIT FALLBACKS =================
+
+    public ResponseStructure<ReceptionistRequestDTO> createReceptionistFallback(
+            ReceptionistRequestDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> getReceptionistByIdFallback(
+            String id, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> getAllReceptionistsFallback(
+            Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistListResponse();
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> updateReceptionistFallback(
+            String id, ReceptionistRequestDTO dto, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<String> deleteReceptionistFallback(
+            String id, Exception ex) {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicFallback(
+            String clinicId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistListResponse();
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> getReceptionistByClinicAndIdFallback(
+            String clinicId, String receptionistId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistResponse();
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> getReceptionistsByClinicAndBranchFallback(
+            String clinicId, String branchId, Exception ex) {
+        log.error("Rate limiter fallback triggered", ex);
+        return buildReceptionistListResponse();
+    }
+
+    public ResponseEntity<Response> getReceptionistDashboardFallback(
+            String clinicId, String branchId, String role, Exception ex) {
+
+        log.error("Rate limiter fallback triggered for dashboard API", ex);
+
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    }
+
+    public Response updateReceptionistDashboardFallback(
+            String clinicId,
+            String branchId,
+            String role,
+            DashboardRequest request,
+            Exception ex) {
+
+        Response response = new Response();
+        response.setSuccess(false);
+        response.setMessage("Too many requests. Please try again after some time.");
+        response.setStatus(429);
+
+        return response;
+    }
+
+    public ResponseStructure<ReceptionistRequestDTO> buildReceptionistResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+    public ResponseStructure<List<ReceptionistRequestDTO>> buildReceptionistListResponse() {
+        return ResponseStructure.buildResponse(
+                null,
+                "Too many requests. Please try again after some time.",
+                HttpStatus.TOO_MANY_REQUESTS,
+                429);
+    }
+
+}

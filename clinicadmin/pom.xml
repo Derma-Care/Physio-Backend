@@ -12,11 +12,16 @@
 		<relativePath />
 	</parent>
 
-	<groupId>com.clinicadmin</groupId>
+	<groupId>com.chiselon</groupId>
 	<artifactId>clinicadmin</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>clinicadmin</name>
-	<description>Demo project for Spring Boot</description>
+	<description>
+		ClinicAdmin Service is a Spring Boot microservices application designed to streamline clinic operations.
+		It provides functionality for managing doctors, doctor slots, patient sittings, appointment bookings,
+		and generating clinic analytics. The service architecture ensures scalability, modularity, and efficient
+		handling of core healthcare workflows, enabling clinics to deliver better patient care and operational insights.
+	</description>
 
 	<!-- kept as-is (no removal) -->
 	<url />

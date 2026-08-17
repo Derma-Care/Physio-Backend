@@ -2,6 +2,9 @@ spring:
   application:
     name: customerservice
 
+#  config:
+#    import: optional:classpath:application-secrets.yml
+
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerService?connectTimeoutMS=30000&socketTimeoutMS=60000
@@ -22,9 +25,6 @@ spring:
           default:
             connectTimeout: 30000
             readTimeout: 60000
-
-#  config:
-#    import: optional:classpath:application-secrets.yml
 
 server:
   port: 8083
@@ -240,7 +240,7 @@ jwt:
 refresh-token:
   secret-key: 59M85FqbFUldVO+GgMa5gHcxW3bvgUEeI60+tOLAjG0=
 
-# google:
-#   client:
-#     id: ${GOOGLE_CLIENT_ID}
-#     secret: ${GOOGLE_CLIENT_SECRET}
+#google:
+#  client:
+#    id: DUMMY_GOOGLE_CLIENT_ID_123456
+#    secret: DUMMY_GOOGLE_CLIENT_SECRET_ABCDEF7890
