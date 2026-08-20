@@ -1,5 +1,6 @@
  package com.chiselon.adminservice.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -37,7 +38,6 @@ import com.chiselon.adminservice.entity.BranchCounter;
 import com.chiselon.adminservice.entity.Clinic;
 import com.chiselon.adminservice.entity.ClinicCredentials;
 import com.chiselon.adminservice.entity.Counter;
-import com.chiselon.adminservice.repository.BranchCredentialsRepository;
 import com.chiselon.adminservice.repository.BranchRepository;
 import com.chiselon.adminservice.repository.ClinicCredentialsRepository;
 import com.chiselon.adminservice.repository.ClinicRep;
@@ -58,7 +58,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AdminServiceImpl implements AdminService {
 
-
 	@Autowired
 	private ClinicRep clinicRep;
 	
@@ -68,18 +67,11 @@ public class AdminServiceImpl implements AdminService {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-//	@Autowired
-//	private CustomerFeign customerFeign;
-
 	@Autowired
 	private  ClinicAdminFeignImpl clinicAdminFeign;
 
-	
 	@Autowired
 	private BranchRepository branchRepository;
-	
-	@Autowired	
-	private BranchCredentialsRepository branchCredentialsRepository;
 	
 	@Autowired
 	private MongoOperations mongoOperations;
@@ -134,15 +126,53 @@ public class AdminServiceImpl implements AdminService {
 
            log.info("Duplicate validation completed successfully.");
 
+
+// ---------------- Save clinic ----------------
            Clinic savedClinic = new Clinic();
+           savedClinic.setName(clinic.getName());
+           savedClinic.setHospitalId(generateHospitalId());
+           savedClinic.setBranch(clinic.getBranch());
+           savedClinic.setAddress(clinic.getAddress());
+           savedClinic.setCity(clinic.getCity());
+           savedClinic.setContactNumber(clinic.getContactNumber());
+           savedClinic.setOpeningTime(clinic.getOpeningTime());
+           savedClinic.setClosingTime(clinic.getClosingTime());
+           savedClinic.setEmailAddress(clinic.getEmailAddress());
+           savedClinic.setWebsite(clinic.getWebsite());
+           savedClinic.setLicenseNumber(clinic.getLicenseNumber());
+           savedClinic.setIssuingAuthority(clinic.getIssuingAuthority());
+           savedClinic.setRecommended(clinic.isRecommended());
+           savedClinic.setClinicType(clinic.getClinicType());
+           savedClinic.setHospitalOverallRating(0.0);
+           savedClinic.setSubscription(clinic.getSubscription());
+           savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
+           savedClinic.setLatitude(clinic.getLatitude());
+           savedClinic.setLongitude(clinic.getLongitude());
+           savedClinic.setWalkthrough(clinic.getWalkthrough());
+           savedClinic.setNabhScore(clinic.getNabhScore());
+//           savedClinic.setLoyaltyPoints(clinic.getLoyaltyPoints());
+//           savedClinic.setLocation(clinic.getLocation());
+           // ---------------- NGK CORE ----------------
+           savedClinic.setStatus("PENDING");
+           savedClinic.setRole("ADMIN");
+           savedClinic.setPermissions(clinic.getPermissions());
+           savedClinic.setCreatedAt(String.valueOf(Instant.now())); // FIXED
 
-           // Set all clinic properties...
+           // ❌ Credentials are NOT created here
 
+           decodeBase64Documents(clinic, savedClinic);
+
+           if (clinic.getConsultationExpiration() == null || clinic.getConsultationExpiration().isBlank()) {
+               throw new IllegalArgumentException("Consultation expiration is required");
+           }
+           savedClinic.setConsultationExpiration(clinic.getConsultationExpiration());
+
+           savedClinic.setInstagramHandle(clinic.getInstagramHandle());
+           savedClinic.setTwitterHandle(clinic.getTwitterHandle());
+           savedClinic.setFacebookHandle(clinic.getFacebookHandle());
            savedClinic.setHospitalId(generateHospitalId());
 
            log.info("Generated Hospital ID: {}", savedClinic.getHospitalId());
-
-           decodeBase64Documents(clinic, savedClinic);
 
            log.info("Clinic documents decoded successfully.");
 
@@ -165,7 +195,21 @@ public class AdminServiceImpl implements AdminService {
 
            Branch branch = new Branch();
 
-           // Set branch properties...
+           branch.setClinicId(saved.getHospitalId());
+           branch.setHospitalName(saved.getName());
+           branch.setBranchId(branchId);
+           branch.setBranchName(clinic.getBranch() != null && !clinic.getBranch().isEmpty() ? clinic.getBranch()
+                   : saved.getName() + " Main Branch");
+           branch.setAddress(saved.getAddress());
+           branch.setCity(saved.getCity());
+           branch.setContactNumber(saved.getContactNumber());
+           branch.setEmail(saved.getEmailAddress());
+           branch.setRole("ADMIN");
+           branch.setLatitude(String.valueOf(saved.getLatitude()));
+           branch.setLongitude(String.valueOf(saved.getLongitude()));
+           branch.setPermissions(clinic.getPermissions());
+//           branch.setLoyaltyPoints(saved.getLoyaltyPoints());
+//           branch.setLocation(saved.getLocation());
 
            Branch savedBranch = branchRepository.save(branch);
 
@@ -903,7 +947,7 @@ public class AdminServiceImpl implements AdminService {
 	                for (Branch branch : branches) {
 
 	                    branchRepository.deleteByBranchId(branch.getBranchId());
-	                    branchCredentialsRepository.deleteByBranchId(branch.getBranchId());
+                        clinicCredentialsRepository.deleteByUserName(branch.getBranchId());
 
 	                    log.debug("Deleted Branch: {}", branch.getBranchId());
 	                }

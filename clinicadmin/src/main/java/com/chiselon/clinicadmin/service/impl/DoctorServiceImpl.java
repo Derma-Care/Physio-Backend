@@ -52,11 +52,11 @@ import com.chiselon.clinicadmin.dto.ResBody;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.dto.TempBlockingSlot;
 import com.chiselon.clinicadmin.entity.DoctorCounter;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.entity.DoctorSlot;
 import com.chiselon.clinicadmin.entity.Doctors;
 //import com.clinicadmin.feignclient.ServiceFeignClient;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.repository.DoctorSlotRepository;
 import com.chiselon.clinicadmin.repository.DoctorsRepository;
 import com.chiselon.clinicadmin.service.DoctorService;
@@ -81,7 +81,7 @@ public class DoctorServiceImpl implements DoctorService {
 	private DoctorsRepository doctorsRepository;
 
 	@Autowired
-	private DoctorLoginCredentialsRepository credentialsRepository;
+	private LoginRepository credentialsRepository;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -118,8 +118,8 @@ public class DoctorServiceImpl implements DoctorService {
 	BookingResponse bkng = new BookingResponse();
 
 	public DoctorServiceImpl(DoctorsRepository doctorsRepository,
-			DoctorLoginCredentialsRepository credentialsRepository, PasswordEncoder passwordEncoder,
-			DoctorSlotRepository slotRepository) {
+	                         LoginRepository credentialsRepository, PasswordEncoder passwordEncoder,
+	                         DoctorSlotRepository slotRepository) {
 		this.doctorsRepository = doctorsRepository;
 		this.credentialsRepository = credentialsRepository;
 		this.passwordEncoder = passwordEncoder;
@@ -251,7 +251,7 @@ public class DoctorServiceImpl implements DoctorService {
 			String rawPassword = generateStructuredPassword();
 			String encodedPassword = passwordEncoder.encode(rawPassword);
 
-			DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(savedDoctor.getDoctorId())
+			LoginEntity credentials = LoginEntity.builder().staffId(savedDoctor.getDoctorId())
 					.staffName(savedDoctor.getDoctorName()).hospitalId(savedDoctor.getHospitalId())
 					.hospitalName(savedDoctor.getHospitalName()).branchId(savedDoctor.getBranchId()).username(username)
 					.password(encodedPassword).role("ROLE_DOCTOR").emailId(savedDoctor.getDoctorEmail()).permissions(savedDoctor.getPermissions()).build();
@@ -810,7 +810,7 @@ public class DoctorServiceImpl implements DoctorService {
 				doctorsRepository.deleteById(optionalDoctor.get().getId());
 
 				log.debug("Checking login credentials for doctorId={}", doctorId);
-				Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
+				Optional<LoginEntity> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
 
 				optionalCredentials.ifPresent(credentials -> {
 					log.info("Deleting login credentials for doctorId={}", doctorId);
@@ -884,7 +884,7 @@ public class DoctorServiceImpl implements DoctorService {
 
 			doctorsRepository.deleteById(doctor.getId());
 
-			Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
+			Optional<LoginEntity> optionalCredentials = credentialsRepository.findByStaffId(doctorId);
 
 			optionalCredentials.ifPresent(credentials -> {
 				log.info("Deleting credentials for doctorId={}", doctorId);
@@ -925,7 +925,7 @@ public class DoctorServiceImpl implements DoctorService {
 				for (Doctors doctor : doctors) {
 
 					log.debug("Deleting credentials for doctorId={}", doctor.getDoctorId());
-					Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository
+					Optional<LoginEntity> optionalCredentials = credentialsRepository
 							.findByStaffId(doctor.getDoctorId());
 					optionalCredentials.ifPresent(credentialsRepository::delete);
 
@@ -982,12 +982,12 @@ public class DoctorServiceImpl implements DoctorService {
 
 		/* ---------- FETCH CREDENTIALS ---------- */
 		log.debug("Fetching credentials for username={}", updateDTO.getUserName());
-		Optional<DoctorLoginCredentials> optionalCredentials = credentialsRepository
+		Optional<LoginEntity> optionalCredentials = credentialsRepository
 				.findByUsername(updateDTO.getUserName());
 
 		if (optionalCredentials.isPresent()) {
 
-			DoctorLoginCredentials credentials = optionalCredentials.get();
+			LoginEntity credentials = optionalCredentials.get();
 			log.debug("Credentials found for username={}, staffId={}", credentials.getUsername(),
 					credentials.getStaffId());
 
@@ -2383,7 +2383,7 @@ public class DoctorServiceImpl implements DoctorService {
 	@Override
 	public String getByTherapistDeviceId(String therapistId) {
 		try {
-			Optional<DoctorLoginCredentials> credentialsOpt = credentialsRepository.findByUsername(therapistId);
+			Optional<LoginEntity> credentialsOpt = credentialsRepository.findByUsername(therapistId);
 
 			if (credentialsOpt.isEmpty()) {				
 				return null;

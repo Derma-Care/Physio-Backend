@@ -34,7 +34,7 @@ import com.chiselon.clinicadmin.dto.TherapistFeedbackSummaryDTO;
 import com.chiselon.clinicadmin.dto.TherapistPresenceRequest;
 import com.chiselon.clinicadmin.dto.TherapistResponseDTO;
 import com.chiselon.clinicadmin.dto.TherapistServiceResponseDTO;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.entity.Documents;
 import com.chiselon.clinicadmin.entity.FeedbackDetails;
 import com.chiselon.clinicadmin.entity.PatientFeedback;
@@ -43,7 +43,7 @@ import com.chiselon.clinicadmin.entity.Therapist;
 import com.chiselon.clinicadmin.entity.TherapistAttendance;
 import com.chiselon.clinicadmin.entity.TherapistRecord;
 import com.chiselon.clinicadmin.feignclient.AdminServiceClient;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.repository.FeedbackDetailsRepository;
 import com.chiselon.clinicadmin.repository.PatientFeedbackRepository;
 import com.chiselon.clinicadmin.repository.TherapistAttendanceRepository;
@@ -70,7 +70,7 @@ public class TherapistServiceImpl implements TherapistService {
     private PasswordEncoder passwordEncoder;
     
     @Autowired
-    private DoctorLoginCredentialsRepository credentialsRepository;
+    private LoginRepository credentialsRepository;
     
     @Autowired
    private AdminServiceClient adminServiceClient;
@@ -163,7 +163,7 @@ public class TherapistServiceImpl implements TherapistService {
             String rawPassword = generatePassword();
             String encodedPassword = passwordEncoder.encode(rawPassword);
 
-            DoctorLoginCredentials credentials = DoctorLoginCredentials.builder()
+            LoginEntity credentials = LoginEntity.builder()
                     .staffId(savedTherapist.getTherapistId())
                     .staffName(savedTherapist.getFullName())
                     .hospitalId(savedTherapist.getClinicId())

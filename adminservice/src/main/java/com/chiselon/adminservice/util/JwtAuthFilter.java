@@ -59,14 +59,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			log.info("authentication object is set into security context");
 		    }}}else{
 		    Map<Object,Object> map = jwtUtil.tokenIntrospection(token);
+			if(map.get("active").equals(true)) {
 		    log.info("service details are received from tokenIntrospection");
 //		    Map<Object,Object> lst = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<Object,Object>>(){});	
 //		    Object client_id = map.get("client_id");
-		    Map<String,List<String>> client = new ObjectMapper().convertValue(map.get("realm_access"),new TypeReference<Map<String,List<String>>>(){});		   
-		    List<String> roles = client.get("roles");
+				Map<String, ResourceAccess> client = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<String, ResourceAccess>>() {});
+				ResourceAccess resourceAccess = client.get("admin_service");
+				List<String> roles = resourceAccess.getRoles();
 		    log.info("realm_access roles are extracted");
-		  // List<String> roles = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<List<String>>(){}); 			  
-		    if(map.get("active").equals(true)) {
+		  // List<String> roles = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<List<String>>(){});
 		    	  log.info("Introspection response showing token is active");
 		    	if(SecurityContextHolder.getContext().getAuthentication() == null ) {		
 					//UserDetails userDetails = customUserDetailsService.loadUserByUsername(userName);

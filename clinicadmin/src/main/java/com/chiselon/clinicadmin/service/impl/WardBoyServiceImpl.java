@@ -15,10 +15,10 @@ import com.chiselon.clinicadmin.dto.Branch;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.dto.ResponseStructure;
 import com.chiselon.clinicadmin.dto.WardBoyDTO;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.entity.WardBoy;
 import com.chiselon.clinicadmin.feignclient.AdminServiceClient;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.repository.WardBoyRepository;
 import com.chiselon.clinicadmin.service.WardBoyService;
 import com.chiselon.clinicadmin.utils.KeyCloakTokenStore;
@@ -39,7 +39,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	private WardBoyRepository wardBoyRepository;
 	
 	@Autowired
-	private DoctorLoginCredentialsRepository credentialsRepository;
+	private LoginRepository credentialsRepository;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -103,7 +103,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 
 		log.debug("Credentials generated | username={}", username);
 		
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getWardBoyId())
+		LoginEntity credentials = LoginEntity.builder().staffId(saved.getWardBoyId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -322,7 +322,7 @@ public class WardBoyServiceImpl implements WardBoyService {
 	        wardBoyRepository.deleteById(id);
 	        log.info("WardBoy deleted successfully | id={}", id);
 	        // ✅ Step 3: Delete corresponding login credentials (if exist)
-	        Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+	        Optional<LoginEntity> credentials = credentialsRepository.findByStaffId(id);
 	        if (credentials.isPresent()) {
 	        	log.debug("Deleting WardBoy login credentials | id={}", id);
 	            credentialsRepository.deleteById(credentials.get().getId());

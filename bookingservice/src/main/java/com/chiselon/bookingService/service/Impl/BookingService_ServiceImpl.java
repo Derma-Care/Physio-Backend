@@ -79,14 +79,8 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 	@Autowired
 	private ExternalServiceClient clinnicfeign;
 
-//	@Autowired
-//	private KafkaProducer kafkaProducer;
-
 	@Autowired
 	private ExternalServiceClient notificationFeign;
-
-//	@Autowired
-//	private DoctorFeign doctorFeign;
 
 	@Autowired
 	private ExternalServiceClient clinicAdminFeign;

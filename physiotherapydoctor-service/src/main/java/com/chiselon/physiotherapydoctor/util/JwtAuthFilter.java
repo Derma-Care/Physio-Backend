@@ -58,14 +58,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);		
 		    }}}else{
 		    Map<Object,Object> map = jwtUtil.tokenIntrospection(token);
+			if(map.get("active").equals(true)) {
 		    //System.out.println(map);
 //		    Map<Object,Object> lst = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<Object,Object>>(){});	
 //		    Object client_id = map.get("client_id");
-		    Map<String,List<String>> client = new ObjectMapper().convertValue(map.get("realm_access"),new TypeReference<Map<String,List<String>>>(){});		   
-		   // System.out.println(client);
-		    List<String> roles = client.get("roles");
-		  // List<String> roles = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<List<String>>(){}); 			  
-		    if(map.get("active").equals(true)) {		    	
+				Map<String, ResourceAccess> client = new ObjectMapper().convertValue(map.get("resource_access"),new TypeReference<Map<String, ResourceAccess>>() {});
+				ResourceAccess resourceAccess = client.get("admin_service");
+				List<String> roles = resourceAccess.getRoles();
+		  // List<String> roles = new ObjectMapper().convertValue(lst.get(client_id),new TypeReference<List<String>>(){});
 		    	if(SecurityContextHolder.getContext().getAuthentication() == null ) {		
 					//UserDetails userDetails = customUserDetailsService.loadUserByUsername(userName);
 					List<SimpleGrantedAuthority> rls = roles.stream().map(n->new SimpleGrantedAuthority(n)).toList();

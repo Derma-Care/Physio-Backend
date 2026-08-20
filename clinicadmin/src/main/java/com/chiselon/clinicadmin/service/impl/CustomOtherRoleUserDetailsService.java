@@ -8,15 +8,17 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import com.chiselon.clinicadmin.dto.DoctorLoginDTO;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.dto.LoginDTO;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.utils.ClinicRelatedInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CustomOtherRoleUserDetailsService implements UserDetailsService{
 	
 	@Autowired
-	private DoctorLoginCredentialsRepository doctorLoginCredentialsRepository;
+	private LoginRepository doctorLoginCredentialsRepository;
 	
 	@Autowired
 	@Lazy
@@ -24,7 +26,7 @@ public class CustomOtherRoleUserDetailsService implements UserDetailsService{
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {		
-		DoctorLoginDTO doctorDto = new ObjectMapper().convertValue(doctorLoginCredentialsRepository.findByUsername(username).get(), DoctorLoginDTO.class);
+		LoginDTO doctorDto = new ObjectMapper().convertValue(doctorLoginCredentialsRepository.findByUsername(username).get(), LoginDTO.class);
 		doctorDto.setRoles(Collections.singletonList(doctorDto.getRole()));
 		rolesStore.setDoctorLoginDTO(doctorDto);
 		return doctorDto;		

@@ -25,10 +25,10 @@ import com.chiselon.clinicadmin.dto.DashboardRequest;
 import com.chiselon.clinicadmin.dto.ReceptionistRequestDTO;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.dto.ResponseStructure;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.entity.ReceptionistEntity;
 import com.chiselon.clinicadmin.feignclient.AdminServiceClient;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.repository.ReceptionistRepository;
 import com.chiselon.clinicadmin.service.ReceptionistService;
 import com.chiselon.clinicadmin.utils.FeignImpl;
@@ -46,7 +46,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 	private ReceptionistRepository repository;
 
 	@Autowired
-	private DoctorLoginCredentialsRepository credentialsRepository;
+	private LoginRepository credentialsRepository;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -99,7 +99,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 		String rawPassword = generateStructuredPassword();
 		String encodedPassword = passwordEncoder.encode(rawPassword);
 
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getId())
+		LoginEntity credentials = LoginEntity.builder().staffId(saved.getId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -220,11 +220,11 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 		log.info("Receptionist updated successfully | receptionistId={}", updated.getId());
 
 	    // 🔹 Sync with DoctorLoginCredentials using receptionist.id
-	    Optional<DoctorLoginCredentials> credsOpt = credentialsRepository.findByStaffId(updated.getId());
+	    Optional<LoginEntity> credsOpt = credentialsRepository.findByStaffId(updated.getId());
 	    if (credsOpt.isPresent()) {
 			log.info("Syncing login credentials | receptionistId={}", updated.getId());
 
-	        DoctorLoginCredentials creds = credsOpt.get();
+	        LoginEntity creds = credsOpt.get();
 
 	        creds.setStaffName(updated.getFullName());
 	        creds.setBranchId(updated.getBranchId());
@@ -283,7 +283,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
 			log.info("Receptionist deleted | receptionistId={}", id);
 
 	        // ✅ Delete corresponding login credentials (if any)
-	        Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(id);
+	        Optional<LoginEntity> credentials = credentialsRepository.findByStaffId(id);
 	        if (credentials.isPresent()) {
 	            credentialsRepository.deleteById(credentials.get().getId());
 				log.info("Login credentials deleted | receptionistId={}", id);

@@ -17,9 +17,9 @@ import com.chiselon.clinicadmin.dto.AdministratorDTO;
 import com.chiselon.clinicadmin.dto.Branch;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.entity.Administrator;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.repository.AdministratorRepository;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.service.AdministratorService;
 import com.chiselon.clinicadmin.utils.FeignImpl;
 import com.chiselon.clinicadmin.utils.KeyCloakTokenStore;
@@ -41,7 +41,7 @@ public class AdministratorServiceImpl implements AdministratorService {
     private AdministratorRepository administratorRepository;
 
     @Autowired
-    private DoctorLoginCredentialsRepository credentialsRepository;
+    private LoginRepository credentialsRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -101,7 +101,7 @@ public class AdministratorServiceImpl implements AdministratorService {
         Administrator savedAdmin = administratorRepository.save(admin);
 
         //  Create login credentials
-        DoctorLoginCredentials credentials = DoctorLoginCredentials.builder()
+        LoginEntity credentials = LoginEntity.builder()
                 .staffId(savedAdmin.getId())
                 .staffName(savedAdmin.getFullName())
                 .hospitalId(savedAdmin.getClinicId())

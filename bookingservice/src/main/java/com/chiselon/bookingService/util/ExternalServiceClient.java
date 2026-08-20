@@ -44,10 +44,10 @@ public class ExternalServiceClient {
     
     @CircuitBreaker(name = "adminService", fallbackMethod = "getBranchByIdFallback")
     @Retry(name = "adminService", fallbackMethod = "getBranchByIdFallback")
-    public ResponseEntity<ResponseStructure<BranchDTO>> getBranchById(String branchId) {
+    public ResponseEntity<ResponseStructure<BranchDTO>> getBranchById(String token,String branchId) {
 
         
-    	return adminServiceClient.getBranchById(branchId);
+    	return adminServiceClient.getBranchById(token,branchId);
 
     }
     

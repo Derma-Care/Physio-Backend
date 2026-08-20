@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DoctorLoginDTO implements UserDetails {
+public class LoginDTO implements UserDetails {
 	
 	private static final long serialVersionUID = 1L;
 	private String userName;

@@ -14,14 +14,14 @@ import org.springframework.stereotype.Service;
 import com.chiselon.clinicadmin.dto.AccessTokenAndRefreshToken;
 import com.chiselon.clinicadmin.dto.ClinicCredentialsDTO;
 import com.chiselon.clinicadmin.dto.CustomerLoginDTO;
-import com.chiselon.clinicadmin.dto.DoctorLoginDTO;
+import com.chiselon.clinicadmin.dto.LoginDTO;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.entity.ClinicAdminDeviceTokenEntity;
 import com.chiselon.clinicadmin.entity.CustomerCredentials;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.repository.ClinicAdminWebFcmTokenRepository;
 import com.chiselon.clinicadmin.repository.CustomerCredentialsRepository;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.service.AuthService;
 import com.chiselon.clinicadmin.utils.ClinicRelatedInfo;
 import com.chiselon.clinicadmin.utils.JwtUtil;
@@ -44,7 +44,7 @@ public class AuthServiceImpl implements AuthService {
 	private JwtUtil jwtUtil;
 		
 	@Autowired
-	private DoctorLoginCredentialsRepository credentialsRepository;
+	private LoginRepository credentialsRepository;
 	
 	@Autowired
 	private ClinicAdminWebFcmTokenRepository clinicAdminWebFcmTokenRepository;
@@ -114,15 +114,15 @@ public class AuthServiceImpl implements AuthService {
 		Response responseDTO = new Response();
         try {
         	///System.out.println(dto);
-		Optional<DoctorLoginCredentials> credentialsOptional = credentialsRepository
+		Optional<LoginEntity> credentialsOptional = credentialsRepository
 				.findByUsername(dto.get("username"));
 		//System.out.println(credentialsOptional);
 		if (credentialsOptional.isPresent()) {
-			DoctorLoginCredentials credentials = credentialsOptional.get();	
+			LoginEntity credentials = credentialsOptional.get();
 			credentials.setDeviceId(dto.get("deviceId"));
 			log.info("Updating deviceId for username={}", credentials.getUsername());
 			credentialsRepository.save(credentials);
-			DoctorLoginDTO  cred = new ObjectMapper().convertValue(credentials, DoctorLoginDTO.class);
+			LoginDTO cred = new ObjectMapper().convertValue(credentials, LoginDTO.class);
 			cred.setRoles(Collections.singletonList(cred.getRole()));
 			cred.setUserName(credentials.getUsername());
 			 responseDTO.setData(cred);
@@ -192,10 +192,10 @@ public class AuthServiceImpl implements AuthService {
 		}
 	 
 	 @Override
-		public Response loginUsingRoles(DoctorLoginDTO dto) {
+		public Response loginUsingRoles(LoginDTO dto) {
 			log.info("Role based login request username={}", dto.getUsername());
 			Response response = new Response();
-			DoctorLoginDTO resDto = rolesStore.getDoctorLoginDTO();
+			LoginDTO resDto = rolesStore.getDoctorLoginDTO();
 			try {
 				otherRoles.authenticate(new UsernamePasswordAuthenticationToken(dto.getUsername(),dto.getPassword()));
 				//System.out.println("invoked after auth");

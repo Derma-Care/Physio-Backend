@@ -26,11 +26,11 @@ import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.dto.TimeLocationDTO;
 import com.chiselon.clinicadmin.entity.Activity;
 import com.chiselon.clinicadmin.entity.Attendance;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.entity.TherapistAttendance;
 import com.chiselon.clinicadmin.entity.TimeLocation;
 import com.chiselon.clinicadmin.repository.AttendanceRepository;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.repository.TherapistAttendanceRepository;
 import com.chiselon.clinicadmin.service.AttendanceService;
 import com.chiselon.clinicadmin.utils.FeignImpl;
@@ -56,7 +56,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private KeyCloakTokenStore keyCloakTokenStore;
     
     @Autowired
-    private DoctorLoginCredentialsRepository credentialsRepository;
+    private LoginRepository credentialsRepository;
 
     @Override
     @Secured("ROLE_CLINICADMIN")
@@ -1161,7 +1161,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             // This ensures every user is returned even if they have not
             // logged in today.
             // =========================================================
-            List<DoctorLoginCredentials> users =
+            List<LoginEntity> users =
                     credentialsRepository.findByHospitalIdAndBranchId(
                             clinicId,
                             branchId
@@ -1345,7 +1345,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             // =========================================================
             // LOOP THROUGH ALL USERS
             // =========================================================
-            for (DoctorLoginCredentials user : users) {
+            for (LoginEntity user : users) {
 
                 DailyAllUsersResponseDTO dto =
                         new DailyAllUsersResponseDTO();

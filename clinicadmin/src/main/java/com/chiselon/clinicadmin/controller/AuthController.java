@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.chiselon.clinicadmin.dto.AccessTokenAndRefreshToken;
 import com.chiselon.clinicadmin.dto.ClinicCredentialsDTO;
-import com.chiselon.clinicadmin.dto.DoctorLoginDTO;
+import com.chiselon.clinicadmin.dto.LoginDTO;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.service.AuthService;
 
@@ -47,7 +47,7 @@ public class AuthController {
 	    }
 	 
 		@PostMapping("/loginUsingRoles")
-		public ResponseEntity<Response> loginUsingRoles(@RequestBody DoctorLoginDTO dto){
+		public ResponseEntity<Response> loginUsingRoles(@RequestBody LoginDTO dto){
 			  Response response = authService.loginUsingRoles(dto);
 			    return ResponseEntity.status(response.getStatus()).body(response);
 			

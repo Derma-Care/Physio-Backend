@@ -19,10 +19,10 @@ import com.chiselon.clinicadmin.dto.Branch;
 import com.chiselon.clinicadmin.dto.Response;
 import com.chiselon.clinicadmin.dto.ResponseStructure;
 import com.chiselon.clinicadmin.dto.SecurityStaffDTO;
-import com.chiselon.clinicadmin.entity.DoctorLoginCredentials;
+import com.chiselon.clinicadmin.entity.LoginEntity;
 import com.chiselon.clinicadmin.entity.SecurityStaff;
 import com.chiselon.clinicadmin.feignclient.AdminServiceClient;
-import com.chiselon.clinicadmin.repository.DoctorLoginCredentialsRepository;
+import com.chiselon.clinicadmin.repository.LoginRepository;
 import com.chiselon.clinicadmin.repository.SecurityStaffRepository;
 import com.chiselon.clinicadmin.service.SecurityStaffService;
 import com.chiselon.clinicadmin.utils.IdGenerator;
@@ -42,7 +42,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 	private SecurityStaffRepository repository;
 
 	@Autowired
-	private DoctorLoginCredentialsRepository credentialsRepository;
+	private LoginRepository credentialsRepository;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -97,7 +97,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 		String rawPassword = generateStructuredPassword();
 		String encodedPassword = passwordEncoder.encode(rawPassword);
 
-		DoctorLoginCredentials credentials = DoctorLoginCredentials.builder().staffId(saved.getSecurityStaffId())
+		LoginEntity credentials = LoginEntity.builder().staffId(saved.getSecurityStaffId())
 				.staffName(saved.getFullName()).hospitalId(saved.getClinicId()).hospitalName(saved.getHospitalName())
 				.branchId(saved.getBranchId()).branchName(saved.getBranchName()).username(username)
 				.password(encodedPassword).role(dto.getRole()).permissions(saved.getPermissions()).build();
@@ -245,7 +245,7 @@ public class SecurityStaffServiceImpl implements SecurityStaffService {
 		log.info("SecurityStaff deleted | securityStaffId={}", staffId);
 
 	    // ✅ Delete corresponding credentials if exist
-	    Optional<DoctorLoginCredentials> credentials = credentialsRepository.findByStaffId(staffId);
+	    Optional<LoginEntity> credentials = credentialsRepository.findByStaffId(staffId);
 	    if (credentials.isPresent()) {
 	        credentialsRepository.deleteById(credentials.get().getId());
 			log.info("Login credentials deleted | securityStaffId={}", staffId);
