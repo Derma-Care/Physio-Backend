@@ -51,10 +51,8 @@ public class ClinicDTO {
 	// @URL(message = "Invalid website URL")
 	private String website;
 
-	@NotBlank(message = "License number is required")
 	private String licenseNumber;
 
-	@NotBlank(message = "Issuing authority is required")
 	private String issuingAuthority;
 
 	@NotNull(message = "Contractor documents must not be null")
@@ -70,7 +68,6 @@ public class ClinicDTO {
 	private String businessRegistrationCertificate;
 
 	// Clinic Type Info
-	@NotBlank(message = "Clinic type is required")
 	private String clinicType; // Proprietorship, Partnership, LLP, Pvt Ltd
 
 	// Medicines Handling

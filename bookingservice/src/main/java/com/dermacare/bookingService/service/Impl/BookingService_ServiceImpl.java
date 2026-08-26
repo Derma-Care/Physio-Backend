@@ -2529,7 +2529,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						Optional<Booking> booking = repository.findById(key);
 						if(booking.isPresent()) {
 							Booking bkng = booking.get();
-							bkng.setStatus("follow-up Pending");
+							bkng.setStatus("confirmed");
 							bkng.setFollowupDate(n.getValue().stream().map(s -> s.getDate()).findFirst().get());
 
 							List<Status> statusList = bkng.getCurrentStatus() == null
@@ -2545,14 +2545,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 										if (dte.equals(n.getValue().get(0).getDate())) {
 											Status ADDED_TO_EXISITNG_LIST = new Status();
 											ADDED_TO_EXISITNG_LIST.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-											ADDED_TO_EXISITNG_LIST.setStatus("follow-up Pending");
+											ADDED_TO_EXISITNG_LIST.setStatus("confirmed");
 											statusList.add(ADDED_TO_EXISITNG_LIST);
 										}
 		                            });
 								} else {
 									Status status = new Status();
 									status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-									status.setStatus("follow-up Pending");
+									status.setStatus("confirmed");
 									statusList.add(status);
 	                            }
 
@@ -2562,7 +2562,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 							}catch (Exception e){}
 						BookingResponse res = toResponse(bkng);
 						res.setSession(n.getValue());
-						res.setVisitType("follow up");
+						res.setVisitType("session");
 							responses.add(res);
 
 						}});}
@@ -2857,7 +2857,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 						Optional<Booking> optional = repository.findById(key);
 						if(optional.isPresent()) {
 							Booking bkng = optional.get();
-							bkng.setStatus("follow-up Pending");
+							bkng.setStatus("confirmed");
 							if(n.getValue() != null && !n.getValue().isEmpty()) {
 								bkng.setFollowupDate(n.getValue().stream().map(s -> s.getDate()).findFirst().get());
 							}
@@ -2874,14 +2874,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 										if (date.equals(n.getValue().get(0).getDate())) {
 											Status ADDED_TO_EXISITNG_LIST = new Status();
 											ADDED_TO_EXISITNG_LIST.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-											ADDED_TO_EXISITNG_LIST.setStatus("follow-up Pending");
+											ADDED_TO_EXISITNG_LIST.setStatus("confirmed");
 											statusList.add(ADDED_TO_EXISITNG_LIST);
 										}
 		                            });
 								} else {
 									Status status = new Status();
 									status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-									status.setStatus("follow-up Pending");
+									status.setStatus("confirmed");
 									statusList.add(status);
 	                            }
 
@@ -2891,7 +2891,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 							BookingResponse res = toResponse(bkng);
 							res.setSession(n.getValue());
-							res.setVisitType("follow up");
+							res.setVisitType("session");
 							BOOKINGS_OF_SESSIONS.add(res);
 
 						}});}
@@ -3028,7 +3028,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					Optional<Booking> booking = repository.findById(key);
 					if(booking.isPresent()) {
 						Booking bkng = booking.get();
-						bkng.setStatus("follow-up Pending");
+						bkng.setStatus("confirmed");
 						bkng.setFollowupDate(n.getValue().stream().map(s -> s.getDate()).findFirst().get());
 
 						List<Status> statusList = bkng.getCurrentStatus() == null
@@ -3045,14 +3045,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									if (dte.equals(n.getValue().get(0).getDate())) {
 										Status ADDED_TO_EXISITNG_LIST = new Status();
 										ADDED_TO_EXISITNG_LIST.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-										ADDED_TO_EXISITNG_LIST.setStatus("follow-up Pending");
+										ADDED_TO_EXISITNG_LIST.setStatus("confirmed");
 										statusList.add(ADDED_TO_EXISITNG_LIST);
 									}
 								});
 							} else {
 								Status status = new Status();
 								status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-								status.setStatus("follow-up Pending");
+								status.setStatus("confirmed");
 								statusList.add(status);
 							}
 
@@ -3062,7 +3062,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 						BookingResponse res = toResponse(bkng);
 						res.setSession(n.getValue());
-						res.setVisitType("follow up");
+						res.setVisitType("session");
 						responses.add(res);
 
 					}});}
@@ -3254,7 +3254,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 					Optional<Booking> optional = repository.findById(key);
 					if(optional.isPresent()) {
 						Booking bkng = optional.get();
-						bkng.setStatus("follow-up Pending");
+						bkng.setStatus("confirmed");
 						bkng.setFollowupDate(n.getValue().stream().map(s -> s.getDate()).findFirst().get());
 
 						List<Status> statusList = bkng.getCurrentStatus() == null
@@ -3271,14 +3271,14 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 									if (date.equals(n.getValue().get(0).getDate())) {
 										Status ADDED_TO_EXISITNG_LIST = new Status();
 										ADDED_TO_EXISITNG_LIST.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-										ADDED_TO_EXISITNG_LIST.setStatus("follow-up Pending");
+										ADDED_TO_EXISITNG_LIST.setStatus("confirmed");
 										statusList.add(ADDED_TO_EXISITNG_LIST);
 									}
 								});
 							} else {
 								Status status = new Status();
 								status.setDATE_TIME(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
-								status.setStatus("follow-up Pending");
+								status.setStatus("confirmed");
 								statusList.add(status);}
 							bkng.setCurrentStatus(statusList);
 							repository.save(bkng);
@@ -3286,7 +3286,7 @@ public class BookingService_ServiceImpl implements BookingService_Service {
 
 						BookingResponse res = toResponse(bkng);
 						res.setSession(n.getValue());
-						res.setVisitType("follow up");
+						res.setVisitType("session");
 						responses.add(res);
 					}});}
 
