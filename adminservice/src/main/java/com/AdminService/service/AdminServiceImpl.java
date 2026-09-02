@@ -256,6 +256,7 @@ public class AdminServiceImpl implements AdminService {
             savedClinic.setRecommended(clinic.isRecommended());
             savedClinic.setClinicType(clinic.getClinicType());
             savedClinic.setHospitalOverallRating(0.0);
+            savedClinic.setServer(clinic.getServer());
             savedClinic.setSubscription(clinic.getSubscription());
             savedClinic.setFreeFollowUps(clinic.getFreeFollowUps());
             savedClinic.setLatitude(clinic.getLatitude());
@@ -792,6 +793,7 @@ public class AdminServiceImpl implements AdminService {
                 clnc.setFacebookHandle(clinic.getFacebookHandle() != null ? clinic.getFacebookHandle() : "");
 
                 clnc.setBranches(clinic.getBranches());
+                clnc.setServer(clinic.getServer());
 
                 response.setMessage("Clinic fetched successfully");
 
@@ -886,6 +888,7 @@ public class AdminServiceImpl implements AdminService {
                     clnc.setStatus(clinic.getStatus());
                     clnc.setBranches(clinic.getBranches());
                     clnc.setLocation(clinic.getLocation());
+                    clnc.setServer(clinic.getServer());
                     clnc.setHospitalLogo(
 
                             clinic.getHospitalLogo() != null
@@ -1328,6 +1331,9 @@ public class AdminServiceImpl implements AdminService {
 
                 if (clinic.getLocation() != null || clinic.getLocation().isEmpty()){
                     savedClinic.setLocation(clinic.getLocation());}
+
+                if (clinic.getServer() != null || clinic.getServer().isEmpty()){
+                    savedClinic.setServer(clinic.getServer());}
 
 
                 // Medicines Sold On Site

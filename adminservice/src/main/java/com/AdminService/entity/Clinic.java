@@ -111,5 +111,5 @@ public class Clinic {
 	private String status ;
 	private String createdAt;
     private String location;
-	   
+    private String server;
 }

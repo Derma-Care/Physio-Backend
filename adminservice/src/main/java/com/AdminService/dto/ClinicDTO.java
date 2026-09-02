@@ -118,6 +118,6 @@ public class ClinicDTO {
 	private String status;
 	private String fcmToken;
     private String location;
-		
+	private String server;
 	
 }
