@@ -272,13 +272,14 @@ public class DoctorServiceImpl implements DoctorService {
 			// -------------------- Send Email to Doctor --------------------
 			try {
 				Map<String, String> mailData = new HashMap<>();
+				mailData.put("clinicName", clinicDTO.getName()); // ✅ dynamic clinic name
 				mailData.put("subject", "Doctor Onboarding Successful");
-				mailData.put("message", "Welcome to CCMS Kinetix!\n\n" + "Your account has been created successfully.\n"
+				mailData.put("message", "Your account has been created successfully.\n"
 						+ "Please use the below credentials to login.\n\n" + "Doctor ID: " + savedDoctor.getDoctorId());
 
 				mailData.put("username", username);
 				mailData.put("password", rawPassword);
-				mailData.put("role", dto.getRole()); // ✅ ADD THIS
+				mailData.put("role", dto.getRole());
 
 				emailService.sendEmail(savedDoctor.getDoctorEmail(), mailData);
 

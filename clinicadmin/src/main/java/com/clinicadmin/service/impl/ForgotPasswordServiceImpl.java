@@ -81,8 +81,8 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
         user.setOtpExpiryMillis(expiry);
         loginRepository.save(user);
 
-        // ✅ uses your clean dedicated method now
-        emailService.sendForgotPasswordOtp(user.getEmailId(), otp, user.getStaffName());
+        // ✅ clinic name is now passed in; null/blank falls back to the default brand inside EmailService
+        emailService.sendForgotPasswordOtp(user.getEmailId(), otp, user.getStaffName(), resolveClinicName(user));
 
         response.setSuccess(true);
         response.setStatus(200);
@@ -158,6 +158,15 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
     }
 
     // ---------------- helpers ----------------
+
+    // Returns the clinic name to show in the OTP email.
+    // TODO: replace the return with the real source of the clinic name for this user,
+    // e.g. user.getClinicName(), or a lookup by clinicId through your clinic repository/feign client.
+    // Returning null is safe: EmailService falls back to the default brand name.
+    private String resolveClinicName(DoctorAndStaffLoginCredentials user) {
+        return null;
+    }
+
     private Response checkOtpValidity(String storedOtp, Long expiryMillis, String suppliedOtp, Response response) {
 
         if (storedOtp == null || expiryMillis == null) {

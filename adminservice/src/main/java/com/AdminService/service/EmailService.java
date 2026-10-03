@@ -1,5 +1,6 @@
 package com.AdminService.service;
 
+import java.time.Year;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ public class EmailService {
 
     private final String fromAddress;
     private final String clinicLoginUrl;
+    private final String defaultBrandName;
 
     public EmailService(JavaMailSender mailSender, Environment env) {
         this.mailSender = mailSender;
@@ -30,9 +32,32 @@ public class EmailService {
                 "notification.clinic-login-url",
                 "https://clinic.ccmstestserver.online"
         );
+        // Only used as a last-resort fallback when a clinic name isn't supplied
+        this.defaultBrandName = env.getProperty(
+                "notification.default-brand-name",
+                "Kinetix Wellness Care"
+        );
+    }
+
+    // ================= HELPERS =================
+
+    // Falls back to the default brand instead of rendering "null" in the email.
+    private String resolveClinicName(String clinicName) {
+        return (clinicName != null && !clinicName.isBlank()) ? clinicName : defaultBrandName;
+    }
+
+    private String resolveClinicName(Map<String, String> data) {
+        return resolveClinicName(data.get("clinicName"));
+    }
+
+    private String currentYear() {
+        return String.valueOf(Year.now().getValue());
     }
 
     // ================= SEND EMAIL =================
+    // Callers should put the clinic's actual name into
+    // data.put("clinicName", clinic.getName()) before calling this,
+    // so every template below renders it dynamically.
     public void sendEmail(String to, Map<String, String> data) {
         try {
             if (to == null || to.isBlank()) {
@@ -40,7 +65,8 @@ public class EmailService {
                 return;
             }
 
-            String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
+            String clinicName = resolveClinicName(data);
+            String subject = data.getOrDefault("subject", clinicName);
 
             // Emoji support
             String emoji = "";
@@ -51,7 +77,7 @@ public class EmailService {
             else if (subject.contains("OTP")) emoji = "🔒";
 
             // Fix subject branding
-            subject = subject.replace("CCMS Notification", "Kinetix Wellness Care");
+            subject = subject.replace("CCMS Notification", clinicName);
 
             String subjectWithEmoji = emoji.isEmpty() ? subject : emoji + " " + subject;
 
@@ -63,11 +89,11 @@ public class EmailService {
             helper.setSubject(subjectWithEmoji);
 
             if (subject.contains("OTP")) {
-                helper.setText(buildOtpMessageBody(data, emoji), true);
+                helper.setText(buildOtpMessageBody(data, clinicName), true);
             } else if (subject.contains("Rejected")) {
-                helper.setText(buildRejectionMessageBody(data, emoji), true);
+                helper.setText(buildRejectionMessageBody(data, clinicName), true);
             } else {
-                helper.setText(buildMessageBody(data, emoji), true);
+                helper.setText(buildMessageBody(data, clinicName), true);
             }
 
             mailSender.send(mimeMessage);
@@ -78,33 +104,35 @@ public class EmailService {
         }
     }
 
+    // Kept for existing callers; identical behaviour to sendEmail.
+    public void sendOtpByEmail(String to, Map<String, String> data) {
+        sendEmail(to, data);
+    }
+
     // ================= COMMON TEMPLATE =================
-    private String buildMessageBody(Map<String, String> data, String emoji) {
+    private String buildMessageBody(Map<String, String> data, String clinicName) {
 
         String bodyMessage = data.getOrDefault("message", "");
         String username = data.get("username");
         String password = data.get("password");
 
-        // ✅ NEW: Normalize Admin message to match Doctor format
+        // Normalize Admin message to match Doctor format
         if (bodyMessage != null && bodyMessage.contains("clinic has been verified")) {
 
             String clinicId = username != null ? username : "";
 
             bodyMessage =
-                    "Welcome to CCMS KINETIX!\n\n" +
                     "Your account has been created successfully.\n" +
                     "Please use the below credentials to login.\n\n" +
                     "Clinic ID: " + clinicId;
         }
 
-    
         if (bodyMessage != null) {
 
-            // Remove any existing "Welcome..." line completely
-            bodyMessage = bodyMessage.replaceAll("Welcome to CCMS.*", "").trim();
+            // Remove any existing "Welcome to ..." line completely
+            bodyMessage = bodyMessage.replaceAll("(?im)^\\s*welcome to .*$", "").trim();
 
-          
-            bodyMessage = "Welcome to CCMS Kinetix!\n\n" + bodyMessage;
+            bodyMessage = "Welcome to " + clinicName + "!\n\n" + bodyMessage;
         }
         return """
             <html>
@@ -115,7 +143,7 @@ public class EmailService {
                 
                 <!-- Header -->
                 <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-                    <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
+                    <h2 style="color:#ffffff; margin:0;">%s</h2>
                 </div>
 
                 <!-- Body -->
@@ -133,14 +161,14 @@ public class EmailService {
 
                     <p style="margin-top:20px;">
                         Regards,<br>
-                        CCMS Team
+                        %s Team
                     </p>
 
                 </div>
 
                 <!-- Footer -->
                 <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
-                    © 2026 CCMS. All rights reserved.
+                    © %s %s. All rights reserved.
                 </div>
 
             </div>
@@ -148,6 +176,8 @@ public class EmailService {
             </body>
             </html>
             """.formatted(
+
+                clinicName,
 
                 bodyMessage.replace("\n", "<br>"),
 
@@ -171,30 +201,34 @@ public class EmailService {
                             </a>
                         </div>
                         """.formatted(clinicLoginUrl)
-                        : ""
+                        : "",
+
+                clinicName,
+                currentYear(),
+                clinicName
         );
     }
 
     // ================= OTP TEMPLATE =================
-    private String buildOtpMessageBody(Map<String, String> data, String emoji) {
+    private String buildOtpMessageBody(Map<String, String> data, String clinicName) {
         String bodyMessage = data.getOrDefault("message", "");
 
         return """
             <html>
             <body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
                 <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-                    <h3 style="color:#0f2027;">🔒 OTP Verification</h3>
+                    <h3 style="color:#0f2027;">🔒 %s OTP Verification</h3>
                     <p>%s</p>
                     <p style="font-size:24px; font-weight:bold; color:#28a745;">%s</p>
                     <p>This OTP is valid for 10 minutes.</p>
                 </div>
             </body>
             </html>
-            """.formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
+            """.formatted(clinicName, bodyMessage, bodyMessage.replaceAll("\\D+", ""));
     }
 
     // ================= REJECTION TEMPLATE =================
-    private String buildRejectionMessageBody(Map<String, String> data, String emoji) {
+    private String buildRejectionMessageBody(Map<String, String> data, String clinicName) {
         String bodyMessage = data.getOrDefault("message", "");
         String reason = data.getOrDefault("reason", "Not specified");
 
@@ -202,7 +236,7 @@ public class EmailService {
             <html>
             <body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
                 <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-                    <h3 style="color:#d32f2f;">❌ Rejected</h3>
+                    <h3 style="color:#d32f2f;">❌ %s - Rejected</h3>
                     <p>%s</p>
                     <p style="background:#fdecea; padding:10px; border-radius:5px;">
                         <b>Reason:</b> %s
@@ -210,186 +244,32 @@ public class EmailService {
                 </div>
             </body>
             </html>
-            """.formatted(bodyMessage, reason);
-    }
-    
-    
-    
-    public void sendOtpByEmail(String to, Map<String, String> data) {
-        try {
-            if (to == null || to.isBlank()) {
-                logger.warn("Email not sent: recipient address is blank");
-                return;
-            }
-
-            String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
-
-            // Emoji support
-            String emoji = "";
-            if (subject.contains("Verified")) emoji = "🎉";
-            else if (subject.contains("Pending")) emoji = "⏳";
-            else if (subject.contains("Review")) emoji = "🔍";
-            else if (subject.contains("Rejected")) emoji = "❌";
-            else if (subject.contains("OTP")) emoji = "🔒";
-
-            // Fix subject branding
-            subject = subject.replace("CCMS Notification", "Kinetix Wellness Care");
-
-            String subjectWithEmoji = emoji.isEmpty() ? subject : emoji + " " + subject;
-
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(to);
-            helper.setFrom(fromAddress);
-            helper.setSubject(subjectWithEmoji);
-
-            if (subject.contains("OTP")) {
-                helper.setText(buildOtpMessageBody(data, emoji), true);
-            } else if (subject.contains("Rejected")) {
-                helper.setText(buildRejectionMessageBody(data, emoji), true);
-            } else {
-                helper.setText(buildMessageBody(data, emoji), true);
-            }
-
-            mailSender.send(mimeMessage);
-            logger.info("Email sent successfully to {}", to);
-
-        } catch (Exception e) {
-            logger.error("Failed to send email to {}: {}", to, e.getMessage(), e);
-        }
+            """.formatted(clinicName, bodyMessage, reason);
     }
 
-    // ================= COMMON TEMPLATE =================
-    private String mailMessageBody(Map<String, String> data, String emoji) {
+    // ================= FORGOT PASSWORD OTP =================
 
-        String bodyMessage = data.getOrDefault("message", "");
-        String username = data.get("username");
-        String password = data.get("password");
-
-        // ✅ NEW: Normalize Admin message to match Doctor format
-        if (bodyMessage != null && bodyMessage.contains("clinic has been verified")) {
-
-            String clinicId = username != null ? username : "";
-
-            bodyMessage =
-                    "Welcome to CCMS KINETIX!\n\n" +
-                    "Your account has been created successfully.\n" +
-                    "Please use the below credentials to login.\n\n" +
-                    "Clinic ID: " + clinicId;
-        }
-
-    
-        if (bodyMessage != null) {
-
-            // Remove any existing "Welcome..." line completely
-            bodyMessage = bodyMessage.replaceAll("Welcome to CCMS.*", "").trim();
-
-          
-            bodyMessage = "Welcome to CCMS Kinetix!\n\n" + bodyMessage;
-        }
-        return """
-            <html>
-            <body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fa;">
-            
-            <div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:10px; 
-                        border:1px solid #e0e0e0; overflow:hidden;">
-                
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-                    <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
-                </div>
-
-                <!-- Body -->
-                <div style="padding:20px; color:#333;">
-                    
-                    <p>👋 Hello,</p>
-
-                    <p style="line-height:1.6;">
-                        %s
-                    </p>
-
-                    %s
-
-                    %s
-
-                    <p style="margin-top:20px;">
-                        Regards,<br>
-                        CCMS Team
-                    </p>
-
-                </div>
-
-                <!-- Footer -->
-                <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
-                    © 2026 CCMS. All rights reserved.
-                </div>
-
-            </div>
-
-            </body>
-            </html>
-            """.formatted(
-
-                bodyMessage.replace("\n", "<br>"),
-
-                (username != null && password != null)
-                        ? """
-                        <div style="background:#e8f0fe; padding:15px; border-radius:6px; margin-top:15px;">
-                            <h3 style="margin-top:0; color:#1a73e8;">Login Credentials</h3>
-                            <p><b>Username:</b> %s</p>
-                            <p><b>Password:</b> %s</p>
-                        </div>
-                        """.formatted(username, password)
-                        : "",
-
-                (username != null && password != null)
-                        ? """
-                        <div style="text-align:center; margin-top:20px;">
-                            <a href="%s"
-                               style="background:#28a745; color:white; padding:10px 22px; 
-                                      border-radius:6px; text-decoration:none; font-weight:bold;">
-                               Login Now
-                            </a>
-                        </div>
-                        """.formatted(clinicLoginUrl)
-                        : ""
-        );
-    }
-
-    // ================= OTP TEMPLATE =================
-    private String otpMessageBody(Map<String, String> data, String emoji) {
-        String bodyMessage = data.getOrDefault("message", "");
-
-        return """
-            <html>
-            <body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
-                <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-                    <h3 style="color:#0f2027;">🔒 OTP Verification</h3>
-                    <p>%s</p>
-                    <p style="font-size:24px; font-weight:bold; color:#28a745;">%s</p>
-                    <p>This OTP is valid for 10 minutes.</p>
-                </div>
-            </body>
-            </html>
-            """.formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
-    }
-
- // ================= FORGOT PASSWORD OTP =================
+    // Kept so existing callers still compile; uses the default brand name.
     public void sendForgotPasswordOtp(String to, String otp, String accountName) {
+        sendForgotPasswordOtp(to, otp, accountName, null);
+    }
+
+    public void sendForgotPasswordOtp(String to, String otp, String accountName, String clinicName) {
         try {
             if (to == null || to.isBlank()) {
                 logger.warn("Email not sent: recipient address is blank");
                 return;
             }
 
+            String resolvedClinicName = resolveClinicName(clinicName);
+
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setTo(to);
             helper.setFrom(fromAddress);
-            helper.setSubject("🔒 Password Reset OTP");
-            helper.setText(buildForgotPasswordOtpBody(otp, accountName), true);
+            helper.setSubject("🔒 " + resolvedClinicName + " - Password Reset OTP");
+            helper.setText(buildForgotPasswordOtpBody(otp, accountName, resolvedClinicName), true);
 
             mailSender.send(mimeMessage);
             logger.info("Forgot-password OTP sent successfully to {}", to);
@@ -399,7 +279,7 @@ public class EmailService {
         }
     }
 
-    private String buildForgotPasswordOtpBody(String otp, String accountName) {
+    private String buildForgotPasswordOtpBody(String otp, String accountName, String clinicName) {
 
         String greetingName = (accountName != null && !accountName.isBlank())
                 ? accountName
@@ -413,13 +293,13 @@ public class EmailService {
                         border:1px solid #e0e0e0; overflow:hidden;">
 
                 <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-                    <h2 style="color:#ffffff; margin:0;">Password Reset Request</h2>
+                    <h2 style="color:#ffffff; margin:0;">%s - Password Reset Request</h2>
                 </div>
 
                 <div style="padding:20px; color:#333;">
                     <p>👋 Hello %s,</p>
                     <p style="line-height:1.6;">
-                        We received a request to reset the password for your account.
+                        We received a request to reset the password for your %s account.
                         Use the OTP below to proceed. If you didn't request this, you can safely ignore this email.
                     </p>
 
@@ -437,17 +317,17 @@ public class EmailService {
 
                     <p style="margin-top:20px;">
                         Regards,<br>
-                        Support Team
+                        %s Support Team
                     </p>
                 </div>
 
                 <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
-                    © 2026. All rights reserved.
+                    © %s %s. All rights reserved.
                 </div>
             </div>
 
             </body>
             </html>
-            """.formatted(greetingName, otp);
-    } 
+            """.formatted(clinicName, greetingName, clinicName, otp, clinicName, currentYear(), clinicName);
+    }
 }

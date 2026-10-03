@@ -11,5 +11,9 @@ public class PatientEmailDTO {
 
     private String patientMail;
 
-    private String pdfFile; 
+    private String pdfFile;
+
+    // Optional: clinic shown in the email header/sign-off. If null/blank,
+    // EmailService falls back to the default brand name.
+    private String clinicName;
 }

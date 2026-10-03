@@ -1,6 +1,8 @@
 package com.clinicadmin.service;
 
-import java.net.URL;
+import java.io.InputStream;
+import java.net.URI;
+import java.time.Year;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -10,9 +12,6 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import java.io.InputStream;
-import java.net.URI;
 
 import jakarta.mail.internet.MimeMessage;
 
@@ -25,16 +24,31 @@ public class EmailService {
 	private final String fromAddress;
 	private final String doctorLoginUrl;
 	private final String therapistLoginUrl;
+	private final String defaultBrandName;
 
 	public EmailService(JavaMailSender mailSender, Environment env) {
 		this.mailSender = mailSender;
 		this.fromAddress = env.getProperty("notification.default-from-email", "no-reply@glowkart.com");
-		this.doctorLoginUrl = env.getProperty("notification.doctor-login-url", "https://doctor.ccmstestserver.online" // ✅
-																														// updated
-		);
+		this.doctorLoginUrl = env.getProperty("notification.doctor-login-url", "https://doctor.ccmstestserver.online");
 		this.therapistLoginUrl = env.getProperty("notification.therapist-login-url",
-				"https://therapist.ccmstestserver.online" // ✅ updated
-		);
+				"https://therapist.ccmstestserver.online");
+		// Only used as a last-resort fallback when a clinic name isn't supplied
+		this.defaultBrandName = env.getProperty("notification.default-brand-name", "Kinetix Wellness Care");
+	}
+
+	// ===================== HELPERS =====================
+
+	// Falls back to the default brand instead of rendering "null" in the email.
+	private String resolveClinicName(String clinicName) {
+		return (clinicName != null && !clinicName.isBlank()) ? clinicName : defaultBrandName;
+	}
+
+	private String resolveClinicName(Map<String, String> data) {
+		return resolveClinicName(data.get("clinicName"));
+	}
+
+	private String currentYear() {
+		return String.valueOf(Year.now().getValue());
 	}
 
 	// ===================== RESOLVE LOGIN URL BY ROLE =====================
@@ -42,14 +56,17 @@ public class EmailService {
 		if (role == null || role.isBlank())
 			return doctorLoginUrl;
 		return switch (role.toLowerCase()) {
-		case "doctor" -> doctorLoginUrl; // ✅ renamed
+		case "doctor" -> doctorLoginUrl;
 		case "physiotherapist" -> therapistLoginUrl;
 		// case "receptionist" -> receptionistLoginUrl;
-		default -> doctorLoginUrl; // ✅ renamed
+		default -> doctorLoginUrl;
 		};
 	}
 
 	// ===================== MAIN SEND METHOD =====================
+	// Callers should put the clinic's actual name into
+	// data.put("clinicName", clinic.getName()) (or doctor.getHospitalName())
+	// before calling this, so every template below renders it dynamically.
 	public void sendEmail(String to, Map<String, String> data) {
 		try {
 			if (to == null || to.isBlank()) {
@@ -57,7 +74,8 @@ public class EmailService {
 				return;
 			}
 
-			String subject = data.getOrDefault("subject", "Kinetix Wellness Care");
+			String clinicName = resolveClinicName(data);
+			String subject = data.getOrDefault("subject", clinicName);
 			String role = data.getOrDefault("role", "doctor");
 
 			String emoji = "";
@@ -82,11 +100,11 @@ public class EmailService {
 			helper.setSubject(subjectWithEmoji);
 
 			if (subject.contains("OTP")) {
-				helper.setText(buildOtpMessageBody(data, emoji), true);
+				helper.setText(buildOtpMessageBody(data, clinicName), true);
 			} else if (subject.contains("Rejected")) {
-				helper.setText(buildRejectionMessageBody(data, emoji), true);
+				helper.setText(buildRejectionMessageBody(data, clinicName), true);
 			} else {
-				helper.setText(buildMessageBody(data, emoji, resolveLoginUrl(role)), true);
+				helper.setText(buildMessageBody(data, clinicName, resolveLoginUrl(role)), true);
 			}
 
 			mailSender.send(mimeMessage);
@@ -98,14 +116,14 @@ public class EmailService {
 	}
 
 	// ===================== GENERAL EMAIL BODY =====================
-	private String buildMessageBody(Map<String, String> data, String emoji, String loginUrl) {
+	private String buildMessageBody(Map<String, String> data, String clinicName, String loginUrl) {
 
 		String bodyMessage = data.getOrDefault("message", "");
 		String username = data.get("username");
 		String password = data.get("password");
 
-		if (bodyMessage != null && !bodyMessage.toLowerCase().contains("welcome to ccms kinetix")) {
-			bodyMessage = "Welcome to CCMS Kinetix!\n\n" + bodyMessage;
+		if (bodyMessage != null && !bodyMessage.toLowerCase().contains("welcome to")) {
+			bodyMessage = "Welcome to " + clinicName + "!\n\n" + bodyMessage;
 		}
 
 		return """
@@ -117,7 +135,7 @@ public class EmailService {
 
 				    <!-- Header -->
 				    <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-				        <h2 style="color:#ffffff; margin:0;">Kinetix Wellness Care</h2>
+				        <h2 style="color:#ffffff; margin:0;">%s</h2>
 				    </div>
 
 				    <!-- Body -->
@@ -135,14 +153,14 @@ public class EmailService {
 
 				        <p style="margin-top:20px;">
 				            Regards,<br>
-				            CCMS Team
+				            %s Team
 				        </p>
 
 				    </div>
 
 				    <!-- Footer -->
 				    <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
-				        © 2026 CCMS. All rights reserved.
+				        © %s %s. All rights reserved.
 				    </div>
 
 				</div>
@@ -151,6 +169,8 @@ public class EmailService {
 				</html>
 				"""
 				.formatted(
+
+						clinicName,
 
 						bodyMessage.replace("\n", "<br>"),
 
@@ -172,29 +192,33 @@ public class EmailService {
 								       Login Now
 								    </a>
 								</div>
-								""".formatted(loginUrl) : "");
+								""".formatted(loginUrl) : "",
+
+						clinicName,
+						currentYear(),
+						clinicName);
 	}
 
 	// ===================== OTP EMAIL BODY =====================
-	private String buildOtpMessageBody(Map<String, String> data, String emoji) {
+	private String buildOtpMessageBody(Map<String, String> data, String clinicName) {
 		String bodyMessage = data.getOrDefault("message", "");
 
 		return """
 				<html>
 				<body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
 				    <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-				        <h3 style="color:#0f2027;">🔒 OTP Verification</h3>
+				        <h3 style="color:#0f2027;">🔒 %s OTP Verification</h3>
 				        <p>%s</p>
 				        <p style="font-size:24px; font-weight:bold; color:#28a745;">%s</p>
 				        <p>This OTP is valid for 10 minutes.</p>
 				    </div>
 				</body>
 				</html>
-				""".formatted(bodyMessage, bodyMessage.replaceAll("\\D+", ""));
+				""".formatted(clinicName, bodyMessage, bodyMessage.replaceAll("\\D+", ""));
 	}
 
 	// ===================== REJECTION EMAIL BODY =====================
-	private String buildRejectionMessageBody(Map<String, String> data, String emoji) {
+	private String buildRejectionMessageBody(Map<String, String> data, String clinicName) {
 		String bodyMessage = data.getOrDefault("message", "");
 		String reason = data.getOrDefault("reason", "Not specified");
 
@@ -202,7 +226,7 @@ public class EmailService {
 				<html>
 				<body style="font-family: Arial, sans-serif; background:#f5f7fa; padding:20px;">
 				    <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
-				        <h3 style="color:#d32f2f;">❌ Rejected</h3>
+				        <h3 style="color:#d32f2f;">❌ %s - Rejected</h3>
 				        <p>%s</p>
 				        <p style="background:#fdecea; padding:10px; border-radius:5px;">
 				            <b>Reason:</b> %s
@@ -210,9 +234,10 @@ public class EmailService {
 				    </div>
 				</body>
 				</html>
-				""".formatted(bodyMessage, reason);
+				""".formatted(clinicName, bodyMessage, reason);
 	}
 
+	// ===================== PATIENT EMAIL =====================
 	public void sendPatientEmail(
 
 			String to,
@@ -236,6 +261,9 @@ public class EmailService {
 				return;
 			}
 
+			String resolvedClinicName = resolveClinicName(clinicName);
+			String resolvedBranchName = (branchName != null && !branchName.isBlank()) ? branchName : "";
+
 			MimeMessage mimeMessage = mailSender.createMimeMessage();
 
 			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -252,9 +280,9 @@ public class EmailService {
 
 							patientName,
 
-							clinicName,
+							resolvedClinicName,
 
-							branchName,
+							resolvedBranchName,
 
 							title,
 
@@ -378,7 +406,7 @@ public class EmailService {
 				            color:#777;
 				            margin-top:15px;">
 
-				            Powered by CCMS
+				            Powered by %s
 
 				        </p>
 
@@ -401,9 +429,12 @@ public class EmailService {
 
 				body.replace("\n", "<br>"),
 
+				clinicName,
+
 				clinicName);
 	}
 
+	// ===================== PATIENT PDF EMAIL =====================
 	public void sendPatientPdfEmail(
 
 			String to,
@@ -414,7 +445,9 @@ public class EmailService {
 
 			String body,
 
-			String pdfFile) {
+			String pdfFile,
+
+			String clinicName) {
 
 		try {
 
@@ -424,6 +457,8 @@ public class EmailService {
 
 				return;
 			}
+
+			String resolvedClinicName = resolveClinicName(clinicName);
 
 			MimeMessage mimeMessage = mailSender.createMimeMessage();
 
@@ -443,7 +478,9 @@ public class EmailService {
 
 							title,
 
-							body),
+							body,
+
+							resolvedClinicName),
 
 					true);
 
@@ -480,7 +517,9 @@ public class EmailService {
 
 			String title,
 
-			String body) {
+			String body,
+
+			String clinicName) {
 
 		return """
 				<html>
@@ -510,7 +549,7 @@ public class EmailService {
 
 				        Regards,<br>
 
-				        <strong>Kinetix Wellness Care</strong>
+				        <strong>%s</strong>
 
 				    </p>
 
@@ -528,7 +567,7 @@ public class EmailService {
 				        font-size:12px;
 				        color:#777777;">
 
-				        Powered by <strong>CCMS</strong>
+				        Powered by <strong>%s</strong>
 
 				    </p>
 
@@ -539,24 +578,30 @@ public class EmailService {
 
 				title,
 
-				patientName);
+				patientName,
+
+				clinicName,
+
+				clinicName);
 	}
 
-// ================= FORGOT PASSWORD OTP =================
-	public void sendForgotPasswordOtp(String to, String otp, String accountName) {
+	// ================= FORGOT PASSWORD OTP =================
+	public void sendForgotPasswordOtp(String to, String otp, String accountName, String clinicName) {
 		try {
 			if (to == null || to.isBlank()) {
 				logger.warn("Email not sent: recipient address is blank");
 				return;
 			}
 
+			String resolvedClinicName = resolveClinicName(clinicName);
+
 			MimeMessage mimeMessage = mailSender.createMimeMessage();
 			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
 			helper.setTo(to);
 			helper.setFrom(fromAddress);
-			helper.setSubject("🔒 Password Reset OTP");
-			helper.setText(buildForgotPasswordOtpBody(otp, accountName), true);
+			helper.setSubject("🔒 " + resolvedClinicName + " - Password Reset OTP");
+			helper.setText(buildForgotPasswordOtpBody(otp, accountName, resolvedClinicName), true);
 
 			mailSender.send(mimeMessage);
 			logger.info("Forgot-password OTP sent successfully to {}", to);
@@ -566,7 +611,7 @@ public class EmailService {
 		}
 	}
 
-	private String buildForgotPasswordOtpBody(String otp, String accountName) {
+	private String buildForgotPasswordOtpBody(String otp, String accountName, String clinicName) {
 
 		String greetingName = (accountName != null && !accountName.isBlank()) ? accountName : "there";
 
@@ -578,13 +623,13 @@ public class EmailService {
 				            border:1px solid #e0e0e0; overflow:hidden;">
 
 				    <div style="background:linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; text-align:center;">
-				        <h2 style="color:#ffffff; margin:0;">Password Reset Request</h2>
+				        <h2 style="color:#ffffff; margin:0;">%s - Password Reset Request</h2>
 				    </div>
 
 				    <div style="padding:20px; color:#333;">
 				        <p>👋 Hello %s,</p>
 				        <p style="line-height:1.6;">
-				            We received a request to reset the password for your account.
+				            We received a request to reset the password for your %s account.
 				            Use the OTP below to proceed. If you didn't request this, you can safely ignore this email.
 				        </p>
 
@@ -602,18 +647,18 @@ public class EmailService {
 
 				        <p style="margin-top:20px;">
 				            Regards,<br>
-				            Support Team
+				            %s Support Team
 				        </p>
 				    </div>
 
 				    <div style="background:#f1f3f6; padding:12px; text-align:center; font-size:12px; color:#777;">
-				        © 2026. All rights reserved.
+				        © %s %s. All rights reserved.
 				    </div>
 				</div>
 
 				</body>
 				</html>
 				"""
-				.formatted(greetingName, otp);
+				.formatted(clinicName, greetingName, clinicName, otp, clinicName, currentYear(), clinicName);
 	}
 }

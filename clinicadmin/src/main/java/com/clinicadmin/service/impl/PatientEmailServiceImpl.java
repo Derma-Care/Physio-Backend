@@ -73,6 +73,22 @@ public class PatientEmailServiceImpl
 
                     : dto.getTitle();
 
+            // null/blank is fine: EmailService falls back to the default brand name
+            String clinicName =
+                    (dto.getClinicName() != null
+                    && !dto.getClinicName().isBlank())
+
+                    ? dto.getClinicName()
+
+                    : null;
+
+            String signOff =
+                    clinicName != null
+
+                    ? clinicName + " Team"
+
+                    : "Care Team";
+
             String body = """
                     Dear %s,
 
@@ -81,10 +97,11 @@ public class PatientEmailServiceImpl
                     Thank you.
 
                     Regards,
-                    CCMS Team
+                    %s
                     """
                     .formatted(
-                            dto.getPatientName());
+                            dto.getPatientName(),
+                            signOff);
 
             // dto.getPdfFile() contains the S3 fileKey
             String signedUrl =
@@ -102,7 +119,9 @@ public class PatientEmailServiceImpl
 
                     body,
 
-                    signedUrl);
+                    signedUrl,
+
+                    clinicName);
 
             log.info(
                     "Patient PDF email sent successfully to {}",

@@ -144,10 +144,10 @@ public class BranchServiceImpl implements BranchService {
             if (savedBranch.getEmail() != null && !savedBranch.getEmail().isBlank()) {
 
                 Map<String, String> mailData = new HashMap<>();
+                mailData.put("clinicName", clinic.getName()); // ✅ dynamic; falls back to default brand if null
                 mailData.put("subject", "Branch Login Credentials");
 
                 mailData.put("message",
-                        "Welcome to CCMS KINETIX!\n\n" +
                         "Your account has been created successfully.\n" +
                         "Please use the below credentials to login.\n\n" +
                         "Branch ID: " + branchId
@@ -158,7 +158,7 @@ public class BranchServiceImpl implements BranchService {
 
                 emailService.sendEmail(savedBranch.getEmail(), mailData);
             }
-
+            
             // ---------------- Attach to clinic ----------------
             List<Branch> branches = clinic.getBranches();
             if (branches == null) branches = new ArrayList<>();

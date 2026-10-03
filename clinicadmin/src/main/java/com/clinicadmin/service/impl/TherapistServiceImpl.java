@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import com.clinicadmin.dto.Branch;
 import com.clinicadmin.dto.ChangeDoctorPasswordDTO;
+import com.clinicadmin.dto.ClinicDTO;
 import com.clinicadmin.dto.Response;
 import com.clinicadmin.dto.ResponseStructure;
 import com.clinicadmin.dto.ServiceInfo;
@@ -135,9 +136,24 @@ public class TherapistServiceImpl implements TherapistService {
 			ResponseEntity<Response> res = adminServiceClient.getBranchById(dto.getBranchId());
 			Branch br = objectMapper.convertValue(res.getBody().getData(), Branch.class);
 
+			// -------------------- Fetch clinic name --------------------
+			String clinicName = null;
+			try {
+				ResponseEntity<Response> clinicRes = adminServiceClient.getClinicById(dto.getClinicId());
+				if (clinicRes.getBody() != null && clinicRes.getBody().isSuccess()) {
+					ClinicDTO clinicDTO = objectMapper.convertValue(clinicRes.getBody().getData(), ClinicDTO.class);
+					clinicName = clinicDTO.getName();
+				}
+			} catch (Exception e) {
+				log.warn("Could not fetch clinic name for clinicId={}: {}", dto.getClinicId(), e.getMessage());
+			}
+
 			// -------------------- Map DTO -> Entity --------------------
 			Therapist therapist = mapToEntity(dto);
 			therapist.setBranchName(br.getBranchName());
+			if (clinicName != null) {
+				therapist.setClinicName(clinicName);
+			}
 
 			// -------------------- Generate Therapist ID --------------------
 			String therapistId = generateTherapistId();
@@ -167,15 +183,15 @@ public class TherapistServiceImpl implements TherapistService {
 			// -------------------- Send Email --------------------
 			try {
 				Map<String, String> mailData = new HashMap<>();
+				mailData.put("clinicName", clinicName); // ✅ dynamic; falls back to default brand if null
 				mailData.put("subject", "Therapist Onboarding Successful");
-				mailData.put("message",
-						"Welcome to CCMS KINETIX!\n\n" + "Your account has been created successfully.\n"
-								+ "Please use the below credentials to login.\n\n" + "Therapist ID: "
-								+ savedTherapist.getTherapistId());
+				mailData.put("message", "Your account has been created successfully.\n"
+						+ "Please use the below credentials to login.\n\n" + "Therapist ID: "
+						+ savedTherapist.getTherapistId());
 
 				mailData.put("username", username);
 				mailData.put("password", rawPassword);
-				mailData.put("role", dto.getRole()); // ✅ ADD THIS
+				mailData.put("role", dto.getRole());
 
 				emailService.sendEmail(savedTherapist.getEmailId(), mailData);
 
