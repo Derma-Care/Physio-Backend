@@ -32,15 +32,22 @@ public class EmailService {
 		this.doctorLoginUrl = env.getProperty("notification.doctor-login-url", "https://doctor.ccmstestserver.online");
 		this.therapistLoginUrl = env.getProperty("notification.therapist-login-url",
 				"https://therapist.ccmstestserver.online");
-		// Only used as a last-resort fallback when a clinic name isn't supplied
-		this.defaultBrandName = env.getProperty("notification.default-brand-name", "Kinetix Wellness Care");
+		// Neutral last-resort fallback when a clinic name isn't supplied.
+		// Deliberately NOT a specific clinic's name, because one clinic's name
+		// must never appear in another clinic's emails.
+		this.defaultBrandName = env.getProperty("notification.default-brand-name", "Clinic");
 	}
 
 	// ===================== HELPERS =====================
 
 	// Falls back to the default brand instead of rendering "null" in the email.
 	private String resolveClinicName(String clinicName) {
-		return (clinicName != null && !clinicName.isBlank()) ? clinicName : defaultBrandName;
+		if (clinicName != null && !clinicName.isBlank()) {
+			return clinicName;
+		}
+		logger.warn("clinicName was not supplied; using neutral fallback '{}'. "
+				+ "The caller should pass the clinic's name.", defaultBrandName);
+		return defaultBrandName;
 	}
 
 	private String resolveClinicName(Map<String, String> data) {
